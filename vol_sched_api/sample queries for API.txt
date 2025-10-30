@@ -1,0 +1,181 @@
+// ============================================
+// Example queries to test your API
+// ============================================
+
+/*
+# Query 1: Find all virtual events with speaker roles
+query {
+  events(filter: {
+    eventType: VIRTUAL
+    roles: [SPEAKER]
+  }) {
+    id
+    name
+    description
+    eventType
+    shifts {
+      id
+      role
+      date
+      startTime
+      endTime
+    }
+  }
+}
+
+# Query 2: Find events in Austin or Boston
+query {
+  events(filter: {
+    cities: ["Austin", "Boston"]
+  }) {
+    id
+    name
+    description
+    eventType
+    location {
+      name
+      address
+      city
+      state
+    }
+    shifts {
+      id
+      role
+      date
+      startTime
+      endTime
+    }
+  }
+}
+
+# Query 3: Find hybrid events with advocacy or volunteer_lead roles
+query {
+  events(filter: {
+    eventType: HYBRID
+    roles: [ADVOCACY, VOLUNTEER_LEAD]
+  }) {
+    id
+    name
+    description
+    eventType
+    location {
+      name
+      address
+      city
+      state
+    }
+    shifts {
+      id
+      role
+      date
+      startTime
+      endTime
+    }
+  }
+}
+
+# Query 4: Find all in-person events in Springfield
+query {
+  events(filter: {
+    cities: ["Springfield"]
+    eventType: IN_PERSON
+  }) {
+    id
+    name
+    description
+    location {
+      address
+      city
+      state
+      zipCode
+    }
+    shifts {
+      role
+      date
+      startTime
+      endTime
+    }
+  }
+}
+
+# Query 5: Find events after a specific date
+query {
+  events(filter: {
+    startDate: "2025-10-20"
+  }) {
+    id
+    name
+    description
+    eventType
+    shifts {
+      role
+      date
+      startTime
+      endTime
+    }
+  }
+}
+
+# Query 6: Find events in a date range with specific roles
+query {
+  events(filter: {
+    startDate: "2025-11-01"
+    endDate: "2025-11-30"
+    roles: [SPEAKER, ADVOCACY]
+  }) {
+    id
+    name
+    description
+    eventType
+    location {
+      city
+      state
+    }
+    shifts {
+      role
+      date
+      startTime
+      endTime
+    }
+  }
+}
+
+# Query 7: Find events in specific cities within date range
+query {
+  events(filter: {
+    cities: ["Austin", "Portland"]
+    startDate: "2025-10-15"
+    endDate: "2025-11-10"
+  }) {
+    id
+    name
+    description
+    location {
+      name
+      city
+    }
+    shifts {
+      role
+      date
+      startTime
+      endTime
+    }
+  }
+}
+
+# Query 8: No filters - get all events
+query {
+  events {
+    id
+    name
+    description
+    eventType
+    shifts {
+      role
+      date
+      startTime
+      endTime
+    }
+  }
+}
+*/

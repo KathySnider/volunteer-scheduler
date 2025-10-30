@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom base styles */
+body {
+  background-color: rgb(249 250 251); /* gray-50 */
+  color: rgb(17 24 39); /* gray-900 */
+}
+
+input, 
+select, 
+textarea,
+option {
+  color: rgb(17 24 39); /* gray-900 */
+}

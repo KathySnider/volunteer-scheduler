@@ -1,0 +1,81 @@
+
+type Query {
+  events(filter: EventFilter): [Event!]!
+  event(id: ID!): Event                 
+  volunteers(qualifications: [String!]): [Volunteer!]!  
+}
+
+type Mutation {
+  createVolunteer(firstName: String!, lastName: String!): Volunteer!  
+  assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): AssignmentResult!  
+}
+
+input EventFilter {
+  cities: [String!]
+  eventType: EventType
+  roles: [RoleType!]
+  startDate: String
+  endDate: String
+}
+
+enum EventType {
+  VIRTUAL
+  IN_PERSON
+  HYBRID
+}
+
+enum RoleType {
+  EVENT_SUPPORT
+  ADVOCACY
+  SPEAKER
+  VOLUNTEER_LEAD
+  OTHER
+}
+
+type Event {
+  id: ID!
+  name: String!
+  description: String
+  eventType: EventType!
+  location: Location
+  shifts: [Shift!]!
+  opportunities: [Opportunity!]!  
+}
+
+type Location {
+  name: String
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String
+}
+
+type Shift {
+  id: ID!
+  role: RoleType!
+  date: String!
+  startTime: String!
+  endTime: String!
+  maxVolunteers: Int
+  assignedVolunteers: [Volunteer!]
+}
+
+type Volunteer {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  qualifications: [String!]
+}
+
+type Opportunity {
+  id: ID!
+  role: RoleType!
+  requiresQualifications: [String!]
+  shifts: [Shift!]!
+}
+
+type AssignmentResult {
+  success: Boolean!
+  message: String
+}
+

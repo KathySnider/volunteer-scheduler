@@ -1,0 +1,27 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Editor backups
+*~
+*.swp
+*.swo
+
+# Generated files
+graph/generated.go
+graph/model/models_gen.go
+
+# Environment variables
+.env
+.env.local
+```
+

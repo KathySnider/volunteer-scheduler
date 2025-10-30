@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Production
+build/
+dist/
+
+# Misc
+.DS_Store
+*.log
+npm-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env*.local
+
+# Editor backups
+*~
+*.swp
+*.swo
+
+# Optional: some people gitignore this
+# package-lock.json
