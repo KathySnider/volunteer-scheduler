@@ -1,0 +1,7 @@
+attendee_id,event_id,first_name,last_name,email,registered_at
+1,1,Karen,Mitchell,kmitchell@email.com,2025-10-01 10:15:00
+2,1,Thomas,White,twhite@email.com,2025-10-02 14:30:00
+3,2,Nancy,Harris,nharris@email.com,2025-09-15 09:00:00
+4,3,Steven,Clark,sclark@email.com,2025-10-20 16:45:00
+5,3,Betty,Lewis,blewis@email.com,2025-10-21 11:20:00
+6,5,George,Walker,gwalker@email.com,2025-10-15 13:50:00

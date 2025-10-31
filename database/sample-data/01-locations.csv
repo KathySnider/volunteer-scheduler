@@ -1,0 +1,6 @@
+location_id,location_name,street_address,city,state,zip_code
+1,Community Center Downtown,123 Main St,Springfield,IL,62701
+2,Riverside Park,456 River Rd,Portland,OR,97201
+3,City Hall Auditorium,789 Capitol Ave,Austin,TX,78701
+4,Lincoln Library,321 Book Ln,Boston,MA,02101
+5,Greenfield Convention Center,555 Convention Blvd,Denver,CO,80202

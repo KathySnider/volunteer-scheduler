@@ -1,0 +1,5 @@
+volunteer_id,preferred_roles,max_distance_miles,availability_notes
+1,"{speaker,advocacy}",25,Available weekends only
+2,"{advocacy,volunteer_lead}",50,Prefer virtual opportunities
+3,"{event_support,other}",15,Available any day after 5pm
+5,"{event_support,advocacy}",30,Not available Mondays

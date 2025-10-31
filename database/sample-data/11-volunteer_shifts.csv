@@ -1,0 +1,13 @@
+volunteer_id,shift_id,assigned_at,status,notes
+1,5,2025-09-15 10:00:00,confirmed,
+1,10,2025-10-01 14:30:00,confirmed,
+2,6,2025-09-20 11:15:00,confirmed,
+3,3,2025-09-25 09:45:00,confirmed,
+3,11,2025-10-05 16:20:00,confirmed,
+4,5,2025-09-18 13:00:00,cancelled,Scheduling conflict
+5,1,2025-10-10 08:30:00,confirmed,
+5,6,2025-09-22 15:10:00,confirmed,
+6,1,2025-10-08 12:00:00,confirmed,Bringing camera equipment
+7,3,2025-09-28 10:45:00,confirmed,
+7,7,2025-10-12 14:20:00,confirmed,
+8,6,2025-09-30 09:30:00,confirmed,
