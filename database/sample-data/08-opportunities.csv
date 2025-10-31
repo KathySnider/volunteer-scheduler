@@ -1,0 +1,10 @@
+opportunity_id,event_id,role,other_role_description,opportunity_is_virtual,pre_event_instructions
+1,1,event_support,,false,Wear business casual attire. Arrive 30 minutes early for setup.
+2,1,volunteer_lead,,false,Review volunteer roster and assignments beforehand.
+3,2,event_support,,false,Comfortable clothing and shoes recommended. Outdoor event.
+4,2,speaker,,false,Presentation materials will be provided. 15-minute speaking slot.
+5,3,advocacy,,true,Test your microphone and camera before the event. Zoom link sent 24 hours prior.
+6,4,event_support,,false,Multi-day event. Parking pass provided.
+7,4,volunteer_lead,,false,Coordinate with other leads for smooth transitions between sessions.
+8,5,speaker,,false,Workshop materials provided. Interactive session with Q&A.
+9,6,event_support,,false,"Help with setup, refreshments, and activities."

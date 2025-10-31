@@ -1,0 +1,5 @@
+staff_id,first_name,last_name,email,phone,position
+1,Jennifer,Davis,jdavis@org.com,555-0201,Volunteer Coordinator
+2,Mark,Thompson,mthompson@org.com,555-0202,Event Manager
+3,Patricia,Garcia,pgarcia@org.com,555-0203,Community Outreach Director
+4,Christopher,Lee,clee@org.com,555-0204,Program Supervisor

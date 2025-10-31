@@ -1,0 +1,7 @@
+event_id,event_name,description,event_is_virtual,location_id
+1,Annual Fundraiser Gala,Black-tie fundraising event for local charities,false,1
+2,Community Health Fair,Free health screenings and wellness workshops,false,2
+3,Virtual Town Hall Meeting,Online forum for community discussion,true,
+4,Youth Education Summit,Three-day conference on education reform,false,3
+5,Environmental Awareness Workshop,Hybrid event on sustainability practices,false,4
+6,Senior Citizens Social,Monthly gathering for seniors,false,5
