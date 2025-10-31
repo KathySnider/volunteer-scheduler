@@ -1,12 +1,12 @@
 # Volunteer Scheduler
 
-A full-stack web prototype for managing organizaional events, volunteer opportunities, and shift assignments. Built with Next.js (React) frontend and Go GraphQL backend.
+A full-stack web prototype for managing organizational events, volunteer opportunities, and shift assignments. Built with Next.js (React) frontend and Go GraphQL backend.
 
 ## Overview
 
 This application will allow organizations to:
 - Create and manage events with which volunteers can help.
-- Define volunteer opportunities (with specific roles and requirements, if needed).
+- Define volunteer opportunities(with specific roles (and required qualifications, if any).
 - Schedule shifts for each opportunity.
 - Match volunteers with appropriate shifts (based on their qualifications if appropriate).
 - Track volunteer assignments and availability.
@@ -43,9 +43,9 @@ More features coming all the time.
 
 ```
 volunteer-scheduler/
-├── vol_sched_api/               # Go GraphQL backend
-│   ├── server.go                # Main server entry point
-│   ├── schema.graphql           # GraphQL schema definition
+├── vol_sched_api/              # Go GraphQL backend
+│   ├── server.go               # Main server entry point
+│   ├── schema.graphql          # GraphQL schema definition
 │   ├── gqlgen.yml              # gqlgen configuration
 │   ├── go.mod                  # Go dependencies
 │   ├── graph/                  # Generated GraphQL code
@@ -61,10 +61,10 @@ volunteer-scheduler/
 │   │       ├── components/     # React components
 │   │       │   ├── VolunteerEventsApp.jsx    # Main events listing
 │   │       │   └── EventDetailPage.jsx       # Event detail page
-│   │       ├── event/[id]/    # Dynamic route for event details
+│   │       ├── event/[id]/     # Dynamic route for event details
 │   │       │   └── page.js
-│   │       ├── page.js        # Home page
-│   │       └── globals.css    # Global styles
+│   │       ├── page.js         # Home page
+│   │       └── globals.css     # Global styles
 │   ├── package.json
 │   ├── next.config.mjs
 │   └── tailwind.config.js
@@ -76,10 +76,7 @@ volunteer-scheduler/
 │   ├── sample-data/           # Sample CSV data files
 │   └── README.md              # Database setup instructions
 │
-├── docs/                      # Additional documentation
-│   ├── ERD.png                # Entity relationship diagram
-│   └── schema.md              # Database schema documentation
-│
+├── LICENSE
 └── README.md                   # This file
 ```
 
@@ -97,7 +94,7 @@ cd volunteer-scheduler
 
 #### Backend (vol_sched_api)
 
-Create a `.env` file in the `vol_sched_api/` directory (optional):
+Create a `.env` file in the `vol_sched_api/` directory (suggested):
 
 ```env
 DATABASE_URL=postgres://postgres:YOUR_PASSWORD@localhost:5432/volunteer_scheduler?sslmode=disable
@@ -140,7 +137,6 @@ CREATE DATABASE volunteer_scheduler;
 #### Run migrations
 
 ```bash
-export DATABASE_URL="postgres://postgres:YOUR_PASSWORD@localhost:5432/volunteer_scheduler?sslmode=disable"
 migrate -database $DATABASE_URL -path database/migrations up
 ```
 
@@ -175,9 +171,6 @@ cd vol_sched_api
 
 # Install Go dependencies
 go mod download
-
-# Set environment variable (or create .env file)
-export DATABASE_URL="postgres://postgres:YOUR_PASSWORD@localhost:5432/volunteer_scheduler?sslmode=disable"
 
 # Run the server
 go run server.go
