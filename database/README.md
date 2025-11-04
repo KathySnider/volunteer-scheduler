@@ -8,8 +8,7 @@
 docker-compose up -d
 ```
 
-### OR (if you know what you are doing and want
-### more control), build and run the database:
+### OR build and run the database:
 ```bash
 cd database
 docker build -t volunteer-scheduler-db .
