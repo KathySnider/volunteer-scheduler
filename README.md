@@ -194,6 +194,62 @@ npm run dev
 
 The web application will be available at http://localhost:3000
 
+## Docker Deployment
+
+### Quick Start with Docker Compose
+
+The easiest way to run the entire application:
+```bash
+# 1. Clone the repository
+git clone https://github.com/YOUR_USERNAME/volunteer-scheduler.git
+cd volunteer-scheduler
+
+# 2. Create environment file
+cp .env.example .env
+# Edit .env and change DB_PASSWORD to something secure
+
+# 3. Start all services
+docker-compose up -d
+
+# 4. Access the application
+# Frontend: http://localhost:3000
+# API: http://localhost:8080
+# Database: localhost:5432
+```
+
+### Individual Services
+
+#### Database Only
+```bash
+cd database
+docker-compose up -d
+```
+
+#### API Only
+```bash
+cd api
+docker build -t volunteer-api .
+docker run -d -p 8080:8080 \
+  -e DATABASE_URL="postgres://user:pass@host:5432/dbname" \
+  volunteer-api
+```
+
+#### Frontend Only
+```bash
+cd frontend
+docker build -t volunteer-frontend .
+docker run -d -p 3000:3000 \
+  -e NEXT_PUBLIC_API_URL="http://your-api:8080/query" \
+  volunteer-frontend
+```
+
+### Stopping Services
+```bash
+docker-compose down
+
+# To also remove volumes (deletes all data!)
+docker-compose down -v
+```
 
 ## Features
 
@@ -221,7 +277,6 @@ The web application will be available at http://localhost:3000
 - Fully typed schema with enums for roles and qualifications.
 
 ## Database Schema
-
 The database is normalized to Third Normal Form (3NF) with the following main entities:
 
 - **Events**: An organization's events that will need volunteers, with dates and locations.
