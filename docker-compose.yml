@@ -1,0 +1,72 @@
+# ============================================
+# docker-compose.yml
+# Full Stack Volunteer Scheduler
+# Place this in the project root directory
+# ============================================
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    build: ./database
+    container_name: volunteer-db
+    environment:
+      POSTGRES_DB: volunteer_scheduler
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}  # Use env var or default
+    ports:
+      - "5432:5432"
+    volumes:
+      - volunteer-db-data:/var/lib/postgresql/data
+    networks:
+      - volunteer-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Go GraphQL API
+  api:
+    build: ./api
+    container_name: volunteer-api
+    environment:
+      DATABASE_URL: postgres://postgres:${DB_PASSWORD:-changeme}@db:5432/volunteer_scheduler?sslmode=disable
+      PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - volunteer-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Next.js Frontend
+  frontend:
+    build: ./frontend
+    container_name: volunteer-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080/query
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    networks:
+      - volunteer-network
+    restart: unless-stopped
+
+networks:
+  volunteer-network:
+    driver: bridge
+
+volumes:
+  volunteer-db-data:
+    driver: local
