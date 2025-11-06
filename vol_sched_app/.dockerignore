@@ -3,9 +3,33 @@
 .gitignore
 .gitattributes
 
-# Documentation
-README.md
-*.md
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+.swc/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Production
+build/
+dist/
+
+# Misc
+.DS_Store
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env*.local
 
 # IDE
 .vscode
@@ -14,28 +38,10 @@ README.md
 *.swo
 *~
 
-# OS
-.DS_Store
-Thumbs.db
+# Documentation
+README.md
+*.md
 
-# Build artifacts
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-*.test
-*.out
-
-# Environment
-.env
-.env.local
-.env*.local
-
-# Test files
-*_test.go
-testdata/
-
-# Development
-tmp/
-vendor/
+# Docker
+Dockerfile
+.dockerignore
