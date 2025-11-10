@@ -1,5 +1,5 @@
 # ============================================
-# frontend/Dockerfile
+# vol_sched_app/Dockerfile
 # Next.js Frontend for Volunteer Scheduler
 # ============================================
 
@@ -8,6 +8,11 @@ FROM node:20-alpine AS builder
 
 # Set working directory
 WORKDIR /app
+
+# Increase npm timeout and add retry settings
+RUN npm config set fetch-retry-maxtimeout 120000
+RUN npm config set fetch-retry-mintimeout 15000
+RUN npm config set fetch-retries 5
 
 # Copy package files
 COPY package*.json ./
@@ -34,7 +39,7 @@ ENV NODE_ENV=production
 COPY package*.json ./
 
 # Install only production dependencies
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # Copy built application from builder
 COPY --from=builder /app/.next ./.next

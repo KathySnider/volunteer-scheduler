@@ -58,11 +58,6 @@ func (r *mutationResolver) AssignVolunteerToShift(ctx context.Context, shiftID s
 	}, nil
 }
 
-// Helper function
-func ptrString(s string) *string {
-	return &s
-}
-
 // Events is the resolver for the events field.
 func (r *queryResolver) Events(ctx context.Context, filter *model.EventFilter) ([]*model.Event, error) {
 	query := `
@@ -86,7 +81,7 @@ func (r *queryResolver) Events(ctx context.Context, filter *model.EventFilter) (
 	args := []interface{}{}
 	argCount := 1
 
-	// Filter by cities
+	// Filter by cities.
 	if filter != nil && len(filter.Cities) > 0 {
 		placeholders := []string{}
 		for _, city := range filter.Cities {
@@ -97,6 +92,7 @@ func (r *queryResolver) Events(ctx context.Context, filter *model.EventFilter) (
 		query += fmt.Sprintf(" AND l.city IN (%s)", strings.Join(placeholders, ","))
 	}
 
+	// Filter by event type.
 	if filter != nil && filter.EventType != nil {
 		switch *filter.EventType {
 		case "VIRTUAL":
@@ -108,7 +104,7 @@ func (r *queryResolver) Events(ctx context.Context, filter *model.EventFilter) (
 		}
 	}
 
-	// Filter by roles
+	// Filter by roles.
 	if filter != nil && len(filter.Roles) > 0 {
 		placeholders := []string{}
 		for _, role := range filter.Roles {
@@ -120,7 +116,7 @@ func (r *queryResolver) Events(ctx context.Context, filter *model.EventFilter) (
 		query += fmt.Sprintf(" AND opp.role IN (%s)", strings.Join(placeholders, ","))
 	}
 
-	// Filter by date range
+	// Filter by date range.
 	if filter != nil && (filter.StartDate != nil || filter.EndDate != nil) {
 		query = strings.Replace(query, "WHERE 1=1",
 			"LEFT JOIN opportunities opp2 ON e.event_id = opp2.event_id "+
@@ -145,6 +141,9 @@ func (r *queryResolver) Events(ctx context.Context, filter *model.EventFilter) (
 	}
 	defer rows.Close()
 
+	// Now we have selected the events that meet all of the user's
+	// criteria. Process each one to see if there are volunteer
+	// opportunities with open shifts that also meet their criteria.
 	eventsMap := make(map[string]*model.Event)
 
 	for rows.Next() {
@@ -173,10 +172,10 @@ func (r *queryResolver) Events(ctx context.Context, filter *model.EventFilter) (
 			return nil, fmt.Errorf("error scanning event: %w", err)
 		}
 
-		eventStr = fmt.Sprintf("%d", eventInt) // convert to string for GraphQL.
+		eventStr = fmt.Sprintf("%d", eventInt) // string for GraphQL.
 		e.ID = eventStr
 
-		// Determine EventType based on isVirtual and whether location exists.
+		// Determine if event is virtual, in person, or both.
 		if isVirtual && locationID != nil {
 			e.EventType = "HYBRID"
 		} else if isVirtual {
@@ -185,9 +184,9 @@ func (r *queryResolver) Events(ctx context.Context, filter *model.EventFilter) (
 			e.EventType = "IN_PERSON"
 		}
 
-		// Check if we've already processed this event
+		// Check if we've already processed this event.
 		if _, exists := eventsMap[eventStr]; !exists {
-			// Add location if it exists
+			// Add location if it exists.
 			if locationID != nil && address != nil && city != nil && state != nil {
 				loc.Name = locationName
 				loc.Address = *address
@@ -201,7 +200,7 @@ func (r *queryResolver) Events(ctx context.Context, filter *model.EventFilter) (
 		}
 	}
 
-	// Now fetch shifts for these events
+	// Now fetch shifts for these events.
 	if len(eventsMap) > 0 {
 		eventIDs := []string{}
 		for id := range eventsMap {
@@ -223,7 +222,7 @@ func (r *queryResolver) Events(ctx context.Context, filter *model.EventFilter) (
 		shiftArgs := []interface{}{pq.Array(eventIDs)}
 		argNum := 2
 
-		// Add date filters for shifts
+		// Filter shifts by dates.
 		if filter != nil && filter.StartDate != nil {
 			shiftsQuery += fmt.Sprintf(" AND s.shift_start >= $%d", argNum)
 			shiftArgs = append(shiftArgs, *filter.StartDate)
@@ -235,7 +234,7 @@ func (r *queryResolver) Events(ctx context.Context, filter *model.EventFilter) (
 			argNum++
 		}
 
-		// Add role filter if specified
+		// Filter by role.
 		if filter != nil && len(filter.Roles) > 0 {
 			placeholders := []string{}
 			for _, role := range filter.Roles {
@@ -253,6 +252,8 @@ func (r *queryResolver) Events(ctx context.Context, filter *model.EventFilter) (
 		}
 		defer shiftRows.Close()
 
+		// We are left with events that have open shifts that match all
+		// criteria. Do some formatting.
 		for shiftRows.Next() {
 			var shift model.Shift
 			var eventInt int
@@ -272,13 +273,14 @@ func (r *queryResolver) Events(ctx context.Context, filter *model.EventFilter) (
 				return nil, fmt.Errorf("error scanning shift: %w", err)
 			}
 
-			eventStr = fmt.Sprintf("%d", eventInt) // convert to string for GraphQL.
+			eventStr = fmt.Sprintf("%d", eventInt) // string for GraphQL.
 
-			// Format the timestamps
+			// Format the timestamps.
 			shift.Date = startTime.Format("2006-01-02")
 			shift.StartTime = startTime.Format("15:04:05")
 			shift.EndTime = endTime.Format("15:04:05")
-			// Convert role string to RoleType enum
+
+			// Convert role string to RoleType enum.
 			shift.Role = model.RoleType(strings.ToUpper(role))
 
 			if event, exists := eventsMap[eventStr]; exists {
@@ -341,9 +343,9 @@ func (r *queryResolver) Event(ctx context.Context, id string) (*model.Event, err
 		return nil, fmt.Errorf("error querying event: %w", err)
 	}
 
-	event.ID = fmt.Sprintf("%d", eventID)
+	event.ID = fmt.Sprintf("%d", eventID) // string for GraphQl
 
-	// Determine EventType
+	// Determine if the event is virtual, in person, or either (hybrid).
 	if isVirtual && locationID != nil {
 		event.EventType = "HYBRID"
 	} else if isVirtual {
@@ -352,7 +354,7 @@ func (r *queryResolver) Event(ctx context.Context, id string) (*model.Event, err
 		event.EventType = "IN_PERSON"
 	}
 
-	// Add location if exists
+	// Add location if it exists.
 	if locationID != nil && address != nil && city != nil && state != nil {
 		loc := &model.Location{
 			Name:    locationName,
@@ -419,132 +421,11 @@ func (r *queryResolver) Volunteers(ctx context.Context, qualifications []string)
 	return volunteers, nil
 }
 
-func (r *queryResolver) getOpportunitiesForEvent(ctx context.Context, eventID int) ([]*model.Opportunity, error) {
-	oppQuery := `
-		SELECT opportunity_id, role, opportunity_is_virtual
-		FROM opportunities
-		WHERE event_id = $1
-	`
-
-	rows, err := r.DB.QueryContext(ctx, oppQuery, eventID)
-	if err != nil {
-		return nil, fmt.Errorf("error querying opportunities: %w", err)
-	}
-	defer rows.Close()
-
-	var opportunities []*model.Opportunity
-	for rows.Next() {
-		var opp model.Opportunity
-		var oppID int
-		var role string
-		var isVirtual bool
-
-		err := rows.Scan(&oppID, &role, &isVirtual)
-		if err != nil {
-			return nil, fmt.Errorf("error scanning opportunity: %w", err)
-		}
-
-		opp.ID = fmt.Sprintf("%d", oppID)
-		opp.Role = model.RoleType(strings.ToUpper(role))
-
-		// Get required qualifications
-		qualQuery := `
-			SELECT required_qualification
-			FROM opportunity_requirements
-			WHERE opportunity_id = $1
-		`
-		qualRows, err := r.DB.QueryContext(ctx, qualQuery, oppID)
-		if err == nil {
-			var quals []string
-			for qualRows.Next() {
-				var qual string
-				if err := qualRows.Scan(&qual); err == nil {
-					quals = append(quals, qual)
-				}
-			}
-			qualRows.Close()
-			opp.RequiresQualifications = quals
-		}
-
-		// Get shifts for this opportunity
-		shifts, err := r.getShiftsForOpportunity(ctx, oppID)
-		if err != nil {
-			return nil, err
-		}
-		opp.Shifts = shifts
-
-		opportunities = append(opportunities, &opp)
-	}
-
-	return opportunities, nil
-}
-
-func (r *queryResolver) getShiftsForOpportunity(ctx context.Context, opportunityID int) ([]*model.Shift, error) {
-	shiftQuery := `
-		SELECT shift_id, shift_start, shift_end, max_volunteers
-		FROM shifts
-		WHERE opportunity_id = $1
-	`
-
-	rows, err := r.DB.QueryContext(ctx, shiftQuery, opportunityID)
-	if err != nil {
-		return nil, fmt.Errorf("error querying shifts: %w", err)
-	}
-	defer rows.Close()
-
-	var shifts []*model.Shift
-	for rows.Next() {
-		var shift model.Shift
-		var shiftID int
-		var startTime, endTime time.Time
-		var maxVols *int
-
-		err := rows.Scan(&shiftID, &startTime, &endTime, &maxVols)
-		if err != nil {
-			return nil, fmt.Errorf("error scanning shift: %w", err)
-		}
-
-		shift.ID = fmt.Sprintf("%d", shiftID)
-		shift.Date = startTime.Format("2006-01-02")
-		shift.StartTime = startTime.Format("15:04:05")
-		shift.EndTime = endTime.Format("15:04:05")
-		if maxVols != nil {
-			shift.MaxVolunteers = maxVols
-		}
-
-		// Get assigned volunteers
-		volQuery := `
-			SELECT v.volunteer_id, v.first_name, v.last_name
-			FROM volunteers v
-			JOIN volunteer_shifts vs ON v.volunteer_id = vs.volunteer_id
-			WHERE vs.shift_id = $1
-		`
-		volRows, err := r.DB.QueryContext(ctx, volQuery, shiftID)
-		if err == nil {
-			var assignedVols []*model.Volunteer
-			for volRows.Next() {
-				var vol model.Volunteer
-				var volID int
-				if err := volRows.Scan(&volID, &vol.FirstName, &vol.LastName); err == nil {
-					vol.ID = fmt.Sprintf("%d", volID)
-					assignedVols = append(assignedVols, &vol)
-				}
-			}
-			volRows.Close()
-			shift.AssignedVolunteers = assignedVols
-		}
-
-		shifts = append(shifts, &shift)
-	}
-
-	return shifts, nil
-}
-
-type mutationResolver struct{ *Resolver }
-type queryResolver struct{ *Resolver }
-
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
+
+type mutationResolver struct{ *Resolver }
+type queryResolver struct{ *Resolver }
