@@ -6,29 +6,46 @@ A full-stack web prototype for managing organizational events, volunteer opportu
 
 This application will allow organizations to:
 - Create and manage events with which volunteers can help.
-- Define volunteer opportunities(with specific roles (and required qualifications, if any).
+- Define volunteer opportunities with specific roles (and required qualifications, if any).
 - Schedule shifts for each opportunity.
-- Match volunteers with appropriate shifts (based on their qualifications if appropriate).
-- Track volunteer assignments and availability.
+- Allow volunteers to signup for opportunities and choose their shifts.
+- Track volunteer assignments.
 
-Currently, this is only a prototype to see how the volunteers like the signup features, so data  (events, volunteer information, etc.) has to be entered thru psql. 
-More features coming all the time.
+This is a prototype to see how the volunteers like the signup features. Currently, data  (events, volunteer information, etc.) have to be entered thru psql. 
+Administration features coming soon.
+
+### Events Listing Page
+- Filter events by:
+  - City (multi-select)
+  - Event type (Virtual, In-Person, Hybrid)
+  - Volunteer roles needed
+  - Date range (default is today forward)
+- View filtered events with key information.
+- Navigate to an event's details using the "More Info" button.
+
+### Event Detail Page
+- View complete event information.
+- See all volunteer opportunities and shifts for the event.
+- View currently assigned volunteers.
+- Track shift capacity (assigned vs. max volunteers).
+- Allow volunteers to assign themselves to shifts.
+
 
 ## Architecture
 
-### Frontend (`vol_sched_app/`)
-- **Framework**: Next.js 16 (React 19)
+### Frontend (in `vol_sched_app/`)
+- **Framework**: Next.js
 - **Styling**: Tailwind CSS
 - **Icons**: Lucide React
 - **API Client**: GraphQL queries to backend
 
-### Backend (`vol_sched_api/`)
+### Backend (in `vol_sched_api/`)
 - **Language**: Go
 - **API**: GraphQL (using gqlgen)
 - **Database**: PostgreSQL
 - **ORM**: Standard library `database/sql`
 
-### Database
+### Database (in 'database/')
 - **Type**: PostgreSQL
 - **Migrations**: golang-migrate
 - **Schema**: Fully normalized (3NF)
@@ -94,53 +111,57 @@ cd volunteer-scheduler
 
 #### Backend (vol_sched_api)
 
-Create a `.env` file in the `vol_sched_api/` directory (suggested):
+Use `.env` file (suggested): copy the `.env.example` file to `.env` file in the `vol_sched_api/` directory, and change the password.
 
 ```env
 DATABASE_URL=postgres://postgres:YOUR_PASSWORD@localhost:5432/volunteer_scheduler?sslmode=disable
 PORT=8080
 ```
 
-Or set them in your shell:
+Or set the environment variables in your shell:
 
 ```bash
 export DATABASE_URL="postgres://postgres:YOUR_PASSWORD@localhost:5432/volunteer_scheduler?sslmode=disable"
 export PORT=8080
 ```
-
 #### Frontend (vol_sched_app)
 
-No environment variables required for local development. The app is configured to connect to `http://localhost:8080/query` by default.
+No environment variables are required for local development. The app is configured to connect to `http://localhost:8080/query` by default.
 
 For production, you may want to set:
 
 ```env
-NEXT_PUBLIC_API_URL=https://your-api-domain.com/query
+PUBLIC_API_URL=https://your-api-domain.com/query
 ```
 
-### 3. Set up the database
+### 3. Option A. Quick Start with Docker Compose
 
-#### Install golang-migrate
+The easiest way to run the entire application:
+
+#### 3.1. Start all services
 
 ```bash
-go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+docker-compose up -d
 ```
 
-#### Create PostgreSQL DB
+#### 3.2 Access the application
+##### Frontend: http://localhost:3000
+##### API: http://localhost:8080
+##### Database: http://localhost:5432
+
+
+### 3. Option B. Start Each Component
+
+#### 3.1 Set up the database
 
 ```bash
-psql -U postgres
-CREATE DATABASE volunteer_scheduler;
-\q
+cd database
+docker-compose up -d
 ```
 
-#### Run migrations
+Docker will install golang-migrate, and create the DB
 
-```bash
-migrate -database $DATABASE_URL -path database/migrations up
-```
-
-#### (Optional) Load sample data
+##### (Optional) Load sample data
 
 Sample CSV files are available in `database/sample-data/`. Import in the order shown as the database
 enforces rules about things already existing before they are referenced.
@@ -164,84 +185,34 @@ psql -U postgres -d volunteer_scheduler
 \q
 ```
 
-### 4. Set up and run the server (vol_sched_api)
+#### 3.2 Set up and run the server (vol_sched_api)
 
 ```bash
 cd vol_sched_api
-
-# Install Go dependencies
-go mod download
-
-# Run the server
-go run server.go
-```
-
-The GraphQL API will be available to try out at:
-- **API Endpoint**: http://localhost:8080/query
-- **GraphQL Playground**: http://localhost:8080/
-
-### 4. Set up the frontend
-
-```bash
-cd vol_sched_app
-
-# Install dependencies
-npm install
-
-# Run the development server
-npm run dev
-```
-
-The web application will be available at http://localhost:3000
-
-## Docker Deployment
-
-### Quick Start with Docker Compose
-
-The easiest way to run the entire application:
-```bash
-# 1. Clone the repository
-git clone https://github.com/YOUR_USERNAME/volunteer-scheduler.git
-cd volunteer-scheduler
-
-# 2. Create environment file
-cp .env.example .env
-# Edit .env and change DB_PASSWORD to something secure
-
-# 3. Start all services
-docker-compose up -d
-
-# 4. Access the application
-# Frontend: http://localhost:3000
-# API: http://localhost:8080
-# Database: localhost:5432
-```
-
-### Individual Services
-
-#### Database Only
-```bash
-cd database
-docker-compose up -d
-```
-
-#### API Only
-```bash
-cd api
 docker build -t volunteer-api .
 docker run -d -p 8080:8080 \
   -e DATABASE_URL="postgres://user:pass@host:5432/dbname" \
   volunteer-api
 ```
 
-#### Frontend Only
+Docker will install dependencies, generate the volunteer-api with gqlgen, and run the server.
+The GraphQL API will be available to try out at:
+##### **API Endpoint**: http://localhost:8080/query
+##### **GraphQL Playground**: http://localhost:8080/
+
+#### 3.3 Set up the frontend
+
 ```bash
-cd frontend
+cd vol_sched_app
 docker build -t volunteer-frontend .
 docker run -d -p 3000:3000 \
   -e NEXT_PUBLIC_API_URL="http://your-api:8080/query" \
   volunteer-frontend
 ```
+
+The web application will be available at http://localhost:3000
+
+
 
 ### Stopping Services
 ```bash
@@ -252,23 +223,6 @@ docker-compose down -v
 ```
 
 ## Features
-
-### Events Listing Page
-- Filter events by:
-  - City (multi-select)
-  - Event type (Virtual, In-Person, Hybrid)
-  - Volunteer roles needed
-  - Date range
-- View events with key information.
-- Navigate to event details using the "More Info" button.
-
-### Event Detail Page
-- View complete event information.
-- See all volunteer opportunities and shifts.
-- Assign volunteers to shifts.
-- Autocomplete volunteer search with qualification filtering.
-- View currently assigned volunteers.
-- Track shift capacity (assigned vs. max volunteers).
 
 ### GraphQL API
 - Query events with flexible filtering.
