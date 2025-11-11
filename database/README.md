@@ -14,7 +14,7 @@ cd database
 docker build -t volunteer-scheduler-db .
 docker run -d \
   --name volunteer-db \
-  -p 5432:5432 \
+  -p 5433:5432 \
   -e POSTGRES_PASSWORD=your_secure_password \
   -v volunteer-db-data:/var/lib/postgresql/data \
   volunteer-scheduler-db
@@ -27,14 +27,14 @@ docker run -d \
 
 - `POSTGRES_DB`: Database name (default: `volunteer_scheduler`)
 - `POSTGRES_USER`: Database user (default: `postgres`)
-- `POSTGRES_PASSWORD`: Database password (default: `changeme` - **CHANGE THIS!**)
+- `POSTGRES_PASSWORD`: Database password (default: `changeme` - CHANGE THIS!)
 
 ### Loading Sample Data
 
 Sample data is **disabled by default**. To enable:
 
 1. Edit `load-sample-data.sql`
-2. Remove the '/*' and '*/' around the block of `\copy` commands
+2. Remove the `/*` and `*/` around the block of `\copy` commands
 3. Rebuild the image: `docker build -t volunteer-scheduler-db .`
 4. Run the container
 
@@ -68,7 +68,7 @@ docker exec -i volunteer-db psql -U postgres volunteer_scheduler < backup.sql
 ```bash
 docker run -d \
   --name volunteer-db \
-  -p 5432:5432 \
+  -p 5433:5432 \
   -e POSTGRES_PASSWORD=$(openssl rand -base64 32) \
   -v volunteer-db-data:/var/lib/postgresql/data \
   --restart unless-stopped \
