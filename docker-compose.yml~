@@ -15,7 +15,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - volunteer_scheduler_data:/var/lib/postgresql/data
+      - volunteer-db-data:/var/lib/postgresql/data
     networks:
       - volunteer-network
     restart: unless-stopped
@@ -30,6 +30,7 @@ services:
     build: ./vol_sched_api
     container_name: volunteer-api
     environment:
+      #DATABASE_URL: postgres://postgres:${DB_PASSWORD:-changeme}@db:5432/volunteer_scheduler?sslmode=disable
       PORT: 8080
     ports:
       - "8080:8080"
@@ -64,5 +65,5 @@ networks:
     driver: bridge
 
 volumes:
-  volunteer_scheduler_data:
+  volunteer-db-data:
     driver: local

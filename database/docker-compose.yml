@@ -3,15 +3,14 @@ version: '3.8'
 services:
   db:
     build: .
-    container_name: volunteer-scheduler-db
+    container_name: volunteer_scheduler_db
     environment:
       POSTGRES_DB: volunteer_scheduler
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: changeme  # CHANGE THIS!
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
-      - volunteer-db-data:/var/lib/postgresql/data
+      - volunteer_scheduler_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -20,5 +19,5 @@ services:
       retries: 5
 
 volumes:
-  volunteer-db-data:
+  volunteer_scheduler_data:
     driver: local
