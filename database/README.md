@@ -14,7 +14,7 @@ cd database
 docker build -t volunteer_scheduler_db .
 docker run -d \
   --name volunteer_scheduler \
-  -p 5432:5432 \
+  -p 5433:5432 \
   -e POSTGRES_PASSWORD=your_secure_password \
   -v volunteer_scheduler_data:/var/lib/postgresql/data \
   volunteer_scheduler_db
@@ -31,18 +31,18 @@ docker run -d \
 
 ### Loading Sample Data
 
-Sample data is **disabled by default**. To enable:
+Sample data is not loaded by default. To load the supplied data into your database:
 
-1. Edit `load-sample-data.sql`
-2. Remove the `/*` and `*/` around the block of `\copy` commands
-3. Rebuild the image: `docker build -t volunteer_scheduler_db .`
-4. Run the container
+1. Edit `load-sample-data.sql`. WARNING: If there is data in the database it will be lost due to the TRUNCATE commands at the start of the script.
+2. In a Windows Powershell, run the command 
+`psql  -U postgres -d volunteer_scheduler -p 5433 -a -f .\load-sample-data.sql`
+
 
 ## Connecting to the Database
 ```bash
 
 # Connection string
-postgresql://postgres:your_password@localhost:5432/volunteer_scheduler
+postgresql://postgres:your_password@localhost:5433/volunteer_scheduler
 
 # Using psql
 docker exec -it volunteer_scheduler psql -U postgres -d volunteer_scheduler
@@ -63,6 +63,28 @@ To restore:
 docker exec -i volunteer_scheduler psql -U postgres volunteer_scheduler < backup.sql
 ```
 
+## Database Migrations
+
+### Create a new migration:
+
+```bash
+migrate create -ext sql -dir database/migrations -seq migration_name
+```
+
+### Apply migrations:
+
+```bash
+migrate -database $DATABASE_URL -path database/migrations up
+```
+
+### Rollback last migration:
+
+```bash
+migrate -database $DATABASE_URL -path database/migrations down 1
+```
+
+
+
 ## Production Deployment
 
 **IMPORTANT**: Change the default password before deploying!
@@ -75,3 +97,4 @@ docker run -d \
   --restart unless-stopped \
   volunteer_scheduler_db
 ```
+

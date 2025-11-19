@@ -15,8 +15,11 @@ import (
 )
 
 func main() {
+
 	// Database connection
 	dbURL := os.Getenv("DATABASE_URL")
+	log.Printf("dbURL: %v", dbURL)
+
 	if dbURL == "" {
 		dbURL = "postgres://postgres:YOUR_PASSWORD@localhost:5432/volunteer_scheduler?sslmode=disable"
 	}
