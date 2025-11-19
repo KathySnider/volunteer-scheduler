@@ -23,6 +23,3 @@ npm-debug.log*
 *~
 *.swp
 *.swo
-
-# Optional: some people gitignore this
-# package-lock.json
