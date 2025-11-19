@@ -111,14 +111,7 @@ cd volunteer-scheduler
 
 #### Backend (vol_sched_api)
 
-Use `.env` file (suggested): copy the `.env.example` file to `.env` file in the `vol_sched_api/` directory, and change the password.
-
-```env
-DATABASE_URL=postgres://postgres:YOUR_PASSWORD@localhost:5432/volunteer_scheduler?sslmode=disable
-PORT=8080
-```
-
-Or set the environment variables in your shell:
+Set the environment variables in your shell or in the Environment Variables for your user (in System Properties) :
 
 ```bash
 export DATABASE_URL="postgres://postgres:YOUR_PASSWORD@localhost:5432/volunteer_scheduler?sslmode=disable"
@@ -147,7 +140,7 @@ docker-compose up -d
 #### 3.2 Access the application
 ##### Frontend: http://localhost:3000
 ##### API: http://localhost:8080
-##### Database: http://localhost:5432
+##### Database: http://localhost:5433
 
 
 ### 3. Option B. Start Each Component
@@ -161,29 +154,8 @@ docker-compose up -d
 
 Docker will install golang-migrate, and create the DB
 
-##### (Optional) Load sample data
+Note: There is sample data and more information in the README.md in the database folder.
 
-Sample CSV files are available in `database/sample-data/`. Import in the order shown as the database
-enforces rules about things already existing before they are referenced.
-
-```bash
-psql -U postgres -d volunteer_scheduler
-
-\copy locations FROM 'database/sample-data/01-locations.csv' CSV HEADER;
-\copy events FROM 'database/sample-data/02-events.csv' CSV HEADER;
-\copy event_dates FROM 'database/sample-data/03-event_dates.csv' CSV HEADER;
-\copy volunteers FROM 'database/sample-data/04-volunteers.csv' CSV HEADER;
-\copy volunteer_qualifications FROM 'database/sample-data/05-volunteer_qualifications.csv' CSV HEADER;
-\copy volunteer_preferences FROM 'database/sample-data/06-volunteer_preferences.csv' CSV HEADER;
-\copy staff FROM 'database/sample-data/07-staff.csv' CSV HEADER;
-\copy opportunities FROM 'database/sample-data/08-opportunities.csv' CSV HEADER;
-\copy opportunity_requirements FROM 'database/sample-data/09-opportunity_requirements.csv' CSV HEADER;
-\copy shifts FROM 'database/sample-data/10-shifts.csv' CSV HEADER;
-\copy volunteer_shifts FROM 'database/sample-data/11-volunteer_shifts.csv' CSV HEADER;
-\copy event_attendees FROM 'database/sample-data/12-event_attendees.csv' CSV HEADER;
-
-\q
-```
 
 #### 3.2 Set up and run the server (vol_sched_api)
 
@@ -191,7 +163,7 @@ psql -U postgres -d volunteer_scheduler
 cd vol_sched_api
 docker build -t volunteer-api .
 docker run -d -p 8080:8080 \
-  -e DATABASE_URL="postgres://user:pass@host:5432/dbname" \
+  -e DATABASE_URL=$DATABASE_URL \
   volunteer-api
 ```
 
@@ -251,26 +223,6 @@ After customizing `schema.graphql`:
 ```bash
 cd vol_sched_api
 gqlgen generate
-```
-
-### Database Migrations
-
-#### Create a new migration:
-
-```bash
-migrate create -ext sql -dir database/migrations -seq migration_name
-```
-
-#### Apply migrations:
-
-```bash
-migrate -database $DATABASE_URL -path database/migrations up
-```
-
-#### Rollback last migration:
-
-```bash
-migrate -database $DATABASE_URL -path database/migrations down 1
 ```
 
 ### Frontend Development
