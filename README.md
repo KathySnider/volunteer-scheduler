@@ -170,7 +170,7 @@ docker run -d -p 8080:8080 \
 Docker will install dependencies, generate the volunteer-api with gqlgen, and run the server.
 The GraphQL API will be available to try out at:
 ##### **API Endpoint**: http://localhost:8080/query
-##### **GraphQL Playground**: http://localhost:8080/
+##### **GraphQL Playground**: http://localhost:8080/graphql
 
 #### 3.3 Set up the frontend
 
@@ -178,7 +178,7 @@ The GraphQL API will be available to try out at:
 cd vol_sched_app
 docker build -t volunteer-frontend .
 docker run -d -p 3000:3000 \
-  -e NEXT_PUBLIC_API_URL="http://your-api:8080/query" \
+  -e PUBLIC_API_URL="http://your-api:8080/query" \
   volunteer-frontend
 ```
 
@@ -237,9 +237,9 @@ The frontend uses:
 
 ### GraphQL Playground
 
-Visit http://localhost:8080/ when the server is running to access the interactive GraphQL Playground where you can:
+Visit http://localhost:8080/graphql when the server is running to access the interactive GraphQL Playground where you can:
 - Explore the schema.
-- Test queries and mutations.
+- Test queries.
 
 ### Example Queries
 
