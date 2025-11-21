@@ -111,12 +111,16 @@ cd volunteer-scheduler
 
 #### Backend (vol_sched_api)
 
-Set the environment variables in your shell or in the Environment Variables for your user (in System Properties) :
+Set the environment variables in your shell (which will allow the varialbes to last only for the current session):
 
 ```bash
-export DATABASE_URL="postgres://postgres:YOUR_PASSWORD@localhost:5432/volunteer_scheduler?sslmode=disable"
-export PORT=8080
+$env:DATABASE_URL="postgres://postgres:YOUR_PASSWORD@localhost:5432/volunteer_scheduler?sslmode=disable"
+$env:PORT=8080
 ```
+Or set the Environment Variables for your user (in System Properties).
+
+Either way, be sure to change YOUR_PASSWORD to the password you want to use.
+
 #### Frontend (vol_sched_app)
 
 No environment variables are required for local development. The app is configured to connect to `http://localhost:8080/query` by default.
@@ -145,7 +149,7 @@ docker-compose up -d
 
 ### 3. Option B. Start Each Component
 
-#### 3.1 Set up the database
+#### 3.B.1 Set up the database
 
 ```bash
 cd database
@@ -157,7 +161,7 @@ Docker will install golang-migrate, and create the DB
 Note: There is sample data and more information in the README.md in the database folder.
 
 
-#### 3.2 Set up and run the server (vol_sched_api)
+#### 3.B.2 Set up and run the server (vol_sched_api)
 
 ```bash
 cd vol_sched_api
@@ -172,7 +176,7 @@ The GraphQL API will be available to try out at:
 ##### **API Endpoint**: http://localhost:8080/query
 ##### **GraphQL Playground**: http://localhost:8080/graphql
 
-#### 3.3 Set up the frontend
+#### 3.B.3 Set up the frontend
 
 ```bash
 cd vol_sched_app

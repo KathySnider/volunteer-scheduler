@@ -58,6 +58,11 @@ func (r *mutationResolver) AssignVolunteerToShift(ctx context.Context, shiftID s
 	}, nil
 }
 
+// CreateEvent is the resolver for the createEvent field.
+func (r *mutationResolver) CreateEvent(ctx context.Context, name string, description *string, eventType model.EventType, locationName *string) (*model.Event, error) {
+	panic(fmt.Errorf("not implemented: CreateEvent - createEvent"))
+}
+
 // Events is the resolver for the events field.
 func (r *queryResolver) Events(ctx context.Context, filter *model.EventFilter) ([]*model.Event, error) {
 	query := `
