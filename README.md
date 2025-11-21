@@ -131,23 +131,25 @@ For production, you may want to set:
 PUBLIC_API_URL=https://your-api-domain.com/query
 ```
 
-### 3. Option A. Quick Start with Docker Compose
+### 3 - Option A. Quick Start with Docker Compose
 
-The easiest way to run the entire application:
+The easiest way to run the entire application, especially the first time.
 
-#### 3.1. Start all services
+#### 3.A.1. Start all services
 
 ```bash
 docker-compose up -d
 ```
 
-#### 3.2 Access the application
+#### 3.A.2 Access the application
 ##### Frontend: http://localhost:3000
 ##### API: http://localhost:8080
 ##### Database: http://localhost:5433
 
 
-### 3. Option B. Start Each Component
+### 3 - Option B. Start Each Component
+
+This is the way to run each component individually, for example after you have made some changes to a component.
 
 #### 3.B.1 Set up the database
 
