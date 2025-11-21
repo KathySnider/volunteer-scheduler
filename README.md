@@ -104,7 +104,6 @@ volunteer-scheduler/
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/volunteer-scheduler.git
-cd volunteer-scheduler
 ```
 
 ### 2. Set environment variables
@@ -129,6 +128,12 @@ For production, you may want to set:
 
 ```env
 PUBLIC_API_URL=https://your-api-domain.com/query
+```
+
+### 3. There are 2 options. Before doing either, make sure you are in the proper directory:
+
+```bash
+cd volunteer-scheduler
 ```
 
 ### 3 - Option A. Quick Start with Docker Compose
