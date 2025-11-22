@@ -12,12 +12,7 @@ docker-compose up -d
 ```bash
 cd database
 docker build -t volunteer_scheduler_db .
-docker run -d \
-  --name volunteer_scheduler \
-  -p 5433:5432 \
-  -e POSTGRES_PASSWORD=your_secure_password \
-  -v volunteer_scheduler_data:/var/lib/postgresql/data \
-  volunteer_scheduler_db
+docker run -d --name volunteer_scheduler -p 5433:5432 -e POSTGRES_PASSWORD=your_secure_password -v volunteer_scheduler_data:/var/lib/postgresql/data volunteer_scheduler_db
 ```
 
 ## volunteer_scheduler ERD
