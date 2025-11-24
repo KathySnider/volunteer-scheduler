@@ -24,7 +24,7 @@ COPY init-db.sql /docker-entrypoint-initdb.d/01-schema.sql
 # Copy sample data files (optional - see 02-sample-data.sql to enable)
 COPY sample-data/*.csv /tmp/sample-data/
 
-# Copy sample data loading script (commands are commented out by default)
+# Copy sample data loading script 
 COPY load-sample-data.sql /docker-entrypoint-initdb.d/02-sample-data.sql
 
 # Expose PostgreSQL port
