@@ -8,13 +8,8 @@
 # have access.
 # ============================================
 
-FROM postgres:16
 
-# Set default environment variables
-# These can be overridden when running the container
-ENV POSTGRES_DB=volunteer_scheduler
-ENV POSTGRES_USER=postgres
-ENV POSTGRES_PASSWORD=changeme
+FROM postgres:16
 
 # Copy schema initialization script
 # PostgreSQL will automatically run files in /docker-entrypoint-initdb.d/
