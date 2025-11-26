@@ -8,14 +8,17 @@ services:
   # PostgreSQL Database
   db:
     build: ./database
-    container_name: volunteer_scheduler
+    container_name: volunteer-scheduler
     environment:
-      POSTGRES_DB: volunteer_scheduler
+      POSTGRES_DB: volunteer-scheduler
       POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
     ports:
       - "5433:5432"
     volumes:
-      - volunteer_scheduler_data:/var/lib/postgresql/data
+      - volunteer-scheduler-data:/var/lib/postgresql/data
     networks:
       - volunteer-network
     restart: unless-stopped
@@ -30,7 +33,10 @@ services:
     build: ./vol_sched_api
     container_name: volunteer-api
     environment:
+      DATABASE_URL: /run/secrets/secret_db_url
       PORT: 8080
+    secrets:
+      - secret_db_url
     ports:
       - "8080:8080"
     depends_on:
@@ -50,7 +56,7 @@ services:
     build: ./vol_sched_app
     container_name: volunteer-frontend
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8080/query
+      PUBLIC_API_URL: http://localhost:8080/query
     ports:
       - "3000:3000"
     depends_on:
@@ -63,6 +69,12 @@ networks:
   volunteer-network:
     driver: bridge
 
+secrets:
+  postgres_password:
+    file: ./secret_postgres_pw
+  secret_db_url:
+    file: ./secret_db_url
+    
 volumes:
-  volunteer_scheduler_data:
+  volunteer-scheduler-data:
     driver: local

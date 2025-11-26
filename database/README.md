@@ -11,11 +11,11 @@ docker-compose up -d
 ### OR build and run the database:
 ```bash
 cd database
-docker build -t volunteer_scheduler_db .
-docker run -d --name volunteer_scheduler -p 5432:5433 -e POSTGRES_PASSWORD=your_secure_password -v volunteer_scheduler_data:/var/lib/postgresql/data volunteer_scheduler_db
+docker build -t volunteer-scheduler-db .
+docker run -d --name volunteer-scheduler -p 5432:5433 -e POSTGRES_PASSWORD=your_secure_password -v volunteer-scheduler-data:/var/lib/postgresql/data volunteer-scheduler-db
 ```
 
-## volunteer_scheduler ERD
+## volunteer-scheduler ERD
 
 ```mermaid
 erDiagram
@@ -137,7 +137,7 @@ erDiagram
 
 ### Environment Variables
 
-- `POSTGRES_DB`: Database name (default: `volunteer_scheduler`)
+- `POSTGRES_DB`: Database name (default: `volunteer-scheduler`)
 - `POSTGRES_USER`: Database user (default: `postgres`)
 - `POSTGRES_PASSWORD`: Database password (default: `changeme` - CHANGE THIS!)
 
@@ -147,32 +147,32 @@ Sample data is not loaded by default. To load the supplied data into your databa
 
 1. Edit `load-sample-data.sql`. WARNING: If there is data in the database it will be lost due to the TRUNCATE commands at the start of the script.
 2. In a Windows Powershell, run the command 
-`psql  -U postgres -d volunteer_scheduler -p 5433 -a -f .\load-sample-data.sql`
+`psql  -U postgres -d volunteer-scheduler -p 5433 -a -f .\load-sample-data.sql`
 
 
 ## Connecting to the Database
 ```bash
 
 # Connection string
-postgresql://postgres:your_password@localhost:5433/volunteer_scheduler
+postgresql://postgres:your_password@localhost:5433/volunteer-scheduler
 
 # Using psql
-docker exec -it volunteer_scheduler psql -U postgres -d volunteer_scheduler
+docker exec -it volunteer-scheduler psql -U postgres -d volunteer-scheduler
 
 # From your application
-DATABASE_URL=postgresql://postgres:your_password@localhost:5432:5433/volunteer_scheduler
+DATABASE_URL=postgresql://postgres:your_password@localhost:5432:5433/volunteer-scheduler
 ```
 
 ## Persistence
 
-Data is stored in a Docker volume named `volunteer_scheduler_data`. To backup:
+Data is stored in a Docker volume named `volunteer-scheduler-data`. To backup:
 ```bash
-docker exec volunteer_scheduler pg_dump -U postgres volunteer_scheduler > backup.sql
+docker exec volunteer-scheduler pg_dump -U postgres volunteer-scheduler > backup.sql
 ```
 
 To restore:
 ```bash
-docker exec -i volunteer_scheduler psql -U postgres volunteer_scheduler < backup.sql
+docker exec -i volunteer-scheduler psql -U postgres volunteer-scheduler < backup.sql
 ```
 
 ## Database Migrations
@@ -201,6 +201,6 @@ migrate -database $DATABASE_URL -path database/migrations down 1
 
 **IMPORTANT**: Change the default password before deploying!
 ```bash
-docker run -d --name volunteer_scheduler -p 5432:5433 -e POSTGRES_PASSWORD=$(openssl rand -base64 32) -v volunteer_scheduler_data:/var/lib/postgresql/data --restart unless-stopped volunteer_scheduler_db
+docker run -d --name volunteer-scheduler -p 5432:5433 -e POSTGRES_PASSWORD=$(openssl rand -base64 32) -v volunteer-scheduler-data:/var/lib/postgresql/data --restart unless-stopped volunteer-scheduler-db
 ```
 
