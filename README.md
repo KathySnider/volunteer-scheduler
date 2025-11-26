@@ -111,6 +111,8 @@ docker-compose up -d
 
 #### 3.A.2 Access the application
 ##### Frontend: http://localhost:3000
+
+FYI: The frontend will access the API and the server will access the database, but, if you need to have those endpoints for some reason, you can access them at:
 ##### API: http://localhost:8080
 ##### Database: http://localhost:5433
 
@@ -158,10 +160,10 @@ The web application will be available at http://localhost:3000
 
 ### Stopping Services
 ```bash
-docker-compose down
+docker-compose 
 ```
 
-# To also remove volumes - which deletes all data:
+#### To also remove volumes - which deletes all data:
 ```bash 
 docker-compose down -v
 ```
