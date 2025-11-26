@@ -160,7 +160,7 @@ The web application will be available at http://localhost:3000
 
 ### Stopping Services
 ```bash
-docker-compose 
+docker-compose down
 ```
 
 #### To also remove volumes - which deletes all data:
