@@ -144,11 +144,9 @@ erDiagram
 ### Loading Sample Data
 
 Sample data is not loaded by default. To load the supplied data into your database:
-
-1. Edit `load-sample-data.sql`. WARNING: If there is data in the database it will be lost due to the TRUNCATE commands at the start of the script.
-2. In a Windows Powershell, run the command 
+```bash
 `psql  -U postgres -d volunteer-scheduler -p 5433 -a -f .\load-sample-data.sql`
-
+```
 
 ## Connecting to the Database
 ```bash
