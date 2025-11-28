@@ -33,9 +33,11 @@ services:
     build: ./vol_sched_api
     container_name: volunteer-api
     environment:
+      DATABASE_PASSWORD_FILE: /run/secrets/secret_db_pw
       DATABASE_URL_FILE: /run/secrets/secret_db_url
       PORT: 8080
     secrets:
+      - secret_db_pw
       - secret_db_url
     ports:
       - "8080:8080"
@@ -71,9 +73,11 @@ networks:
 
 secrets:
   postgres_password:
-    file: ./secret_postgres_pw
+    file: ./secret_postgres_pw.txt
+  secret_db_pw:
+    file: ./secret_postgres_pw.txt
   secret_db_url:
-    file: ./secret_db_url
+    file: ./secret_db_url.txt
     
 volumes:
   volunteer-scheduler-data:
