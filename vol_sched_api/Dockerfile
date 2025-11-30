@@ -47,7 +47,6 @@ EXPOSE 8080
 
 # Set environment variables (can be overridden)
 #ENV PORT=8080
-#ENV DATABASE_URL=postgres://postgres:changeme@db:5432/volunteer-scheduler?sslmode=disable
 
 # Run the application
 CMD ["./volunteer-api"]

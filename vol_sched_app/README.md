@@ -2,6 +2,9 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+Note: The Dockerfile in this directory uses "npm ci" to install dependencies. 
+If you have trouble when building this component, your package-lock.json and package.json files might not be in sync. 
+
 First, run the development server:
 
 ```bash

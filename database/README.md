@@ -12,7 +12,7 @@ docker-compose up -d
 ```bash
 cd database
 docker build -t volunteer-scheduler-db .
-docker run -d --name volunteer-scheduler -p 5432:5433 -e POSTGRES_PASSWORD=your_secure_password -v volunteer-scheduler-data:/var/lib/postgresql/data volunteer-scheduler-db
+docker run -d --name volunteer-scheduler -p 5433 -e POSTGRES_PASSWORD=your_secure_password -v volunteer-scheduler-data:/var/lib/postgresql/data volunteer-scheduler-db
 ```
 
 ## volunteer-scheduler ERD
@@ -158,7 +158,7 @@ postgresql://postgres:your_password@localhost:5433/volunteer-scheduler
 docker exec -it volunteer-scheduler psql -U postgres -d volunteer-scheduler
 
 # From your application
-DATABASE_URL=postgresql://postgres:your_password@localhost:5432:5433/volunteer-scheduler
+DATABASE_URL=postgresql://postgres:your_password@localhost:5433/volunteer-scheduler
 ```
 
 ## Persistence
@@ -199,6 +199,6 @@ migrate -database $DATABASE_URL -path database/migrations down 1
 
 **IMPORTANT**: Change the default password before deploying!
 ```bash
-docker run -d --name volunteer-scheduler -p 5432:5433 -e POSTGRES_PASSWORD=$(openssl rand -base64 32) -v volunteer-scheduler-data:/var/lib/postgresql/data --restart unless-stopped volunteer-scheduler-db
+docker run -d --name volunteer-scheduler -p 5433:5432 -e POSTGRES_PASSWORD=$(openssl rand -base64 32) -v volunteer-scheduler-data:/var/lib/postgresql/data --restart unless-stopped volunteer-scheduler-db
 ```
 
