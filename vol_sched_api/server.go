@@ -32,12 +32,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unable to read db url: %v", err)
 	}
-	db_url := strings.Trim(string(secret), "\n\r")
-
-	log.Printf("db_url: %v", db_url)
+	pattern := strings.Trim(string(secret), "\n\r")
 
 	// Replace the placeholder with the actual password in the url.
-	strings.Replace(db_url, "database_password", db_pw, -1)
+	db_url := strings.Replace(pattern, "database_password", db_pw, -1)
+
+	// REMOVE THIS!!!
+	log.Printf("db_url: %v", db_url)
 
 	// Connect.
 	db, err := sql.Open("postgres", db_url)
