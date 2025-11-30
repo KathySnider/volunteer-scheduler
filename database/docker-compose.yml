@@ -7,7 +7,9 @@ services:
     environment:
       POSTGRES_DB: volunteer-scheduler
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: /run/secrets/postgres_password
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
     ports:
       - "5433:5432"
     volumes:
@@ -21,7 +23,7 @@ services:
 
 secrets:
   postgres_password:
-    file: ./secret_postgres_pw
+    file: ../secret_postgres_pw.txt
   
 volumes:
   volunteer-scheduler-data:

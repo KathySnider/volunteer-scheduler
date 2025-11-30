@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"vol_sched_api/graph"
 
@@ -17,15 +18,29 @@ import (
 func main() {
 
 	// Database connection
-	dbURL := os.Getenv("DATABASE_URL")
 
-	if dbURL == "" {
-		dbURL = "postgres://postgres:changeme@localhost:5432/volunteer-scheduler?sslmode=disable"
+	// Get the postgres password for the database.
+	secret, err := os.ReadFile("/run/secrets/secret_db_pw")
+	if err != nil {
+		log.Fatalf("Unable to read postgres pw: %v", err)
+
 	}
+	db_pw := strings.Trim(string(secret), "\n\r")
 
-	log.Printf("dbURL: %v", dbURL)
+	// Get the url with a placeholder for the password.
+	secret, err = os.ReadFile("/run/secrets/secret_db_url")
+	if err != nil {
+		log.Fatalf("Unable to read db url: %v", err)
+	}
+	db_url := strings.Trim(string(secret), "\n\r")
 
-	db, err := sql.Open("postgres", dbURL)
+	log.Printf("db_url: %v", db_url)
+
+	// Replace the placeholder with the actual password in the url.
+	strings.Replace(db_url, "database_password", db_pw, -1)
+
+	// Connect.
+	db, err := sql.Open("postgres", db_url)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
