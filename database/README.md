@@ -145,7 +145,7 @@ erDiagram
 
 Sample data is not loaded by default. To load the supplied data into your database:
 ```bash
-`psql  -U postgres -d volunteer-scheduler -p 5433 -a -f .\load-sample-data.sql`
+psql  -U postgres -d volunteer-scheduler -p 5433 -a -f .\load-sample-data.sql
 ```
 
 ## Connecting to the Database
