@@ -4,16 +4,28 @@
 ## Quick Start
 
 ### Use Docker Compose (recommended):
+
+Make sure your have a file in volunteer-scheduler called `secret_postgres_pw.txt` that contains your password.
+
 ```bash
 docker-compose up -d
 ```
 
 ### OR build and run the database:
+
+This method does **not** use docker-compose secrets, so you will need to set the following environment variables:
+
+- `POSTGRES_DB`: Database name (default: `volunteer-scheduler`)
+- `POSTGRES_USER`: Database user (default: `postgres`)
+- `POSTGRES_PASSWORD`: Database password (e.g.: `changeme` - CHANGE THIS!)
+
+
 ```bash
 cd database
 docker build -t volunteer-scheduler-db .
-docker run -d --name volunteer-scheduler -p 5433 -e POSTGRES_PASSWORD=your_secure_password -v volunteer-scheduler-data:/var/lib/postgresql/data volunteer-scheduler-db
+docker run -d --name volunteer-scheduler -p 5433 -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD -v volunteer-scheduler-data:/var/lib/postgresql/data volunteer-scheduler-db
 ```
+
 
 ## volunteer-scheduler ERD
 
@@ -133,32 +145,35 @@ erDiagram
         timestamp registered_at
     }
 ```
-## Configuration
 
-### Environment Variables
-
-- `POSTGRES_DB`: Database name (default: `volunteer-scheduler`)
-- `POSTGRES_USER`: Database user (default: `postgres`)
-- `POSTGRES_PASSWORD`: Database password (default: `changeme` - CHANGE THIS!)
 
 ### Loading Sample Data
 
-Sample data is not loaded by default. To load the supplied data into your database:
+Sample data is not loaded by default. To load the supplied data into your database, you
+can edit the Docker file and uncomment the second entrypoint. That will cause the script
+to run.
+
+If you have already created the database, and want to load the sample data, make sure
+your database is empty (the CSV files contain ids and the will fail if the ids already
+exist). Then, copy or move the entire sample-data subdirectory and its contents (from 
+volunteer-scheduler/database) to /tmp. Then run the following:
+
 ```bash
-psql  -U postgres -d volunteer-scheduler -p 5433 -a -f .\load-sample-data.sql
+psql -U postgres -d volunteer-scheduler -p 5433 -a -f .\load-sample-data.sql
 ```
 
 ## Connecting to the Database
 ```bash
 
 # Connection string
-postgresql://postgres:your_password@localhost:5433/volunteer-scheduler
+postgresql://postgres@db:5432/volunteer-scheduler
 
 # Using psql
+psql -U postgres -d volunteer-scheduler -p 5433
+
+# Inside of the docker image
 docker exec -it volunteer-scheduler psql -U postgres -d volunteer-scheduler
 
-# From your application
-DATABASE_URL=postgresql://postgres:your_password@localhost:5433/volunteer-scheduler
 ```
 
 ## Persistence
@@ -175,6 +190,14 @@ docker exec -i volunteer-scheduler psql -U postgres volunteer-scheduler < backup
 
 ## Database Migrations
 
+If you want to do database migrations, the files are in database/migrations. You will 
+need to either install golang-migrate, or:
+
+```bash
+git clone github.com/golang-migrate/migrate/v4
+```
+The latter is recommended since it will perform the command and then exit.
+
 ### Create a new migration:
 
 ```bash
@@ -184,15 +207,14 @@ migrate create -ext sql -dir database/migrations -seq migration_name
 ### Apply migrations:
 
 ```bash
-migrate -database $DATABASE_URL -path database/migrations up
+migrate -database postgresql://postgres@db:5432/volunteer-scheduler -path database/migrations up
 ```
 
 ### Rollback last migration:
 
 ```bash
-migrate -database $DATABASE_URL -path database/migrations down 1
+migrate -database postgresql://postgres@db:5432/volunteer-scheduler -path database/migrations down 1
 ```
-
 
 
 ## Production Deployment
