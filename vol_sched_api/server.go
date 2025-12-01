@@ -37,9 +37,6 @@ func main() {
 	// Replace the placeholder with the actual password in the url.
 	db_url := strings.Replace(pattern, "database_password", db_pw, -1)
 
-	// REMOVE THIS!!!
-	log.Printf("db_url: %v", db_url)
-
 	// Connect.
 	db, err := sql.Open("postgres", db_url)
 	if err != nil {
