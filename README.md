@@ -84,7 +84,7 @@ So, you will need 2 secrets files:
  - secret_db_url.txt contains **only** the url:
 
 ```bash
-postgres://postgres:database_password@db:5432/volunteer-scheduler?sslmode=disable"
+postgres://postgres:database_password@db:5432/volunteer-scheduler?sslmode=disable
 ```
 
 Docker will look for these 2 files (with these names) in the root (volunteer-scheduler)
@@ -308,7 +308,7 @@ go build -o volunteer-api server.go
 ```
 
 2. Run migrations on production database
-3. Set `DATABASE_URL` environment variable
+3. Cretae a new password value.
 4. Run the binary: `./volunteer-api`
 
 ### Frontend Deployment
