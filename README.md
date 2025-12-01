@@ -54,11 +54,11 @@ Administration features coming soon.
 - **Git**
 - **Docker**
 
-## Software Installed by Docker
+
+## Dependencies Managed by Docker
 - **Node.js** 18+ and npm
 - **Go** 1.25+
 - **PostgreSQL** 14+
-- **golang-migrate** (for database migrations)
 
 
 ## Getting Started
@@ -69,25 +69,32 @@ Administration features coming soon.
 git clone https://github.com/KathySnider/volunteer-scheduler.git
 ```
 
-### 2. Set environment variables
+### 2. Create Docker secrets
 
-#### Backend (vol_sched_api)
+The server must connect to the database. To do this, it will need the
+database url, which must contain the postgres password. The database 
+needs the same password when it creates the database and the postgres
+user. To avoid having to set (and later update) the password in multiple
+places, the server gets the password from one file, gets the url from 
+another file and replaces the string `database_password` with the actual 
+password.
 
-Set the environment variables in your shell (which will allow the varialbes to last only for the current session):
+So, you will need 2 secrets files:
+ - secret_postgres_pw.txt contains **only** the password for your database.
+ - secret_db_url.txt contains **only** the url:
 
 ```bash
-$env:DATABASE_URL="postgres://postgres:YOUR_PASSWORD@localhost:5433/volunteer-scheduler?sslmode=disable"
-$env:PORT=8080
+postgres://postgres:database_password@db:5432/volunteer-scheduler?sslmode=disable"
 ```
-**OR** set the Environment Variables for your user (in System Properties).
 
-Either way, be sure to change YOUR_PASSWORD to the password you want to use.
+Docker will look for these 2 files (with these names) in the root (volunteer-scheduler)
+directory. To change the names or locations, edit the docker-compose.yml files in
+volunteer-scheduler and in volunteer-scheduler/database.
+Note: that the server **expects** the string `database_password`.
 
-#### Frontend (vol_sched_app)
-
-No environment variables are required for local development. The app is configured to connect to `http://localhost:8080/query` by default.
-
-For production, you may want to set:
+No environment variables are required for local development of the frontend. The frontend 
+is configured to connect to `http://localhost:8080/query` by default. For production, you 
+may want to set:
 
 ```env
 PUBLIC_API_URL=https://your-api-domain.com/query
@@ -101,7 +108,7 @@ cd volunteer-scheduler
 
 ### 3 - Option A. Quick Start with Docker-Compose
 
-The easiest way to run the entire application, especially the first time.
+Option A is The easiest way to run the entire application, especially the first time.
 
 #### 3.A.1. Start all services
 
@@ -110,16 +117,18 @@ docker-compose up -d
 ```
 
 #### 3.A.2 Access the application
-##### Frontend: http://localhost:3000
 
-FYI: The frontend will access the API and the server will access the database, but, if you need to have those endpoints for some reason, you can access them at:
-##### API: http://localhost:8080
-##### Database: http://localhost:5433
+The web application will be available at `http://localhost:3000`
+
+The GraphQL API will be available to try out at:
+ -  **API Endpoint**: `http://localhost:8080/query`
+ -  **GraphQL Playground**: `http://localhost:8080/graphql`
+
 
 
 ### 3 - Option B. Start Each Component
-
-This is the way to build and run each component individually, for example after you have made some changes to a component.
+Option B is the way to build and run each component individually, for example 
+after you have made some changes to a component.
 
 #### 3.B.1 Set up the database
 
@@ -128,9 +137,10 @@ cd database
 docker-compose up -d
 ```
 
-Docker will install golang-migrate, and create the DB
+Docker will create the DB and its tables. 
 
-Note: There is sample data and more information in the README.md in the database folder.
+Note: The first time you do this, the tables are empty. There is sample data, a
+script, and more information in the database folder.
 
 
 #### 3.B.2 Set up and run the server (vol_sched_api)
@@ -138,13 +148,15 @@ Note: There is sample data and more information in the README.md in the database
 ```bash
 cd vol_sched_api
 docker build -t volunteer-api .
-docker run -d -p 8080:8080 -e DATABASE_URL=$DATABASE_URL volunteer-api
+docker run -d volunteer-api
 ```
 
 Docker will install dependencies, generate the volunteer-api with gqlgen, and run the server.
+
+
 The GraphQL API will be available to try out at:
-##### **API Endpoint**: http://localhost:8080/query
-##### **GraphQL Playground**: http://localhost:8080/graphql
+ -  **API Endpoint**: http://localhost:8080/query
+ -  **GraphQL Playground**: http://localhost:8080/graphql
 
 #### 3.B.3 Set up the frontend
 
@@ -154,16 +166,17 @@ docker build -t volunteer-frontend .
 docker run -d -p 3000:3000 -e PUBLIC_API_URL="http://your-api:8080/query" volunteer-frontend
 ```
 
-The web application will be available at http://localhost:3000
+The web application will be available at `http://localhost:3000`
 
 
 
 ### Stopping Services
+
 ```bash
 docker-compose down
 ```
 
-#### To also remove volumes - which deletes all data:
+To also remove volumes - which **deletes all data**:
 ```bash 
 docker-compose down -v
 ```
@@ -198,6 +211,8 @@ After customizing `schema.graphql`:
 cd vol_sched_api
 gqlgen generate
 ```
+
+(Docker runs `gqlgen generate` when it builds the api.)
 
 ### Frontend Development
 
