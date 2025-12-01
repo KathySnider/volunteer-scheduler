@@ -76,7 +76,7 @@ git clone https://github.com/KathySnider/volunteer-scheduler.git
 Set the environment variables in your shell (which will allow the varialbes to last only for the current session):
 
 ```bash
-$env:DATABASE_URL="postgres://postgres:YOUR_PASSWORD@localhost:5433:5432/volunteer-scheduler?sslmode=disable"
+$env:DATABASE_URL="postgres://postgres:YOUR_PASSWORD@localhost:5433/volunteer-scheduler?sslmode=disable"
 $env:PORT=8080
 ```
 **OR** set the Environment Variables for your user (in System Properties).
