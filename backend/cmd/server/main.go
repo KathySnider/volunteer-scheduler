@@ -6,7 +6,8 @@ import (
 	"net/http"
 	"os"
 
-	"vol_sched_api/graph"
+	"volunteer-scheduler/graph/volunteer"
+	"volunteer-scheduler/graph/volunteer/generated"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -20,7 +21,7 @@ func main() {
 	dbURL := os.Getenv("DATABASE_URL")
 
 	if dbURL == "" {
-		dbURL = "postgres://postgres:12345678@localhost:5432/volunteer_scheduler?sslmode=disable"
+		dbURL = "postgres://postgres:@localhost:5432/volunteer_scheduler?sslmode=disable"
 	}
 
 	log.Printf("dbURL: %v", dbURL)
@@ -36,9 +37,9 @@ func main() {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
 
-	resolver := &graph.Resolver{DB: db}
+	resolver := &volunteer.Resolver{DB: db}
 
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{
+	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
 		Resolvers: resolver,
 	}))
 
