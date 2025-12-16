@@ -1,4 +1,4 @@
-package graph
+package volunteer
 
 import (
 	"context"
@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"vol_sched_api/graph/model"
+	"volunteer-scheduler/graph/volunteer/generated"
 )
 
-func (r *queryResolver) getOpportunitiesForEvent(ctx context.Context, eventID int) ([]*model.Opportunity, error) {
+func (r *queryResolver) getOpportunitiesForEvent(ctx context.Context, eventID int) ([]*generated.Opportunity, error) {
 	oppQuery := `
 		SELECT opportunity_id, role, opportunity_is_virtual
 		FROM opportunities
@@ -22,9 +22,9 @@ func (r *queryResolver) getOpportunitiesForEvent(ctx context.Context, eventID in
 	}
 	defer rows.Close()
 
-	var opportunities []*model.Opportunity
+	var opportunities []*generated.Opportunity
 	for rows.Next() {
-		var opp model.Opportunity
+		var opp generated.Opportunity
 		var oppID int
 		var role string
 		var isVirtual bool
@@ -35,7 +35,7 @@ func (r *queryResolver) getOpportunitiesForEvent(ctx context.Context, eventID in
 		}
 
 		opp.ID = fmt.Sprintf("%d", oppID)
-		opp.Role = model.RoleType(strings.ToUpper(role))
+		opp.Role = generated.RoleType(strings.ToUpper(role))
 
 		// Get required qualifications
 		qualQuery := `
@@ -69,7 +69,7 @@ func (r *queryResolver) getOpportunitiesForEvent(ctx context.Context, eventID in
 	return opportunities, nil
 }
 
-func (r *queryResolver) getShiftsForOpportunity(ctx context.Context, opportunityID int) ([]*model.Shift, error) {
+func (r *queryResolver) getShiftsForOpportunity(ctx context.Context, opportunityID int) ([]*generated.Shift, error) {
 	shiftQuery := `
 		SELECT shift_id, shift_start, shift_end, max_volunteers
 		FROM shifts
@@ -82,9 +82,9 @@ func (r *queryResolver) getShiftsForOpportunity(ctx context.Context, opportunity
 	}
 	defer rows.Close()
 
-	var shifts []*model.Shift
+	var shifts []*generated.Shift
 	for rows.Next() {
-		var shift model.Shift
+		var shift generated.Shift
 		var shiftID int
 		var startTime, endTime time.Time
 		var maxVols *int
@@ -111,9 +111,9 @@ func (r *queryResolver) getShiftsForOpportunity(ctx context.Context, opportunity
 		`
 		volRows, err := r.DB.QueryContext(ctx, volQuery, shiftID)
 		if err == nil {
-			var assignedVols []*model.Volunteer
+			var assignedVols []*generated.Volunteer
 			for volRows.Next() {
-				var vol model.Volunteer
+				var vol generated.Volunteer
 				var volID int
 				if err := volRows.Scan(&volID, &vol.FirstName, &vol.LastName); err == nil {
 					vol.ID = fmt.Sprintf("%d", volID)
