@@ -1,11 +1,11 @@
 # Database Docker Setup
-# This is for the DB administrator.
+This information is for the DB administrator.
 
 ## Quick Start
 
-### Use Docker Compose (recommended):
+### Use Docker-Compose (recommended):
 
-Make sure your have a file in volunteer-scheduler called `secret_postgres_pw.txt` that contains your password.
+Make sure your have a file in volunteer-scheduler called `secret_postgres_pw.txt` that contains your password. Then use docker-compose:
 
 ```bash
 docker-compose up -d
@@ -151,12 +151,13 @@ erDiagram
 
 Sample data is not loaded by default. To load the supplied data into your database, you
 can edit the Docker file and uncomment the second entrypoint. That will cause the script
-to run.
+to run when you build the image.
 
-If you have already created the database, and want to load the sample data, make sure
-your database is empty (the CSV files contain ids and the will fail if the ids already
-exist). Then, copy or move the entire sample-data subdirectory and its contents (from 
-volunteer-scheduler/database) to /tmp. Then run the following:
+If you have already created the database, and want to load the sample data:
+ - Make sure your database is empty (the CSV files contain ids and the script will fail if the ids already exist). 
+ - Copy or move the entire sample-data subdirectory and its contents (from 
+volunteer-scheduler/database) to /tmp.
+ - Run the script:
 
 ```bash
 psql -U postgres -d volunteer-scheduler -p 5433 -a -f .\load-sample-data.sql
