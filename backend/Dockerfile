@@ -46,8 +46,7 @@ COPY --from=builder /app/schema.graphql .
 EXPOSE 8080
 
 # Set environment variables (can be overridden)
-ENV PORT=8080
-ENV DATABASE_URL=postgres://postgres:changeme@db:5432/volunteer_scheduler?sslmode=disable
+#ENV PORT=8080
 
 # Run the application
 CMD ["./volunteer-api"]

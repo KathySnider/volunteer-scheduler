@@ -1,15 +1,23 @@
-'use client';
-
 import React, { useState, useEffect } from 'react';
-import { Calendar, MapPin, Monitor, Users, ChevronDown } from 'lucide-react';
+import { Calendar, MapPin, Monitor, Users, ChevronDown, UserCircle, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const VolunteerEventsApp = () => {
-  const router = useRouter();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
+
+  const router = useRouter();
+
+  // These are for the showNameModal popup.
+  const [currentVolunteer, setCurrentVolunteer] = useState(null);
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [allVolunteers, setAllVolunteers] = useState([]);
+  const [showVolunteerDropdown, setShowVolunteerDropdown] = useState(false);
+  const [filteredVolunteers, setFilteredVolunteers] = useState([]);
+
   // Available cities - will be fetched from DB
   const [availableCities, setAvailableCities] = useState([]);
   
@@ -42,6 +50,73 @@ const VolunteerEventsApp = () => {
     { value: 'IN_PERSON', label: 'In Person' },
     { value: 'HYBRID', label: 'Hybrid' }
   ];
+
+  const handleNameSubmit = async () => {
+    if (!nameInput.trim()) {
+      setNameError('Please enter your name or select from the list');
+      return;
+    }
+
+    // Check if they selected an existing volunteer
+    const exactMatch = allVolunteers.find(v => 
+      `${v.firstName} ${v.lastName}`.toLowerCase() === nameInput.trim().toLowerCase()
+    );
+
+    if (exactMatch) {
+      selectExistingVolunteer(exactMatch);
+      return;
+    }
+
+    // Create new volunteer
+    const nameParts = nameInput.trim().split(/\s+/);
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    if (!lastName) {
+      setNameError('Please enter both first and last name');
+      return;
+    }
+
+    const createMutation = `
+      mutation($firstName: String!, $lastName: String!) {
+        createVolunteer(firstName: $firstName, lastName: $lastName) {
+          id
+          firstName
+          lastName
+        }
+      }
+    `;
+
+    try {
+      const createResponse = await fetch('http://localhost:8080/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: createMutation,
+          variables: { firstName, lastName }
+        })
+      });
+
+      const createResult = await createResponse.json();
+      
+      if (createResult.data?.createVolunteer) {
+        const volunteer = createResult.data.createVolunteer;
+        setCurrentVolunteer(volunteer);
+        localStorage.setItem('currentVolunteer', JSON.stringify(volunteer));
+        setShowNameModal(false);
+      } else {
+        setNameError('Failed to create volunteer account');
+      }
+    } catch (err) {
+      setNameError('Failed to connect to server');
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentVolunteer(null);
+    localStorage.removeItem('currentVolunteer');
+    setShowNameModal(true);
+  };
 
   const fetchCities = async () => {
     const query = `
@@ -139,9 +214,69 @@ const VolunteerEventsApp = () => {
   };
 
   useEffect(() => {
+    // Check if volunteer is already logged in
+    const storedVolunteer = localStorage.getItem('currentVolunteer');
+    if (storedVolunteer) {
+      setCurrentVolunteer(JSON.parse(storedVolunteer));
+    } else {
+      setShowNameModal(true);
+      fetchAllVolunteers();
+    }
+    
     fetchCities();
     fetchEvents();
   }, []);
+
+  const fetchAllVolunteers = async () => {
+    const query = `
+      query {
+        volunteers {
+          id
+          firstName
+          lastName
+        }
+      }
+    `;
+
+    try {
+      const response = await fetch('http://localhost:8080/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query })
+      });
+
+      const result = await response.json();
+      
+      if (result.data?.volunteers) {
+        setAllVolunteers(result.data.volunteers);
+        setFilteredVolunteers(result.data.volunteers);
+      }
+    } catch (err) {
+      console.error('Failed to fetch volunteers:', err);
+    }
+  };
+
+  const handleNameInputChange = (value) => {
+    setNameInput(value);
+    setNameError('');
+    setShowVolunteerDropdown(value.length > 0);
+
+    if (value.trim()) {
+      const filtered = allVolunteers.filter(v =>
+        `${v.firstName} ${v.lastName}`.toLowerCase().includes(value.toLowerCase())
+      );
+      setFilteredVolunteers(filtered);
+    } else {
+      setFilteredVolunteers(allVolunteers);
+    }
+  };
+
+  const selectExistingVolunteer = (volunteer) => {
+    setCurrentVolunteer(volunteer);
+    localStorage.setItem('currentVolunteer', JSON.stringify(volunteer));
+    setShowNameModal(false);
+    setShowVolunteerDropdown(false);
+  };
 
   const handleCityToggle = (city) => {
     setSelectedCities(prev =>
@@ -201,8 +336,84 @@ const VolunteerEventsApp = () => {
 
   return (
     <div className="flex h-screen bg-gray-50">
+      {/* Name Input Modal */}
+      {showNameModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Welcome!</h2>
+            <p className="text-gray-600 mb-6">Select your name or enter it to continue</p>
+            
+            <div className="relative">
+              <input
+                type="text"
+                value={nameInput}
+                onChange={(e) => handleNameInputChange(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleNameSubmit()}
+                onFocus={() => setShowVolunteerDropdown(true)}
+                placeholder="Type or select your name..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2 bg-white"
+                id="volNameInput"
+              />
+              
+              {showVolunteerDropdown && filteredVolunteers.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  {filteredVolunteers.map(volunteer => (
+                    <div
+                      key={volunteer.id}
+                      onClick={() => selectExistingVolunteer(volunteer)}
+                      className="px-4 py-2 hover:bg-blue-50 cursor-pointer"
+                    >
+                      {volunteer.firstName} {volunteer.lastName}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {nameError && (
+              <p className="text-red-600 text-sm mb-4">{nameError}</p>
+            )}
+            
+            {filteredVolunteers.length === 0 && nameInput.trim() && (
+              <p className="text-blue-600 text-sm mb-4">
+                Name not found. Click Continue to create a new volunteer account.
+              </p>
+            )}
+            
+            <button
+              onClick={handleNameSubmit}
+              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar */}
       <div className="w-80 bg-white shadow-lg p-6 overflow-y-auto">
+        {/* User Info */}
+        {currentVolunteer && (
+          <div className="mb-6 pb-6 border-b border-gray-200">
+            <div className="flex items-center gap-3 mb-3">
+              <UserCircle className="w-10 h-10 text-blue-600" />
+              <div>
+                <p className="font-semibold text-gray-800">
+                  {currentVolunteer.firstName} {currentVolunteer.lastName}
+                </p>
+                <p className="text-sm text-gray-500">Volunteer</p>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 text-sm text-gray-600 hover:text-red-600 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </button>
+          </div>
+        )}
+
         <h2 className="text-2xl font-bold text-gray-800 mb-6">Find Events</h2>
         
         {/* Cities Filter */}
@@ -233,6 +444,7 @@ const VolunteerEventsApp = () => {
                       checked={selectedCities.includes(city)}
                       onChange={() => handleCityToggle(city)}
                       className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      id="cityCheckbox"
                     />
                     <span className="ml-3 text-gray-700">{city}</span>
                   </label>
@@ -267,6 +479,7 @@ const VolunteerEventsApp = () => {
                   checked={selectedRoles.includes(role.value)}
                   onChange={() => handleRoleToggle(role.value)}
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  id="rolesCheckbox"
                 />
                 <span className="ml-3 text-gray-700">{role.label}</span>
               </label>
@@ -282,6 +495,7 @@ const VolunteerEventsApp = () => {
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            id="startDateInput"
           />
         </div>
 
@@ -292,6 +506,7 @@ const VolunteerEventsApp = () => {
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            id="endDateInput"
           />
         </div>
 
@@ -391,11 +606,7 @@ const VolunteerEventsApp = () => {
                         </div>
 
                         <button 
-                          onClick={() => {
-                            console.log('Event ID:', event.id);
-                            router.push(`/event/${event.id}`);
-
-                          }}
+                          onClick={() => router.push(`/event/${event.id}?volunteerId=${currentVolunteer?.id}`)}
                           className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
                         >
                           More Info

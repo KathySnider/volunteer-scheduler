@@ -8,13 +8,8 @@
 # have access.
 # ============================================
 
-FROM postgres:16
 
-# Set default environment variables
-# These can be overridden when running the container
-ENV POSTGRES_DB=volunteer_scheduler
-ENV POSTGRES_USER=postgres
-ENV POSTGRES_PASSWORD=changeme
+FROM postgres:16
 
 # Copy schema initialization script
 # PostgreSQL will automatically run files in /docker-entrypoint-initdb.d/
@@ -22,13 +17,14 @@ ENV POSTGRES_PASSWORD=changeme
 COPY init-db.sql /docker-entrypoint-initdb.d/01-schema.sql
 
 # Copy sample data files (optional - see 02-sample-data.sql to enable)
-COPY sample-data/*.csv /tmp/sample-data/
+#COPY sample-data/*.csv /tmp/sample-data/
 
-# Copy sample data loading script (commands are commented out by default)
-COPY load-sample-data.sql /docker-entrypoint-initdb.d/02-sample-data.sql
+# Copy sample data loading script 
+#COPY load-sample-data.sql /docker-entrypoint-initdb.d/02-sample-data.sql
 
 # Expose PostgreSQL port
-EXPOSE 5432
+EXPOSE 5432/tcp
+EXPOSE 5433
 
 # The base postgres image will handle startup
 # Data will be persisted in a volume at /var/lib/postgresql/data

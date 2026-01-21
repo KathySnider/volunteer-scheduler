@@ -8,15 +8,27 @@ const EventDetailPage = ({ eventId }) => {
   const router = useRouter();
   const [event, setEvent] = useState(null);
   const [opportunities, setOpportunities] = useState([]);
-  const [volunteers, setVolunteers] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [assignments, setAssignments] = useState({});
-  const [searchTerms, setSearchTerms] = useState({});
-  const [showDropdown, setShowDropdown] = useState({});
+  const [volunteerId, setVolunteerId] = useState(null);
+  const [volunteerName, setVolunteerName] = useState('');
   const [assigning, setAssigning] = useState({});
 
   useEffect(() => {
+    // Get volunteer ID from URL or localStorage
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlVolunteerId = urlParams.get('volunteerId');
+    
+    if (urlVolunteerId) {
+      setVolunteerId(urlVolunteerId);
+      // Get volunteer name from localStorage
+      const storedVolunteer = localStorage.getItem('currentVolunteer');
+      if (storedVolunteer) {
+        const volunteer = JSON.parse(storedVolunteer);
+        setVolunteerName(`${volunteer.firstName} ${volunteer.lastName}`);
+      }
+    }
+    
     if (eventId) {
       fetchEventDetails();
     }
@@ -75,19 +87,58 @@ const EventDetailPage = ({ eventId }) => {
       
       if (result.errors) {
         setError(result.errors[0].message);
-      } else if (result.data?.event) {
+              } else if (result.data?.event) {
         setEvent(result.data.event);
         setOpportunities(result.data.event.opportunities || []);
-        
-        // Fetch volunteers for each opportunity based on requirements
-        result.data.event.opportunities?.forEach(opp => {
-          fetchVolunteersForOpportunity(opp.id, opp.requiresQualifications);
-        });
       }
     } catch (err) {
       setError('Failed to fetch event details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSignUp = async (shiftId) => {
+    if (!volunteerId) {
+      alert('Please log in to sign up for shifts');
+      return;
+    }
+
+    setAssigning(prev => ({ ...prev, [shiftId]: true }));
+
+    const assignMutation = `
+      mutation($shiftId: ID!, $volunteerId: ID!) {
+        assignVolunteerToShift(shiftId: $shiftId, volunteerId: $volunteerId) {
+          success
+          message
+        }
+      }
+    `;
+
+    try {
+      const assignResponse = await fetch('http://localhost:8080/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: assignMutation,
+          variables: { shiftId, volunteerId }
+        })
+      });
+
+      const assignResult = await assignResponse.json();
+      
+      if (assignResult.errors) {
+        alert('Failed to sign up: ' + assignResult.errors[0].message);
+      } else if (assignResult.data?.assignVolunteerToShift?.success) {
+        alert('Successfully signed up for shift!');
+        fetchEventDetails(); // Refresh to show updated assignments
+      } else {
+        alert(assignResult.data?.assignVolunteerToShift?.message || 'Failed to sign up');
+      }
+    } catch (err) {
+      alert('Failed to sign up for shift');
+    } finally {
+      setAssigning(prev => ({ ...prev, [shiftId]: false }));
     }
   };
 
@@ -137,90 +188,14 @@ const EventDetailPage = ({ eventId }) => {
     }
   };
 
-  const handleAssignVolunteer = async (shiftId, opportunityId) => {
-    const volunteerInput = assignments[shiftId];
-    if (!volunteerInput || !volunteerInput.trim()) return;
-
-    setAssigning(prev => ({ ...prev, [shiftId]: true }));
-
-    // Check if this is an existing volunteer
-    const oppVolunteers = volunteers[opportunityId] || [];
-    
-    const existingVolunteer = oppVolunteers.find(v => 
-      `${v.firstName} ${v.lastName}`.toLowerCase() === volunteerInput.toLowerCase()
-    );
-
-    if (!existingVolunteer) {
-      alert('Volunteer not found. Please contact your system administrator to add new volunteers.');
-      setAssigning(prev => ({ ...prev, [shiftId]: false }));
-      return;
-    }
-
-    const volunteerId = existingVolunteer.id;
-
-    // Assign volunteer to shift
-    const assignMutation = `
-      mutation($shiftId: ID!, $volunteerId: ID!) {
-        assignVolunteerToShift(shiftId: $shiftId, volunteerId: $volunteerId) {
-          success
-          message
-        }
-      }
-    `;
-
-    try {
-      const assignResponse = await fetch('http://localhost:8080/query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: assignMutation,
-          variables: { shiftId, volunteerId }
-        })
-      });
-
-      const assignResult = await assignResponse.json();
-      
-      if (assignResult.errors) {
-        alert('Failed to assign volunteer: ' + assignResult.errors[0].message);
-      } else {
-        // Success! Refresh the event details
-        setAssignments(prev => ({ ...prev, [shiftId]: '' }));
-        setSearchTerms(prev => ({ ...prev, [shiftId]: '' }));
-        fetchEventDetails();
-      }
-    } catch (err) {
-      alert('Failed to assign volunteer');
-    } finally {
-      setAssigning(prev => ({ ...prev, [shiftId]: false }));
-    }
-  };
-
-  const handleSearchChange = (shiftId, value) => {
-    setSearchTerms(prev => ({ ...prev, [shiftId]: value }));
-    setAssignments(prev => ({ ...prev, [shiftId]: value }));
-    setShowDropdown(prev => ({ ...prev, [shiftId]: value.length > 0 }));
-  };
-
-  const selectVolunteer = (shiftId, volunteer) => {
-    const fullName = `${volunteer.firstName} ${volunteer.lastName}`;
-    setAssignments(prev => ({ ...prev, [shiftId]: fullName }));
-    setSearchTerms(prev => ({ ...prev, [shiftId]: fullName }));
-    setShowDropdown(prev => ({ ...prev, [shiftId]: false }));
-  };
-
-  const getFilteredVolunteers = (opportunityId, searchTerm) => {
-    const oppVolunteers = volunteers[opportunityId] || [];
-    if (!searchTerm) return oppVolunteers;
-    
-    const term = searchTerm.toLowerCase();
-    return oppVolunteers.filter(v =>
-      `${v.firstName} ${v.lastName}`.toLowerCase().includes(term)
-    );
-  };
-
   const isShiftAvailable = (shift) => {
     const assigned = shift.assignedVolunteers?.length || 0;
     return assigned < (shift.maxVolunteers || 1);
+  };
+
+  const isVolunteerAssigned = (shift) => {
+    if (!volunteerId || !shift.assignedVolunteers) return false;
+    return shift.assignedVolunteers.some(v => v.id === volunteerId);
   };
 
   const formatDate = (dateStr) => {
@@ -355,14 +330,18 @@ const EventDetailPage = ({ eventId }) => {
                 <div className="p-6">
                   <h4 className="font-semibold text-gray-700 mb-3">Available Shifts:</h4>
                   
-                  {opportunity.shifts && opportunity.shifts.length > 0 ? (
+                                        {opportunity.shifts && opportunity.shifts.length > 0 ? (
                     <div className="space-y-4">
                       {opportunity.shifts.map(shift => {
                         const available = isShiftAvailable(shift);
+                        const alreadyAssigned = isVolunteerAssigned(shift);
                         const assigned = shift.assignedVolunteers?.length || 0;
                         
                         return (
-                          <div key={shift.id} className={`border rounded-lg p-4 ${available ? 'border-gray-200' : 'border-green-200 bg-green-50'}`}>
+                          <div key={shift.id} className={`border rounded-lg p-4 ${
+                            alreadyAssigned ? 'border-green-500 bg-green-50' : 
+                            available ? 'border-gray-200' : 'border-gray-300 bg-gray-50'
+                          }`}>
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-2">
@@ -388,7 +367,9 @@ const EventDetailPage = ({ eventId }) => {
                                   <div className="mt-3 flex items-center gap-2 flex-wrap">
                                     <CheckCircle className="w-4 h-4 text-green-600" />
                                     {shift.assignedVolunteers.map(vol => (
-                                      <span key={vol.id} className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                                      <span key={vol.id} className={`px-3 py-1 rounded-full text-sm ${
+                                        vol.id === volunteerId ? 'bg-green-200 text-green-900 font-semibold' : 'bg-green-100 text-green-800'
+                                      }`}>
                                         {vol.firstName} {vol.lastName}
                                       </span>
                                     ))}
@@ -396,45 +377,31 @@ const EventDetailPage = ({ eventId }) => {
                                 )}
                               </div>
 
-                              {available && (
-                                <div className="ml-4 min-w-[300px]">
-                                  <div className="relative">
-                                    <input
-                                      type="text"
-                                      value={searchTerms[shift.id] || ''}
-                                      onChange={(e) => handleSearchChange(shift.id, e.target.value)}
-                                      onFocus={() => setShowDropdown(prev => ({ ...prev, [shift.id]: true }))}
-                                      placeholder="Type volunteer name..."
-                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                                    />
-                                    
-                                    {showDropdown[shift.id] && (
-                                      <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto">
-                                        {getFilteredVolunteers(opportunity.id, searchTerms[shift.id]).map(volunteer => (
-                                          <div
-                                            key={volunteer.id}
-                                            onClick={() => selectVolunteer(shift.id, volunteer)}
-                                            className="px-3 py-2 hover:bg-blue-50 cursor-pointer"
-                                          >
-                                            {volunteer.firstName} {volunteer.lastName}
-                                          </div>
-                                        ))}
-                                        {getFilteredVolunteers(opportunity.id, searchTerms[shift.id]).length === 0 && searchTerms[shift.id] && (
-                                          <div className="px-3 py-2 text-red-600 text-sm bg-red-50">
-                                            Volunteer not found. Contact your system administrator to add new volunteers.
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                  
+                              {available && !alreadyAssigned && volunteerId && (
+                                <div className="ml-4">
                                   <button
-                                    onClick={() => handleAssignVolunteer(shift.id, opportunity.id)}
-                                    disabled={!assignments[shift.id] || assigning[shift.id]}
-                                    className="w-full mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                    onClick={() => handleSignUp(shift.id)}
+                                    disabled={assigning[shift.id]}
+                                    className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                                   >
-                                    {assigning[shift.id] ? 'Assigning...' : 'Assign'}
+                                    {assigning[shift.id] ? 'Signing Up...' : 'Sign Up'}
                                   </button>
+                                </div>
+                              )}
+
+                              {alreadyAssigned && (
+                                <div className="ml-4">
+                                  <span className="px-6 py-2 bg-green-600 text-white rounded-lg font-medium inline-block">
+                                    ✓ Signed Up
+                                  </span>
+                                </div>
+                              )}
+
+                              {!available && !alreadyAssigned && (
+                                <div className="ml-4">
+                                  <span className="px-6 py-2 bg-gray-400 text-white rounded-lg font-medium inline-block">
+                                    Full
+                                  </span>
                                 </div>
                               )}
                             </div>
