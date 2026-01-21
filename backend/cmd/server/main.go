@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"volunteer-scheduler/graph/volunteer"
 	"volunteer-scheduler/graph/volunteer/generated"
@@ -18,15 +19,27 @@ import (
 func main() {
 
 	// Database connection
-	dbURL := os.Getenv("DATABASE_URL")
 
-	if dbURL == "" {
-		dbURL = "postgres://postgres:@localhost:5432/volunteer_scheduler?sslmode=disable"
+	// Get the postgres password for the database.
+	secret, err := os.ReadFile("/run/secrets/secret_db_pw")
+	if err != nil {
+		log.Fatalf("Unable to read postgres pw: %v", err)
+
 	}
+	db_pw := strings.Trim(string(secret), "\n\r")
 
-	log.Printf("dbURL: %v", dbURL)
+	// Get the url with a placeholder for the password.
+	secret, err = os.ReadFile("/run/secrets/secret_db_url")
+	if err != nil {
+		log.Fatalf("Unable to read db url: %v", err)
+	}
+	pattern := strings.Trim(string(secret), "\n\r")
 
-	db, err := sql.Open("postgres", dbURL)
+	// Replace the placeholder with the actual password in the url.
+	db_url := strings.Replace(pattern, "database_password", db_pw, -1)
+
+	// Connect.
+	db, err := sql.Open("postgres", db_url)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
@@ -39,7 +52,7 @@ func main() {
 
 	resolver := &volunteer.Resolver{DB: db}
 
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
+	volunteerHandler := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
 		Resolvers: resolver,
 	}))
 
@@ -51,7 +64,7 @@ func main() {
 	})
 
 	http.Handle("/", c.Handler(playground.Handler("GraphQL playground", "/query")))
-	http.Handle("/query", c.Handler(srv))
+	http.Handle("/query", c.Handler(volunteerHandler))
 
 	port := os.Getenv("PORT")
 	if port == "" {
