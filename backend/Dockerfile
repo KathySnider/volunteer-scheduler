@@ -1,6 +1,6 @@
 # ============================================
-# vol_sched_api/Dockerfile
-# Go GraphQL API for Volunteer Scheduler
+# backend/Dockerfile
+# Go/GraphQL API for Volunteer Scheduler
 # ============================================
 
 # Build stage

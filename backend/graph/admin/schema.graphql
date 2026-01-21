@@ -8,6 +8,7 @@ type Query {
 type Mutation {
   createVolunteer(firstName: String!, lastName: String!): Volunteer!  
   assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): AssignmentResult!  
+  createEvent(name: String!, description: String, eventType: EventType!, locationName: String): Event!
 }
 
 input EventFilter {
