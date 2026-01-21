@@ -60,8 +60,14 @@ func (r *mutationResolver) AssignVolunteerToShift(ctx context.Context, shiftID s
 }
 
 // CreateEvent is the resolver for the createEvent field.
+<<<<<<< HEAD:backend/graph/admin/schema.resolvers.go
 func (r *mutationResolver) CreateEvent(ctx context.Context, name string, description *string, eventType generated.EventType, locationName *string) (*generated.Event, error) {
 	panic(fmt.Errorf("not implemented: CreateEvent - createEvent"))
+=======
+func (r *mutationResolver) CreateEvent(ctx context.Context, name string, description *string, eventType model.EventType, locationName *string) (*model.Event, error) {
+	return nil, fmt.Errorf("error creating event: not yet implemented")
+	//panic(fmt.Errorf("not implemented: CreateEvent - createEvent"))
+>>>>>>> main:vol_sched_api/graph/schema.resolvers.go
 }
 
 // Events is the resolver for the events field.
