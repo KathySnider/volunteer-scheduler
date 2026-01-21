@@ -17,5 +17,6 @@ docs/
 Thumbs.db
 
 # Environment
+*secret*
 .env
 .env.local
