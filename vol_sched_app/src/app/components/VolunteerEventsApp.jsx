@@ -219,8 +219,8 @@ const VolunteerEventsApp = () => {
     if (storedVolunteer) {
       setCurrentVolunteer(JSON.parse(storedVolunteer));
     } else {
-      setShowNameModal(true);
       fetchAllVolunteers();
+      setShowNameModal(true);
     }
     
     fetchCities();
