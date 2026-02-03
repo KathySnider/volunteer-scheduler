@@ -214,12 +214,12 @@ const VolunteerEventsApp = () => {
   };
 
   useEffect(() => {
+    fetchAllVolunteers();
     // Check if volunteer is already logged in
     const storedVolunteer = localStorage.getItem('currentVolunteer');
     if (storedVolunteer) {
       setCurrentVolunteer(JSON.parse(storedVolunteer));
     } else {
-      fetchAllVolunteers();
       setShowNameModal(true);
     }
     
