@@ -35,26 +35,7 @@ func (r *queryResolver) getOpportunitiesForEvent(ctx context.Context, eventID in
 		}
 
 		opp.ID = fmt.Sprintf("%d", oppID)
-		opp.Role = generated.RoleType(strings.ToUpper(role))
-
-		// Get required qualifications
-		qualQuery := `
-			SELECT required_qualification
-			FROM opportunity_requirements
-			WHERE opportunity_id = $1
-		`
-		qualRows, err := r.DB.QueryContext(ctx, qualQuery, oppID)
-		if err == nil {
-			var quals []string
-			for qualRows.Next() {
-				var qual string
-				if err := qualRows.Scan(&qual); err == nil {
-					quals = append(quals, qual)
-				}
-			}
-			qualRows.Close()
-			opp.RequiresQualifications = quals
-		}
+		opp.Role = generated.Role(strings.ToUpper(role))
 
 		// Get shifts for this opportunity
 		shifts, err := r.getShiftsForOpportunity(ctx, oppID)

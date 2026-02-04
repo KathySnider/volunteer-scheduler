@@ -1,6 +1,6 @@
 # ============================================
 # backend/Dockerfile
-# Go/GraphQL API for Volunteer Scheduler
+# Go/GraphQL backend for Volunteer Scheduler
 # ============================================
 
 # Build stage
@@ -19,14 +19,15 @@ COPY go.mod go.sum ./
 # Download dependencies
 RUN go mod download
 
-# Copy source code
+# Copy all source code
 COPY . .
 
 # Generate GraphQL code
-RUN gqlgen generate
+RUN gqlgen generate --config gqlgen-volunteer.yml
+#RUN gqlgen generate --config gqlgen-admin.yml
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o volunteer-api .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o volunteer-api ./cmd/server
 
 # Final stage
 FROM alpine:latest
@@ -39,14 +40,8 @@ WORKDIR /root/
 # Copy the binary from builder
 COPY --from=builder /app/volunteer-api .
 
-# Copy schema files
-COPY --from=builder /app/schema.graphql .
-
 # Expose port
 EXPOSE 8080
-
-# Set environment variables (can be overridden)
-#ENV PORT=8080
 
 # Run the application
 CMD ["./volunteer-api"]
