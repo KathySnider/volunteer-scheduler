@@ -19,7 +19,7 @@ type Event struct {
 	Name          string         `json:"name"`
 	Description   *string        `json:"description,omitempty"`
 	EventType     EventType      `json:"eventType"`
-	Location      *Location      `json:"location,omitempty"`
+	Venue         *Venue         `json:"venue,omitempty"`
 	Shifts        []*Shift       `json:"shifts"`
 	Opportunities []*Opportunity `json:"opportunities"`
 }
@@ -27,27 +27,18 @@ type Event struct {
 type EventFilter struct {
 	Cities    []string   `json:"cities,omitempty"`
 	EventType *EventType `json:"eventType,omitempty"`
-	Roles     []RoleType `json:"roles,omitempty"`
+	Roles     []Role     `json:"roles,omitempty"`
 	StartDate *string    `json:"startDate,omitempty"`
 	EndDate   *string    `json:"endDate,omitempty"`
-}
-
-type Location struct {
-	Name    *string `json:"name,omitempty"`
-	Address string  `json:"address"`
-	City    string  `json:"city"`
-	State   string  `json:"state"`
-	ZipCode *string `json:"zipCode,omitempty"`
 }
 
 type Mutation struct {
 }
 
 type Opportunity struct {
-	ID                     string   `json:"id"`
-	Role                   RoleType `json:"role"`
-	RequiresQualifications []string `json:"requiresQualifications,omitempty"`
-	Shifts                 []*Shift `json:"shifts"`
+	ID     string   `json:"id"`
+	Role   Role     `json:"role"`
+	Shifts []*Shift `json:"shifts"`
 }
 
 type Query struct {
@@ -55,7 +46,7 @@ type Query struct {
 
 type Shift struct {
 	ID                 string       `json:"id"`
-	Role               RoleType     `json:"role"`
+	Role               Role         `json:"role"`
 	Date               string       `json:"date"`
 	StartTime          string       `json:"startTime"`
 	EndTime            string       `json:"endTime"`
@@ -63,11 +54,26 @@ type Shift struct {
 	AssignedVolunteers []*Volunteer `json:"assignedVolunteers,omitempty"`
 }
 
+type Venue struct {
+	Name    *string `json:"name,omitempty"`
+	Address string  `json:"address"`
+	City    string  `json:"city"`
+	State   string  `json:"state"`
+	ZipCode *string `json:"zipCode,omitempty"`
+}
+
 type Volunteer struct {
-	ID             string   `json:"id"`
-	FirstName      string   `json:"firstName"`
-	LastName       string   `json:"lastName"`
-	Qualifications []string `json:"qualifications,omitempty"`
+	ID           string        `json:"id"`
+	FirstName    string        `json:"firstName"`
+	LastName     string        `json:"lastName"`
+	Email        string        `json:"email"`
+	ServiceTypes []ServiceType `json:"serviceTypes,omitempty"`
+}
+
+type VolunteerFilter struct {
+	FirstName []string `json:"firstName,omitempty"`
+	LastName  []string `json:"lastName,omitempty"`
+	Email     []string `json:"email,omitempty"`
 }
 
 type EventType string
@@ -127,54 +133,56 @@ func (e EventType) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-type RoleType string
+type Role string
 
 const (
-	RoleTypeEventSupport  RoleType = "EVENT_SUPPORT"
-	RoleTypeAdvocacy      RoleType = "ADVOCACY"
-	RoleTypeSpeaker       RoleType = "SPEAKER"
-	RoleTypeVolunteerLead RoleType = "VOLUNTEER_LEAD"
-	RoleTypeOther         RoleType = "OTHER"
+	RoleEventSupport  Role = "EVENT_SUPPORT"
+	RoleAdvocacy      Role = "ADVOCACY"
+	RoleSpeaker       Role = "SPEAKER"
+	RoleVolunteerLead Role = "VOLUNTEER_LEAD"
+	RoleAttendeeOnly  Role = "ATTENDEE_ONLY"
+	RoleOther         Role = "OTHER"
 )
 
-var AllRoleType = []RoleType{
-	RoleTypeEventSupport,
-	RoleTypeAdvocacy,
-	RoleTypeSpeaker,
-	RoleTypeVolunteerLead,
-	RoleTypeOther,
+var AllRole = []Role{
+	RoleEventSupport,
+	RoleAdvocacy,
+	RoleSpeaker,
+	RoleVolunteerLead,
+	RoleAttendeeOnly,
+	RoleOther,
 }
 
-func (e RoleType) IsValid() bool {
+func (e Role) IsValid() bool {
 	switch e {
-	case RoleTypeEventSupport, RoleTypeAdvocacy, RoleTypeSpeaker, RoleTypeVolunteerLead, RoleTypeOther:
+	case RoleEventSupport, RoleAdvocacy, RoleSpeaker, RoleVolunteerLead, RoleAttendeeOnly, RoleOther:
 		return true
 	}
 	return false
 }
 
-func (e RoleType) String() string {
+func (e Role) String() string {
 	return string(e)
 }
 
-func (e *RoleType) UnmarshalGQL(v any) error {
+func (e *Role) UnmarshalGQL(v any) error {
 	str, ok := v.(string)
 	if !ok {
 		return fmt.Errorf("enums must be strings")
 	}
 
-	*e = RoleType(str)
+	*e = Role(str)
 	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid RoleType", str)
+		return fmt.Errorf("%s is not a valid Role", str)
 	}
 	return nil
 }
 
-func (e RoleType) MarshalGQL(w io.Writer) {
+func (e Role) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
-func (e *RoleType) UnmarshalJSON(b []byte) error {
+func (e *Role) UnmarshalJSON(b []byte) error {
 	s, err := strconv.Unquote(string(b))
 	if err != nil {
 		return err
@@ -182,7 +190,68 @@ func (e *RoleType) UnmarshalJSON(b []byte) error {
 	return e.UnmarshalGQL(s)
 }
 
-func (e RoleType) MarshalJSON() ([]byte, error) {
+func (e Role) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type ServiceType string
+
+const (
+	ServiceTypeOutreach       ServiceType = "OUTREACH"
+	ServiceTypeAdvocacy       ServiceType = "ADVOCACY"
+	ServiceTypeSpeakersBureau ServiceType = "SPEAKERS_BUREAU"
+	ServiceTypeOfficeSupport  ServiceType = "OFFICE_SUPPORT"
+	ServiceTypeOther          ServiceType = "OTHER"
+)
+
+var AllServiceType = []ServiceType{
+	ServiceTypeOutreach,
+	ServiceTypeAdvocacy,
+	ServiceTypeSpeakersBureau,
+	ServiceTypeOfficeSupport,
+	ServiceTypeOther,
+}
+
+func (e ServiceType) IsValid() bool {
+	switch e {
+	case ServiceTypeOutreach, ServiceTypeAdvocacy, ServiceTypeSpeakersBureau, ServiceTypeOfficeSupport, ServiceTypeOther:
+		return true
+	}
+	return false
+}
+
+func (e ServiceType) String() string {
+	return string(e)
+}
+
+func (e *ServiceType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ServiceType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ServiceType", str)
+	}
+	return nil
+}
+
+func (e ServiceType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *ServiceType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e ServiceType) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil
