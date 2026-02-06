@@ -6,7 +6,7 @@ A full-stack web prototype for managing organizational events, volunteer opportu
 
 This application will allow organizations to:
 - Create and manage events with which volunteers can help.
-- Define volunteer opportunities with specific roles (and required qualifications, if any).
+- Define volunteer opportunities with specific roles.
 - Schedule shifts for each opportunity.
 - Allow volunteers to signup for opportunities and choose their shifts.
 - Track volunteer assignments.
@@ -33,19 +33,19 @@ Administration features coming soon.
 
 ## Architecture
 
-### Frontend (in `vol_sched_app/`)
+### Frontend
 - **Framework**: Next.js
 - **Styling**: Tailwind CSS
 - **Icons**: Lucide React
 - **API Client**: GraphQL queries to backend
 
-### Backend (in `vol_sched_api/`)
+### Backend
 - **Language**: Go
 - **API**: GraphQL (using gqlgen)
 - **Database**: PostgreSQL
 - **ORM**: Standard library `database/sql`
 
-### Database (in 'database/')
+### Database
 - **Type**: PostgreSQL
 - **Migrations**: golang-migrate
 - **Schema**: Fully normalized (3NF)
@@ -84,11 +84,7 @@ So, you will need 2 secrets files:
  - secret_db_url.txt contains **only** the url:
 
 ```bash
-<<<<<<< HEAD
-postgres://postgres:database_password@db:5432/volunteer-scheduler?sslmode=disable"
-=======
 postgres://postgres:database_password@db:5432/volunteer-scheduler?sslmode=disable
->>>>>>> main
 ```
 
 Docker will look for these 2 files (with these names) in the root (volunteer-scheduler)
@@ -147,11 +143,11 @@ Note: The first time you do this, the tables are empty. There is sample data, a
 script, and more information in the database folder.
 
 
-#### 3.B.2 Set up and run the server (vol_sched_api)
+#### 3.B.2 Set up and run the server 
 
 ```bash
-cd vol_sched_api
-docker build -t volunteer-api .
+cd backend
+go run github.com/99designs/gqlgen generate --config gqlgen-volunteer.yml
 docker run -d volunteer-api
 ```
 
@@ -165,7 +161,7 @@ The GraphQL API will be available to try out at:
 #### 3.B.3 Set up the frontend
 
 ```bash
-cd vol_sched_app
+cd frontend 
 docker build -t volunteer-frontend .
 docker run -d -p 3000:3000 -e PUBLIC_API_URL="http://your-api:8080/query" volunteer-frontend
 ```
