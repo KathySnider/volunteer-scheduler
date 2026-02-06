@@ -1,0 +1,17 @@
+schema:
+    - graph/admin/schema.graphql
+
+exec:
+    filename: graph/admin/generated/generated.go
+    package: generated
+
+model:
+    filename: graph/admin/generated/models_gen.go
+    package: generated
+
+resolver: 
+    layout: follow-schema
+    dir: graph/admin
+    package: admin
+    filename_template: "{name}.resolvers.go"
+

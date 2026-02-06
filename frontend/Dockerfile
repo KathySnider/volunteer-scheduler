@@ -51,7 +51,7 @@ COPY --from=builder /app/src ./src
 EXPOSE 3000
 
 # Set environment variable for API URL (can be overridden)
-ENV PUBLIC_API_URL=http://api:8080/query
+ENV PUBLIC_API_URL=http://localhost:8080/query
 
 # Start the application
 CMD ["npm", "start"]

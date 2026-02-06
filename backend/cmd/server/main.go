@@ -7,7 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"vol_sched_api/graph"
+	"volunteer-scheduler/graph/volunteer"
+	"volunteer-scheduler/graph/volunteer/generated"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -49,9 +50,9 @@ func main() {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
 
-	resolver := &graph.Resolver{DB: db}
+	resolver := &volunteer.Resolver{DB: db}
 
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{
+	volunteerHandler := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
 		Resolvers: resolver,
 	}))
 
@@ -63,7 +64,7 @@ func main() {
 	})
 
 	http.Handle("/", c.Handler(playground.Handler("GraphQL playground", "/query")))
-	http.Handle("/query", c.Handler(srv))
+	http.Handle("/query", c.Handler(volunteerHandler))
 
 	port := os.Getenv("PORT")
 	if port == "" {

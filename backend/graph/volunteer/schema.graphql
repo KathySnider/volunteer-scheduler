@@ -1,0 +1,106 @@
+## This file contains queries and mutations available to
+## those with "volunteer" privileges. 
+
+
+type Query {
+  events(filter: EventFilter): [Event!]!
+  eventById(id: ID!): Event!               
+  volunteerProfile(volunteerId: ID!): Volunteer!
+  allVolunteers(filter: VolunteerFilter): [Volunteer!]! 
+}
+
+type Mutation {
+  editVolunteerProfile(volunteerId: ID!): Volunteer!  
+  assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): AssignmentResult!  
+  ## TODO! send an email to the volunteer lead and the
+  ## volunteer coordinators when a volunteer cancels.
+  cancelShift(shiftId: ID!, volunteerId: ID!): AssignmentResult!
+}
+
+input EventFilter {
+  cities: [String!]
+  eventType: EventType
+  roles: [Role!]
+  startDate: String
+  endDate: String
+}
+
+input VolunteerFilter {
+  firstName: [String!]
+  lastName: [String!]
+  email: [String!]
+}
+
+enum EventType {
+  VIRTUAL
+  IN_PERSON
+  HYBRID
+}
+
+# ServiceType describes the category(s) of services for 
+# which this person has training or wants to help.
+enum ServiceType {
+  OUTREACH
+  ADVOCACY
+  SPEAKERS_BUREAU
+  OFFICE_SUPPORT
+  OTHER
+}
+
+# Role describes the role needed for a shift.
+enum Role {
+  EVENT_SUPPORT
+  ADVOCACY
+  SPEAKER
+  VOLUNTEER_LEAD
+  ATTENDEE_ONLY
+  OTHER
+}
+
+type Event {
+  id: ID!
+  name: String!
+  description: String
+  eventType: EventType!
+  venue: Venue
+  shifts: [Shift!]!
+  opportunities: [Opportunity!]!  
+}
+
+type Venue {
+  name: String
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String
+}
+
+type Shift {
+  id: ID!
+  role: Role!
+  date: String!
+  startTime: String!
+  endTime: String!
+  maxVolunteers: Int
+  assignedVolunteers: [Volunteer!]
+}
+
+type Volunteer {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  email: String!
+  serviceTypes: [ServiceType!]
+}
+
+type Opportunity {
+  id: ID!
+  role: Role!
+  shifts: [Shift!]!
+}
+
+type AssignmentResult {
+  success: Boolean!
+  message: String
+}
+

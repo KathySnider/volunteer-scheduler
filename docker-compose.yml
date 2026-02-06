@@ -30,7 +30,7 @@ services:
 
   # Go GraphQL API
   api:
-    build: ./vol_sched_api
+    build: ./backend
     container_name: volunteer-api
     environment:
       DATABASE_PASSWORD_FILE: /run/secrets/secret_db_pw
@@ -55,7 +55,7 @@ services:
 
   # Next.js Frontend
   frontend:
-    build: ./vol_sched_app
+    build: ./frontend
     container_name: volunteer-frontend
     environment:
       PUBLIC_API_URL: http://localhost:8080/query
