@@ -27,6 +27,7 @@ const VolunteerEventsApp = () => {
     { value: 'ADVOCACY', label: 'Advocacy' },
     { value: 'SPEAKER', label: 'Speaker' },
     { value: 'VOLUNTEER_LEAD', label: 'Volunteer Lead' },
+    { value: 'ATTENDEE_ONLY', label: 'Attendee Only' },
     { value: 'OTHER', label: 'Other' }
   ];
 
@@ -53,11 +54,11 @@ const VolunteerEventsApp = () => {
 
   const handleNameSubmit = async () => {
     if (!nameInput.trim()) {
-      setNameError('Please enter your name or select from the list');
+      setNameError('Please enter your name or select from the list.');
       return;
     }
 
-    // Check if they selected an existing volunteer
+    // Has the user selected an existing volunteer?
     const exactMatch = allVolunteers.find(v => 
       `${v.firstName} ${v.lastName}`.toLowerCase() === nameInput.trim().toLowerCase()
     );
@@ -67,13 +68,14 @@ const VolunteerEventsApp = () => {
       return;
     }
 
-    // Create new volunteer
+    // Create new volunteer 
+    // TODO: This must move to the admin-only priveleges!
     const nameParts = nameInput.trim().split(/\s+/);
     const firstName = nameParts[0];
     const lastName = nameParts.slice(1).join(' ') || '';
 
     if (!lastName) {
-      setNameError('Please enter both first and last name');
+      setNameError('Please enter both first and last name.');
       return;
     }
 
@@ -122,7 +124,7 @@ const VolunteerEventsApp = () => {
     const query = `
       query {
         events {
-          location {
+          venue {
             city
           }
         }
@@ -142,8 +144,8 @@ const VolunteerEventsApp = () => {
         // Extract unique cities from events, filtering out null/empty values
         const cities = [...new Set(
           result.data.events
-            .filter(event => event.location && event.location.city && event.location.city.trim() !== '')
-            .map(event => event.location.city.trim())
+            .filter(event => event.venue && event.venue.city && event.venue.city.trim() !== '')
+            .map(event => event.venue.city.trim())
         )].sort();
         
         setAvailableCities(cities);
@@ -172,7 +174,7 @@ const VolunteerEventsApp = () => {
           name
           description
           eventType
-          location {
+          venue {
             name
             address
             city
@@ -215,7 +217,8 @@ const VolunteerEventsApp = () => {
 
   useEffect(() => {
     fetchAllVolunteers();
-    // Check if volunteer is already logged in
+  
+    // Is volunteer already logged in?
     const storedVolunteer = localStorage.getItem('currentVolunteer');
     if (storedVolunteer) {
       setCurrentVolunteer(JSON.parse(storedVolunteer));
@@ -228,12 +231,16 @@ const VolunteerEventsApp = () => {
   }, []);
 
   const fetchAllVolunteers = async () => {
+
+
     const query = `
       query {
-        volunteers {
+        allVolunteers {
           id
           firstName
           lastName
+          email
+          serviceTypes
         }
       }
     `;
@@ -247,9 +254,15 @@ const VolunteerEventsApp = () => {
 
       const result = await response.json();
       
-      if (result.data?.volunteers) {
-        setAllVolunteers(result.data.volunteers);
-        setFilteredVolunteers(result.data.volunteers);
+      if (result.data) {
+        if (result.data.allVolunteers) {
+          setAllVolunteers(result.data.allVolunteers);
+          setFilteredVolunteers(result.data.allVolunteers);
+        } else {
+          setNameError("No volunteers were returned in the data.")
+        }
+      } else {
+        setNameError("No data was returned from the allVolunteers query.")
       }
     } catch (err) {
       console.error('Failed to fetch volunteers:', err);
@@ -348,7 +361,7 @@ const VolunteerEventsApp = () => {
                 type="text"
                 value={nameInput}
                 onChange={(e) => handleNameInputChange(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleNameSubmit()}
+                onKeyUp={(e) => e.key === 'Enter' && handleNameSubmit()}
                 onFocus={() => setShowVolunteerDropdown(true)}
                 placeholder="Type or select your name..."
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2 bg-white"
@@ -589,12 +602,12 @@ const VolunteerEventsApp = () => {
                             </div>
                           )}
 
-                          {event.location ? (
+                          {event.venue ? (
                             <div className="flex items-center text-gray-700">
                               <MapPin className="w-4 h-4 mr-2" />
                               <span className="text-sm">
-                                {event.location.name ? `${event.location.name}, ` : ''}
-                                {event.location.city}, {event.location.state}
+                                {event.venue.name ? `${event.venue.name}, ` : ''}
+                                {event.venue.city}, {event.venue.state}
                               </span>
                             </div>
                           ) : (

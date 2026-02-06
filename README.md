@@ -84,7 +84,11 @@ So, you will need 2 secrets files:
  - secret_db_url.txt contains **only** the url:
 
 ```bash
+<<<<<<< HEAD
+postgres://postgres:database_password@db:5432/volunteer-scheduler?sslmode=disable"
+=======
 postgres://postgres:database_password@db:5432/volunteer-scheduler?sslmode=disable
+>>>>>>> main
 ```
 
 Docker will look for these 2 files (with these names) in the root (volunteer-scheduler)

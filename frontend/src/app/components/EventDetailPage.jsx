@@ -40,12 +40,12 @@ const EventDetailPage = ({ eventId }) => {
 
     const query = `
       query($eventId: ID!) {
-        event(id: $eventId) {
+        eventById(id: $eventId) {
           id
           name
           description
           eventType
-          location {
+          venue {
             name
             address
             city
@@ -55,7 +55,6 @@ const EventDetailPage = ({ eventId }) => {
           opportunities {
             id
             role
-            requiresQualifications
             shifts {
               id
               date
@@ -87,9 +86,9 @@ const EventDetailPage = ({ eventId }) => {
       
       if (result.errors) {
         setError(result.errors[0].message);
-              } else if (result.data?.event) {
-        setEvent(result.data.event);
-        setOpportunities(result.data.event.opportunities || []);
+              } else if (result.data?.eventById) {
+        setEvent(result.data.eventById);
+        setOpportunities(result.data.eventById.opportunities || []);
       }
     } catch (err) {
       setError('Failed to fetch event details');
@@ -139,52 +138,6 @@ const EventDetailPage = ({ eventId }) => {
       alert('Failed to sign up for shift');
     } finally {
       setAssigning(prev => ({ ...prev, [shiftId]: false }));
-    }
-  };
-
-  const fetchVolunteersForOpportunity = async (opportunityId, requiredQualifications) => {
-    const query = requiredQualifications && requiredQualifications.length > 0
-      ? `
-        query($qualifications: [String!]!) {
-          volunteers(qualifications: $qualifications) {
-            id
-            firstName
-            lastName
-          }
-        }
-      `
-      : `
-        query {
-          volunteers {
-            id
-            firstName
-            lastName
-          }
-        }
-      `;
-
-    try {
-      const response = await fetch('http://localhost:8080/query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query,
-          variables: requiredQualifications && requiredQualifications.length > 0 
-            ? { qualifications: requiredQualifications }
-            : {}
-        })
-      });
-
-      const result = await response.json();
-      
-      if (result.data?.volunteers) {
-        setVolunteers(prev => ({
-          ...prev,
-          [opportunityId]: result.data.volunteers
-        }));
-      }
-    } catch (err) {
-      console.error('Failed to fetch volunteers:', err);
     }
   };
 
@@ -293,13 +246,13 @@ const EventDetailPage = ({ eventId }) => {
 
           <p className="text-gray-600 mb-6">{event.description}</p>
 
-          {event.location && (
+          {event.venue && (
             <div className="flex items-start gap-2 text-gray-700 mb-2">
               <MapPin className="w-5 h-5 mt-0.5 flex-shrink-0" />
               <div>
-                {event.location.name && <p className="font-medium">{event.location.name}</p>}
-                <p>{event.location.address}</p>
-                <p>{event.location.city}, {event.location.state} {event.location.zipCode}</p>
+                {event.venue.name && <p className="font-medium">{event.venue.name}</p>}
+                <p>{event.venue.address}</p>
+                <p>{event.venue.city}, {event.venue.state} {event.venue.zipCode}</p>
               </div>
             </div>
           )}
@@ -320,11 +273,6 @@ const EventDetailPage = ({ eventId }) => {
                   <h3 className="text-xl font-semibold text-gray-800">
                     {getRoleLabel(opportunity.role)}
                   </h3>
-                  {opportunity.requiresQualifications && opportunity.requiresQualifications.length > 0 && (
-                    <p className="text-sm text-gray-600 mt-1">
-                      Requires: {opportunity.requiresQualifications.join(', ')}
-                    </p>
-                  )}
                 </div>
 
                 <div className="p-6">

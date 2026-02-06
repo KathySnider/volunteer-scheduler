@@ -1,4 +1,4 @@
-package graph
+package volunteer
 
 import (
 	"database/sql"
@@ -7,4 +7,3 @@ import (
 type Resolver struct {
 	DB *sql.DB
 }
-

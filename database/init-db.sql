@@ -17,6 +17,7 @@ CREATE TYPE role_type AS ENUM (
     'advocacy', 
     'speaker', 
     'volunteer_lead', 
+    'attendee_only',
     'other'
 );
 
