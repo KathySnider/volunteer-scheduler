@@ -55,9 +55,17 @@ type ComplexityRoot struct {
 		Venue         func(childComplexity int) int
 	}
 
+	InsertResult struct {
+		ID      func(childComplexity int) int
+		Message func(childComplexity int) int
+		Success func(childComplexity int) int
+	}
+
 	Mutation struct {
 		AssignVolunteerToShift func(childComplexity int, shiftID string, volunteerID string) int
 		CancelShift            func(childComplexity int, shiftID string, volunteerID string) int
+		CreateEvent            func(childComplexity int, newEvent NewEventInput) int
+		CreateVolunteer        func(childComplexity int, newVol NewVolunteerInput) int
 		UpdateVolunteerProfile func(childComplexity int, profile UpdateVolunteerInput) int
 	}
 
@@ -68,9 +76,9 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		EventByID        func(childComplexity int, id string) int
-		Events           func(childComplexity int, filter *EventFilterInput) int
-		VolunteerProfile func(childComplexity int, volunteerID string) int
+		AllVolunteers func(childComplexity int, filter *VolunteerFilterInput) int
+		EventByID     func(childComplexity int, id string) int
+		Events        func(childComplexity int, filter *EventFilterInput) int
 	}
 
 	Shift struct {
@@ -111,11 +119,13 @@ type MutationResolver interface {
 	AssignVolunteerToShift(ctx context.Context, shiftID string, volunteerID string) (*UpdateResult, error)
 	UpdateVolunteerProfile(ctx context.Context, profile UpdateVolunteerInput) (*UpdateResult, error)
 	CancelShift(ctx context.Context, shiftID string, volunteerID string) (*UpdateResult, error)
+	CreateVolunteer(ctx context.Context, newVol NewVolunteerInput) (*InsertResult, error)
+	CreateEvent(ctx context.Context, newEvent NewEventInput) (*InsertResult, error)
 }
 type QueryResolver interface {
 	Events(ctx context.Context, filter *EventFilterInput) ([]*Event, error)
 	EventByID(ctx context.Context, id string) (*Event, error)
-	VolunteerProfile(ctx context.Context, volunteerID string) (*VolunteerProfile, error)
+	AllVolunteers(ctx context.Context, filter *VolunteerFilterInput) ([]*VolunteerProfile, error)
 }
 
 type executableSchema struct {
@@ -180,6 +190,25 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Event.Venue(childComplexity), true
 
+	case "InsertResult.id":
+		if e.complexity.InsertResult.ID == nil {
+			break
+		}
+
+		return e.complexity.InsertResult.ID(childComplexity), true
+	case "InsertResult.message":
+		if e.complexity.InsertResult.Message == nil {
+			break
+		}
+
+		return e.complexity.InsertResult.Message(childComplexity), true
+	case "InsertResult.success":
+		if e.complexity.InsertResult.Success == nil {
+			break
+		}
+
+		return e.complexity.InsertResult.Success(childComplexity), true
+
 	case "Mutation.assignVolunteerToShift":
 		if e.complexity.Mutation.AssignVolunteerToShift == nil {
 			break
@@ -202,6 +231,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.CancelShift(childComplexity, args["shiftId"].(string), args["volunteerId"].(string)), true
+	case "Mutation.createEvent":
+		if e.complexity.Mutation.CreateEvent == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createEvent_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateEvent(childComplexity, args["newEvent"].(NewEventInput)), true
+	case "Mutation.createVolunteer":
+		if e.complexity.Mutation.CreateVolunteer == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createVolunteer_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateVolunteer(childComplexity, args["newVol"].(NewVolunteerInput)), true
 	case "Mutation.updateVolunteerProfile":
 		if e.complexity.Mutation.UpdateVolunteerProfile == nil {
 			break
@@ -233,6 +284,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Opportunity.Shifts(childComplexity), true
 
+	case "Query.allVolunteers":
+		if e.complexity.Query.AllVolunteers == nil {
+			break
+		}
+
+		args, err := ec.field_Query_allVolunteers_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.AllVolunteers(childComplexity, args["filter"].(*VolunteerFilterInput)), true
 	case "Query.eventById":
 		if e.complexity.Query.EventByID == nil {
 			break
@@ -255,17 +317,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Events(childComplexity, args["filter"].(*EventFilterInput)), true
-	case "Query.volunteerProfile":
-		if e.complexity.Query.VolunteerProfile == nil {
-			break
-		}
-
-		args, err := ec.field_Query_volunteerProfile_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.VolunteerProfile(childComplexity, args["volunteerId"].(string)), true
 
 	case "Shift.assignedVolunteers":
 		if e.complexity.Shift.AssignedVolunteers == nil {
@@ -406,7 +457,13 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	ec := executionContext{opCtx, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputEventFilterInput,
+		ec.unmarshalInputNewEventInput,
+		ec.unmarshalInputNewOpportunityInput,
+		ec.unmarshalInputNewShiftInput,
+		ec.unmarshalInputNewVolunteerInput,
 		ec.unmarshalInputUpdateVolunteerInput,
+		ec.unmarshalInputVenueInput,
+		ec.unmarshalInputVolunteerFilterInput,
 	)
 	first := true
 
@@ -609,23 +666,84 @@ type UpdateResult {
   message: String
 }
 `, BuiltIn: false},
-	{Name: "../schema.graphql", Input: `## This file contains queries and mutations available to
-## those users logged in with "volunteer" privileges. 
+	{Name: "../schema.graphql", Input: `## These definitions apply to those users with admin status
+## only. The definitions in the volunteer schema are also
+## available to admins. So the admin privilege allows the 
+## definitions in the union of the 2 schema files.
 
 type Query {
+  # Same as volunteer queries
   events(filter: EventFilterInput): [Event!]!
-  eventById(id: ID!): Event!               
-  volunteerProfile(volunteerId: ID!): VolunteerProfile!
-}
+  eventById(id: ID!): Event!
+
+  # Admin-only queries
+  allVolunteers(filter: VolunteerFilterInput): [VolunteerProfile!]! 
+} 
 
 type Mutation {
+  # Volunteer mutations (admins can do these, too.)
   assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): UpdateResult!  
   updateVolunteerProfile(profile: UpdateVolunteerInput!): UpdateResult!  
   cancelShift(shiftId: ID!, volunteerId: ID!): UpdateResult!
+
+  # Admin-only mutations
+  createVolunteer(newVol: NewVolunteerInput!): InsertResult!  
+  createEvent(newEvent: NewEventInput!): InsertResult!
 }
 
+#-- Inputs --
+input NewVolunteerInput {
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String!
+  zipCode: String!
+  serviceTypes: [ServiceType!]
+}
 
-`, BuiltIn: false},
+input NewEventInput {
+  name: String!
+  description: String
+  eventType: EventType!
+  venue: VenueInput
+  opportunities: [NewOpportunityInput!]!  
+}
+
+# Note that venue is not necessarily 
+# new. If the user chose an existing 
+# venue, only the name is needed.
+input VenueInput {
+  name: String
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String
+}
+
+input NewOpportunityInput {
+  job: Job!
+  shifts: [NewShiftInput!]!
+}
+
+input NewShiftInput {
+  date: String!
+  startTime: String!
+  endTime: String!
+  maxVolunteers: Int
+}
+
+input VolunteerFilterInput {
+  firstName: String
+  lastName: String
+  serviceTypes: [ServiceType!]
+}
+
+#-- Results --
+type InsertResult {
+  success: Boolean!
+  message: String
+  id: ID
+}`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -665,10 +783,32 @@ func (ec *executionContext) field_Mutation_cancelShift_args(ctx context.Context,
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_createEvent_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "newEvent", ec.unmarshalNNewEventInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewEventInput)
+	if err != nil {
+		return nil, err
+	}
+	args["newEvent"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createVolunteer_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "newVol", ec.unmarshalNNewVolunteerInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewVolunteerInput)
+	if err != nil {
+		return nil, err
+	}
+	args["newVol"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_updateVolunteerProfile_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "profile", ec.unmarshalNUpdateVolunteerInput2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐUpdateVolunteerInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "profile", ec.unmarshalNUpdateVolunteerInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateVolunteerInput)
 	if err != nil {
 		return nil, err
 	}
@@ -687,6 +827,17 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_allVolunteers_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOVolunteerFilterInput2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerFilterInput)
+	if err != nil {
+		return nil, err
+	}
+	args["filter"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_eventById_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -701,22 +852,11 @@ func (ec *executionContext) field_Query_eventById_args(ctx context.Context, rawA
 func (ec *executionContext) field_Query_events_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOEventFilterInput2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventFilterInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOEventFilterInput2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventFilterInput)
 	if err != nil {
 		return nil, err
 	}
 	args["filter"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_volunteerProfile_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "volunteerId", ec.unmarshalNID2string)
-	if err != nil {
-		return nil, err
-	}
-	args["volunteerId"] = arg0
 	return args, nil
 }
 
@@ -869,7 +1009,7 @@ func (ec *executionContext) _Event_eventType(ctx context.Context, field graphql.
 			return obj.EventType, nil
 		},
 		nil,
-		ec.marshalNEventType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventType,
+		ec.marshalNEventType2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventType,
 		true,
 		true,
 	)
@@ -898,7 +1038,7 @@ func (ec *executionContext) _Event_venue(ctx context.Context, field graphql.Coll
 			return obj.Venue, nil
 		},
 		nil,
-		ec.marshalOVenue2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVenue,
+		ec.marshalOVenue2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVenue,
 		true,
 		false,
 	)
@@ -939,7 +1079,7 @@ func (ec *executionContext) _Event_shifts(ctx context.Context, field graphql.Col
 			return obj.Shifts, nil
 		},
 		nil,
-		ec.marshalNShift2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐShiftᚄ,
+		ec.marshalNShift2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐShiftᚄ,
 		true,
 		true,
 	)
@@ -984,7 +1124,7 @@ func (ec *executionContext) _Event_opportunities(ctx context.Context, field grap
 			return obj.Opportunities, nil
 		},
 		nil,
-		ec.marshalNOpportunity2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐOpportunityᚄ,
+		ec.marshalNOpportunity2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐOpportunityᚄ,
 		true,
 		true,
 	)
@@ -1011,6 +1151,93 @@ func (ec *executionContext) fieldContext_Event_opportunities(_ context.Context, 
 	return fc, nil
 }
 
+func (ec *executionContext) _InsertResult_success(ctx context.Context, field graphql.CollectedField, obj *InsertResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InsertResult_success,
+		func(ctx context.Context) (any, error) {
+			return obj.Success, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_InsertResult_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InsertResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InsertResult_message(ctx context.Context, field graphql.CollectedField, obj *InsertResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InsertResult_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_InsertResult_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InsertResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InsertResult_id(ctx context.Context, field graphql.CollectedField, obj *InsertResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InsertResult_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalOID2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_InsertResult_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InsertResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_assignVolunteerToShift(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1022,7 +1249,7 @@ func (ec *executionContext) _Mutation_assignVolunteerToShift(ctx context.Context
 			return ec.resolvers.Mutation().AssignVolunteerToShift(ctx, fc.Args["shiftId"].(string), fc.Args["volunteerId"].(string))
 		},
 		nil,
-		ec.marshalNUpdateResult2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐUpdateResult,
+		ec.marshalNUpdateResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateResult,
 		true,
 		true,
 	)
@@ -1069,7 +1296,7 @@ func (ec *executionContext) _Mutation_updateVolunteerProfile(ctx context.Context
 			return ec.resolvers.Mutation().UpdateVolunteerProfile(ctx, fc.Args["profile"].(UpdateVolunteerInput))
 		},
 		nil,
-		ec.marshalNUpdateResult2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐUpdateResult,
+		ec.marshalNUpdateResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateResult,
 		true,
 		true,
 	)
@@ -1116,7 +1343,7 @@ func (ec *executionContext) _Mutation_cancelShift(ctx context.Context, field gra
 			return ec.resolvers.Mutation().CancelShift(ctx, fc.Args["shiftId"].(string), fc.Args["volunteerId"].(string))
 		},
 		nil,
-		ec.marshalNUpdateResult2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐUpdateResult,
+		ec.marshalNUpdateResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateResult,
 		true,
 		true,
 	)
@@ -1146,6 +1373,104 @@ func (ec *executionContext) fieldContext_Mutation_cancelShift(ctx context.Contex
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_cancelShift_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createVolunteer(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_createVolunteer,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CreateVolunteer(ctx, fc.Args["newVol"].(NewVolunteerInput))
+		},
+		nil,
+		ec.marshalNInsertResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐInsertResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createVolunteer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_InsertResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_InsertResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_InsertResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type InsertResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createVolunteer_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createEvent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_createEvent,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CreateEvent(ctx, fc.Args["newEvent"].(NewEventInput))
+		},
+		nil,
+		ec.marshalNInsertResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐInsertResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createEvent(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_InsertResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_InsertResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_InsertResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type InsertResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createEvent_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -1191,7 +1516,7 @@ func (ec *executionContext) _Opportunity_job(ctx context.Context, field graphql.
 			return obj.Job, nil
 		},
 		nil,
-		ec.marshalNJob2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐJob,
+		ec.marshalNJob2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐJob,
 		true,
 		true,
 	)
@@ -1220,7 +1545,7 @@ func (ec *executionContext) _Opportunity_shifts(ctx context.Context, field graph
 			return obj.Shifts, nil
 		},
 		nil,
-		ec.marshalNShift2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐShiftᚄ,
+		ec.marshalNShift2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐShiftᚄ,
 		true,
 		true,
 	)
@@ -1266,7 +1591,7 @@ func (ec *executionContext) _Query_events(ctx context.Context, field graphql.Col
 			return ec.resolvers.Query().Events(ctx, fc.Args["filter"].(*EventFilterInput))
 		},
 		nil,
-		ec.marshalNEvent2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventᚄ,
+		ec.marshalNEvent2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventᚄ,
 		true,
 		true,
 	)
@@ -1323,7 +1648,7 @@ func (ec *executionContext) _Query_eventById(ctx context.Context, field graphql.
 			return ec.resolvers.Query().EventByID(ctx, fc.Args["id"].(string))
 		},
 		nil,
-		ec.marshalNEvent2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEvent,
+		ec.marshalNEvent2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEvent,
 		true,
 		true,
 	)
@@ -1369,24 +1694,24 @@ func (ec *executionContext) fieldContext_Query_eventById(ctx context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_volunteerProfile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_allVolunteers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_volunteerProfile,
+		ec.fieldContext_Query_allVolunteers,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().VolunteerProfile(ctx, fc.Args["volunteerId"].(string))
+			return ec.resolvers.Query().AllVolunteers(ctx, fc.Args["filter"].(*VolunteerFilterInput))
 		},
 		nil,
-		ec.marshalNVolunteerProfile2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerProfile,
+		ec.marshalNVolunteerProfile2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerProfileᚄ,
 		true,
 		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_volunteerProfile(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_allVolunteers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -1419,7 +1744,7 @@ func (ec *executionContext) fieldContext_Query_volunteerProfile(ctx context.Cont
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_volunteerProfile_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_allVolunteers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -1718,7 +2043,7 @@ func (ec *executionContext) _Shift_assignedVolunteers(ctx context.Context, field
 			return obj.AssignedVolunteers, nil
 		},
 		nil,
-		ec.marshalOVolunteerProfile2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerProfileᚄ,
+		ec.marshalOVolunteerProfile2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerProfileᚄ,
 		true,
 		false,
 	)
@@ -2140,7 +2465,7 @@ func (ec *executionContext) _VolunteerProfile_serviceTypes(ctx context.Context, 
 			return obj.ServiceTypes, nil
 		},
 		nil,
-		ec.marshalOServiceType2ᚕvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐServiceTypeᚄ,
+		ec.marshalOServiceType2ᚕvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐServiceTypeᚄ,
 		true,
 		false,
 	)
@@ -3628,14 +3953,14 @@ func (ec *executionContext) unmarshalInputEventFilterInput(ctx context.Context, 
 			it.Cities = data
 		case "eventType":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("eventType"))
-			data, err := ec.unmarshalOEventType2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventType(ctx, v)
+			data, err := ec.unmarshalOEventType2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventType(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.EventType = data
 		case "jobs":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("jobs"))
-			data, err := ec.unmarshalOJob2ᚕvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐJobᚄ(ctx, v)
+			data, err := ec.unmarshalOJob2ᚕvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐJobᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3654,6 +3979,205 @@ func (ec *executionContext) unmarshalInputEventFilterInput(ctx context.Context, 
 				return it, err
 			}
 			it.EndDate = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputNewEventInput(ctx context.Context, obj any) (NewEventInput, error) {
+	var it NewEventInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "description", "eventType", "venue", "opportunities"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "description":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
+		case "eventType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("eventType"))
+			data, err := ec.unmarshalNEventType2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EventType = data
+		case "venue":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("venue"))
+			data, err := ec.unmarshalOVenueInput2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVenueInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Venue = data
+		case "opportunities":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("opportunities"))
+			data, err := ec.unmarshalNNewOpportunityInput2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewOpportunityInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Opportunities = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputNewOpportunityInput(ctx context.Context, obj any) (NewOpportunityInput, error) {
+	var it NewOpportunityInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"job", "shifts"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "job":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("job"))
+			data, err := ec.unmarshalNJob2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐJob(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Job = data
+		case "shifts":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("shifts"))
+			data, err := ec.unmarshalNNewShiftInput2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewShiftInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Shifts = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputNewShiftInput(ctx context.Context, obj any) (NewShiftInput, error) {
+	var it NewShiftInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"date", "startTime", "endTime", "maxVolunteers"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "date":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("date"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Date = data
+		case "startTime":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("startTime"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.StartTime = data
+		case "endTime":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("endTime"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EndTime = data
+		case "maxVolunteers":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxVolunteers"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxVolunteers = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputNewVolunteerInput(ctx context.Context, obj any) (NewVolunteerInput, error) {
+	var it NewVolunteerInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"firstName", "lastName", "email", "phone", "zipCode", "serviceTypes"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "firstName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("firstName"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.FirstName = data
+		case "lastName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lastName"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.LastName = data
+		case "email":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Email = data
+		case "phone":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Phone = data
+		case "zipCode":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("zipCode"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ZipCode = data
+		case "serviceTypes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceTypes"))
+			data, err := ec.unmarshalOServiceType2ᚕvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐServiceTypeᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ServiceTypes = data
 		}
 	}
 
@@ -3718,7 +4242,103 @@ func (ec *executionContext) unmarshalInputUpdateVolunteerInput(ctx context.Conte
 			it.ZipCode = data
 		case "serviceTypes":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceTypes"))
-			data, err := ec.unmarshalOServiceType2ᚕvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐServiceTypeᚄ(ctx, v)
+			data, err := ec.unmarshalOServiceType2ᚕvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐServiceTypeᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ServiceTypes = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputVenueInput(ctx context.Context, obj any) (VenueInput, error) {
+	var it VenueInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "address", "city", "state", "zipCode"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "address":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("address"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Address = data
+		case "city":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("city"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.City = data
+		case "state":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.State = data
+		case "zipCode":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("zipCode"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ZipCode = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputVolunteerFilterInput(ctx context.Context, obj any) (VolunteerFilterInput, error) {
+	var it VolunteerFilterInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"firstName", "lastName", "serviceTypes"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "firstName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("firstName"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.FirstName = data
+		case "lastName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lastName"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.LastName = data
+		case "serviceTypes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceTypes"))
+			data, err := ec.unmarshalOServiceType2ᚕvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐServiceTypeᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3800,6 +4420,49 @@ func (ec *executionContext) _Event(ctx context.Context, sel ast.SelectionSet, ob
 	return out
 }
 
+var insertResultImplementors = []string{"InsertResult"}
+
+func (ec *executionContext) _InsertResult(ctx context.Context, sel ast.SelectionSet, obj *InsertResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, insertResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("InsertResult")
+		case "success":
+			out.Values[i] = ec._InsertResult_success(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "message":
+			out.Values[i] = ec._InsertResult_message(ctx, field, obj)
+		case "id":
+			out.Values[i] = ec._InsertResult_id(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var mutationImplementors = []string{"Mutation"}
 
 func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -3836,6 +4499,20 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "cancelShift":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_cancelShift(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createVolunteer":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createVolunteer(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createEvent":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createEvent(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -3975,7 +4652,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "volunteerProfile":
+		case "allVolunteers":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -3984,7 +4661,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_volunteerProfile(ctx, field)
+				res = ec._Query_allVolunteers(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -4602,11 +5279,11 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) marshalNEvent2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEvent(ctx context.Context, sel ast.SelectionSet, v Event) graphql.Marshaler {
+func (ec *executionContext) marshalNEvent2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEvent(ctx context.Context, sel ast.SelectionSet, v Event) graphql.Marshaler {
 	return ec._Event(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNEvent2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventᚄ(ctx context.Context, sel ast.SelectionSet, v []*Event) graphql.Marshaler {
+func (ec *executionContext) marshalNEvent2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventᚄ(ctx context.Context, sel ast.SelectionSet, v []*Event) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4630,7 +5307,7 @@ func (ec *executionContext) marshalNEvent2ᚕᚖvolunteerᚑschedulerᚋgraphᚋ
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNEvent2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEvent(ctx, sel, v[i])
+			ret[i] = ec.marshalNEvent2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEvent(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4650,7 +5327,7 @@ func (ec *executionContext) marshalNEvent2ᚕᚖvolunteerᚑschedulerᚋgraphᚋ
 	return ret
 }
 
-func (ec *executionContext) marshalNEvent2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEvent(ctx context.Context, sel ast.SelectionSet, v *Event) graphql.Marshaler {
+func (ec *executionContext) marshalNEvent2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEvent(ctx context.Context, sel ast.SelectionSet, v *Event) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -4660,13 +5337,13 @@ func (ec *executionContext) marshalNEvent2ᚖvolunteerᚑschedulerᚋgraphᚋvol
 	return ec._Event(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNEventType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventType(ctx context.Context, v any) (EventType, error) {
+func (ec *executionContext) unmarshalNEventType2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventType(ctx context.Context, v any) (EventType, error) {
 	var res EventType
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNEventType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventType(ctx context.Context, sel ast.SelectionSet, v EventType) graphql.Marshaler {
+func (ec *executionContext) marshalNEventType2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventType(ctx context.Context, sel ast.SelectionSet, v EventType) graphql.Marshaler {
 	return v
 }
 
@@ -4686,17 +5363,81 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
-func (ec *executionContext) unmarshalNJob2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐJob(ctx context.Context, v any) (Job, error) {
+func (ec *executionContext) marshalNInsertResult2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐInsertResult(ctx context.Context, sel ast.SelectionSet, v InsertResult) graphql.Marshaler {
+	return ec._InsertResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNInsertResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐInsertResult(ctx context.Context, sel ast.SelectionSet, v *InsertResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._InsertResult(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNJob2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐJob(ctx context.Context, v any) (Job, error) {
 	var res Job
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNJob2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐJob(ctx context.Context, sel ast.SelectionSet, v Job) graphql.Marshaler {
+func (ec *executionContext) marshalNJob2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐJob(ctx context.Context, sel ast.SelectionSet, v Job) graphql.Marshaler {
 	return v
 }
 
-func (ec *executionContext) marshalNOpportunity2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐOpportunityᚄ(ctx context.Context, sel ast.SelectionSet, v []*Opportunity) graphql.Marshaler {
+func (ec *executionContext) unmarshalNNewEventInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewEventInput(ctx context.Context, v any) (NewEventInput, error) {
+	res, err := ec.unmarshalInputNewEventInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNNewOpportunityInput2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewOpportunityInputᚄ(ctx context.Context, v any) ([]*NewOpportunityInput, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]*NewOpportunityInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNNewOpportunityInput2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewOpportunityInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNNewOpportunityInput2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewOpportunityInput(ctx context.Context, v any) (*NewOpportunityInput, error) {
+	res, err := ec.unmarshalInputNewOpportunityInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNNewShiftInput2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewShiftInputᚄ(ctx context.Context, v any) ([]*NewShiftInput, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]*NewShiftInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNNewShiftInput2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewShiftInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNNewShiftInput2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewShiftInput(ctx context.Context, v any) (*NewShiftInput, error) {
+	res, err := ec.unmarshalInputNewShiftInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNNewVolunteerInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewVolunteerInput(ctx context.Context, v any) (NewVolunteerInput, error) {
+	res, err := ec.unmarshalInputNewVolunteerInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNOpportunity2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐOpportunityᚄ(ctx context.Context, sel ast.SelectionSet, v []*Opportunity) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4720,7 +5461,7 @@ func (ec *executionContext) marshalNOpportunity2ᚕᚖvolunteerᚑschedulerᚋgr
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNOpportunity2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐOpportunity(ctx, sel, v[i])
+			ret[i] = ec.marshalNOpportunity2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐOpportunity(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4740,7 +5481,7 @@ func (ec *executionContext) marshalNOpportunity2ᚕᚖvolunteerᚑschedulerᚋgr
 	return ret
 }
 
-func (ec *executionContext) marshalNOpportunity2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐOpportunity(ctx context.Context, sel ast.SelectionSet, v *Opportunity) graphql.Marshaler {
+func (ec *executionContext) marshalNOpportunity2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐOpportunity(ctx context.Context, sel ast.SelectionSet, v *Opportunity) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -4750,17 +5491,17 @@ func (ec *executionContext) marshalNOpportunity2ᚖvolunteerᚑschedulerᚋgraph
 	return ec._Opportunity(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNServiceType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐServiceType(ctx context.Context, v any) (ServiceType, error) {
+func (ec *executionContext) unmarshalNServiceType2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐServiceType(ctx context.Context, v any) (ServiceType, error) {
 	var res ServiceType
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNServiceType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐServiceType(ctx context.Context, sel ast.SelectionSet, v ServiceType) graphql.Marshaler {
+func (ec *executionContext) marshalNServiceType2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐServiceType(ctx context.Context, sel ast.SelectionSet, v ServiceType) graphql.Marshaler {
 	return v
 }
 
-func (ec *executionContext) marshalNShift2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐShiftᚄ(ctx context.Context, sel ast.SelectionSet, v []*Shift) graphql.Marshaler {
+func (ec *executionContext) marshalNShift2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐShiftᚄ(ctx context.Context, sel ast.SelectionSet, v []*Shift) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4784,7 +5525,7 @@ func (ec *executionContext) marshalNShift2ᚕᚖvolunteerᚑschedulerᚋgraphᚋ
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNShift2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐShift(ctx, sel, v[i])
+			ret[i] = ec.marshalNShift2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐShift(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4804,7 +5545,7 @@ func (ec *executionContext) marshalNShift2ᚕᚖvolunteerᚑschedulerᚋgraphᚋ
 	return ret
 }
 
-func (ec *executionContext) marshalNShift2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐShift(ctx context.Context, sel ast.SelectionSet, v *Shift) graphql.Marshaler {
+func (ec *executionContext) marshalNShift2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐShift(ctx context.Context, sel ast.SelectionSet, v *Shift) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -4830,11 +5571,11 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) marshalNUpdateResult2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐUpdateResult(ctx context.Context, sel ast.SelectionSet, v UpdateResult) graphql.Marshaler {
+func (ec *executionContext) marshalNUpdateResult2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateResult(ctx context.Context, sel ast.SelectionSet, v UpdateResult) graphql.Marshaler {
 	return ec._UpdateResult(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNUpdateResult2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐUpdateResult(ctx context.Context, sel ast.SelectionSet, v *UpdateResult) graphql.Marshaler {
+func (ec *executionContext) marshalNUpdateResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateResult(ctx context.Context, sel ast.SelectionSet, v *UpdateResult) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -4844,16 +5585,56 @@ func (ec *executionContext) marshalNUpdateResult2ᚖvolunteerᚑschedulerᚋgrap
 	return ec._UpdateResult(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNUpdateVolunteerInput2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐUpdateVolunteerInput(ctx context.Context, v any) (UpdateVolunteerInput, error) {
+func (ec *executionContext) unmarshalNUpdateVolunteerInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateVolunteerInput(ctx context.Context, v any) (UpdateVolunteerInput, error) {
 	res, err := ec.unmarshalInputUpdateVolunteerInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNVolunteerProfile2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerProfile(ctx context.Context, sel ast.SelectionSet, v VolunteerProfile) graphql.Marshaler {
-	return ec._VolunteerProfile(ctx, sel, &v)
+func (ec *executionContext) marshalNVolunteerProfile2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerProfileᚄ(ctx context.Context, sel ast.SelectionSet, v []*VolunteerProfile) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNVolunteerProfile2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerProfile(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
-func (ec *executionContext) marshalNVolunteerProfile2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerProfile(ctx context.Context, sel ast.SelectionSet, v *VolunteerProfile) graphql.Marshaler {
+func (ec *executionContext) marshalNVolunteerProfile2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerProfile(ctx context.Context, sel ast.SelectionSet, v *VolunteerProfile) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -5146,7 +5927,7 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
-func (ec *executionContext) unmarshalOEventFilterInput2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventFilterInput(ctx context.Context, v any) (*EventFilterInput, error) {
+func (ec *executionContext) unmarshalOEventFilterInput2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventFilterInput(ctx context.Context, v any) (*EventFilterInput, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -5154,7 +5935,7 @@ func (ec *executionContext) unmarshalOEventFilterInput2ᚖvolunteerᚑscheduler�
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalOEventType2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventType(ctx context.Context, v any) (*EventType, error) {
+func (ec *executionContext) unmarshalOEventType2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventType(ctx context.Context, v any) (*EventType, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -5163,11 +5944,29 @@ func (ec *executionContext) unmarshalOEventType2ᚖvolunteerᚑschedulerᚋgraph
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOEventType2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventType(ctx context.Context, sel ast.SelectionSet, v *EventType) graphql.Marshaler {
+func (ec *executionContext) marshalOEventType2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventType(ctx context.Context, sel ast.SelectionSet, v *EventType) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return v
+}
+
+func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v any) (*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalID(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalID(*v)
+	return res
 }
 
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v any) (*int, error) {
@@ -5188,7 +5987,7 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return res
 }
 
-func (ec *executionContext) unmarshalOJob2ᚕvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐJobᚄ(ctx context.Context, v any) ([]Job, error) {
+func (ec *executionContext) unmarshalOJob2ᚕvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐJobᚄ(ctx context.Context, v any) ([]Job, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -5198,7 +5997,7 @@ func (ec *executionContext) unmarshalOJob2ᚕvolunteerᚑschedulerᚋgraphᚋvol
 	res := make([]Job, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNJob2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐJob(ctx, vSlice[i])
+		res[i], err = ec.unmarshalNJob2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐJob(ctx, vSlice[i])
 		if err != nil {
 			return nil, err
 		}
@@ -5206,7 +6005,7 @@ func (ec *executionContext) unmarshalOJob2ᚕvolunteerᚑschedulerᚋgraphᚋvol
 	return res, nil
 }
 
-func (ec *executionContext) marshalOJob2ᚕvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐJobᚄ(ctx context.Context, sel ast.SelectionSet, v []Job) graphql.Marshaler {
+func (ec *executionContext) marshalOJob2ᚕvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐJobᚄ(ctx context.Context, sel ast.SelectionSet, v []Job) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -5233,7 +6032,7 @@ func (ec *executionContext) marshalOJob2ᚕvolunteerᚑschedulerᚋgraphᚋvolun
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNJob2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐJob(ctx, sel, v[i])
+			ret[i] = ec.marshalNJob2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐJob(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -5253,7 +6052,7 @@ func (ec *executionContext) marshalOJob2ᚕvolunteerᚑschedulerᚋgraphᚋvolun
 	return ret
 }
 
-func (ec *executionContext) unmarshalOServiceType2ᚕvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐServiceTypeᚄ(ctx context.Context, v any) ([]ServiceType, error) {
+func (ec *executionContext) unmarshalOServiceType2ᚕvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐServiceTypeᚄ(ctx context.Context, v any) ([]ServiceType, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -5263,7 +6062,7 @@ func (ec *executionContext) unmarshalOServiceType2ᚕvolunteerᚑschedulerᚋgra
 	res := make([]ServiceType, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNServiceType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐServiceType(ctx, vSlice[i])
+		res[i], err = ec.unmarshalNServiceType2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐServiceType(ctx, vSlice[i])
 		if err != nil {
 			return nil, err
 		}
@@ -5271,7 +6070,7 @@ func (ec *executionContext) unmarshalOServiceType2ᚕvolunteerᚑschedulerᚋgra
 	return res, nil
 }
 
-func (ec *executionContext) marshalOServiceType2ᚕvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐServiceTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []ServiceType) graphql.Marshaler {
+func (ec *executionContext) marshalOServiceType2ᚕvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐServiceTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []ServiceType) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -5298,7 +6097,7 @@ func (ec *executionContext) marshalOServiceType2ᚕvolunteerᚑschedulerᚋgraph
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNServiceType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐServiceType(ctx, sel, v[i])
+			ret[i] = ec.marshalNServiceType2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐServiceType(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -5372,14 +6171,30 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	return res
 }
 
-func (ec *executionContext) marshalOVenue2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVenue(ctx context.Context, sel ast.SelectionSet, v *Venue) graphql.Marshaler {
+func (ec *executionContext) marshalOVenue2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVenue(ctx context.Context, sel ast.SelectionSet, v *Venue) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Venue(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOVolunteerProfile2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerProfileᚄ(ctx context.Context, sel ast.SelectionSet, v []*VolunteerProfile) graphql.Marshaler {
+func (ec *executionContext) unmarshalOVenueInput2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVenueInput(ctx context.Context, v any) (*VenueInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputVenueInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOVolunteerFilterInput2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerFilterInput(ctx context.Context, v any) (*VolunteerFilterInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputVolunteerFilterInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOVolunteerProfile2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerProfileᚄ(ctx context.Context, sel ast.SelectionSet, v []*VolunteerProfile) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -5406,7 +6221,7 @@ func (ec *executionContext) marshalOVolunteerProfile2ᚕᚖvolunteerᚑscheduler
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNVolunteerProfile2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerProfile(ctx, sel, v[i])
+			ret[i] = ec.marshalNVolunteerProfile2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerProfile(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)

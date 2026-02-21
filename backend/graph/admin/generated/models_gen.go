@@ -27,7 +27,42 @@ type EventFilterInput struct {
 	EndDate   *string    `json:"endDate,omitempty"`
 }
 
+type InsertResult struct {
+	Success bool    `json:"success"`
+	Message *string `json:"message,omitempty"`
+	ID      *string `json:"id,omitempty"`
+}
+
 type Mutation struct {
+}
+
+type NewEventInput struct {
+	Name          string                 `json:"name"`
+	Description   *string                `json:"description,omitempty"`
+	EventType     EventType              `json:"eventType"`
+	Venue         *VenueInput            `json:"venue,omitempty"`
+	Opportunities []*NewOpportunityInput `json:"opportunities"`
+}
+
+type NewOpportunityInput struct {
+	Job    Job              `json:"job"`
+	Shifts []*NewShiftInput `json:"shifts"`
+}
+
+type NewShiftInput struct {
+	Date          string `json:"date"`
+	StartTime     string `json:"startTime"`
+	EndTime       string `json:"endTime"`
+	MaxVolunteers *int   `json:"maxVolunteers,omitempty"`
+}
+
+type NewVolunteerInput struct {
+	FirstName    string        `json:"firstName"`
+	LastName     string        `json:"lastName"`
+	Email        string        `json:"email"`
+	Phone        string        `json:"phone"`
+	ZipCode      string        `json:"zipCode"`
+	ServiceTypes []ServiceType `json:"serviceTypes,omitempty"`
 }
 
 type Opportunity struct {
@@ -70,6 +105,20 @@ type Venue struct {
 	City    string  `json:"city"`
 	State   string  `json:"state"`
 	ZipCode *string `json:"zipCode,omitempty"`
+}
+
+type VenueInput struct {
+	Name    *string `json:"name,omitempty"`
+	Address string  `json:"address"`
+	City    string  `json:"city"`
+	State   string  `json:"state"`
+	ZipCode *string `json:"zipCode,omitempty"`
+}
+
+type VolunteerFilterInput struct {
+	FirstName    *string       `json:"firstName,omitempty"`
+	LastName     *string       `json:"lastName,omitempty"`
+	ServiceTypes []ServiceType `json:"serviceTypes,omitempty"`
 }
 
 type VolunteerProfile struct {
