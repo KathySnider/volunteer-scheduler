@@ -51,7 +51,7 @@ COPY --from=builder /app/src ./src
 EXPOSE 3000
 
 # Set environment variable for API URL (can be overridden)
-ENV PUBLIC_API_URL=http://localhost:8080/query
+ENV NEXT_PUBLIC_API_URL=http://localhost:8080/graphql/admin
 
 # Start the application
 CMD ["npm", "start"]

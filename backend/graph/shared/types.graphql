@@ -1,0 +1,104 @@
+## Types common to all of the schemas.
+
+
+#-- ENUMS --
+enum EventType {
+  VIRTUAL
+  IN_PERSON
+  HYBRID
+}
+
+# ServiceType describes the category(s) of services for 
+# which this person has training or wants to help.
+enum ServiceType {
+  OUTREACH
+  ADVOCACY
+  SPEAKERS_BUREAU
+  OFFICE_SUPPORT
+  OTHER
+}
+
+# Job describes the specific job for which a VolunteerProfile
+# is needed.
+enum Job {
+  EVENT_SUPPORT
+  ADVOCACY
+  SPEAKER
+  VOLUNTEER_LEAD
+  ATTENDEE_ONLY
+  OTHER
+}
+
+
+#-- Input --
+## The EventFilter reflects all of the fields on which 
+## a user can filter the results. If you want to add
+## more ways to filter, this is the place.
+input EventFilterInput {
+  cities: [String!]
+  eventType: EventType
+  jobs: [Job!]
+  startDate: String
+  endDate: String
+}
+
+input UpdateVolunteerInput {
+  id: ID!
+  firstName: String
+  lastName: String
+  email: String
+  phone: String
+  zipCode: String
+  serviceTypes: [ServiceType!]
+}
+
+#-- Output --
+type VolunteerProfile {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String!
+  zipCode: String!
+  serviceTypes: [ServiceType!]
+}
+
+type Event {
+  id: ID!
+  name: String!
+  description: String
+  eventType: EventType!
+  venue: Venue
+  shifts: [Shift!]!
+  opportunities: [Opportunity!]!  
+}
+
+type Venue {
+  name: String
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String
+}
+
+type Shift {
+  id: ID!
+  job: Job! #-- sort of inherited from Opportunity.
+  date: String!
+  startTime: String!
+  endTime: String!
+  maxVolunteers: Int
+  assignedVolunteers: [VolunteerProfile!]
+}
+
+type Opportunity {
+  id: ID!
+  job: Job!
+  shifts: [Shift!]!
+}
+
+#-- Results --
+type UpdateResult {
+  success: Boolean!
+  message: String
+}

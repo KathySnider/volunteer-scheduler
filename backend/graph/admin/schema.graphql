@@ -1,49 +1,50 @@
+## These definitions apply to those users with admin status
+## only. The definitions in the volunteer schema are also
+## available to admins. So the admin privilege allows the 
+## definitions in the union of the 2 schema files.
 
 type Query {
-  events(filter: EventFilter): [Event!]!
-  event(id: ID!): Event                 
-  volunteers(qualifications: [String!]): [Volunteer!]!  
-}
+  # Same as volunteer queries
+  events(filter: EventFilterInput): [Event!]!
+  eventById(id: ID!): Event!
+
+  # Admin-only queries
+  allVolunteers(filter: VolunteerFilterInput): [VolunteerProfile!]! 
+} 
 
 type Mutation {
-  createVolunteer(firstName: String!, lastName: String!): Volunteer!  
-  assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): AssignmentResult!  
-  createEvent(name: String!, description: String, eventType: EventType!, locationName: String): Event!
+  # Volunteer mutations (admins can do these, too.)
+  assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): UpdateResult!  
+  updateVolunteerProfile(profile: UpdateVolunteerInput!): UpdateResult!  
+  cancelShift(shiftId: ID!, volunteerId: ID!): UpdateResult!
+
+  # Admin-only mutations
+  createVolunteer(newVol: NewVolunteerInput!): InsertResult!  
+  createEvent(newEvent: NewEventInput!): InsertResult!
 }
 
-input EventFilter {
-  cities: [String!]
-  eventType: EventType
-  roles: [RoleType!]
-  startDate: String
-  endDate: String
+#-- Inputs --
+input NewVolunteerInput {
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String!
+  zipCode: String!
+  serviceTypes: [ServiceType!]
 }
 
-enum EventType {
-  VIRTUAL
-  IN_PERSON
-  HYBRID
-}
-
-enum RoleType {
-  EVENT_SUPPORT
-  ADVOCACY
-  SPEAKER
-  VOLUNTEER_LEAD
-  OTHER
-}
-
-type Event {
-  id: ID!
+input NewEventInput {
   name: String!
   description: String
   eventType: EventType!
-  location: Location
-  shifts: [Shift!]!
-  opportunities: [Opportunity!]!  
+  venue: VenueInput
+  opportunities: [NewOpportunityInput!]!  
 }
 
-type Location {
+# Note that venue is not necessarily 
+# new. If the user chose an existing 
+# venue, only the name is needed.
+input VenueInput {
   name: String
   address: String!
   city: String!
@@ -51,32 +52,27 @@ type Location {
   zipCode: String
 }
 
-type Shift {
-  id: ID!
-  role: RoleType!
+input NewOpportunityInput {
+  job: Job!
+  shifts: [NewShiftInput!]!
+}
+
+input NewShiftInput {
   date: String!
   startTime: String!
   endTime: String!
   maxVolunteers: Int
-  assignedVolunteers: [Volunteer!]
 }
 
-type Volunteer {
-  id: ID!
-  firstName: String!
-  lastName: String!
-  qualifications: [String!]
+input VolunteerFilterInput {
+  firstName: String
+  lastName: String
+  serviceTypes: [ServiceType!]
 }
 
-type Opportunity {
-  id: ID!
-  role: RoleType!
-  requiresQualifications: [String!]
-  shifts: [Shift!]!
-}
-
-type AssignmentResult {
+#-- Results --
+type InsertResult {
   success: Boolean!
   message: String
+  id: ID
 }
-
