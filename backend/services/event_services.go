@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,17 +23,6 @@ func NewEventService(db *sql.DB, shiftService *ShiftService) *EventService {
 		DB:           db,
 		ShiftService: shiftService,
 	}
-}
-
-// CreateEvent allows user to create a new event,
-// complete with opportunities and shifts.
-func (s *EventService) CreateEvent(ctx context.Context, newEvent *models.NewEventInput) (*models.InsertResult, error) {
-
-	return &models.InsertResult{
-		Success: false,
-		Message: ptrString("Not yet Implemented."),
-		ID:      nil,
-	}, nil
 }
 
 // GetEventByID retrieves a specific event
@@ -82,7 +72,7 @@ func (s *EventService) GetEventByID(ctx context.Context, id string) (*models.Eve
 
 	event.ID = fmt.Sprintf("%d", eventID) // string for GraphQl
 
-	// Determine if the event is virtual, in person, or either (hybrid).
+	// Determine event's type.
 	if isVirtual && locationID != nil {
 		event.EventType = "HYBRID"
 	} else if isVirtual {
@@ -364,7 +354,6 @@ func (s *EventService) GetOpportunitiesForEvent(ctx context.Context, eventID int
 		FROM opportunities
 		WHERE event_id = $1
 	`
-
 	rows, err := s.DB.QueryContext(ctx, oppQuery, eventID)
 	if err != nil {
 		return nil, fmt.Errorf("error querying opportunities: %w", err)
@@ -396,4 +385,233 @@ func (s *EventService) GetOpportunitiesForEvent(ctx context.Context, eventID int
 	}
 
 	return opportunities, nil
+}
+
+// CreateEvent allows user to create a new event,
+// complete with opportunities and shifts.
+func (s *EventService) CreateEvent(ctx context.Context, newEvent *models.NewEventInput) (*models.InsertResult, error) {
+	var query string
+	var virtualEvent bool
+	var venueIdPtr *int
+	var eventId int
+	var eventIdStr string
+
+	// Determine whether or not the event will be virtual.
+	// Both virtual and hybrid events have a virtual
+	// component, so onlu in-person events are *not* vitual.
+	virtualEvent = true
+	if newEvent.EventType == models.EventTypeInPerson {
+		virtualEvent = false
+	}
+
+	// Both in-person and hybrid events require a venue.
+	if newEvent.EventType == models.EventTypeVirtual {
+		// No venue for a virtual event.
+		venueIdPtr = nil
+
+	} else {
+		// A venue is required. May already exist, else
+		// create it.
+		intPtr, err := s.UpsertVenue(ctx, newEvent.Venue)
+
+		if err != nil {
+			return nil, fmt.Errorf("error upserting venue: %w", err)
+		}
+
+		venueIdPtr = intPtr
+	}
+
+	// Create the new event, opportunities, and shifts inside
+	// of a transaction. We don't want a partial event in the
+	// DB, nor do we want volunteers to see incomplete events.
+
+	// Get a Tx for making transaction requests.
+	var tx *sql.Tx
+
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		err = fmt.Errorf("error starting transaction: %w", err)
+		return nil, err
+	}
+
+	// Defer a rollback in case anything fails.
+	defer tx.Rollback()
+
+	// The rollback is for insurance. The rollback will occur if we
+	// leave the scope of the transaction before it has ended. For
+	// good DB practice, DO NOT RETURN while inside of a transaction.
+
+	if venueIdPtr == nil {
+		query = `
+		INSERT INTO events (name, description, is_virtual)
+		VALUES ($1, $2, $3)
+		RETURNING event_id
+	`
+		err = tx.QueryRowContext(ctx, query, newEvent.Name, newEvent.Description, virtualEvent).Scan(&eventId)
+
+	} else {
+		query = `
+		INSERT INTO events (name, description, is_virtual, location_id)
+		VALUES ($1, $2, $3, $4)
+		RETURNING event_id
+	`
+		err = tx.QueryRowContext(ctx, query, newEvent.Name, newEvent.Description, virtualEvent, *venueIdPtr).Scan(&eventId)
+
+	}
+
+	if err != nil {
+		// Save all of the information about what failed.
+		err = fmt.Errorf("error inserting the event: %w", err)
+
+	} else {
+		// Event was inserted. Add the opportunites.
+		err = s.AddOpportunitiesToEvent(ctx, tx, eventId, newEvent.Opportunities)
+	}
+
+	if err != nil {
+		tx.Rollback()
+
+		// NOW return an error ...
+		return &models.InsertResult{
+			Success: false,
+			Message: ptrString("transaction failed and was rolled back."),
+			ID:      nil,
+		}, err
+	}
+
+	// All good. Commit and return the new event ID.
+	tx.Commit()
+
+	eventIdStr = strconv.Itoa(eventId)
+	return &models.InsertResult{
+		Success: true,
+		Message: ptrString("Volunteer successfully created."),
+		ID:      &eventIdStr,
+	}, nil
+}
+
+// UpsertVenue
+// Determines if the venue exists (as specified) in the DB.
+// If so, returns the ID of the existing venue.
+// Else, inserts the new venue and returns the new ID.
+func (s *EventService) UpsertVenue(ctx context.Context, venue *models.VenueInput) (*int, error) {
+	var query string
+	var venueId int
+
+	if venue == nil || venue.Name == nil {
+		// Return an error. venue is required.
+		err := fmt.Errorf("A venue is required for this type of event.")
+		return nil, err
+	}
+
+	// (This is temporary. We'll actually have the ID
+	// in the call if the location exists.) For now,
+	// if the user indicated an existing venue, only
+	// the name will have been supplied. That's how
+	// we'll look it up.
+	query = `
+	SELECT 
+		l.location_id, 
+	FROM locations l
+	WHERE l.location_name = $1 
+	`
+
+	err := s.DB.QueryRowContext(ctx, query, venue.Name).Scan(&venueId)
+
+	if err == sql.ErrNoRows {
+		// The venue is new. Create it now.
+		venueIdPtr, err := s.CreateVenue(ctx, venue)
+
+		if err != nil {
+			return nil, fmt.Errorf("error creating location: %w", err)
+		}
+
+		venueId = *venueIdPtr
+
+	} else if err != nil {
+		return nil, fmt.Errorf("error querying location: %w", err)
+	}
+
+	// Success.
+	return &venueId, nil
+}
+
+func (s *EventService) CreateVenue(ctx context.Context, venue *models.VenueInput) (*int, error) {
+	var query string
+	var locId int
+
+	query = `
+		INSERT INTO locations (location_name, address, city, state, zip_code)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING location_id
+	`
+	err := s.DB.QueryRowContext(ctx, query, venue.Name, venue.Address, venue.City, venue.State, venue.ZipCode).Scan(&locId)
+
+	return &locId, err
+}
+
+func (s *EventService) AddOpportunitiesToEvent(ctx context.Context, tx *sql.Tx, eventId int, opps []*models.NewOpportunityInput) error {
+	var i int
+
+	for i = 0; i < len(opps); i++ {
+		err := s.CreateOpportunity(ctx, tx, eventId, opps[i])
+
+		if err != nil {
+			err = fmt.Errorf("error inserting opp with index %v: %w", i, err)
+			return err
+		}
+	}
+
+	// No errors.
+	return nil
+}
+
+func (s *EventService) CreateOpportunity(ctx context.Context, tx *sql.Tx, eventId int, opp *models.NewOpportunityInput) error {
+	var query string
+	var oppId int
+
+	query = `
+		INSERT INTO opportunities (event_id, role, other_role_description, opportunity_is_virtual, pre_event_instructions)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING opportunity_id
+	`
+	err := tx.QueryRowContext(ctx, query, eventId, opp.Job, nil, false, nil).Scan(&oppId)
+
+	if err != nil {
+		return err
+	}
+
+	// Opportunity was created. Add shifts.
+	return s.AddShiftsToOpportunity(ctx, tx, oppId, opp.Shifts)
+
+}
+
+func (s *EventService) AddShiftsToOpportunity(ctx context.Context, tx *sql.Tx, oppId int, shifts []*models.NewShiftInput) error {
+	var i int
+
+	for i = 0; i < len(shifts); i++ {
+		err := s.CreateShift(ctx, tx, oppId, shifts[i])
+
+		if err != nil {
+			err = fmt.Errorf("error inserting shift with index %v: %w", i, err)
+			return err
+		}
+	}
+
+	// No errors.
+	return nil
+}
+
+func (s *EventService) CreateShift(ctx context.Context, tx *sql.Tx, oppId int, shift *models.NewShiftInput) error {
+	var query string
+	var shiftId int
+
+	query = `
+		INSERT INTO shifts (opportunity_id, shift_start, shift_end, staff_lead_id, max_volunteers)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING shift_id
+	`
+	err := tx.QueryRowContext(ctx, query, oppId, shift.StartTime, shift.EndTime, nil, shift.MaxVolunteers).Scan(&shiftId)
+
+	return err
 }
