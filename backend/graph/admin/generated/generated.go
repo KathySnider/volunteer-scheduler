@@ -646,7 +646,7 @@ type Venue {
 
 type Shift {
   id: ID!
-  job: String! #-- sort of inherited from Opportunity.
+  job: Job! #-- sort of inherited from Opportunity.
   date: String!
   startTime: String!
   endTime: String!
@@ -1898,7 +1898,7 @@ func (ec *executionContext) _Shift_job(ctx context.Context, field graphql.Collec
 			return obj.Job, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		ec.marshalNJob2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐJob,
 		true,
 		true,
 	)
@@ -1911,7 +1911,7 @@ func (ec *executionContext) fieldContext_Shift_job(_ context.Context, field grap
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Job does not have child fields")
 		},
 	}
 	return fc, nil

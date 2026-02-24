@@ -76,7 +76,7 @@ type Query struct {
 
 type Shift struct {
 	ID                 string              `json:"id"`
-	Job                string              `json:"job"`
+	Job                Job                 `json:"job"`
 	Date               string              `json:"date"`
 	StartTime          string              `json:"startTime"`
 	EndTime            string              `json:"endTime"`
