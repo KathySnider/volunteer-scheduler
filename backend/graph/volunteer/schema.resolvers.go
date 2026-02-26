@@ -12,9 +12,92 @@ import (
 	"strings"
 	"time"
 	"volunteer-scheduler/graph/volunteer/generated"
+	"volunteer-scheduler/services"
 
 	"github.com/lib/pq"
 )
+
+// RequestMagicLink generates and sends a magic link to the user's email
+func (r *mutationResolver) RequestMagicLink(ctx context.Context, email string) (*generated.MagicLinkResult, error) {
+	if email == "" {
+		return &generated.MagicLinkResult{
+			Success: false,
+			Message: "Email is required",
+		}, nil
+	}
+
+	// Create mailer for email transport
+	mailer, err := services.NewMailer()
+	if err != nil {
+		return &generated.MagicLinkResult{
+			Success: false,
+			Message: "Email service not configured",
+		}, nil
+	}
+
+	// Create magic link service with DB and mailer
+	magicLinkService := services.NewMagicLinkService(r.DB, mailer)
+
+	// Generate token
+	token, err := magicLinkService.GenerateMagicLink(ctx, email, "", "")
+	if err != nil {
+		return &generated.MagicLinkResult{
+			Success: false,
+			Message: fmt.Sprintf("Failed to generate magic link: %v", err),
+		}, nil
+	}
+
+	// Send email using the service's branded HTML template
+	if err := magicLinkService.SendMagicLinkEmail(ctx, email, token); err != nil {
+		return &generated.MagicLinkResult{
+			Success: false,
+			Message: fmt.Sprintf("Failed to send email: %v", err),
+		}, nil
+	}
+
+	return &generated.MagicLinkResult{
+		Success: true,
+		Message: "Magic link sent to your email",
+		Email:   &email,
+	}, nil
+}
+
+// ConsumeMagicLink validates and consumes the magic link token
+func (r *mutationResolver) ConsumeMagicLink(ctx context.Context, token string) (*generated.AuthResult, error) {
+	if token == "" {
+		return &generated.AuthResult{
+			Success: false,
+			Message: "Token is required",
+		}, nil
+	}
+
+	magicLinkService := services.NewMagicLinkService(r.DB, nil)
+
+	// Validate and consume token
+	email, err := magicLinkService.ConsumeMagicLink(ctx, token)
+	if err != nil {
+		return &generated.AuthResult{
+			Success: false,
+			Message: fmt.Sprintf("Invalid or expired magic link: %v", err),
+		}, nil
+	}
+
+	// Create session token
+	sessionToken, err := magicLinkService.CreateSessionToken(email)
+	if err != nil {
+		return &generated.AuthResult{
+			Success: false,
+			Message: "Failed to create session",
+		}, nil
+	}
+
+	return &generated.AuthResult{
+		Success:      true,
+		Message:      "Successfully signed in",
+		Email:        &email,
+		SessionToken: &sessionToken,
+	}, nil
+}
 
 // EditVolunteerProfile
 // Volunteers whose identities have been created by an admin
@@ -387,7 +470,7 @@ func (r *queryResolver) AllVolunteers(ctx context.Context, filter *generated.Vol
 
 	// Get all volunteers for now.
 	// We may need a filter here, so it's in the input, but
-	// we'll deal with that when we know if we are looking 
+	// we'll deal with that when we know if we are looking
 	// up by email or name or ??
 	query = `
 		SELECT volunteer_id, first_name, last_name

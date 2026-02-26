@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, MapPin, Monitor, Users, ChevronDown, UserCircle, LogOut } from 'lucide-react';
+import { Calendar, MapPin, Monitor, Users, ChevronDown, UserCircle, LogOut, LogIn } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useAuth } from '../context/AuthContext';
 
 const VolunteerEventsApp = () => {
   const [events, setEvents] = useState([]);
@@ -8,6 +10,7 @@ const VolunteerEventsApp = () => {
   const [error, setError] = useState(null);
 
   const router = useRouter();
+  const { user, isAuthenticated, signOut: authSignOut } = useAuth();
 
   // These are for the showNameModal popup.
   const [currentVolunteer, setCurrentVolunteer] = useState(null);
@@ -117,7 +120,7 @@ const VolunteerEventsApp = () => {
   const handleLogout = () => {
     setCurrentVolunteer(null);
     localStorage.removeItem('currentVolunteer');
-    setShowNameModal(true);
+    router.push('/auth/signin');
   };
 
   const fetchCities = async () => {
@@ -217,18 +220,19 @@ const VolunteerEventsApp = () => {
 
   useEffect(() => {
     fetchAllVolunteers();
-  
+
     // Is volunteer already logged in?
     const storedVolunteer = localStorage.getItem('currentVolunteer');
     if (storedVolunteer) {
       setCurrentVolunteer(JSON.parse(storedVolunteer));
-    } else {
+    } else if (!isAuthenticated) {
+      // Only show name modal if not authenticated via magic link
       setShowNameModal(true);
     }
-    
+
     fetchCities();
     fetchEvents();
-  }, []);
+  }, [isAuthenticated]);
 
   const fetchAllVolunteers = async () => {
 
@@ -406,24 +410,39 @@ const VolunteerEventsApp = () => {
       {/* Sidebar */}
       <div className="w-80 bg-white shadow-lg p-6 overflow-y-auto">
         {/* User Info */}
-        {currentVolunteer && (
+        {isAuthenticated ? (
           <div className="mb-6 pb-6 border-b border-gray-200">
             <div className="flex items-center gap-3 mb-3">
               <UserCircle className="w-10 h-10 text-blue-600" />
               <div>
-                <p className="font-semibold text-gray-800">
-                  {currentVolunteer.firstName} {currentVolunteer.lastName}
-                </p>
-                <p className="text-sm text-gray-500">Volunteer</p>
+                {currentVolunteer && (
+                  <p className="font-semibold text-gray-800">
+                    {currentVolunteer.firstName} {currentVolunteer.lastName}
+                  </p>
+                )}
+                <p className="text-sm text-gray-500">{user.email}</p>
               </div>
             </div>
             <button
-              onClick={handleLogout}
+              onClick={() => {
+                authSignOut();
+                handleLogout();
+              }}
               className="flex items-center gap-2 text-sm text-gray-600 hover:text-red-600 transition-colors"
             >
               <LogOut className="w-4 h-4" />
               Sign Out
             </button>
+          </div>
+        ) : (
+          <div className="mb-6 pb-6 border-b border-gray-200">
+            <Link
+              href="/auth/signin"
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            >
+              <LogIn className="w-4 h-4" />
+              Sign In
+            </Link>
           </div>
         )}
 

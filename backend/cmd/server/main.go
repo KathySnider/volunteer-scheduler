@@ -19,27 +19,31 @@ import (
 func main() {
 
 	// Database connection
+	var dbURL string
 
-	// Get the postgres password for the database.
-	secret, err := os.ReadFile("/run/secrets/secret_db_pw")
-	if err != nil {
-		log.Fatalf("Unable to read postgres pw: %v", err)
+	// First, try DATABASE_URL env var (for local dev without Docker secrets)
+	if envURL := os.Getenv("DATABASE_URL"); envURL != "" {
+		dbURL = envURL
+		log.Println("Using DATABASE_URL from environment")
+	} else {
+		// Fall back to Docker secrets (for container deployment)
+		secret, err := os.ReadFile("/run/secrets/secret_db_pw")
+		if err != nil {
+			log.Fatalf("Unable to read postgres pw (set DATABASE_URL for local dev): %v", err)
+		}
+		dbPw := strings.Trim(string(secret), "\n\r")
 
+		secret, err = os.ReadFile("/run/secrets/secret_db_url")
+		if err != nil {
+			log.Fatalf("Unable to read db url (set DATABASE_URL for local dev): %v", err)
+		}
+		pattern := strings.Trim(string(secret), "\n\r")
+
+		dbURL = strings.Replace(pattern, "database_password", dbPw, -1)
 	}
-	db_pw := strings.Trim(string(secret), "\n\r")
-
-	// Get the url with a placeholder for the password.
-	secret, err = os.ReadFile("/run/secrets/secret_db_url")
-	if err != nil {
-		log.Fatalf("Unable to read db url: %v", err)
-	}
-	pattern := strings.Trim(string(secret), "\n\r")
-
-	// Replace the placeholder with the actual password in the url.
-	db_url := strings.Replace(pattern, "database_password", db_pw, -1)
 
 	// Connect.
-	db, err := sql.Open("postgres", db_url)
+	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
