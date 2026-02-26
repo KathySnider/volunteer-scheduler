@@ -1,14 +1,34 @@
 'use client';
 
-import { useState } from 'react';
-import { Mail, ArrowLeft } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
   const [error, setError] = useState('');
+
+  // When the magic link is clicked in another tab, it writes to localStorage.
+  // The 'storage' event fires in this tab, so we can detect sign-in.
+  useEffect(() => {
+    if (!emailSent) return;
+
+    const handleStorageChange = (e) => {
+      if (e.key === 'authSession' && e.newValue) {
+        // Try to close this tab (browsers block this on user-opened tabs,
+        // but it works if the tab was opened via window.open)
+        window.close();
+        // If close was blocked, show the "close this tab" message
+        setSignedIn(true);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [emailSent]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -60,7 +80,19 @@ export default function SignInPage() {
           </div>
         )}
 
-        {!emailSent ? (
+        {signedIn ? (
+          <div className="p-6 bg-green-50 rounded-lg text-center">
+            <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-green-800 mb-2">You're signed in!</h3>
+            <p className="text-gray-500 mb-6">You can close this tab and return to the original window.</p>
+            <Link
+              href="/"
+              className="inline-block px-6 py-3 bg-blue-800 text-white rounded-lg font-semibold hover:bg-blue-900 transition-colors"
+            >
+              Go to Events
+            </Link>
+          </div>
+        ) : !emailSent ? (
           <form onSubmit={handleSubmit}>
             <label className="block mb-2 text-sm font-semibold text-gray-700">
               Email Address

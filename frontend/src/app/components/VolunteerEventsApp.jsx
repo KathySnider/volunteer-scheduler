@@ -10,7 +10,7 @@ const VolunteerEventsApp = () => {
   const [error, setError] = useState(null);
 
   const router = useRouter();
-  const { user, isAuthenticated, signOut: authSignOut } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, signOut: authSignOut } = useAuth();
 
   // These are for the showNameModal popup.
   const [currentVolunteer, setCurrentVolunteer] = useState(null);
@@ -218,21 +218,26 @@ const VolunteerEventsApp = () => {
     }
   };
 
+  // Redirect to sign-in if not authenticated
   useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/auth/signin');
+    }
+  }, [authLoading, isAuthenticated, router]);
+
+  useEffect(() => {
+    if (authLoading || !isAuthenticated) return;
+
     fetchAllVolunteers();
 
-    // Is volunteer already logged in?
     const storedVolunteer = localStorage.getItem('currentVolunteer');
     if (storedVolunteer) {
       setCurrentVolunteer(JSON.parse(storedVolunteer));
-    } else if (!isAuthenticated) {
-      // Only show name modal if not authenticated via magic link
-      setShowNameModal(true);
     }
 
     fetchCities();
     fetchEvents();
-  }, [isAuthenticated]);
+  }, [authLoading, isAuthenticated]);
 
   const fetchAllVolunteers = async () => {
 
@@ -350,6 +355,11 @@ const VolunteerEventsApp = () => {
     if (!shifts || shifts.length === 0) return null;
     return shifts.sort((a, b) => new Date(a.date) - new Date(b.date))[0];
   };
+
+  // Show nothing while auth is loading or redirecting to sign-in
+  if (authLoading || !isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="flex h-screen bg-gray-50">

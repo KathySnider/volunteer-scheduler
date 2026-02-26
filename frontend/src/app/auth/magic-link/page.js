@@ -52,7 +52,6 @@ function MagicLinkHandler() {
         const { email, sessionToken } = result.data.consumeMagicLink;
         signIn(email, sessionToken);
         setStatus('success');
-        setTimeout(() => router.push('/'), 1500);
       } else {
         setStatus('error');
         setMessage(result.data?.consumeMagicLink?.message || 'Invalid or expired magic link');
@@ -80,7 +79,7 @@ function MagicLinkHandler() {
         <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full mx-4 text-center">
           <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-green-800 mb-2">You're signed in!</h2>
-          <p className="text-gray-500 mb-6">Redirecting to the events page...</p>
+          <p className="text-gray-500 mb-6">You can close this tab and return to the original window.</p>
           <Link
             href="/"
             className="inline-block px-6 py-3 bg-blue-800 text-white rounded-lg font-semibold hover:bg-blue-900 transition-colors"
