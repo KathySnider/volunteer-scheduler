@@ -10,6 +10,11 @@ type Query {
 }
 
 type Mutation {
+  ## Authentication - Magic Link (Passwordless Email Sign-In)
+  requestMagicLink(email: String!): MagicLinkResult!
+  consumeMagicLink(token: String!): AuthResult!
+  
+  ## Volunteer Profile Management
   editVolunteerProfile(volunteerId: ID!): Volunteer!  
   assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): AssignmentResult!  
   ## TODO! send an email to the volunteer lead and the
@@ -102,5 +107,19 @@ type Opportunity {
 type AssignmentResult {
   success: Boolean!
   message: String
+}
+
+## Magic Link Authentication Results
+type MagicLinkResult {
+  success: Boolean!
+  message: String!
+  email: String
+}
+
+type AuthResult {
+  success: Boolean!
+  message: String!
+  email: String
+  sessionToken: String
 }
 

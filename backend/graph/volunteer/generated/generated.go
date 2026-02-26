@@ -50,6 +50,13 @@ type ComplexityRoot struct {
 		Success func(childComplexity int) int
 	}
 
+	AuthResult struct {
+		Email        func(childComplexity int) int
+		Message      func(childComplexity int) int
+		SessionToken func(childComplexity int) int
+		Success      func(childComplexity int) int
+	}
+
 	Event struct {
 		Description   func(childComplexity int) int
 		EventType     func(childComplexity int) int
@@ -60,10 +67,18 @@ type ComplexityRoot struct {
 		Venue         func(childComplexity int) int
 	}
 
+	MagicLinkResult struct {
+		Email   func(childComplexity int) int
+		Message func(childComplexity int) int
+		Success func(childComplexity int) int
+	}
+
 	Mutation struct {
 		AssignVolunteerToShift func(childComplexity int, shiftID string, volunteerID string) int
 		CancelShift            func(childComplexity int, shiftID string, volunteerID string) int
+		ConsumeMagicLink       func(childComplexity int, token string) int
 		EditVolunteerProfile   func(childComplexity int, volunteerID string) int
+		RequestMagicLink       func(childComplexity int, email string) int
 	}
 
 	Opportunity struct {
@@ -107,6 +122,8 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
+	RequestMagicLink(ctx context.Context, email string) (*MagicLinkResult, error)
+	ConsumeMagicLink(ctx context.Context, token string) (*AuthResult, error)
 	EditVolunteerProfile(ctx context.Context, volunteerID string) (*Volunteer, error)
 	AssignVolunteerToShift(ctx context.Context, shiftID string, volunteerID string) (*AssignmentResult, error)
 	CancelShift(ctx context.Context, shiftID string, volunteerID string) (*AssignmentResult, error)
@@ -149,6 +166,31 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.AssignmentResult.Success(childComplexity), true
+
+	case "AuthResult.email":
+		if e.complexity.AuthResult.Email == nil {
+			break
+		}
+
+		return e.complexity.AuthResult.Email(childComplexity), true
+	case "AuthResult.message":
+		if e.complexity.AuthResult.Message == nil {
+			break
+		}
+
+		return e.complexity.AuthResult.Message(childComplexity), true
+	case "AuthResult.sessionToken":
+		if e.complexity.AuthResult.SessionToken == nil {
+			break
+		}
+
+		return e.complexity.AuthResult.SessionToken(childComplexity), true
+	case "AuthResult.success":
+		if e.complexity.AuthResult.Success == nil {
+			break
+		}
+
+		return e.complexity.AuthResult.Success(childComplexity), true
 
 	case "Event.description":
 		if e.complexity.Event.Description == nil {
@@ -193,6 +235,25 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Event.Venue(childComplexity), true
 
+	case "MagicLinkResult.email":
+		if e.complexity.MagicLinkResult.Email == nil {
+			break
+		}
+
+		return e.complexity.MagicLinkResult.Email(childComplexity), true
+	case "MagicLinkResult.message":
+		if e.complexity.MagicLinkResult.Message == nil {
+			break
+		}
+
+		return e.complexity.MagicLinkResult.Message(childComplexity), true
+	case "MagicLinkResult.success":
+		if e.complexity.MagicLinkResult.Success == nil {
+			break
+		}
+
+		return e.complexity.MagicLinkResult.Success(childComplexity), true
+
 	case "Mutation.assignVolunteerToShift":
 		if e.complexity.Mutation.AssignVolunteerToShift == nil {
 			break
@@ -215,6 +276,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.CancelShift(childComplexity, args["shiftId"].(string), args["volunteerId"].(string)), true
+	case "Mutation.consumeMagicLink":
+		if e.complexity.Mutation.ConsumeMagicLink == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_consumeMagicLink_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ConsumeMagicLink(childComplexity, args["token"].(string)), true
 	case "Mutation.editVolunteerProfile":
 		if e.complexity.Mutation.EditVolunteerProfile == nil {
 			break
@@ -226,6 +298,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.EditVolunteerProfile(childComplexity, args["volunteerId"].(string)), true
+	case "Mutation.requestMagicLink":
+		if e.complexity.Mutation.RequestMagicLink == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_requestMagicLink_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RequestMagicLink(childComplexity, args["email"].(string)), true
 
 	case "Opportunity.id":
 		if e.complexity.Opportunity.ID == nil {
@@ -515,6 +598,11 @@ type Query {
 }
 
 type Mutation {
+  ## Authentication - Magic Link (Passwordless Email Sign-In)
+  requestMagicLink(email: String!): MagicLinkResult!
+  consumeMagicLink(token: String!): AuthResult!
+  
+  ## Volunteer Profile Management
   editVolunteerProfile(volunteerId: ID!): Volunteer!  
   assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): AssignmentResult!  
   ## TODO! send an email to the volunteer lead and the
@@ -609,6 +697,20 @@ type AssignmentResult {
   message: String
 }
 
+## Magic Link Authentication Results
+type MagicLinkResult {
+  success: Boolean!
+  message: String!
+  email: String
+}
+
+type AuthResult {
+  success: Boolean!
+  message: String!
+  email: String
+  sessionToken: String
+}
+
 `, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
@@ -649,6 +751,17 @@ func (ec *executionContext) field_Mutation_cancelShift_args(ctx context.Context,
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_consumeMagicLink_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "token", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["token"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_editVolunteerProfile_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -657,6 +770,17 @@ func (ec *executionContext) field_Mutation_editVolunteerProfile_args(ctx context
 		return nil, err
 	}
 	args["volunteerId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_requestMagicLink_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "email", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["email"] = arg0
 	return args, nil
 }
 
@@ -815,6 +939,122 @@ func (ec *executionContext) _AssignmentResult_message(ctx context.Context, field
 func (ec *executionContext) fieldContext_AssignmentResult_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "AssignmentResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AuthResult_success(ctx context.Context, field graphql.CollectedField, obj *AuthResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AuthResult_success,
+		func(ctx context.Context) (any, error) {
+			return obj.Success, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AuthResult_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AuthResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AuthResult_message(ctx context.Context, field graphql.CollectedField, obj *AuthResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AuthResult_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AuthResult_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AuthResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AuthResult_email(ctx context.Context, field graphql.CollectedField, obj *AuthResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AuthResult_email,
+		func(ctx context.Context) (any, error) {
+			return obj.Email, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_AuthResult_email(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AuthResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AuthResult_sessionToken(ctx context.Context, field graphql.CollectedField, obj *AuthResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AuthResult_sessionToken,
+		func(ctx context.Context) (any, error) {
+			return obj.SessionToken, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_AuthResult_sessionToken(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AuthResult",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -1060,6 +1300,193 @@ func (ec *executionContext) fieldContext_Event_opportunities(_ context.Context, 
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Opportunity", field.Name)
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MagicLinkResult_success(ctx context.Context, field graphql.CollectedField, obj *MagicLinkResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MagicLinkResult_success,
+		func(ctx context.Context) (any, error) {
+			return obj.Success, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_MagicLinkResult_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MagicLinkResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MagicLinkResult_message(ctx context.Context, field graphql.CollectedField, obj *MagicLinkResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MagicLinkResult_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_MagicLinkResult_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MagicLinkResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MagicLinkResult_email(ctx context.Context, field graphql.CollectedField, obj *MagicLinkResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MagicLinkResult_email,
+		func(ctx context.Context) (any, error) {
+			return obj.Email, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_MagicLinkResult_email(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MagicLinkResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_requestMagicLink(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_requestMagicLink,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().RequestMagicLink(ctx, fc.Args["email"].(string))
+		},
+		nil,
+		ec.marshalNMagicLinkResult2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐMagicLinkResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_requestMagicLink(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MagicLinkResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MagicLinkResult_message(ctx, field)
+			case "email":
+				return ec.fieldContext_MagicLinkResult_email(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MagicLinkResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_requestMagicLink_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_consumeMagicLink(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_consumeMagicLink,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().ConsumeMagicLink(ctx, fc.Args["token"].(string))
+		},
+		nil,
+		ec.marshalNAuthResult2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐAuthResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_consumeMagicLink(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_AuthResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_AuthResult_message(ctx, field)
+			case "email":
+				return ec.fieldContext_AuthResult_email(ctx, field)
+			case "sessionToken":
+				return ec.fieldContext_AuthResult_sessionToken(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AuthResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_consumeMagicLink_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -3738,6 +4165,54 @@ func (ec *executionContext) _AssignmentResult(ctx context.Context, sel ast.Selec
 	return out
 }
 
+var authResultImplementors = []string{"AuthResult"}
+
+func (ec *executionContext) _AuthResult(ctx context.Context, sel ast.SelectionSet, obj *AuthResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, authResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AuthResult")
+		case "success":
+			out.Values[i] = ec._AuthResult_success(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "message":
+			out.Values[i] = ec._AuthResult_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "email":
+			out.Values[i] = ec._AuthResult_email(ctx, field, obj)
+		case "sessionToken":
+			out.Values[i] = ec._AuthResult_sessionToken(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var eventImplementors = []string{"Event"}
 
 func (ec *executionContext) _Event(ctx context.Context, sel ast.SelectionSet, obj *Event) graphql.Marshaler {
@@ -3801,6 +4276,52 @@ func (ec *executionContext) _Event(ctx context.Context, sel ast.SelectionSet, ob
 	return out
 }
 
+var magicLinkResultImplementors = []string{"MagicLinkResult"}
+
+func (ec *executionContext) _MagicLinkResult(ctx context.Context, sel ast.SelectionSet, obj *MagicLinkResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, magicLinkResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("MagicLinkResult")
+		case "success":
+			out.Values[i] = ec._MagicLinkResult_success(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "message":
+			out.Values[i] = ec._MagicLinkResult_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "email":
+			out.Values[i] = ec._MagicLinkResult_email(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var mutationImplementors = []string{"Mutation"}
 
 func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -3820,6 +4341,20 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
+		case "requestMagicLink":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_requestMagicLink(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "consumeMagicLink":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_consumeMagicLink(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "editVolunteerProfile":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_editVolunteerProfile(ctx, field)
@@ -4572,6 +5107,20 @@ func (ec *executionContext) marshalNAssignmentResult2ᚖvolunteerᚑschedulerᚋ
 	return ec._AssignmentResult(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNAuthResult2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐAuthResult(ctx context.Context, sel ast.SelectionSet, v AuthResult) graphql.Marshaler {
+	return ec._AuthResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAuthResult2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐAuthResult(ctx context.Context, sel ast.SelectionSet, v *AuthResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._AuthResult(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v any) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4670,6 +5219,20 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNMagicLinkResult2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐMagicLinkResult(ctx context.Context, sel ast.SelectionSet, v MagicLinkResult) graphql.Marshaler {
+	return ec._MagicLinkResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNMagicLinkResult2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐMagicLinkResult(ctx context.Context, sel ast.SelectionSet, v *MagicLinkResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._MagicLinkResult(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNOpportunity2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐOpportunityᚄ(ctx context.Context, sel ast.SelectionSet, v []*Opportunity) graphql.Marshaler {

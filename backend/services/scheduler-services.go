@@ -1,3 +1,5 @@
+//go:build ignore
+
 package services
 
 // This file provides the logic for services in volunteer-scheduler. 

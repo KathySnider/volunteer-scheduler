@@ -14,6 +14,13 @@ type AssignmentResult struct {
 	Message *string `json:"message,omitempty"`
 }
 
+type AuthResult struct {
+	Success      bool    `json:"success"`
+	Message      string  `json:"message"`
+	Email        *string `json:"email,omitempty"`
+	SessionToken *string `json:"sessionToken,omitempty"`
+}
+
 type Event struct {
 	ID            string         `json:"id"`
 	Name          string         `json:"name"`
@@ -30,6 +37,12 @@ type EventFilter struct {
 	Roles     []Role     `json:"roles,omitempty"`
 	StartDate *string    `json:"startDate,omitempty"`
 	EndDate   *string    `json:"endDate,omitempty"`
+}
+
+type MagicLinkResult struct {
+	Success bool    `json:"success"`
+	Message string  `json:"message"`
+	Email   *string `json:"email,omitempty"`
 }
 
 type Mutation struct {
