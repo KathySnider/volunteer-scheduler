@@ -5,39 +5,26 @@ import (
 	"volunteer-scheduler/models"
 )
 
-// Convert models to generated types
+// START OF DUPLICATE CODE
+// These functions are duplicated in graph/admin/converters.go
+// Keep both files in sync when making changes.
 
-func toGenUpdateResult(m *models.UpdateResult) *generated.UpdateResult {
+// Convert models to generated types, e.g., results
+// coming back from services to the API.
+
+// Convert models to generated types, e.g., results
+// coming back from services to the API.
+
+func toGenMutationResult(m *models.MutationResult) *generated.MutationResult {
 	if m == nil {
 		return nil
 	}
-	return &generated.UpdateResult{
+
+	return &generated.MutationResult{
 		Success: m.Success,
 		Message: m.Message,
+		ID:      m.ID,
 	}
-}
-
-func toGenEvent(m *models.Event) *generated.Event {
-	if m == nil {
-		return nil
-	}
-	return &generated.Event{
-		ID:            m.ID,
-		Name:          m.Name,
-		Description:   m.Description,
-		EventType:     generated.EventType(m.EventType),
-		Venue:         toGenVenue(m.Venue),
-		Shifts:        toGenShifts(m.Shifts),
-		Opportunities: toGenOpportunities(m.Opportunities),
-	}
-}
-
-func toGenEvents(ms []*models.Event) []*generated.Event {
-	result := make([]*generated.Event, len(ms))
-	for i, m := range ms {
-		result[i] = toGenEvent(m)
-	}
-	return result
 }
 
 func toGenVenue(m *models.Venue) *generated.Venue {
@@ -45,69 +32,13 @@ func toGenVenue(m *models.Venue) *generated.Venue {
 		return nil
 	}
 	return &generated.Venue{
-		Name:    m.Name,
-		Address: m.Address,
-		City:    m.City,
-		State:   m.State,
-		ZipCode: m.ZipCode,
-	}
-}
-
-func toGenShift(m *models.Shift) *generated.Shift {
-	if m == nil {
-		return nil
-	}
-	return &generated.Shift{
-		ID:                 m.ID,
-		Date:               m.Date,
-		StartTime:          m.StartTime,
-		EndTime:            m.EndTime,
-		MaxVolunteers:      m.MaxVolunteers,
-		AssignedVolunteers: toGenVolunteerProfiles(m.AssignedVolunteers),
-	}
-}
-
-func toGenShifts(ms []*models.Shift) []*generated.Shift {
-	result := make([]*generated.Shift, len(ms))
-	for i, m := range ms {
-		result[i] = toGenShift(m)
-	}
-	return result
-}
-
-func toGenOpportunity(m *models.Opportunity) *generated.Opportunity {
-	if m == nil {
-		return nil
-	}
-	return &generated.Opportunity{
-		ID:     m.ID,
-		Job:    generated.Job(m.Job),
-		Shifts: toGenShifts(m.Shifts),
-	}
-}
-
-func toGenOpportunities(ms []*models.Opportunity) []*generated.Opportunity {
-	result := make([]*generated.Opportunity, len(ms))
-	for i, m := range ms {
-		result[i] = toGenOpportunity(m)
-	}
-	return result
-}
-
-func toGenVolunteerProfile(m *models.VolunteerProfile) *generated.VolunteerProfile {
-	if m == nil {
-		return nil
-	}
-	serviceTypes := make([]generated.ServiceType, len(m.ServiceTypes))
-	for i, st := range m.ServiceTypes {
-		serviceTypes[i] = generated.ServiceType(st)
-	}
-	return &generated.VolunteerProfile{
-		ID:           m.ID,
-		FirstName:    m.FirstName,
-		LastName:     m.LastName,
-		Email:        m.Email,
-		ServiceTypes: serviceTypes,
+		ID:       m.ID,
+		Name:     m.Name,
+		Address:  m.Address,
+		City:     m.City,
+		State:    m.State,
+		ZipCode:  m.ZipCode,
+		Timezone: m.Timezone,
 	}
 }
 
@@ -119,12 +50,73 @@ func toGenVolunteerProfiles(ms []*models.VolunteerProfile) []*generated.Voluntee
 	return result
 }
 
+func toGenVolunteerProfile(m *models.VolunteerProfile) *generated.VolunteerProfile {
+	if m == nil {
+		return nil
+	}
+	return &generated.VolunteerProfile{
+		ID:        m.ID,
+		FirstName: m.FirstName,
+		LastName:  m.LastName,
+		Email:     m.Email,
+		Phone:     m.Phone,
+		ZipCode:   m.ZipCode,
+	}
+}
+
+func toGenEvents(ms []*models.Event) []*generated.Event {
+	result := make([]*generated.Event, len(ms))
+	for i, m := range ms {
+		result[i] = toGenEvent(m)
+	}
+	return result
+}
+
+func toGenEvent(m *models.Event) *generated.Event {
+	if m == nil {
+		return nil
+	}
+
+	serviceTypes := make([]generated.ServiceType, len(m.ServiceTypes))
+	for i, st := range m.ServiceTypes {
+		serviceTypes[i] = generated.ServiceType(st)
+	}
+
+	return &generated.Event{
+		ID:           m.ID,
+		Name:         m.Name,
+		Description:  m.Description,
+		EventType:    generated.EventType(m.EventType),
+		Venue:        toGenVenue(m.Venue),
+		EventDates:   toGenEventDates(m.EventDates),
+		ServiceTypes: serviceTypes,
+	}
+}
+
+func toGenEventDates(ms []*models.EventDate) []*generated.EventDate {
+	result := make([]*generated.EventDate, len(ms))
+	for i, m := range ms {
+		result[i] = toGenEventDate(m)
+	}
+	return result
+}
+
+func toGenEventDate(m *models.EventDate) *generated.EventDate {
+
+	return &generated.EventDate{
+		ID:            m.ID,
+		StartDateTime: m.StartDateTime,
+		EndDateTime:   m.EndDateTime,
+	}
+}
+
 // Convert generated types to models
 
-func toModelEventFilter(g *generated.EventFilterInput) *models.EventFilterInput {
+func toModelEventFilterInput(g *generated.EventFilterInput) *models.EventFilterInput {
 	if g == nil {
 		return nil
 	}
+
 	var eventType *models.EventType
 	if g.EventType != nil {
 		et := models.EventType(*g.EventType)
@@ -135,24 +127,52 @@ func toModelEventFilter(g *generated.EventFilterInput) *models.EventFilterInput 
 		jobs[i] = models.Job(j)
 	}
 	return &models.EventFilterInput{
-		Cities:    g.Cities,
-		EventType: eventType,
-		Jobs:      jobs,
-		StartDate: g.StartDate,
-		EndDate:   g.EndDate,
+		Cities:         g.Cities,
+		EventType:      eventType,
+		Jobs:           jobs,
+		ShiftStartDate: g.ShiftStartDateTime,
+		ShiftEndDate:   g.ShiftEndDateTime,
+		IanaZone:       g.IanaZone,
 	}
 }
 
-func toModelUpdateVolunteerInput(g *generated.UpdateVolunteerInput) *models.UpdateVolunteerInput {
-	serviceTypes := make([]models.ServiceType, len(g.ServiceTypes))
-	for i, st := range g.ServiceTypes {
-		serviceTypes[i] = models.ServiceType(st)
+// END OF DUPLICATE CODE
+
+func toGenShiftViews(ms []*models.ShiftView) []*generated.ShiftView {
+	result := make([]*generated.ShiftView, len(ms))
+	for i, m := range ms {
+		result[i] = toGenShiftView(m)
 	}
-	return &models.UpdateVolunteerInput{
-		ID:           g.ID,
-		FirstName:    g.FirstName,
-		LastName:     g.LastName,
-		Email:        g.Email,
-		ServiceTypes: serviceTypes,
+	return result
+}
+
+func toGenShiftView(m *models.ShiftView) *generated.ShiftView {
+	if m == nil {
+		return nil
+	}
+	return &generated.ShiftView{
+		ID:                  m.ID,
+		Job:                 generated.Job(m.Job),
+		OtherJobDescription: m.OtherJobDescription,
+		StartDateTime:       m.StartDateTime,
+		EndDateTime:         m.EndDateTime,
+		IsVirtual:           m.IsVirtual,
+		MaxVolunteers:       m.MaxVolunteers,
+		AssignedVolunteers:  m.AssignedVolunteers,
+	}
+}
+
+// Convert generated types to models
+func toModelUpdateOwnProfileInput(g *generated.UpdateOwnProfileInput) *models.UpdateOwnProfileInput {
+	if g == nil {
+		return nil
+	}
+
+	return &models.UpdateOwnProfileInput{
+		FirstName: g.FirstName,
+		LastName:  g.LastName,
+		Email:     g.Email,
+		Phone:     g.Phone,
+		ZipCode:   g.ZipCode,
 	}
 }

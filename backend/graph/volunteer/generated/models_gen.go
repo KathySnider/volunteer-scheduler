@@ -10,76 +10,78 @@ import (
 )
 
 type Event struct {
-	ID            string         `json:"id"`
-	Name          string         `json:"name"`
-	Description   *string        `json:"description,omitempty"`
-	EventType     EventType      `json:"eventType"`
-	Venue         *Venue         `json:"venue,omitempty"`
-	Shifts        []*Shift       `json:"shifts"`
-	Opportunities []*Opportunity `json:"opportunities"`
+	ID           string        `json:"id"`
+	Name         string        `json:"name"`
+	Description  *string       `json:"description,omitempty"`
+	EventType    EventType     `json:"eventType"`
+	Venue        *Venue        `json:"venue,omitempty"`
+	ServiceTypes []ServiceType `json:"serviceTypes,omitempty"`
+	EventDates   []*EventDate  `json:"eventDates"`
+}
+
+type EventDate struct {
+	ID            string `json:"id"`
+	StartDateTime string `json:"startDateTime"`
+	EndDateTime   string `json:"endDateTime"`
 }
 
 type EventFilterInput struct {
-	Cities    []string   `json:"cities,omitempty"`
-	EventType *EventType `json:"eventType,omitempty"`
-	Jobs      []Job      `json:"jobs,omitempty"`
-	StartDate *string    `json:"startDate,omitempty"`
-	EndDate   *string    `json:"endDate,omitempty"`
+	Cities             []string   `json:"cities,omitempty"`
+	EventType          *EventType `json:"eventType,omitempty"`
+	Jobs               []Job      `json:"jobs,omitempty"`
+	ShiftStartDateTime *string    `json:"shiftStartDateTime,omitempty"`
+	ShiftEndDateTime   *string    `json:"shiftEndDateTime,omitempty"`
+	IanaZone           *string    `json:"ianaZone,omitempty"`
 }
 
 type Mutation struct {
 }
 
-type Opportunity struct {
-	ID     string   `json:"id"`
-	Job    Job      `json:"job"`
-	Shifts []*Shift `json:"shifts"`
+type MutationResult struct {
+	Success bool    `json:"success"`
+	Message *string `json:"message,omitempty"`
+	ID      *string `json:"id,omitempty"`
 }
 
 type Query struct {
 }
 
-type Shift struct {
-	ID                 string              `json:"id"`
-	Job                Job                 `json:"job"`
-	Date               string              `json:"date"`
-	StartTime          string              `json:"startTime"`
-	EndTime            string              `json:"endTime"`
-	MaxVolunteers      *int                `json:"maxVolunteers,omitempty"`
-	AssignedVolunteers []*VolunteerProfile `json:"assignedVolunteers,omitempty"`
+type ShiftView struct {
+	ID                  string  `json:"id"`
+	Job                 Job     `json:"job"`
+	OtherJobDescription *string `json:"otherJobDescription,omitempty"`
+	StartDateTime       string  `json:"startDateTime"`
+	EndDateTime         string  `json:"endDateTime"`
+	IsVirtual           bool    `json:"isVirtual"`
+	MaxVolunteers       *int    `json:"maxVolunteers,omitempty"`
+	AssignedVolunteers  int     `json:"assignedVolunteers"`
 }
 
-type UpdateResult struct {
-	Success bool    `json:"success"`
-	Message *string `json:"message,omitempty"`
-}
-
-type UpdateVolunteerInput struct {
-	ID           string        `json:"id"`
-	FirstName    *string       `json:"firstName,omitempty"`
-	LastName     *string       `json:"lastName,omitempty"`
-	Email        *string       `json:"email,omitempty"`
-	Phone        *string       `json:"phone,omitempty"`
-	ZipCode      *string       `json:"zipCode,omitempty"`
-	ServiceTypes []ServiceType `json:"serviceTypes,omitempty"`
+type UpdateOwnProfileInput struct {
+	FirstName string  `json:"firstName"`
+	LastName  string  `json:"lastName"`
+	Email     string  `json:"email"`
+	Phone     *string `json:"phone,omitempty"`
+	ZipCode   *string `json:"zipCode,omitempty"`
 }
 
 type Venue struct {
-	Name    *string `json:"name,omitempty"`
-	Address string  `json:"address"`
-	City    string  `json:"city"`
-	State   string  `json:"state"`
-	ZipCode *string `json:"zipCode,omitempty"`
+	ID       string  `json:"id"`
+	Name     *string `json:"name,omitempty"`
+	Address  string  `json:"address"`
+	City     string  `json:"city"`
+	State    string  `json:"state"`
+	ZipCode  *string `json:"zipCode,omitempty"`
+	Timezone string  `json:"timezone"`
 }
 
 type VolunteerProfile struct {
-	ID           string        `json:"id"`
-	FirstName    string        `json:"firstName"`
-	LastName     string        `json:"lastName"`
-	Email        string        `json:"email"`
-	Phone        string        `json:"phone"`
-	ZipCode      string        `json:"zipCode"`
-	ServiceTypes []ServiceType `json:"serviceTypes,omitempty"`
+	ID        string  `json:"id"`
+	FirstName string  `json:"firstName"`
+	LastName  string  `json:"lastName"`
+	Email     string  `json:"email"`
+	Phone     *string `json:"phone,omitempty"`
+	ZipCode   *string `json:"zipCode,omitempty"`
 }
 
 type EventType string

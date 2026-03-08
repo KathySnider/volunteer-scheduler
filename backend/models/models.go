@@ -1,108 +1,235 @@
 package models
 
-type Event struct {
-	ID            string
-	Name          string
-	Description   *string
-	EventType     EventType
-	Venue         *Venue
-	Shifts        []*Shift
-	Opportunities []*Opportunity
+// Output types
+
+// Volunteers
+
+// Any user can see own profile (sans ID).
+type VolunteerProfile struct {
+	ID        string
+	FirstName string
+	LastName  string
+	Email     string
+	Phone     *string
+	ZipCode   *string
 }
 
+// Admins can see/use ID.
+type Volunteer struct {
+	ID        string
+	FirstName string
+	LastName  string
+	Email     string
+	Phone     *string
+	ZipCode   *string
+}
+
+// Venues
+
 type Venue struct {
-	Name    *string
-	Address string
-	City    string
-	State   string
-	ZipCode *string
+	ID       string
+	Name     *string
+	Address  string
+	City     string
+	State    string
+	ZipCode  *string
+	Timezone string
+}
+
+// Opportunities and Shifts
+
+type Opportunity struct {
+	ID                   string
+	Job                  Job
+	OtherJobDescription  *string
+	IsVirtual            bool
+	PreEventInstructions *string
+	Shifts               []*Shift
+}
+
+type ShiftView struct {
+	ID                  string
+	Job                 Job
+	OtherJobDescription *string
+	StartDateTime       string
+	EndDateTime         string
+	IsVirtual           bool
+	MaxVolunteers       *int
+	AssignedVolunteers  int
 }
 
 type Shift struct {
-	ID                 string
-	Job                Job
-	Date               string
-	StartTime          string
-	EndTime            string
-	MaxVolunteers      *int
-	AssignedVolunteers []*VolunteerProfile
+	ID             string
+	StartDateTime  string
+	EndDateTime    string
+	MaxVolunteers  *int
+	StaffContactId *string
 }
 
-type Opportunity struct {
-	ID     string
-	Job    Job
-	Shifts []*Shift
-}
+// Events
 
-type VolunteerProfile struct {
+// When showing events to users, get the whole thing all at once
+// (venue, dates, etc.)
+
+type Event struct {
 	ID           string
-	FirstName    string
-	LastName     string
-	Email        string
+	Name         string
+	Description  *string
+	EventType    EventType
+	Venue        *Venue
 	ServiceTypes []ServiceType
+	EventDates   []*EventDate
 }
 
-// Input types
-type NewVolunteerInput struct {
-	FirstName    string
-	LastName     string
-	Email        string
-	Phone        string
-	ZipCode      string
-	ServiceTypes []ServiceType
+type EventDate struct {
+	ID            string
+	StartDateTime string
+	EndDateTime   string
+	IanaZone      string
 }
 
-type UpdateVolunteerInput struct {
-	ID           string
-	FirstName    *string
-	LastName     *string
-	Email        *string
-	Phone        *string
-	ZipCode      *string
-	ServiceTypes []ServiceType
-}
+// Input types for queries (e.g., filters).
 
 type EventFilterInput struct {
-	Cities    []string
-	EventType *EventType
-	Jobs      []Job
-	StartDate *string
-	EndDate   *string
+	Cities         []string
+	EventType      *EventType
+	Jobs           []Job
+	ShiftStartDate *string
+	ShiftEndDate   *string
+	IanaZone       *string
 }
 
 type VolunteerFilterInput struct {
-	FirstName    *string
-	LastName     *string
-	ServiceTypes []ServiceType
+	FirstName *string
+	LastName  *string
+	Email     *string
 }
 
-// Input types for creating events
+// Input types for new elements.
+type NewVolunteerInput struct {
+	FirstName string
+	LastName  string
+	Email     string
+	Phone     *string
+	ZipCode   *string
+}
+
+type NewVenueInput struct {
+	Name     *string
+	Address  string
+	City     string
+	State    string
+	ZipCode  *string
+	IanaZone string
+}
+
 type NewEventInput struct {
-	Name          string
-	Description   *string
-	EventType     EventType
-	Venue         *VenueInput
-	Opportunities []*NewOpportunityInput
+	Name         string
+	Description  *string
+	EventType    EventType
+	VenueId      *string
+	ServiceTypes []ServiceType
+	EventDates   []*NewEventDateInput
 }
 
-type VenueInput struct {
-	Name    *string
-	Address string
-	City    string
-	State   string
-	ZipCode *string
+type NewEventDateInput struct {
+	StartDateTime string
+	EndDateTime   string
+	IanaZone      string
+}
+
+type AddEventDateInput struct {
+	EventID       string
+	StartDateTime string
+	EndDateTime   string
+	IanaZone      string
 }
 
 type NewOpportunityInput struct {
-	Job    Job
-	Shifts []*NewShiftInput
+	EventId              string
+	Job                  Job
+	OtherJobDescription  *string
+	IsVirtual            bool
+	PreEventInstructions *string
+	Shifts               []*NewShiftInput
 }
 
 type NewShiftInput struct {
-	Date          string
-	StartTime     string
-	EndTime       string
-	MaxVolunteers *int
+	StartDateTime  string
+	EndDateTime    string
+	IanaZone       string
+	MaxVolunteers  *int
+	StaffContactId *string
+}
+
+type AddShiftInput struct {
+	OppId          string
+	StartDateTime  string
+	EndDateTime    string
+	IanaZone       string
+	MaxVolunteers  *int
+	StaffContactId *string
+}
+
+// Input types for updating.
+type UpdateOwnProfileInput struct {
+	FirstName string
+	LastName  string
+	Email     string
+	Phone     *string
+	ZipCode   *string
+}
+
+type UpdateVolunteerInput struct {
+	ID        string
+	FirstName string
+	LastName  string
+	Email     string
+	Phone     *string
+	ZipCode   *string
+}
+
+type UpdateVenueInput struct {
+	ID       string
+	Name     *string
+	Address  string
+	City     string
+	State    string
+	ZipCode  *string
+	IanaZone string
+}
+
+type UpdateEventInput struct {
+	ID           string
+	Name         string
+	Description  *string
+	EventType    EventType
+	VenueId      *string
+	ServiceTypes []ServiceType
+}
+
+type UpdateEventDateInput struct {
+	ID            string
+	StartDateTime string
+	EndDateTime   string
+	IanaZone      string
+}
+
+type UpdateOpportunityInput struct {
+	ID                   string
+	Job                  Job
+	OtherJobDescription  *string
+	IsVirtual            bool
+	PreEventInstructions *string
+}
+
+type UpdateShiftInput struct {
+	ID             string
+	StartDateTime  string
+	EndDateTime    string
+	IanaZone       string
+	MaxVolunteers  *int
+	StaffContactId *string
 }
 
 // Enums
@@ -136,12 +263,8 @@ const (
 )
 
 // Result types
-type UpdateResult struct {
-	Success bool
-	Message *string
-}
 
-type InsertResult struct {
+type MutationResult struct {
 	Success bool
 	Message *string
 	ID      *string

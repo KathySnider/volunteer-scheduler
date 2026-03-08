@@ -11,4 +11,5 @@ type Resolver struct {
 	EventService     *services.EventService
 	VolunteerService *services.VolunteerService
 	ShiftService     *services.ShiftService
+	VenueService     *services.VenueService
 }

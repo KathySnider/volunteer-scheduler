@@ -1,4 +1,4 @@
-package volunteer
+package admin
 
 // This file will be automatically regenerated based on the schema, any resolver
 // implementations
@@ -8,13 +8,8 @@ package volunteer
 import (
 	"context"
 	"fmt"
-	"volunteer-scheduler/graph/volunteer/generated"
+	"volunteer-scheduler/graph/admin/generated"
 )
-
-// UpdateOwnProfile is the resolver for the updateOwnProfile field.
-func (r *mutationResolver) UpdateOwnProfile(ctx context.Context, profile generated.UpdateOwnProfileInput) (*generated.MutationResult, error) {
-	panic(fmt.Errorf("not implemented: UpdateOwnProfile - updateOwnProfile"))
-}
 
 // AssignSelfToShift is the resolver for the assignSelfToShift field.
 func (r *mutationResolver) AssignSelfToShift(ctx context.Context, shiftID string) (*generated.MutationResult, error) {
@@ -26,31 +21,14 @@ func (r *mutationResolver) CancelOwnShift(ctx context.Context, shiftID string) (
 	panic(fmt.Errorf("not implemented: CancelOwnShift - cancelOwnShift"))
 }
 
-// VolunteerProfile is the resolver for the volunteerProfile field.
-func (r *queryResolver) VolunteerProfile(ctx context.Context) (*generated.VolunteerProfile, error) {
-	profile, err := r.VolunteerService.FetchOwnProfile(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return toGenVolunteerProfile(profile), nil
-}
-
 // FilteredEvents is the resolver for the filteredEvents field.
 func (r *queryResolver) FilteredEvents(ctx context.Context, filter *generated.EventFilterInput) ([]*generated.Event, error) {
-	events, err := r.EventService.FetchFilteredEvents(ctx, toModelEventFilterInput(filter))
-	if err != nil {
-		return nil, fmt.Errorf("error calling FetchFilteredEvents: %w", err)
-	}
-	return toGenEvents(events), nil
+	panic(fmt.Errorf("not implemented: FilteredEvents - filteredEvents"))
 }
 
-// ShiftsForEvent is the resolver for the shiftsForEvent field.
-func (r *queryResolver) ShiftsForEvent(ctx context.Context, eventID string) ([]*generated.ShiftView, error) {
-	shiftviews, err := r.ShiftService.FetchShiftViewsForEvent(ctx, eventID)
-	if err != nil {
-		return nil, err
-	}
-	return toGenShiftViews(shiftviews), nil
+// VolunteerProfile is the resolver for the volunteerProfile field.
+func (r *queryResolver) VolunteerProfile(ctx context.Context) (*generated.VolunteerProfile, error) {
+	panic(fmt.Errorf("not implemented: VolunteerProfile - volunteerProfile"))
 }
 
 // Mutation returns generated.MutationResolver implementation.
@@ -61,3 +39,15 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+/*
+	func (r *mutationResolver) UpdateOwnProfile(ctx context.Context, profile generated.UpdateOwnProfileInput) (*generated.MutationResult, error) {
+	panic(fmt.Errorf("not implemented: UpdateOwnProfile - updateOwnProfile"))
+}
+*/

@@ -1,16 +1,37 @@
 ## This file contains queries and mutations available to
 ## those users logged in with "volunteer" privileges. 
 
+##TODO: remove volunteer id's from input EVERYWHERE. 
+## we'll get it from the token.
+
 type Query {
-  events(filter: EventFilterInput): [Event!]!
-  eventById(id: ID!): Event!               
-  volunteerProfile(volunteerId: ID!): VolunteerProfile!
+  volunteerProfile: VolunteerProfile!
+  filteredEvents(filter: EventFilterInput): [Event!]! 
+  shiftsForEvent(eventId: ID!): [ShiftView!]!             
 }
 
 type Mutation {
-  assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): UpdateResult!  
-  updateVolunteerProfile(profile: UpdateVolunteerInput!): UpdateResult!  
-  cancelShift(shiftId: ID!, volunteerId: ID!): UpdateResult!
+  updateOwnProfile(profile: UpdateOwnProfileInput!): MutationResult!    
+  assignSelfToShift(shiftId: ID!): MutationResult!  
+  cancelOwnShift(shiftId: ID!): MutationResult!
 }
 
+type ShiftView {
+  id: ID!
+  job: Job!
+  otherJobDescription: String
+  startDateTime: String!
+  endDateTime: String!
+  isVirtual: Boolean!
+  maxVolunteers: Int
+  assignedVolunteers: Int!
+}
+
+input UpdateOwnProfileInput {
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  zipCode: String
+}
 

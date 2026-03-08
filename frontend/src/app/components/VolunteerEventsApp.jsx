@@ -76,18 +76,19 @@ const VolunteerEventsApp = () => {
     const nameParts = nameInput.trim().split(/\s+/);
     const firstName = nameParts[0];
     const lastName = nameParts.slice(1).join(' ') || '';
-
+    
     if (!lastName) {
-      setNameError('Please enter both first and last name.');
+      setNameError('Please enter first name and last name.');
       return;
     }
 
     const createMutation = `
-      mutation($firstName: String!, $lastName: String!) {
-        createVolunteer(firstName: $firstName, lastName: $lastName) {
+      mutation($firstName: String!, $lastName) {
+        createVolunteer(firstName: $firstName, lastName: $lastName, email: "bogus.com") {
           id
           firstName
           lastName
+          email
         }
       }
     `;
@@ -98,7 +99,7 @@ const VolunteerEventsApp = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: createMutation,
-          variables: { firstName, lastName }
+          variables: { firstName, lastName, email }
         })
       });
 

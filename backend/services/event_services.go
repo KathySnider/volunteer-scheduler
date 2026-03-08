@@ -5,334 +5,91 @@ import (
 	"database/sql"
 	"fmt"
 	"strconv"
-	"strings"
-	"time"
-
-	"github.com/lib/pq"
 
 	"volunteer-scheduler/models"
 )
 
+// services/event_service.go
+
 type EventService struct {
-	DB           *sql.DB
-	ShiftService *ShiftService
+	DB               *sql.DB
+	ShiftService     *ShiftService
+	serviceTypeCache map[string]int
 }
 
-func NewEventService(db *sql.DB, shiftService *ShiftService) *EventService {
-	return &EventService{
+func NewEventService(db *sql.DB, shiftService *ShiftService) (*EventService, error) {
+	s := &EventService{
 		DB:           db,
 		ShiftService: shiftService,
 	}
-}
 
-// GetEventByID retrieves a specific event
-func (s *EventService) GetEventByID(ctx context.Context, id string) (*models.Event, error) {
-	query := `
-		SELECT 
-			e.event_id,
-			e.event_name,
-			e.description,
-			e.event_is_virtual,
-			e.location_id,
-			l.location_name,
-			l.street_address,
-			l.city,
-			l.state,
-			l.zip_code
-		FROM events e
-		LEFT JOIN locations l ON e.location_id = l.location_id
-		WHERE e.event_id = $1
-	`
-
-	var event models.Event
-	var eventID int
-	var isVirtual bool
-	var locationID *int
-	var locationName, address, city, state, zipCode *string
-
-	err := s.DB.QueryRowContext(ctx, query, id).Scan(
-		&eventID,
-		&event.Name,
-		&event.Description,
-		&isVirtual,
-		&locationID,
-		&locationName,
-		&address,
-		&city,
-		&state,
-		&zipCode,
-	)
-
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("event not found")
-	}
-	if err != nil {
-		return nil, fmt.Errorf("error querying event: %w", err)
-	}
-
-	event.ID = fmt.Sprintf("%d", eventID) // string for GraphQl
-
-	// Determine event's type.
-	if isVirtual && locationID != nil {
-		event.EventType = "HYBRID"
-	} else if isVirtual {
-		event.EventType = "VIRTUAL"
-	} else {
-		event.EventType = "IN_PERSON"
-	}
-
-	// Add venue if it exists.
-	if locationID != nil && address != nil && city != nil && state != nil {
-		venue := &models.Venue{
-			Name:    locationName,
-			Address: *address,
-			City:    *city,
-			State:   *state,
-			ZipCode: zipCode,
-		}
-		event.Venue = venue
-	}
-
-	// Fetch opportunities for this event.
-	opportunities, err := s.GetOpportunitiesForEvent(ctx, eventID)
-	if err != nil {
+	// Load cache on initialization
+	if err := s.loadServiceTypeCache(); err != nil {
 		return nil, err
 	}
-	event.Opportunities = opportunities
 
-	return &event, nil
+	return s, nil
 }
 
-// GetFilteredEvents
-// Retrieve events based on filter criteria.
-func (s *EventService) GetFilteredEvents(ctx context.Context, filter *models.EventFilterInput) ([]*models.Event, error) {
-	query := `
-        SELECT DISTINCT
-            e.event_id,
-            e.event_name,
-            e.description,
-            e.event_is_virtual,
-            e.location_id,
-            l.location_name,
-            l.street_address,
-            l.city,
-            l.state,
-            l.zip_code
-        FROM events e
-        LEFT JOIN locations l ON e.location_id = l.location_id
-        LEFT JOIN opportunities opp ON e.event_id = opp.event_id
-        WHERE 1=1
-    `
-
-	args := []interface{}{}
-	argCount := 1
-
-	// Filter by cities.
-	if filter != nil && len(filter.Cities) > 0 {
-		placeholders := []string{}
-		for _, city := range filter.Cities {
-			placeholders = append(placeholders, fmt.Sprintf("$%d", argCount))
-			args = append(args, city)
-			argCount++
-		}
-		query += fmt.Sprintf(" AND l.city IN (%s)", strings.Join(placeholders, ","))
-	}
-
-	// Filter by event type.
-	if filter != nil && filter.EventType != nil {
-		switch *filter.EventType {
-		case "VIRTUAL":
-			query += " AND e.event_is_virtual = true AND e.location_id IS NULL"
-		case "IN_PERSON":
-			query += " AND e.event_is_virtual = false"
-		case "HYBRID":
-			query += " AND e.event_is_virtual = true AND e.location_id IS NOT NULL"
-		}
-	}
-
-	// Filter by Jobs.
-	if filter != nil && len(filter.Jobs) > 0 {
-		placeholders := []string{}
-		for _, job := range filter.Jobs {
-			placeholders = append(placeholders, fmt.Sprintf("$%d", argCount))
-			dbJob := strings.ToLower(string(job))
-			args = append(args, dbJob)
-			argCount++
-		}
-		// TODO: currently, in the DB, the job is called role. Fix name.
-		query += fmt.Sprintf(" AND opp.role IN (%s)", strings.Join(placeholders, ","))
-	}
-
-	// Filter by date range.
-	if filter != nil && (filter.StartDate != nil || filter.EndDate != nil) {
-		query = strings.Replace(query, "WHERE 1=1",
-			"LEFT JOIN opportunities opp2 ON e.event_id = opp2.event_id "+
-				"LEFT JOIN shifts s_filter ON opp2.opportunity_id = s_filter.opportunity_id "+
-				"WHERE 1=1", 1)
-
-		if filter.StartDate != nil {
-			query += fmt.Sprintf(" AND s_filter.shift_start >= $%d", argCount)
-			args = append(args, *filter.StartDate)
-			argCount++
-		}
-		if filter.EndDate != nil {
-			query += fmt.Sprintf(" AND s_filter.shift_start <= $%d", argCount)
-			args = append(args, *filter.EndDate)
-			argCount++
-		}
-	}
-
-	rows, err := s.DB.QueryContext(ctx, query, args...)
+// We only need to get the service categories at the start, or
+// if they change (unlikely).
+func (s *EventService) loadServiceTypeCache() error {
+	s.serviceTypeCache = make(map[string]int)
+	rows, err := s.DB.Query("SELECT service_type_id, code FROM service_types")
 	if err != nil {
-		return nil, fmt.Errorf("error querying events: %w", err)
+		return err
 	}
 	defer rows.Close()
 
-	// Now we have selected the events that meet all of the user's
-	// criteria. Process each one to see if there are volunteer
-	// opportunities with open shifts that also meet their criteria.
-	eventsMap := make(map[string]*models.Event)
-
 	for rows.Next() {
-		var e models.Event
-		var loc models.Venue
-		var locationID *int
-		var locationName, address, city, state, zipCode *string
-
-		var eventInt int
-		var eventStr string
-		var isVirtual bool // Temporary variable for database value
-
-		err := rows.Scan(
-			&eventInt,
-			&e.Name,
-			&e.Description,
-			&isVirtual,
-			&locationID,
-			&locationName,
-			&address,
-			&city,
-			&state,
-			&zipCode,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("error scanning event: %w", err)
+		var id int
+		var code string
+		if err := rows.Scan(&id, &code); err != nil {
+			return err
 		}
+		s.serviceTypeCache[code] = id
+	}
+	return nil
+}
 
-		eventStr = fmt.Sprintf("%d", eventInt) // string for GraphQL.
-		e.ID = eventStr
+// Queries.
 
-		// Determine if event is virtual, in person, or both.
-		if isVirtual && locationID != nil {
-			e.EventType = "HYBRID"
-		} else if isVirtual {
-			e.EventType = "VIRTUAL"
-		} else {
-			e.EventType = "IN_PERSON"
-		}
+// FetchFilteredEvents
+// Retrieve events based on filter criteria.
+func (s *EventService) FetchFilteredEvents(ctx context.Context, filter *models.EventFilterInput) ([]*models.Event, error) {
 
-		// Check if we've already processed this event.
-		if _, exists := eventsMap[eventStr]; !exists {
-			// Add location if it exists.
-			if locationID != nil && address != nil && city != nil && state != nil {
-				loc.Name = locationName
-				loc.Address = *address
-				loc.City = *city
-				loc.State = *state
-				loc.ZipCode = zipCode
-				e.Venue = &loc
-			}
+	// Translate all of the filter stuff to a set of events that
+	// potentially meet all of the user's criteria. If there are
+	// no filters, the call to pass 1 returns all of the events.
 
-			eventsMap[eventStr] = &e
-		}
+	eventsMap, err := FetchFilteredPassOne(ctx, filter, s.DB)
+	if err != nil {
+		return nil, fmt.Errorf("error querying events: %w", err)
+	}
+	if len(eventsMap) == 0 {
+		// Return an empty set of events. Nothing matched.
+		return []*models.Event{}, nil
 	}
 
-	// Now fetch shifts for these events.
-	if len(eventsMap) > 0 {
-		eventIDs := []string{}
+	// Skip pass two if there is no filter.
+	if filter != nil {
+		// Now, for each of the selected events, determine which
+		// have shifts that also meet the criteria. Pass 2 just
+		// wants the list of ids.
+		eventIDs := []int{}
 		for id := range eventsMap {
 			eventIDs = append(eventIDs, id)
 		}
 
-		shiftsQuery := `
-            SELECT
-                s.shift_id,
-                s.shift_start,
-                s.shift_end,
-                opp.role,
-                opp.event_id
-            FROM shifts s
-            JOIN opportunities opp ON s.opportunity_id = opp.opportunity_id
-            WHERE opp.event_id = ANY($1)
-        `
-
-		shiftArgs := []interface{}{pq.Array(eventIDs)}
-		argNum := 2
-
-		// Filter shifts by dates.
-		if filter != nil && filter.StartDate != nil {
-			shiftsQuery += fmt.Sprintf(" AND s.shift_start >= $%d", argNum)
-			shiftArgs = append(shiftArgs, *filter.StartDate)
-			argNum++
-		}
-		if filter != nil && filter.EndDate != nil {
-			shiftsQuery += fmt.Sprintf(" AND s.shift_start <= $%d", argNum)
-			shiftArgs = append(shiftArgs, *filter.EndDate)
-			argNum++
-		}
-
-		// Filter by job.
-		if filter != nil && len(filter.Jobs) > 0 {
-			placeholders := []string{}
-			for _, job := range filter.Jobs {
-				placeholders = append(placeholders, fmt.Sprintf("$%d", argNum))
-				dbJob := strings.ToLower(string(job))
-				shiftArgs = append(shiftArgs, dbJob)
-				argNum++
-			}
-			// TODO: change name of role!
-			shiftsQuery += fmt.Sprintf(" AND opp.role IN (%s)", strings.Join(placeholders, ","))
-		}
-
-		shiftRows, err := s.DB.QueryContext(ctx, shiftsQuery, shiftArgs...)
+		eventsWithShifts, err := FetchFilteredPassTwo(ctx, filter, eventIDs, s.DB)
 		if err != nil {
-			return nil, fmt.Errorf("error querying shifts: %w", err)
+			return nil, fmt.Errorf("error querying events: %w", err)
 		}
-		defer shiftRows.Close()
 
-		// We are left with events that have open shifts that match all
-		// criteria. Do some formatting.
-		for shiftRows.Next() {
-			var shift models.Shift
-			var eventInt int
-			var eventStr string
-			var startTime, endTime time.Time
-			var job string
-			var shiftInt int
-
-			err := shiftRows.Scan(
-				&shiftInt,
-				&startTime,
-				&endTime,
-				&job,
-				&eventInt,
-			)
-			if err != nil {
-				return nil, fmt.Errorf("error scanning shift: %w", err)
-			}
-
-			eventStr = fmt.Sprintf("%d", eventInt) // string for GraphQL.
-
-			// Format the timestamps.
-			shift.Date = startTime.Format("2006-01-02")
-			shift.StartTime = startTime.Format("15:04:05")
-			shift.EndTime = endTime.Format("15:04:05")
-
-			// Convert role string to Job enum.
-			shift.Job = models.Job(strings.ToUpper(job))
-
-			if event, exists := eventsMap[eventStr]; exists {
-				event.Shifts = append(event.Shifts, &shift)
+		// Get rid of events that had no shifts in pass 2.
+		for id := range eventsMap {
+			if !eventsWithShifts[id] {
+				delete(eventsMap, id)
 			}
 		}
 	}
@@ -346,59 +103,19 @@ func (s *EventService) GetFilteredEvents(ctx context.Context, filter *models.Eve
 	return events, nil
 }
 
-// GetOpportunitiesForEvent
-// Retrieve opportunities associated with the event.
-func (s *EventService) GetOpportunitiesForEvent(ctx context.Context, eventID int) ([]*models.Opportunity, error) {
-	oppQuery := `
-		SELECT opportunity_id, role, opportunity_is_virtual
-		FROM opportunities
-		WHERE event_id = $1
-	`
-	rows, err := s.DB.QueryContext(ctx, oppQuery, eventID)
-	if err != nil {
-		return nil, fmt.Errorf("error querying opportunities: %w", err)
-	}
-	defer rows.Close()
+// Mutations: create.
 
-	var opportunities []*models.Opportunity
-	for rows.Next() {
-		var opp models.Opportunity
-		var oppID int
-		var job string
-		var isVirtual bool
-
-		err := rows.Scan(&oppID, &job, &isVirtual)
-		if err != nil {
-			return nil, fmt.Errorf("error scanning opportunity: %w", err)
-		}
-
-		opp.ID = fmt.Sprintf("%d", oppID)
-
-		// Get shifts for this opportunity
-		shifts, err := s.ShiftService.GetShiftsForOpportunity(ctx, oppID)
-		if err != nil {
-			return nil, err
-		}
-		opp.Shifts = shifts
-
-		opportunities = append(opportunities, &opp)
-	}
-
-	return opportunities, nil
-}
-
-// CreateEvent allows user to create a new event,
-// complete with opportunities and shifts.
-func (s *EventService) CreateEvent(ctx context.Context, newEvent *models.NewEventInput) (*models.InsertResult, error) {
+// CreateEvent
+// Creates the DB entry for the events table.
+func (s *EventService) CreateEvent(ctx context.Context, newEvent models.NewEventInput) (*models.MutationResult, error) {
 	var query string
 	var virtualEvent bool
 	var venueIdPtr *int
-	var eventId int
-	var eventIdStr string
+	var eventInt int
 
 	// Determine whether or not the event will be virtual.
 	// Both virtual and hybrid events have a virtual
-	// component, so onlu in-person events are *not* vitual.
+	// component, so only in-person events are *not* vitual.
 	virtualEvent = true
 	if newEvent.EventType == models.EventTypeInPerson {
 		virtualEvent = false
@@ -406,24 +123,24 @@ func (s *EventService) CreateEvent(ctx context.Context, newEvent *models.NewEven
 
 	// Both in-person and hybrid events require a venue.
 	if newEvent.EventType == models.EventTypeVirtual {
-		// No venue for a virtual event.
+		// There s/b no venue for a virtual event.
 		venueIdPtr = nil
 
 	} else {
-		// A venue is required. May already exist, else
-		// create it.
-		intPtr, err := s.UpsertVenue(ctx, newEvent.Venue)
-
-		if err != nil {
-			return nil, fmt.Errorf("error upserting venue: %w", err)
+		// A venue is required.
+		if newEvent.VenueId == nil {
+			return nil, fmt.Errorf("A venue is required for in-person and hybrid events.")
 		}
 
-		venueIdPtr = intPtr
+		venueInt, err := strconv.Atoi(*newEvent.VenueId)
+		if err != nil {
+			return nil, fmt.Errorf("The value at VenueId was not a Valid ID. %w", err)
+		}
+
+		venueIdPtr = &venueInt
 	}
 
-	// Create the new event, opportunities, and shifts inside
-	// of a transaction. We don't want a partial event in the
-	// DB, nor do we want volunteers to see incomplete events.
+	// Add the event and it's dates inside a transaction.
 
 	// Get a Tx for making transaction requests.
 	var tx *sql.Tx
@@ -433,7 +150,6 @@ func (s *EventService) CreateEvent(ctx context.Context, newEvent *models.NewEven
 		err = fmt.Errorf("error starting transaction: %w", err)
 		return nil, err
 	}
-
 	// Defer a rollback in case anything fails.
 	defer tx.Rollback()
 
@@ -441,38 +157,43 @@ func (s *EventService) CreateEvent(ctx context.Context, newEvent *models.NewEven
 	// leave the scope of the transaction before it has ended. For
 	// good DB practice, DO NOT RETURN while inside of a transaction.
 
+	// Create the event first. We need the id to continue.
 	if venueIdPtr == nil {
 		query = `
-		INSERT INTO events (name, description, is_virtual)
+		INSERT INTO events (event_name, description, event_is_virtual)
 		VALUES ($1, $2, $3)
 		RETURNING event_id
 	`
-		err = tx.QueryRowContext(ctx, query, newEvent.Name, newEvent.Description, virtualEvent).Scan(&eventId)
+		err = tx.QueryRowContext(ctx, query, newEvent.Name, newEvent.Description, virtualEvent).Scan(&eventInt)
 
 	} else {
 		query = `
-		INSERT INTO events (name, description, is_virtual, location_id)
+		INSERT INTO events (event_name, description, event_is_virtual, venue_id)
 		VALUES ($1, $2, $3, $4)
 		RETURNING event_id
 	`
-		err = tx.QueryRowContext(ctx, query, newEvent.Name, newEvent.Description, virtualEvent, *venueIdPtr).Scan(&eventId)
-
+		err = tx.QueryRowContext(ctx, query, newEvent.Name, newEvent.Description, virtualEvent, *venueIdPtr).Scan(&eventInt)
 	}
 
-	if err != nil {
+	if err == nil {
+		// Event was inserted. Add the dates.
+		err = AddNewEventDates(ctx, newEvent.EventDates, eventInt, tx)
+	} else {
 		// Save all of the information about what failed.
 		err = fmt.Errorf("error inserting the event: %w", err)
+	}
 
+	if err == nil {
+		err = s.AddServiceTypesToEvent(ctx, tx, eventInt, newEvent.ServiceTypes)
 	} else {
-		// Event was inserted. Add the opportunites.
-		err = s.AddOpportunitiesToEvent(ctx, tx, eventId, newEvent.Opportunities)
+		err = fmt.Errorf("error adding dates to the event: %w", err)
 	}
 
 	if err != nil {
 		tx.Rollback()
 
 		// NOW return an error ...
-		return &models.InsertResult{
+		return &models.MutationResult{
 			Success: false,
 			Message: ptrString("transaction failed and was rolled back."),
 			ID:      nil,
@@ -480,85 +201,37 @@ func (s *EventService) CreateEvent(ctx context.Context, newEvent *models.NewEven
 	}
 
 	// All good. Commit and return the new event ID.
-	tx.Commit()
-
-	eventIdStr = strconv.Itoa(eventId)
-	return &models.InsertResult{
+	err = tx.Commit()
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("error committing transaction"),
+			ID:      nil,
+		}, err
+	}
+	return &models.MutationResult{
 		Success: true,
-		Message: ptrString("Volunteer successfully created."),
-		ID:      &eventIdStr,
+		Message: ptrString("Event successfully created."),
+		ID:      ptrString(strconv.Itoa(eventInt)),
 	}, nil
 }
 
-// UpsertVenue
-// Determines if the venue exists (as specified) in the DB.
-// If so, returns the ID of the existing venue.
-// Else, inserts the new venue and returns the new ID.
-func (s *EventService) UpsertVenue(ctx context.Context, venue *models.VenueInput) (*int, error) {
-	var query string
-	var venueId int
+func (s *EventService) AddServiceTypesToEvent(ctx context.Context, tx *sql.Tx, eventId int, serviceTypes []models.ServiceType) error {
 
-	if venue == nil || venue.Name == nil {
-		// Return an error. venue is required.
-		err := fmt.Errorf("A venue is required for this type of event.")
-		return nil, err
-	}
-
-	// (This is temporary. We'll actually have the ID
-	// in the call if the location exists.) For now,
-	// if the user indicated an existing venue, only
-	// the name will have been supplied. That's how
-	// we'll look it up.
-	query = `
-	SELECT 
-		l.location_id, 
-	FROM locations l
-	WHERE l.location_name = $1 
-	`
-
-	err := s.DB.QueryRowContext(ctx, query, venue.Name).Scan(&venueId)
-
-	if err == sql.ErrNoRows {
-		// The venue is new. Create it now.
-		venueIdPtr, err := s.CreateVenue(ctx, venue)
-
-		if err != nil {
-			return nil, fmt.Errorf("error creating location: %w", err)
+	query := `
+		INSERT INTO event_service_types (event_id, service_type_id)
+		VALUES ($1, $2)
+		`
+	for _, serviceType := range serviceTypes {
+		serviceTypeId, ok := s.serviceTypeCache[string(serviceType)]
+		if !ok {
+			return fmt.Errorf("unknown service type: %s", serviceType)
 		}
 
-		venueId = *venueIdPtr
-
-	} else if err != nil {
-		return nil, fmt.Errorf("error querying location: %w", err)
-	}
-
-	// Success.
-	return &venueId, nil
-}
-
-func (s *EventService) CreateVenue(ctx context.Context, venue *models.VenueInput) (*int, error) {
-	var query string
-	var locId int
-
-	query = `
-		INSERT INTO locations (location_name, address, city, state, zip_code)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING location_id
-	`
-	err := s.DB.QueryRowContext(ctx, query, venue.Name, venue.Address, venue.City, venue.State, venue.ZipCode).Scan(&locId)
-
-	return &locId, err
-}
-
-func (s *EventService) AddOpportunitiesToEvent(ctx context.Context, tx *sql.Tx, eventId int, opps []*models.NewOpportunityInput) error {
-	var i int
-
-	for i = 0; i < len(opps); i++ {
-		err := s.CreateOpportunity(ctx, tx, eventId, opps[i])
+		_, err := tx.ExecContext(ctx, query, eventId, serviceTypeId)
 
 		if err != nil {
-			err = fmt.Errorf("error inserting opp with index %v: %w", i, err)
-			return err
+			return fmt.Errorf("error adding service type to event: %w", err)
 		}
 	}
 
@@ -566,52 +239,211 @@ func (s *EventService) AddOpportunitiesToEvent(ctx context.Context, tx *sql.Tx, 
 	return nil
 }
 
-func (s *EventService) CreateOpportunity(ctx context.Context, tx *sql.Tx, eventId int, opp *models.NewOpportunityInput) error {
-	var query string
-	var oppId int
+// This function is to add a startdate and enddate to an extant event.
+func (s *EventService) CreateEventDate(ctx context.Context, dates models.AddEventDateInput) (*models.MutationResult, error) {
+	var startUTC, endUTC *string
+	startUTC, err := DateTimeToUTC(dates.StartDateTime, dates.IanaZone)
+	if err == nil {
+		endUTC, err = DateTimeToUTC(dates.EndDateTime, dates.IanaZone)
+	}
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to create event date. Invalid datetimes or IANA zone."),
+			ID:      nil,
+		}, err
+	}
 
-	query = `
-		INSERT INTO opportunities (event_id, role, other_role_description, opportunity_is_virtual, pre_event_instructions)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING opportunity_id
+	eventInt, err := strconv.Atoi(dates.EventID)
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to create event date. Invalid event Id."),
+			ID:      nil,
+		}, err
+	}
+
+	create := `
+		INSERT INTO event_dates (event_id, start_date_time, end_date_time)
+		VALUES ($1, $2, $3)
+		RETURNING event_date_id
 	`
-	err := tx.QueryRowContext(ctx, query, eventId, opp.Job, nil, false, nil).Scan(&oppId)
+	var eventDateInt int
+	err = s.DB.QueryRowContext(ctx, create, eventInt, startUTC, endUTC).Scan(&eventDateInt)
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to insert event date."),
+			ID:      nil,
+		}, err
+	}
+	return &models.MutationResult{
+		Success: true,
+		Message: ptrString("Successfully created event date."),
+		ID:      ptrString(strconv.Itoa(eventDateInt)),
+	}, nil
+}
+
+// Mutations: Update, delete.
+
+func (s *EventService) UpdateEvent(ctx context.Context, event models.UpdateEventInput) (*models.MutationResult, error) {
+
+	eventInt, err := strconv.Atoi(event.ID)
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to update event; invalid event Id."),
+			ID:      &event.ID,
+		}, err
+	}
+
+	isVirtual := (event.EventType == models.EventTypeVirtual || event.EventType == models.EventTypeHybrid)
+
+	var venueInt *int
+	if event.EventType == models.EventTypeVirtual {
+		venueInt = nil
+	} else {
+		// Other types require a venue.
+		if event.VenueId == nil {
+			return &models.MutationResult{
+				Success: false,
+				Message: ptrString("Failed to update event; event must have a venue id."),
+				ID:      &event.ID,
+			}, err
+		}
+		idInt, err := strconv.Atoi(*event.VenueId)
+		if err != nil {
+			return &models.MutationResult{
+				Success: false,
+				Message: ptrString("Failed to update event; event must have a valid venue id."),
+				ID:      &event.ID,
+			}, err
+		}
+		venueInt = &idInt
+	}
+
+	query := `
+		UPDATE events 
+		SET 
+			event_name = $1,
+			description = $2, 
+			event_is_virtual = $3,
+			venue_id = $4
+		WHERE event_id = $5
+	`
+	_, err = s.DB.ExecContext(ctx, query, event.Name, event.Description, isVirtual, venueInt, eventInt)
 
 	if err != nil {
-		return err
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to update event."),
+			ID:      &event.ID,
+		}, err
 	}
 
-	// Opportunity was created. Add shifts.
-	return s.AddShiftsToOpportunity(ctx, tx, oppId, opp.Shifts)
-
+	return &models.MutationResult{
+		Success: true,
+		Message: ptrString("Successfully updated event."),
+		ID:      &event.ID,
+	}, nil
 }
 
-func (s *EventService) AddShiftsToOpportunity(ctx context.Context, tx *sql.Tx, oppId int, shifts []*models.NewShiftInput) error {
-	var i int
-
-	for i = 0; i < len(shifts); i++ {
-		err := s.CreateShift(ctx, tx, oppId, shifts[i])
-
-		if err != nil {
-			err = fmt.Errorf("error inserting shift with index %v: %w", i, err)
-			return err
-		}
+func (s *EventService) UpdateEventDate(ctx context.Context, evDate models.UpdateEventDateInput) (*models.MutationResult, error) {
+	var startUTC, endUTC *string
+	startUTC, err := DateTimeToUTC(evDate.StartDateTime, evDate.IanaZone)
+	if err == nil {
+		endUTC, err = DateTimeToUTC(evDate.EndDateTime, evDate.IanaZone)
+	}
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to update event date; invalid datetimes or IANA zone."),
+			ID:      nil,
+		}, err
 	}
 
-	// No errors.
-	return nil
-}
+	dateInt, err := strconv.Atoi(evDate.ID)
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to update event date; invalid event_date_id."),
+			ID:      &evDate.ID,
+		}, err
+	}
 
-func (s *EventService) CreateShift(ctx context.Context, tx *sql.Tx, oppId int, shift *models.NewShiftInput) error {
-	var query string
-	var shiftId int
-
-	query = `
-		INSERT INTO shifts (opportunity_id, shift_start, shift_end, staff_lead_id, max_volunteers)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING shift_id
+	query := `
+		UPDATE event_dates 
+		SET 
+			start_date_time = $1,
+			end_date_time = $2
+		WHERE event_date_id = $3
 	`
-	err := tx.QueryRowContext(ctx, query, oppId, shift.StartTime, shift.EndTime, nil, shift.MaxVolunteers).Scan(&shiftId)
+	_, err = s.DB.ExecContext(ctx, query, startUTC, endUTC, dateInt)
 
-	return err
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to update event date."),
+			ID:      &evDate.ID,
+		}, err
+	}
+
+	return &models.MutationResult{
+		Success: true,
+		Message: ptrString("Successfully updated event date."),
+		ID:      &evDate.ID,
+	}, nil
+}
+
+func (s *EventService) DeleteEvent(ctx context.Context, eventId string) (*models.MutationResult, error) {
+	eventInt, err := strconv.Atoi(eventId)
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to delete event; invalid event ID."),
+			ID:      &eventId,
+		}, err
+	}
+
+	_, err = s.DB.ExecContext(ctx, "DELETE FROM events WHERE event_id = $1", eventInt)
+
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to delete event."),
+			ID:      &eventId,
+		}, err
+	}
+
+	return &models.MutationResult{
+		Success: true,
+		Message: ptrString("Successfully deleted event."),
+		ID:      &eventId,
+	}, nil
+}
+
+func (s *EventService) DeleteEventDate(ctx context.Context, evDateId string) (*models.MutationResult, error) {
+	dateInt, err := strconv.Atoi(evDateId)
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to delete event date; invalid event_date_id."),
+			ID:      &evDateId,
+		}, err
+	}
+
+	_, err = s.DB.ExecContext(ctx, "DELETE FROM event_dates WHERE event_date_id = $1", dateInt)
+
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to delete event date."),
+			ID:      &evDateId,
+		}, err
+	}
+	return &models.MutationResult{
+		Success: true,
+		Message: ptrString("Successfully deleted event date."),
+		ID:      &evDateId,
+	}, nil
 }
