@@ -17,125 +17,94 @@ func NewVolunteerService(db *sql.DB) *VolunteerService {
 	return &VolunteerService{DB: db}
 }
 
-// Function: AssignVolunteerToShift
-// Returns success or failure with error.
-// Access: All users.
-func (s *VolunteerService) AssignVolunteerToShift(ctx context.Context, shiftID string, volunteerID string) (*models.UpdateResult, error) {
+// Queries.
 
-	query := `
-		INSERT INTO volunteer_shifts (volunteer_id, shift_id, assigned_at, status)
-		VALUES ($1, $2, NOW(), 'confirmed')
-		ON CONFLICT (volunteer_id, shift_id) DO NOTHING
-	`
-
-	_, err := s.DB.ExecContext(ctx, query, volunteerID, shiftID)
-	if err != nil {
-		return &models.UpdateResult{
-			Success: false,
-			Message: ptrString("Failed to assign volunteer to shift"),
-		}, nil
-	}
-
-	return &models.UpdateResult{
-		Success: true,
-		Message: ptrString("Volunteer successfully assigned"),
-	}, nil
-}
-
-func (s *VolunteerService) CreateVolunteer(ctx context.Context, profile *models.NewVolunteerInput) (*models.InsertResult, error) {
-	var query string
-
-	query = `
-		INSERT INTO volunteers (first_name, last_name, email, created_at)
-		VALUES ($1, $2, $3, NOW())
-		RETURNING volunteer_id
-	`
-	var volID int
-	err := s.DB.QueryRowContext(ctx, query, profile.FirstName, profile.LastName, profile.Email).Scan(&volID)
-
-	if err != nil {
-		return &models.InsertResult{
-			Success: false,
-			Message: ptrString("Failed to create new volunteer."),
-			ID:      nil,
-		}, err
-	}
-
-	volIDStr := strconv.Itoa(volID)
-	return &models.InsertResult{
-		Success: true,
-		Message: ptrString("Volunteer successfully created."),
-		ID:      &volIDStr,
-	}, nil
-
-}
-
-// GetAllVolunteers retrieves all volunteers with optional filtering
-func (s *VolunteerService) GetAllVolunteers(ctx context.Context, filter *models.VolunteerFilterInput) ([]*models.VolunteerProfile, error) {
-	var query string
-	var args []interface{}
-
+// FetchVolunteers retrieves all volunteers with optional filtering
+func (s *VolunteerService) FetchAllVolunteers(ctx context.Context, filter *models.VolunteerFilterInput) ([]*models.Volunteer, error) {
 	// Get all volunteers for now.
 	// We may need a filter here, so it's in the input, but
 	// we'll deal with that when we know if we are looking
 	// up by email or name or ?? Darrell is working on that.
-	query = `
-		SELECT volunteer_id, first_name, last_name
+
+	query := `
+		SELECT 
+			volunteer_id, 
+			first_name, 
+			last_name, 
+			email, 
+			phone, 
+			zip_code
 		FROM volunteers 
 	`
-
-	rows, err := s.DB.QueryContext(ctx, query, args...)
+	rows, err := s.DB.QueryContext(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("error querying volunteers: %w", err)
 	}
 	defer rows.Close()
 
-	var volunteers []*models.VolunteerProfile
+	var volunteers []*models.Volunteer
 	for rows.Next() {
-		var v models.VolunteerProfile
-		var volunteerID int
+		var v models.Volunteer
+		var volInt int
+		var phone, zip sql.NullString
 
-		err := rows.Scan(&volunteerID, &v.FirstName, &v.LastName)
+		err := rows.Scan(
+			&volInt,
+			&v.FirstName,
+			&v.LastName,
+			&v.Email,
+			&phone,
+			&zip)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning volunteer: %w", err)
 		}
-
-		v.ID = fmt.Sprintf("%d", volunteerID)
+		if phone.Valid {
+			v.Phone = &phone.String
+		} else {
+			v.Phone = nil
+		}
+		if zip.Valid {
+			v.ZipCode = &zip.String
+		} else {
+			v.ZipCode = nil
+		}
+		v.ID = strconv.Itoa(volInt)
 		volunteers = append(volunteers, &v)
 	}
 
 	return volunteers, nil
 }
 
-// Volunteers whose identities have been created by an admin
-// may (eventually) update their profiles as their lives change.
-
-// GetVolunteerProfile
+// FetchVolunteerById
 // Retrieve the profile of a specific volunteer.
-func (s *VolunteerService) GetVolunteerProfile(ctx context.Context, id string) (*models.VolunteerProfile, error) {
-	var query string
+func (s *VolunteerService) FetchVolunteerById(ctx context.Context, volId string) (*models.Volunteer, error) {
 
-	query = `
+	volInt, err := strconv.Atoi(volId)
+	if err != nil {
+		return nil, fmt.Errorf("volunteer id is not valid: %w", err)
+	}
+
+	query := `
 		SELECT 
-			v.volunteer_id, 
-			v.first_name, 
-			v.last_name,
-			v.email,
-			v.phone,
-			v.zip_code
-		FROM volunteers v
-		WHERE v.volunteer_id = $1
+			volunteer_id, 
+			first_name, 
+			last_name, 
+			email, 
+			phone, 
+			zip_code
+		FROM volunteers 
+		WHERE volunteer_id = $1
 	`
-	var volunteer models.VolunteerProfile
-	var volID int
+	var v models.Volunteer
+	var phone, zip sql.NullString
 
-	// Fill in these fields for now....
-	err := s.DB.QueryRowContext(ctx, query, id).Scan(
-		&volID,
-		&volunteer.FirstName,
-		&volunteer.LastName,
-		&volunteer.Email,
-	)
+	err = s.DB.QueryRowContext(ctx, query, volInt).Scan(
+		&volInt,
+		&v.FirstName,
+		&v.LastName,
+		&v.Email,
+		&phone,
+		&zip)
 
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("volunteer not found")
@@ -144,19 +113,133 @@ func (s *VolunteerService) GetVolunteerProfile(ctx context.Context, id string) (
 		return nil, fmt.Errorf("error querying volunteer: %w", err)
 	}
 
-	volunteer.ID = fmt.Sprintf("%d", volID) // string for GraphQl
+	if phone.Valid {
+		v.Phone = &phone.String
+	} else {
+		v.Phone = nil
+	}
+	if zip.Valid {
+		v.ZipCode = &zip.String
+	} else {
+		v.ZipCode = nil
+	}
+	v.ID = strconv.Itoa(volInt)
 
-	// TODO: get service types??
-	// Still not sure about how those are supposed to be
-	// used. Should they be associated with a volunteer
-	// at all?
-
-	return &volunteer, nil
+	return &v, nil
 }
 
+func (s *VolunteerService) FetchOwnProfile(ctx context.Context) (*models.VolunteerProfile, error) {
+
+	return nil, fmt.Errorf("Fetch Own Profile will be implemented when we have tokens or whatever.")
+}
+
+// Mutations: Create.
+
+func (s *VolunteerService) CreateVolunteer(ctx context.Context, profile models.NewVolunteerInput) (*models.MutationResult, error) {
+
+	query := `
+		INSERT INTO volunteers (
+			first_name, 
+			last_name, 
+			email, 
+			phone,
+			zip_code,
+			created_at)
+		VALUES ($1, $2, $3, $4, $5, NOW())
+		RETURNING volunteer_id
+	`
+	var volID int
+	err := s.DB.QueryRowContext(ctx, query, profile.FirstName, profile.LastName, profile.Email, profile.Phone, profile.ZipCode).Scan(&volID)
+
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to create new volunteer."),
+			ID:      nil,
+		}, err
+	}
+
+	volIDStr := strconv.Itoa(volID)
+	return &models.MutationResult{
+		Success: true,
+		Message: ptrString("Volunteer successfully created."),
+		ID:      &volIDStr,
+	}, nil
+
+}
+
+// Mutations: Updates, deletes
+
 // UpdateVolunteerProfile
-// Push an edited profile back to the DB.
-func (s *VolunteerService) UpdateVolunteerProfile(ctx context.Context, profile *models.UpdateVolunteerInput) (*models.UpdateResult, error) {
-	// TODO
-	return nil, fmt.Errorf("not implemented")
+// Volunteers whose identities have been created by an admin
+// may update their own profiles as their lives change. Admins
+// can also update their profiles for them.
+func (s *VolunteerService) UpdateVolunteerProfile(ctx context.Context, profile models.UpdateVolunteerInput) (*models.MutationResult, error) {
+
+	volInt, err := strconv.Atoi(profile.ID)
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to update profile. Invalid Id."),
+			ID:      &profile.ID,
+		}, err
+	}
+
+	query := `
+		UPDATE volunteers 
+		SET 
+			first_name = $1, 
+			last_name = $2, 
+			email = $3,
+			phone = $4,
+			zip_code = $5
+		WHERE volunteer_id = $6
+	`
+	_, err = s.DB.ExecContext(ctx, query, profile.FirstName, profile.LastName, profile.Email, profile.Phone, profile.ZipCode, volInt)
+
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to update volunteer profile."),
+			ID:      &profile.ID,
+		}, err
+	}
+
+	return &models.MutationResult{
+		Success: true,
+		Message: ptrString("Volunteer successfully updated."),
+		ID:      &profile.ID,
+	}, nil
+}
+
+// TODO: determine if we should delete volunteers or just mark them
+// as inactive or something. Maybe want them for history of events?
+// Meanwhile....
+func (s *VolunteerService) DeleteVolunteer(ctx context.Context, volId string) (*models.MutationResult, error) {
+
+	volInt, err := strconv.Atoi(volId)
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Invalid volunteer ID."),
+			ID:      &volId,
+		}, err
+	}
+
+	_, err = s.DB.ExecContext(ctx, "DELETE FROM volunteers WHERE volunteer_id = $1", volInt)
+
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to delete volunteer."),
+			ID:      &volId,
+		}, err
+	}
+
+	return &models.MutationResult{
+		Success: true,
+		Message: ptrString("Volunteer successfully deleted."),
+		ID:      &volId,
+	}, nil
+
 }

@@ -4,75 +4,201 @@
 ## definitions in the union of the 2 schema files.
 
 type Query {
-  # Same as volunteer queries
-  events(filter: EventFilterInput): [Event!]!
-  eventById(id: ID!): Event!
+  # Shared queries:
+  volunteerProfile: VolunteerProfile!
+  filteredEvents(filter: EventFilterInput): [Event!]! 
 
-  # Admin-only queries
-  allVolunteers(filter: VolunteerFilterInput): [VolunteerProfile!]! 
+  # Admin-only queries:
+  venues: [Venue!]!
+  allVolunteers(filter: VolunteerFilterInput): [Volunteer!]! 
+  volunteerById(volunteerId: ID!): Volunteer
+  opportunitiesForEvent(eventId: ID!): [Opportunity!]!
 } 
 
 type Mutation {
-  # Volunteer mutations (admins can do these, too.)
-  assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): UpdateResult!  
-  updateVolunteerProfile(profile: UpdateVolunteerInput!): UpdateResult!  
-  cancelShift(shiftId: ID!, volunteerId: ID!): UpdateResult!
+  # Admin-only mutations:
+  createVolunteer(newVol: NewVolunteerInput!): MutationResult!  
+  createVenue(newVenue: NewVenueInput!): MutationResult!
+  createEvent(newEvent: NewEventInput!): MutationResult!
+  createOpportunity(newOpp: NewOpportunityInput!): MutationResult!
+  createShift(newShift: AddShiftInput!): MutationResult!
+  createEventDate(newDate: AddEventDateInput!): MutationResult!
 
-  # Admin-only mutations
-  createVolunteer(newVol: NewVolunteerInput!): InsertResult!  
-  createEvent(newEvent: NewEventInput!): InsertResult!
+  assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): MutationResult!  
+  cancelShift(shiftId: ID!, volunteerId: ID!): MutationResult!
+
+  updateVenue(venue: UpdateVenueInput!): MutationResult!
+  updateVolunteer(profile: UpdateVolunteerInput!): MutationResult!  
+  updateEvent(event: UpdateEventInput!): MutationResult!
+  updateOpportunity(opp: UpdateOpportunityInput!): MutationResult!
+  updateShift(shift: UpdateShiftInput!): MutationResult!
+  updateEventDate(date: UpdateEventDateInput!): MutationResult!
+
+# TODO: figure out if we should ever delete a volunteer,
+#       or if we should just mark them inactive, since they
+#       are part of event history.
+  deleteVolunteer(volunteerId: ID!): MutationResult!
+  
+  deleteVenue(venueId: ID!): MutationResult!
+  deleteEvent(eventId: ID!): MutationResult!
+  deleteOpportunity(oppId: ID!): MutationResult!
+  deleteShift(shiftId: ID!): MutationResult!
+  deleteEventDate(eventDateId: ID!): MutationResult!
 }
+#-- Outputs (for queries) --
+
+type Volunteer {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  zipCode: String
+}
+
+type Opportunity {
+  id: ID!
+  job: Job!
+  otherJobDescription: String
+  isVirtual: Boolean!
+  preEventInstructions: String
+  shifts: [Shift!]!
+}
+
+type Shift {
+  id: ID!
+  startDateTime: String!
+  endDateTime: String!
+  maxVolunteers: Int
+  staffContactId: ID
+}
+
 
 #-- Inputs --
 input NewVolunteerInput {
   firstName: String!
   lastName: String!
   email: String!
-  phone: String!
-  zipCode: String!
-  serviceTypes: [ServiceType!]
+  phone: String
+  zipCode: String
 }
 
-input NewEventInput {
-  name: String!
-  description: String
-  eventType: EventType!
-  venue: VenueInput
-  opportunities: [NewOpportunityInput!]!  
+input UpdateVolunteerInput {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  zipCode: String
 }
 
-# Note that venue is not necessarily 
-# new. If the user chose an existing 
-# venue, only the name is needed.
-input VenueInput {
+input NewVenueInput {
   name: String
   address: String!
   city: String!
   state: String!
   zipCode: String
+  ianaZone: String!
 }
 
+input UpdateVenueInput {
+  id: ID!
+  name: String
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String
+  ianaZone: String!
+}
+
+
+input NewEventInput {
+  name: String!
+  description: String
+  eventType: EventType!
+  venueId: ID
+  serviceTypes: [ServiceType!]!
+  eventDates: [NewEventDateInput!]! # a new event must have at least one date.
+}
+
+input UpdateEventInput {
+  id: ID!
+  name: String!
+  description: String
+  eventType: EventType!
+  venueId: ID
+  serviceTypes: [ServiceType!]!
+}
+
+input NewEventDateInput {
+  startDateTime: String!
+  endDateTime: String!
+  ianaZone: String!
+}
+
+input AddEventDateInput {
+  eventId: ID!
+  startDateTime: String!
+  endDateTime: String!
+  ianaZone: String!
+}
+
+input UpdateEventDateInput {
+  id: ID!
+  startDateTime: String!
+  endDateTime: String!
+  ianaZone: String!
+}
+
+# A new opp MUST include at 
+# least 1 new shift.
+
 input NewOpportunityInput {
+  eventId: ID!
   job: Job!
-  shifts: [NewShiftInput!]!
+  otherJobDescription: String
+  isVirtual: Boolean!
+  preEventInstructions: String
+  shifts: [NewShiftInput!]! # a new opportunity must have at least one shift.
+}
+
+input UpdateOpportunityInput {
+  id: ID!
+  job: Job!
+  otherJobDescription: String
+  isVirtual: Boolean!
+  preEventInstructions: String
 }
 
 input NewShiftInput {
-  date: String!
-  startTime: String!
-  endTime: String!
+  startDateTime: String!
+  endDateTime: String!
+  ianaZone: String!
   maxVolunteers: Int
+  staffContactId: ID
+}
+
+input AddShiftInput {
+  opportunityId: ID!
+  startDateTime: String!
+  endDateTime: String!
+  ianaZone: String!
+  maxVolunteers: Int
+  staffContactId: ID
+}
+
+input UpdateShiftInput {
+  id: ID!
+  startDateTime: String!
+  endDateTime: String!
+  ianaZone: String!
+  maxVolunteers: Int
+  staffContactId: ID
 }
 
 input VolunteerFilterInput {
   firstName: String
   lastName: String
-  serviceTypes: [ServiceType!]
+  email: String
 }
 
-#-- Results --
-type InsertResult {
-  success: Boolean!
-  message: String
-  id: ID
-}

@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"volunteer-scheduler/database"
 	"volunteer-scheduler/graph/admin"
 	adminGen "volunteer-scheduler/graph/admin/generated"
 	"volunteer-scheduler/graph/volunteer"
@@ -15,9 +16,18 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
 	"github.com/rs/cors"
 )
+
+func getEnvWithDefault(key, fallback string) string {
+	val, ok := os.LookupEnv(key)
+	if ok {
+		return val
+	} else {
+		return fallback
+	}
+}
 
 func main() {
 	// Database connection
@@ -51,12 +61,27 @@ func main() {
 	if err := db.Ping(); err != nil {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
-	defer db.Close()
+
+	// Run migrations.
+	// In Docker the binary runs from /root/, so migrations are at /app/migrations.
+	// Locally, "file://migrations" works if you run from the project root.
+	//migrationsPath := getEnvWithDefault("MIGRATIONS_PATH", "file://migrations")
+	migrationsPath := getEnvWithDefault("MIGRATIONS_PATH", "file:///app/migrations")
+	dbName := getEnvWithDefault("DB_NAME", "volunteer-scheduler")
+	err = database.RunMigrations(db, dbName, migrationsPath)
+	if err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
 
 	// Create services.
-	shiftService := services.NewShiftService(db)
-	eventService := services.NewEventService(db, shiftService)
 	volunteerService := services.NewVolunteerService(db)
+	shiftService := services.NewShiftService(db)
+	venueService := services.NewVenueService(db)
+
+	eventService, err := services.NewEventService(db, shiftService)
+	if err != nil {
+		log.Fatal("Failed to initialize event service:", err)
+	}
 
 	// Create volunteer resolver with services.
 	volunteerResolver := &volunteer.Resolver{
@@ -64,6 +89,7 @@ func main() {
 		EventService:     eventService,
 		VolunteerService: volunteerService,
 		ShiftService:     shiftService,
+		VenueService:     venueService,
 	}
 
 	// Create admin resolver with services.
@@ -72,6 +98,7 @@ func main() {
 		EventService:     eventService,
 		VolunteerService: volunteerService,
 		ShiftService:     shiftService,
+		VenueService:     venueService,
 	}
 
 	// Set up GraphQL servers with endpoints for user type.
