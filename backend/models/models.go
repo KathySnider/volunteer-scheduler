@@ -6,7 +6,6 @@ package models
 
 // Any user can see own profile (sans ID).
 type VolunteerProfile struct {
-	ID        string
 	FirstName string
 	LastName  string
 	Email     string
@@ -268,4 +267,9 @@ type MutationResult struct {
 	Success bool
 	Message *string
 	ID      *string
+}
+
+type VolunteerMutationResult struct {
+	Success bool
+	Message *string
 }

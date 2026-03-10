@@ -75,100 +75,78 @@ func (s *VolunteerService) FetchAllVolunteers(ctx context.Context, filter *model
 	return volunteers, nil
 }
 
-// FetchVolunteerById
-// Retrieve the profile of a specific volunteer.
-func (s *VolunteerService) FetchVolunteerById(ctx context.Context, volId string) (*models.Volunteer, error) {
+func (s *VolunteerService) FetchOwnProfile(ctx context.Context, volId int) (*models.VolunteerProfile, error) {
+	return fetchProfile(ctx, s.DB, volId)
+}
+
+func (s *VolunteerService) FetchVolunteerProfileById(ctx context.Context, volId string) (*models.VolunteerProfile, error) {
 
 	volInt, err := strconv.Atoi(volId)
 	if err != nil {
 		return nil, fmt.Errorf("volunteer id is not valid: %w", err)
 	}
+	return fetchProfile(ctx, s.DB, volInt)
+}
 
+func (s *VolunteerService) UpdateOwnProfile(ctx context.Context, volId int, profile models.UpdateOwnProfileInput) (*models.VolunteerMutationResult, error) {
 	query := `
-		SELECT 
-			volunteer_id, 
-			first_name, 
-			last_name, 
-			email, 
-			phone, 
-			zip_code
-		FROM volunteers 
-		WHERE volunteer_id = $1
+		UPDATE volunteers 
+		SET 
+			first_name = $1, 
+			last_name = $2, 
+			email = $3,
+			phone = $4,
+			zip_code = $5
+		WHERE volunteer_id = $6
 	`
-	var v models.Volunteer
-	var phone, zip sql.NullString
+	_, err := s.DB.ExecContext(ctx, query, profile.FirstName, profile.LastName, profile.Email, profile.Phone, profile.ZipCode, volId)
 
-	err = s.DB.QueryRowContext(ctx, query, volInt).Scan(
-		&volInt,
-		&v.FirstName,
-		&v.LastName,
-		&v.Email,
-		&phone,
-		&zip)
-
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("volunteer not found")
-	}
 	if err != nil {
-		return nil, fmt.Errorf("error querying volunteer: %w", err)
+		return &models.VolunteerMutationResult{
+			Success: false,
+			Message: ptrString("Failed to update volunteer profile."),
+		}, err
 	}
 
-	if phone.Valid {
-		v.Phone = &phone.String
-	} else {
-		v.Phone = nil
-	}
-	if zip.Valid {
-		v.ZipCode = &zip.String
-	} else {
-		v.ZipCode = nil
-	}
-	v.ID = strconv.Itoa(volInt)
-
-	return &v, nil
+	return &models.VolunteerMutationResult{
+		Success: true,
+		Message: ptrString("Volunteer successfully updated."),
+	}, nil
 }
 
-func (s *VolunteerService) FetchOwnProfile(ctx context.Context) (*models.VolunteerProfile, error) {
+// Mutations.
 
-	return nil, fmt.Errorf("Fetch Own Profile will be implemented when we have tokens or whatever.")
-}
-
-// Mutations: Create.
-
-func (s *VolunteerService) CreateVolunteer(ctx context.Context, profile models.NewVolunteerInput) (*models.MutationResult, error) {
-
+// CreateVolunteer is the resolver for the createVolunteer field.
+func (s *VolunteerService) CreateVolunteer(ctx context.Context, newVol models.NewVolunteerInput) (*models.MutationResult, error) {
 	query := `
 		INSERT INTO volunteers (
 			first_name, 
 			last_name, 
 			email, 
-			phone,
+			phone, 
 			zip_code,
 			created_at)
 		VALUES ($1, $2, $3, $4, $5, NOW())
 		RETURNING volunteer_id
 	`
-	var volID int
-	err := s.DB.QueryRowContext(ctx, query, profile.FirstName, profile.LastName, profile.Email, profile.Phone, profile.ZipCode).Scan(&volID)
 
+	var volInt int
+	err := s.DB.QueryRowContext(ctx, query, newVol.FirstName, newVol.LastName, newVol.Email, newVol.Phone, newVol.ZipCode).Scan(&volInt)
 	if err != nil {
 		return &models.MutationResult{
 			Success: false,
-			Message: ptrString("Failed to create new volunteer."),
+			Message: ptrString("Failed to create volunteer."),
 			ID:      nil,
 		}, err
 	}
 
-	volIDStr := strconv.Itoa(volID)
+	volStr := strconv.Itoa(volInt)
 	return &models.MutationResult{
 		Success: true,
-		Message: ptrString("Volunteer successfully created."),
-		ID:      &volIDStr,
+		Message: ptrString("Successfullly created volunteer."),
+		ID:      &volStr,
 	}, nil
-
 }
-
-// Mutations: Updates, deletes
 
 // UpdateVolunteerProfile
 // Volunteers whose identities have been created by an admin
@@ -241,5 +219,4 @@ func (s *VolunteerService) DeleteVolunteer(ctx context.Context, volId string) (*
 		Message: ptrString("Volunteer successfully deleted."),
 		ID:      &volId,
 	}, nil
-
 }

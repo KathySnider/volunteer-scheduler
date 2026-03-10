@@ -31,7 +31,6 @@ enum Job {
 
 #-- Input --
 
-
 ## The EventFilter reflects all of the fields on which 
 ## a user can filter the results. If you want to add
 ## more ways to filter, this is the place.
@@ -44,13 +43,9 @@ input EventFilterInput {
   ianaZone: String
 }
 
-# TODO: make sure to get rid of ID from VolunteerProfile
-# once we have tokens!
-
 #-- Output --
 
 type VolunteerProfile {
-  id: ID!
   firstName: String!
   lastName: String!
   email: String!

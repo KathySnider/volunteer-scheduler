@@ -17,6 +17,66 @@ func ptrString(s string) *string {
 	return &s
 }
 
+// ** Fetching things from the DB **
+// This allows us to get things that shouldn't necessarily be
+// exposed through services, as well as reduce duplicate code.
+
+func fetchVolunteerIdByEmail(ctx context.Context, DB *sql.DB, email string) (int, error) {
+	var volunteerId int
+	err := DB.QueryRowContext(ctx,
+		"SELECT volunteer_id FROM volunteers WHERE email = $1", email).Scan(&volunteerId)
+	if err == sql.ErrNoRows {
+		return 0, fmt.Errorf("no volunteer account found for this email")
+	}
+	if err != nil {
+		return 0, fmt.Errorf("error looking up volunteer: %w", err)
+	}
+	return volunteerId, nil
+}
+func fetchProfile(ctx context.Context, DB *sql.DB, volId int) (*models.VolunteerProfile, error) {
+	query := `
+		SELECT 
+			volunteer_id, 
+			first_name, 
+			last_name, 
+			email, 
+			phone, 
+			zip_code
+		FROM volunteers 
+		WHERE volunteer_id = $1
+	`
+	var profile models.VolunteerProfile
+	var phone, zip sql.NullString
+
+	err := DB.QueryRowContext(ctx, query, volId).Scan(
+		&volId,
+		&profile.FirstName,
+		&profile.LastName,
+		&profile.Email,
+		&phone,
+		&zip)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("volunteer not found")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("error querying volunteer: %w", err)
+	}
+
+	if phone.Valid {
+		profile.Phone = &phone.String
+	} else {
+		profile.Phone = nil
+	}
+	if zip.Valid {
+		profile.ZipCode = &zip.String
+	} else {
+		profile.ZipCode = nil
+	}
+
+	return &profile, nil
+}
+
 // ** Handling datetimes **
 // We store all dates and times in the DB as UTC with RFC-3339 format.
 func DateTimeToUTC(dateTimeStr string, ianaZone string) (*string, error) {
@@ -92,7 +152,102 @@ func GetEventType(isVirtual bool, hasVenue bool) models.EventType {
 	return "IN_PERSON"
 }
 
-// ** Fetching volunteers associated with a shift **
+// ** Handling shift assignments **
+
+func assignVolToShift(ctx context.Context, DB *sql.DB, shiftId string, volId int) (*models.MutationResult, error) {
+	shiftInt, err := strconv.Atoi(shiftId)
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Invalid shiftId."),
+			ID:      &shiftId,
+		}, err
+	}
+
+	query := `
+		SELECT
+			s.shift_id,
+			COUNT(vs.volunteer_id) as curr_vols,
+			s.max_volunteers
+		FROM shifts s
+		LEFT JOIN volunteer_shifts vs 
+			ON s.shift_id = vs.shift_id
+		WHERE s.shift_id = $1
+		GROUP BY s.shift_id, s.max_volunteers
+	`
+
+	var sId, currVols, maxVols int
+
+	err = DB.QueryRowContext(ctx, query, shiftInt).Scan(&sId, &currVols, &maxVols)
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to assign volunteer to shift."),
+			ID:      nil,
+		}, err
+	}
+	if currVols >= maxVols {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to assign volunteer to shift: shift is full."),
+			ID:      nil,
+		}, nil
+	}
+
+	insert := `
+		INSERT INTO volunteer_shifts (volunteer_id, shift_id, assigned_at)
+		VALUES ($1, $2, NOW())
+		ON CONFLICT (volunteer_id, shift_id) DO NOTHING
+	`
+	_, err = DB.ExecContext(ctx, insert, volId, shiftInt)
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to assign volunteer to shift."),
+			ID:      nil,
+		}, err
+	}
+
+	return &models.MutationResult{
+		Success: true,
+		Message: ptrString("Volunteer successfully assigned."),
+		ID:      &shiftId,
+	}, nil
+}
+
+func cancelShiftAssignment(ctx context.Context, DB *sql.DB, shiftId string, volId int) (*models.MutationResult, error) {
+	shiftInt, err := strconv.Atoi(shiftId)
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("ShiftId is not valid."),
+			ID:      nil,
+		}, err
+	}
+
+	delete := `
+		DELETE FROM volunteer_shifts
+		WHERE volunteer_id = $1 AND shift_id = $2
+	`
+	_, err = DB.ExecContext(ctx, delete, volId, shiftInt)
+
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to delete shift assignment."),
+			ID:      nil,
+		}, err
+	}
+
+	// No errors.
+
+	return &models.MutationResult{
+		Success: true,
+		Message: ptrString("Successfully deleted shift assignment."),
+		ID:      nil,
+	}, nil
+}
+
 // Currently this is internal, but we might add an interface for this if the
 // users request it.
 func FetchAssignedVolunteersForShift(ctx context.Context, shiftId int, DB *sql.DB) ([]*models.Volunteer, error) {

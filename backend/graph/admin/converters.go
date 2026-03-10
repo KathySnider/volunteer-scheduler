@@ -12,9 +12,6 @@ import (
 // Convert models to generated types, e.g., results
 // coming back from services to the API.
 
-// Convert models to generated types, e.g., results
-// coming back from services to the API.
-
 func toGenMutationResult(m *models.MutationResult) *generated.MutationResult {
 	if m == nil {
 		return nil
@@ -42,20 +39,11 @@ func toGenVenue(m *models.Venue) *generated.Venue {
 	}
 }
 
-func toGenVolunteerProfiles(ms []*models.VolunteerProfile) []*generated.VolunteerProfile {
-	result := make([]*generated.VolunteerProfile, len(ms))
-	for i, m := range ms {
-		result[i] = toGenVolunteerProfile(m)
-	}
-	return result
-}
-
 func toGenVolunteerProfile(m *models.VolunteerProfile) *generated.VolunteerProfile {
 	if m == nil {
 		return nil
 	}
 	return &generated.VolunteerProfile{
-		ID:        m.ID,
 		FirstName: m.FirstName,
 		LastName:  m.LastName,
 		Email:     m.Email,
@@ -109,6 +97,8 @@ func toGenEventDate(m *models.EventDate) *generated.EventDate {
 		EndDateTime:   m.EndDateTime,
 	}
 }
+
+// Convert generated types to models
 
 func toModelEventFilterInput(g *generated.EventFilterInput) *models.EventFilterInput {
 	if g == nil {

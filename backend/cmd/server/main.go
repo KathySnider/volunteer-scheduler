@@ -10,8 +10,11 @@ import (
 	"volunteer-scheduler/database"
 	"volunteer-scheduler/graph/admin"
 	adminGen "volunteer-scheduler/graph/admin/generated"
+	"volunteer-scheduler/graph/auth"
+	authGen "volunteer-scheduler/graph/auth/generated"
 	"volunteer-scheduler/graph/volunteer"
 	volGen "volunteer-scheduler/graph/volunteer/generated"
+	"volunteer-scheduler/middleware"
 	"volunteer-scheduler/services"
 
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -74,6 +77,11 @@ func main() {
 	}
 
 	// Create services.
+	mailer, err := services.NewMailer()
+	if err != nil {
+		log.Fatal("Failed to initialize mailer:", err)
+	}
+	magicLinkService := services.NewMagicLinkService(db, mailer)
 	volunteerService := services.NewVolunteerService(db)
 	shiftService := services.NewShiftService(db)
 	venueService := services.NewVenueService(db)
@@ -83,7 +91,11 @@ func main() {
 		log.Fatal("Failed to initialize event service:", err)
 	}
 
-	// Create volunteer resolver with services.
+	// Create the resolvers with services.
+	authResolver := &auth.Resolver{
+		MagicLinkService: magicLinkService,
+	}
+
 	volunteerResolver := &volunteer.Resolver{
 		DB:               db,
 		EventService:     eventService,
@@ -92,7 +104,6 @@ func main() {
 		VenueService:     venueService,
 	}
 
-	// Create admin resolver with services.
 	adminResolver := &admin.Resolver{
 		DB:               db,
 		EventService:     eventService,
@@ -102,6 +113,10 @@ func main() {
 	}
 
 	// Set up GraphQL servers with endpoints for user type.
+	authSrv := handler.NewDefaultServer(authGen.NewExecutableSchema(authGen.Config{
+		Resolvers: authResolver,
+	}))
+
 	volunteerSrv := handler.NewDefaultServer(volGen.NewExecutableSchema(volGen.Config{
 		Resolvers: volunteerResolver,
 	}))
@@ -118,12 +133,15 @@ func main() {
 		AllowCredentials: true,
 	})
 
-	http.Handle("/", playground.Handler("Volunteer GraphQL", "/graphql/volunteer"))
+	http.Handle("/auth", playground.Handler("Auth GraphQL", "/graphql/auth"))
 	http.Handle("/admin", playground.Handler("Admin GraphQL", "/graphql/admin"))
-	http.Handle("/graphql/volunteer", c.Handler(volunteerSrv))
-	http.Handle("/graphql/admin", c.Handler(adminSrv)) // TODO: add AUTH middleware
+	http.Handle("/volunteer", playground.Handler("Volunteer GraphQL", "/graphql/volunteer"))
+	http.Handle("/graphql/auth", c.Handler(authSrv))
+	http.Handle("/graphql/volunteer", c.Handler(middleware.RequireAuth(magicLinkService, volunteerSrv)))
+	http.Handle("/graphql/admin", c.Handler(middleware.RequireAuth(magicLinkService, adminSrv)))
 
 	log.Println("Server running on :8080")
+	log.Println("Auth endpoint: /graphql/auth")
 	log.Println("Volunteer endpoint: /graphql/volunteer")
 	log.Println("Admin endpoint: /graphql/admin")
 	log.Fatal(http.ListenAndServe(":8080", nil))

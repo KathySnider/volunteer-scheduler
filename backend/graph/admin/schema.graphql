@@ -11,11 +11,12 @@ type Query {
   # Admin-only queries:
   venues: [Venue!]!
   allVolunteers(filter: VolunteerFilterInput): [Volunteer!]! 
-  volunteerById(volunteerId: ID!): Volunteer
+  volunteerById(volunteerId: ID!): VolunteerProfile
   opportunitiesForEvent(eventId: ID!): [Opportunity!]!
 } 
 
 type Mutation {
+
   # Admin-only mutations:
   createVolunteer(newVol: NewVolunteerInput!): MutationResult!  
   createVenue(newVenue: NewVenueInput!): MutationResult!
