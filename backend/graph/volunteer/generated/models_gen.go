@@ -75,8 +75,12 @@ type Venue struct {
 	Timezone string  `json:"timezone"`
 }
 
+type VolunteerMutationResult struct {
+	Success bool    `json:"success"`
+	Message *string `json:"message,omitempty"`
+}
+
 type VolunteerProfile struct {
-	ID        string  `json:"id"`
 	FirstName string  `json:"firstName"`
 	LastName  string  `json:"lastName"`
 	Email     string  `json:"email"`

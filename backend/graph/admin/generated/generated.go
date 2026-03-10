@@ -138,7 +138,6 @@ type ComplexityRoot struct {
 	VolunteerProfile struct {
 		Email     func(childComplexity int) int
 		FirstName func(childComplexity int) int
-		ID        func(childComplexity int) int
 		LastName  func(childComplexity int) int
 		Phone     func(childComplexity int) int
 		ZipCode   func(childComplexity int) int
@@ -172,7 +171,7 @@ type QueryResolver interface {
 	FilteredEvents(ctx context.Context, filter *EventFilterInput) ([]*Event, error)
 	Venues(ctx context.Context) ([]*Venue, error)
 	AllVolunteers(ctx context.Context, filter *VolunteerFilterInput) ([]*Volunteer, error)
-	VolunteerByID(ctx context.Context, volunteerID string) (*Volunteer, error)
+	VolunteerByID(ctx context.Context, volunteerID string) (*VolunteerProfile, error)
 	OpportunitiesForEvent(ctx context.Context, eventID string) ([]*Opportunity, error)
 }
 
@@ -714,12 +713,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.VolunteerProfile.FirstName(childComplexity), true
-	case "VolunteerProfile.id":
-		if e.complexity.VolunteerProfile.ID == nil {
-			break
-		}
-
-		return e.complexity.VolunteerProfile.ID(childComplexity), true
 	case "VolunteerProfile.lastName":
 		if e.complexity.VolunteerProfile.LastName == nil {
 			break
@@ -893,7 +886,6 @@ enum Job {
 
 #-- Input --
 
-
 ## The EventFilter reflects all of the fields on which 
 ## a user can filter the results. If you want to add
 ## more ways to filter, this is the place.
@@ -906,13 +898,9 @@ input EventFilterInput {
   ianaZone: String
 }
 
-# TODO: make sure to get rid of ID from VolunteerProfile
-# once we have tokens!
-
 #-- Output --
 
 type VolunteerProfile {
-  id: ID!
   firstName: String!
   lastName: String!
   email: String!
@@ -968,11 +956,12 @@ type Query {
   # Admin-only queries:
   venues: [Venue!]!
   allVolunteers(filter: VolunteerFilterInput): [Volunteer!]! 
-  volunteerById(volunteerId: ID!): Volunteer
+  volunteerById(volunteerId: ID!): VolunteerProfile
   opportunitiesForEvent(eventId: ID!): [Opportunity!]!
 } 
 
 type Mutation {
+
   # Admin-only mutations:
   createVolunteer(newVol: NewVolunteerInput!): MutationResult!  
   createVenue(newVenue: NewVenueInput!): MutationResult!
@@ -3095,8 +3084,6 @@ func (ec *executionContext) fieldContext_Query_volunteerProfile(_ context.Contex
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_VolunteerProfile_id(ctx, field)
 			case "firstName":
 				return ec.fieldContext_VolunteerProfile_firstName(ctx, field)
 			case "lastName":
@@ -3282,7 +3269,7 @@ func (ec *executionContext) _Query_volunteerById(ctx context.Context, field grap
 			return ec.resolvers.Query().VolunteerByID(ctx, fc.Args["volunteerId"].(string))
 		},
 		nil,
-		ec.marshalOVolunteer2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteer,
+		ec.marshalOVolunteerProfile2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerProfile,
 		true,
 		false,
 	)
@@ -3296,20 +3283,18 @@ func (ec *executionContext) fieldContext_Query_volunteerById(ctx context.Context
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Volunteer_id(ctx, field)
 			case "firstName":
-				return ec.fieldContext_Volunteer_firstName(ctx, field)
+				return ec.fieldContext_VolunteerProfile_firstName(ctx, field)
 			case "lastName":
-				return ec.fieldContext_Volunteer_lastName(ctx, field)
+				return ec.fieldContext_VolunteerProfile_lastName(ctx, field)
 			case "email":
-				return ec.fieldContext_Volunteer_email(ctx, field)
+				return ec.fieldContext_VolunteerProfile_email(ctx, field)
 			case "phone":
-				return ec.fieldContext_Volunteer_phone(ctx, field)
+				return ec.fieldContext_VolunteerProfile_phone(ctx, field)
 			case "zipCode":
-				return ec.fieldContext_Volunteer_zipCode(ctx, field)
+				return ec.fieldContext_VolunteerProfile_zipCode(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Volunteer", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type VolunteerProfile", field.Name)
 		},
 	}
 	defer func() {
@@ -4006,35 +3991,6 @@ func (ec *executionContext) fieldContext_Volunteer_zipCode(_ context.Context, fi
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _VolunteerProfile_id(ctx context.Context, field graphql.CollectedField, obj *VolunteerProfile) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_VolunteerProfile_id,
-		func(ctx context.Context) (any, error) {
-			return obj.ID, nil
-		},
-		nil,
-		ec.marshalNID2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_VolunteerProfile_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "VolunteerProfile",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7303,11 +7259,6 @@ func (ec *executionContext) _VolunteerProfile(ctx context.Context, sel ast.Selec
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("VolunteerProfile")
-		case "id":
-			out.Values[i] = ec._VolunteerProfile_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "firstName":
 			out.Values[i] = ec._VolunteerProfile_firstName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -8808,19 +8759,19 @@ func (ec *executionContext) marshalOVenue2ᚖvolunteerᚑschedulerᚋgraphᚋadm
 	return ec._Venue(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOVolunteer2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteer(ctx context.Context, sel ast.SelectionSet, v *Volunteer) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Volunteer(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalOVolunteerFilterInput2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerFilterInput(ctx context.Context, v any) (*VolunteerFilterInput, error) {
 	if v == nil {
 		return nil, nil
 	}
 	res, err := ec.unmarshalInputVolunteerFilterInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOVolunteerProfile2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerProfile(ctx context.Context, sel ast.SelectionSet, v *VolunteerProfile) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._VolunteerProfile(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

@@ -7,11 +7,11 @@
 type Query {
   volunteerProfile: VolunteerProfile!
   filteredEvents(filter: EventFilterInput): [Event!]! 
-  shiftsForEvent(eventId: ID!): [ShiftView!]!             
+  shiftsForEvent(eventId: ID!): [ShiftView!]!     
 }
 
 type Mutation {
-  updateOwnProfile(profile: UpdateOwnProfileInput!): MutationResult!    
+  updateOwnProfile(profile: UpdateOwnProfileInput!): VolunteerMutationResult!    
   assignSelfToShift(shiftId: ID!): MutationResult!  
   cancelOwnShift(shiftId: ID!): MutationResult!
 }
@@ -35,3 +35,7 @@ input UpdateOwnProfileInput {
   zipCode: String
 }
 
+type VolunteerMutationResult {
+  success: Boolean!
+  message: String
+}

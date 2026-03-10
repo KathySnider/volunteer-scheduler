@@ -24,6 +24,7 @@ COPY . .
 # Generate GraphQL code
 RUN go run github.com/99designs/gqlgen generate --config gqlgen-volunteer.yml
 RUN go run github.com/99designs/gqlgen generate --config gqlgen-admin.yml
+RUN go run github.com/99designs/gqlgen generate --config gqlgen-auth.yml
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o volunteer-api ./cmd/server

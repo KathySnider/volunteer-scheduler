@@ -9,26 +9,63 @@ import (
 	"context"
 	"fmt"
 	"volunteer-scheduler/graph/volunteer/generated"
+	"volunteer-scheduler/middleware"
 )
 
 // UpdateOwnProfile is the resolver for the updateOwnProfile field.
-func (r *mutationResolver) UpdateOwnProfile(ctx context.Context, profile generated.UpdateOwnProfileInput) (*generated.MutationResult, error) {
-	panic(fmt.Errorf("not implemented: UpdateOwnProfile - updateOwnProfile"))
+func (r *mutationResolver) UpdateOwnProfile(ctx context.Context, profile generated.UpdateOwnProfileInput) (*generated.VolunteerMutationResult, error) {
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	modProf := toModelUpdateOwnProfileInput(&profile)
+	result, err := r.VolunteerService.UpdateOwnProfile(ctx, volId, *modProf)
+	if err != nil {
+		return nil, err
+	}
+
+	return toGenVolunteerMutationResult(result), nil
 }
 
 // AssignSelfToShift is the resolver for the assignSelfToShift field.
 func (r *mutationResolver) AssignSelfToShift(ctx context.Context, shiftID string) (*generated.MutationResult, error) {
-	panic(fmt.Errorf("not implemented: AssignSelfToShift - assignSelfToShift"))
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	result, err := r.ShiftService.AssignSelfToShift(ctx, shiftID, volId)
+	if err != nil {
+		return nil, err
+	}
+
+	return toGenMutationResult(result), nil
 }
 
 // CancelOwnShift is the resolver for the cancelOwnShift field.
 func (r *mutationResolver) CancelOwnShift(ctx context.Context, shiftID string) (*generated.MutationResult, error) {
-	panic(fmt.Errorf("not implemented: CancelOwnShift - cancelOwnShift"))
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	result, err := r.ShiftService.CancelOwnShift(ctx, shiftID, volId)
+	if err != nil {
+		return nil, err
+	}
+
+	return toGenMutationResult(result), nil
 }
 
 // VolunteerProfile is the resolver for the volunteerProfile field.
 func (r *queryResolver) VolunteerProfile(ctx context.Context) (*generated.VolunteerProfile, error) {
-	profile, err := r.VolunteerService.FetchOwnProfile(ctx)
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	profile, err := r.VolunteerService.FetchOwnProfile(ctx, volId)
 	if err != nil {
 		return nil, err
 	}

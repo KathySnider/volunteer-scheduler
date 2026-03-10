@@ -100,10 +100,14 @@ type ComplexityRoot struct {
 		ZipCode  func(childComplexity int) int
 	}
 
+	VolunteerMutationResult struct {
+		Message func(childComplexity int) int
+		Success func(childComplexity int) int
+	}
+
 	VolunteerProfile struct {
 		Email     func(childComplexity int) int
 		FirstName func(childComplexity int) int
-		ID        func(childComplexity int) int
 		LastName  func(childComplexity int) int
 		Phone     func(childComplexity int) int
 		ZipCode   func(childComplexity int) int
@@ -111,7 +115,7 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	UpdateOwnProfile(ctx context.Context, profile UpdateOwnProfileInput) (*MutationResult, error)
+	UpdateOwnProfile(ctx context.Context, profile UpdateOwnProfileInput) (*VolunteerMutationResult, error)
 	AssignSelfToShift(ctx context.Context, shiftID string) (*MutationResult, error)
 	CancelOwnShift(ctx context.Context, shiftID string) (*MutationResult, error)
 }
@@ -376,6 +380,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Venue.ZipCode(childComplexity), true
 
+	case "VolunteerMutationResult.message":
+		if e.complexity.VolunteerMutationResult.Message == nil {
+			break
+		}
+
+		return e.complexity.VolunteerMutationResult.Message(childComplexity), true
+	case "VolunteerMutationResult.success":
+		if e.complexity.VolunteerMutationResult.Success == nil {
+			break
+		}
+
+		return e.complexity.VolunteerMutationResult.Success(childComplexity), true
+
 	case "VolunteerProfile.email":
 		if e.complexity.VolunteerProfile.Email == nil {
 			break
@@ -388,12 +405,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.VolunteerProfile.FirstName(childComplexity), true
-	case "VolunteerProfile.id":
-		if e.complexity.VolunteerProfile.ID == nil {
-			break
-		}
-
-		return e.complexity.VolunteerProfile.ID(childComplexity), true
 	case "VolunteerProfile.lastName":
 		if e.complexity.VolunteerProfile.LastName == nil {
 			break
@@ -553,7 +564,6 @@ enum Job {
 
 #-- Input --
 
-
 ## The EventFilter reflects all of the fields on which 
 ## a user can filter the results. If you want to add
 ## more ways to filter, this is the place.
@@ -566,13 +576,9 @@ input EventFilterInput {
   ianaZone: String
 }
 
-# TODO: make sure to get rid of ID from VolunteerProfile
-# once we have tokens!
-
 #-- Output --
 
 type VolunteerProfile {
-  id: ID!
   firstName: String!
   lastName: String!
   email: String!
@@ -624,11 +630,11 @@ type MutationResult {
 type Query {
   volunteerProfile: VolunteerProfile!
   filteredEvents(filter: EventFilterInput): [Event!]! 
-  shiftsForEvent(eventId: ID!): [ShiftView!]!             
+  shiftsForEvent(eventId: ID!): [ShiftView!]!     
 }
 
 type Mutation {
-  updateOwnProfile(profile: UpdateOwnProfileInput!): MutationResult!    
+  updateOwnProfile(profile: UpdateOwnProfileInput!): VolunteerMutationResult!    
   assignSelfToShift(shiftId: ID!): MutationResult!  
   cancelOwnShift(shiftId: ID!): MutationResult!
 }
@@ -652,6 +658,10 @@ input UpdateOwnProfileInput {
   zipCode: String
 }
 
+type VolunteerMutationResult {
+  success: Boolean!
+  message: String
+}
 `, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
@@ -1103,7 +1113,7 @@ func (ec *executionContext) _Mutation_updateOwnProfile(ctx context.Context, fiel
 			return ec.resolvers.Mutation().UpdateOwnProfile(ctx, fc.Args["profile"].(UpdateOwnProfileInput))
 		},
 		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐMutationResult,
+		ec.marshalNVolunteerMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerMutationResult,
 		true,
 		true,
 	)
@@ -1118,13 +1128,11 @@ func (ec *executionContext) fieldContext_Mutation_updateOwnProfile(ctx context.C
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
+				return ec.fieldContext_VolunteerMutationResult_success(ctx, field)
 			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
+				return ec.fieldContext_VolunteerMutationResult_message(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type VolunteerMutationResult", field.Name)
 		},
 	}
 	defer func() {
@@ -1350,8 +1358,6 @@ func (ec *executionContext) fieldContext_Query_volunteerProfile(_ context.Contex
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_VolunteerProfile_id(ctx, field)
 			case "firstName":
 				return ec.fieldContext_VolunteerProfile_firstName(ctx, field)
 			case "lastName":
@@ -2028,30 +2034,59 @@ func (ec *executionContext) fieldContext_Venue_timezone(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _VolunteerProfile_id(ctx context.Context, field graphql.CollectedField, obj *VolunteerProfile) (ret graphql.Marshaler) {
+func (ec *executionContext) _VolunteerMutationResult_success(ctx context.Context, field graphql.CollectedField, obj *VolunteerMutationResult) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_VolunteerProfile_id,
+		ec.fieldContext_VolunteerMutationResult_success,
 		func(ctx context.Context) (any, error) {
-			return obj.ID, nil
+			return obj.Success, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNBoolean2bool,
 		true,
 		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_VolunteerProfile_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_VolunteerMutationResult_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "VolunteerProfile",
+		Object:     "VolunteerMutationResult",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerMutationResult_message(ctx context.Context, field graphql.CollectedField, obj *VolunteerMutationResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerMutationResult_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerMutationResult_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerMutationResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -4235,6 +4270,47 @@ func (ec *executionContext) _Venue(ctx context.Context, sel ast.SelectionSet, ob
 	return out
 }
 
+var volunteerMutationResultImplementors = []string{"VolunteerMutationResult"}
+
+func (ec *executionContext) _VolunteerMutationResult(ctx context.Context, sel ast.SelectionSet, obj *VolunteerMutationResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, volunteerMutationResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("VolunteerMutationResult")
+		case "success":
+			out.Values[i] = ec._VolunteerMutationResult_success(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "message":
+			out.Values[i] = ec._VolunteerMutationResult_message(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var volunteerProfileImplementors = []string{"VolunteerProfile"}
 
 func (ec *executionContext) _VolunteerProfile(ctx context.Context, sel ast.SelectionSet, obj *VolunteerProfile) graphql.Marshaler {
@@ -4246,11 +4322,6 @@ func (ec *executionContext) _VolunteerProfile(ctx context.Context, sel ast.Selec
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("VolunteerProfile")
-		case "id":
-			out.Values[i] = ec._VolunteerProfile_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "firstName":
 			out.Values[i] = ec._VolunteerProfile_firstName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -4901,6 +4972,20 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 func (ec *executionContext) unmarshalNUpdateOwnProfileInput2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐUpdateOwnProfileInput(ctx context.Context, v any) (UpdateOwnProfileInput, error) {
 	res, err := ec.unmarshalInputUpdateOwnProfileInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNVolunteerMutationResult2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerMutationResult(ctx context.Context, sel ast.SelectionSet, v VolunteerMutationResult) graphql.Marshaler {
+	return ec._VolunteerMutationResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNVolunteerMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerMutationResult(ctx context.Context, sel ast.SelectionSet, v *VolunteerMutationResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._VolunteerMutationResult(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNVolunteerProfile2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerProfile(ctx context.Context, sel ast.SelectionSet, v VolunteerProfile) graphql.Marshaler {

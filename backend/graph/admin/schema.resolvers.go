@@ -7,7 +7,9 @@ package admin
 
 import (
 	"context"
+	"fmt"
 	"volunteer-scheduler/graph/admin/generated"
+	"volunteer-scheduler/middleware"
 )
 
 // CreateVolunteer is the resolver for the createVolunteer field.
@@ -192,7 +194,12 @@ func (r *mutationResolver) DeleteEventDate(ctx context.Context, eventDateID stri
 
 // VolunteerProfile is the resolver for the volunteerProfile field.
 func (r *queryResolver) VolunteerProfile(ctx context.Context) (*generated.VolunteerProfile, error) {
-	profile, err := r.VolunteerService.FetchOwnProfile(ctx)
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	profile, err := r.VolunteerService.FetchOwnProfile(ctx, volId)
 	if err != nil {
 		return nil, err
 	}
@@ -227,12 +234,12 @@ func (r *queryResolver) AllVolunteers(ctx context.Context, filter *generated.Vol
 }
 
 // VolunteerByID is the resolver for the volunteerById field.
-func (r *queryResolver) VolunteerByID(ctx context.Context, volunteerID string) (*generated.Volunteer, error) {
-	vol, err := r.VolunteerService.FetchVolunteerById(ctx, volunteerID)
+func (r *queryResolver) VolunteerByID(ctx context.Context, volunteerID string) (*generated.VolunteerProfile, error) {
+	vol, err := r.VolunteerService.FetchVolunteerProfileById(ctx, volunteerID)
 	if err != nil {
 		return nil, err
 	}
-	return toGenVolunteer(vol), nil
+	return toGenVolunteerProfile(vol), nil
 }
 
 // OpportunitiesForEvent is the resolver for the opportunitiesForEvent field.

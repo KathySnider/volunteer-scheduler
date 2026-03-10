@@ -409,6 +409,10 @@ func (s *ShiftService) UpdateShift(ctx context.Context, shift models.UpdateShift
 	}, nil
 }
 
+func (s *ShiftService) AssignSelfToShift(ctx context.Context, shiftId string, volId int) (*models.MutationResult, error) {
+	return assignVolToShift(ctx, s.DB, shiftId, volId)
+}
+
 func (s *ShiftService) AssignVolunteerToShift(ctx context.Context, shiftId string, volunteerId string) (*models.MutationResult, error) {
 
 	volInt, err := strconv.Atoi(volunteerId)
@@ -420,34 +424,7 @@ func (s *ShiftService) AssignVolunteerToShift(ctx context.Context, shiftId strin
 		}, err
 	}
 
-	shiftInt, err := strconv.Atoi(shiftId)
-	if err != nil {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("Invalid shiftId."),
-			ID:      &shiftId,
-		}, err
-	}
-
-	insert := `
-		INSERT INTO volunteer_shifts (volunteer_id, shift_id, assigned_at)
-		VALUES ($1, $2, NOW())
-		ON CONFLICT (volunteer_id, shift_id) DO NOTHING
-	`
-	_, err = s.DB.ExecContext(ctx, insert, volInt, shiftInt)
-	if err != nil {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("Failed to assign volunteer to shift."),
-			ID:      nil,
-		}, err
-	}
-
-	return &models.MutationResult{
-		Success: true,
-		Message: ptrString("Volunteer successfully assigned."),
-		ID:      &shiftId,
-	}, nil
+	return assignVolToShift(ctx, s.DB, shiftId, volInt)
 }
 
 // Mutations: Deletions and cancellation of assignments.
@@ -499,9 +476,14 @@ func (s *ShiftService) DeleteShift(ctx context.Context, shiftId string) (*models
 // NOTE: in addition to taking the assignment out of the DB,
 // the code should send an email to the volunteer lead? or
 // to the volunteer coordinators? to someone?
-func (s *ShiftService) CancelShiftAssignment(ctx context.Context, shiftId string, volunteerId string) (*models.MutationResult, error) {
 
-	volInt, err := strconv.Atoi(volunteerId)
+func (s *ShiftService) CancelOwnShift(ctx context.Context, shiftId string, volId int) (*models.MutationResult, error) {
+	return cancelShiftAssignment(ctx, s.DB, shiftId, volId)
+}
+
+func (s *ShiftService) CancelShiftAssignment(ctx context.Context, shiftId string, volId string) (*models.MutationResult, error) {
+
+	volInt, err := strconv.Atoi(volId)
 	if err != nil {
 		return &models.MutationResult{
 			Success: false,
@@ -510,35 +492,5 @@ func (s *ShiftService) CancelShiftAssignment(ctx context.Context, shiftId string
 		}, err
 	}
 
-	shiftInt, err := strconv.Atoi(shiftId)
-	if err != nil {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("ShiftId is not valid."),
-			ID:      nil,
-		}, err
-	}
-
-	delete := `
-		DELETE FROM volunteer_shifts
-		WHERE volunteer_id = $1 AND shift_id = $2
-	`
-	_, err = s.DB.ExecContext(ctx, delete, volInt, shiftInt)
-
-	if err != nil {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("Failed to delete shift assignment."),
-			ID:      nil,
-		}, err
-	}
-
-	// No errors.
-
-	return &models.MutationResult{
-		Success: true,
-		Message: ptrString("Successfully deleted shift assignment."),
-		ID:      nil,
-	}, nil
-
+	return cancelShiftAssignment(ctx, s.DB, shiftId, volInt)
 }
