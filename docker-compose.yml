@@ -1,7 +1,6 @@
 # ============================================
 # docker-compose.yml
 # Full Stack Volunteer Scheduler
-# Place this in the project root directory
 # ============================================
 
 services:
@@ -12,7 +11,7 @@ services:
     environment:
       POSTGRES_DB: volunteer-scheduler
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password    
     secrets:
       - postgres_password
     ports:
@@ -36,6 +35,14 @@ services:
       DATABASE_PASSWORD_FILE: /run/secrets/secret_db_pw
       DATABASE_URL_FILE: /run/secrets/secret_db_url
       PORT: 8080
+      MIGRATIONS_PATH: file:///app/migrations
+      DB_NAME: volunteer-scheduler
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@volunteer-scheduler.local}
+      USE_RESEND: ${USE_RESEND:-false}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_SERVER_HOST: ${EMAIL_SERVER_HOST:-mailhog}
+      EMAIL_SERVER_PORT: ${EMAIL_SERVER_PORT:-1025}
     secrets:
       - secret_db_pw
       - secret_db_url
@@ -44,6 +51,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mailhog:
+        condition: service_started
     networks:
       - volunteer-network
     restart: unless-stopped
@@ -58,7 +67,7 @@ services:
     build: ./frontend
     container_name: volunteer-frontend
     environment:
-      PUBLIC_API_URL: http://localhost:8080/query
+      NEXT_PUBLIC_API_URL: http://localhost:8080/graphql/admin
     ports:
       - "3000:3000"
     depends_on:
@@ -66,7 +75,16 @@ services:
     networks:
       - volunteer-network
     restart: unless-stopped
-
+# Mailhog for local email testing
+  mailhog:
+    image: mailhog/mailhog
+    container_name: volunteer-mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - volunteer-network
+    restart: unless-stopped
 networks:
   volunteer-network:
     driver: bridge
