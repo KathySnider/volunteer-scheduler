@@ -82,8 +82,8 @@ func main() {
 		log.Fatal("Failed to initialize mailer:", err)
 	}
 	magicLinkService := services.NewMagicLinkService(db, mailer)
-	volunteerService := services.NewVolunteerService(db)
-	shiftService := services.NewShiftService(db)
+	volunteerService := services.NewVolunteerService(db, mailer)
+	shiftService := services.NewShiftService(db, mailer)
 	venueService := services.NewVenueService(db)
 
 	eventService, err := services.NewEventService(db, shiftService)
@@ -138,7 +138,7 @@ func main() {
 	http.Handle("/volunteer", playground.Handler("Volunteer GraphQL", "/graphql/volunteer"))
 	http.Handle("/graphql/auth", c.Handler(authSrv))
 	http.Handle("/graphql/volunteer", c.Handler(middleware.RequireAuth(magicLinkService, volunteerSrv)))
-	http.Handle("/graphql/admin", c.Handler(middleware.RequireAuth(magicLinkService, adminSrv)))
+	http.Handle("/graphql/admin", c.Handler(middleware.RequireAdmin(magicLinkService, adminSrv)))
 
 	log.Println("Server running on :8080")
 	log.Println("Auth endpoint: /graphql/auth")

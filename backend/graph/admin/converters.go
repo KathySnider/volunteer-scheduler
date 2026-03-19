@@ -43,12 +43,14 @@ func toGenVolunteerProfile(m *models.VolunteerProfile) *generated.VolunteerProfi
 	if m == nil {
 		return nil
 	}
+
 	return &generated.VolunteerProfile{
 		FirstName: m.FirstName,
 		LastName:  m.LastName,
 		Email:     m.Email,
 		Phone:     m.Phone,
 		ZipCode:   m.ZipCode,
+		Role:      generated.Role(m.Role),
 	}
 }
 
@@ -160,6 +162,7 @@ func toGenVolunteer(m *models.Volunteer) *generated.Volunteer {
 		Email:     m.Email,
 		Phone:     m.Phone,
 		ZipCode:   m.ZipCode,
+		Role:      generated.Role(m.Role),
 	}
 }
 
@@ -233,6 +236,7 @@ func toModelNewVolunteerInput(g generated.NewVolunteerInput) models.NewVolunteer
 		Email:     g.Email,
 		Phone:     g.Phone,
 		ZipCode:   g.ZipCode,
+		Role:      models.Role(g.Role),
 	}
 }
 

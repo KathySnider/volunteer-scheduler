@@ -11,6 +11,7 @@ type VolunteerProfile struct {
 	Email     string
 	Phone     *string
 	ZipCode   *string
+	Role      Role
 }
 
 // Admins can see/use ID.
@@ -21,6 +22,7 @@ type Volunteer struct {
 	Email     string
 	Phone     *string
 	ZipCode   *string
+	Role      Role
 }
 
 // Venues
@@ -111,6 +113,7 @@ type NewVolunteerInput struct {
 	Email     string
 	Phone     *string
 	ZipCode   *string
+	Role      Role
 }
 
 type NewVenueInput struct {
@@ -186,6 +189,7 @@ type UpdateVolunteerInput struct {
 	Email     string
 	Phone     *string
 	ZipCode   *string
+	Role      Role
 }
 
 type UpdateVenueInput struct {
@@ -232,6 +236,13 @@ type UpdateShiftInput struct {
 }
 
 // Enums
+type Role string
+
+const (
+	RoleVolunteer     Role = "VOLUNTEER"
+	RoleAdministrator Role = "ADMINISTRATOR"
+)
+
 type EventType string
 
 const (

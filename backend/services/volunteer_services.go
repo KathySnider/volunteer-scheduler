@@ -10,11 +10,16 @@ import (
 )
 
 type VolunteerService struct {
-	DB *sql.DB
+	DB        *sql.DB
+	mailer    *Mailer
+	roleCache map[string]int
 }
 
-func NewVolunteerService(db *sql.DB) *VolunteerService {
-	return &VolunteerService{DB: db}
+func NewVolunteerService(db *sql.DB, mailer *Mailer) *VolunteerService {
+	return &VolunteerService{
+		DB:     db,
+		mailer: mailer,
+	}
 }
 
 // Queries.
@@ -33,7 +38,8 @@ func (s *VolunteerService) FetchAllVolunteers(ctx context.Context, filter *model
 			last_name, 
 			email, 
 			phone, 
-			zip_code
+			zip_code,
+			role
 		FROM volunteers 
 	`
 	rows, err := s.DB.QueryContext(ctx, query)
@@ -54,7 +60,8 @@ func (s *VolunteerService) FetchAllVolunteers(ctx context.Context, filter *model
 			&v.LastName,
 			&v.Email,
 			&phone,
-			&zip)
+			&zip,
+			&v.Role)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning volunteer: %w", err)
 		}
@@ -125,13 +132,14 @@ func (s *VolunteerService) CreateVolunteer(ctx context.Context, newVol models.Ne
 			email, 
 			phone, 
 			zip_code,
+			role,
 			created_at)
-		VALUES ($1, $2, $3, $4, $5, NOW())
+		VALUES ($1, $2, $3, $4, $5, $6, NOW())
 		RETURNING volunteer_id
 	`
 
 	var volInt int
-	err := s.DB.QueryRowContext(ctx, query, newVol.FirstName, newVol.LastName, newVol.Email, newVol.Phone, newVol.ZipCode).Scan(&volInt)
+	err := s.DB.QueryRowContext(ctx, query, newVol.FirstName, newVol.LastName, newVol.Email, newVol.Phone, newVol.ZipCode, newVol.Role).Scan(&volInt)
 	if err != nil {
 		return &models.MutationResult{
 			Success: false,
@@ -151,7 +159,8 @@ func (s *VolunteerService) CreateVolunteer(ctx context.Context, newVol models.Ne
 // UpdateVolunteerProfile
 // Volunteers whose identities have been created by an admin
 // may update their own profiles as their lives change. Admins
-// can also update their profiles for them.
+// can also update their profiles for them. Note that only
+// admins can change a volunteer's role (via this function).
 func (s *VolunteerService) UpdateVolunteerProfile(ctx context.Context, profile models.UpdateVolunteerInput) (*models.MutationResult, error) {
 
 	volInt, err := strconv.Atoi(profile.ID)
@@ -170,10 +179,11 @@ func (s *VolunteerService) UpdateVolunteerProfile(ctx context.Context, profile m
 			last_name = $2, 
 			email = $3,
 			phone = $4,
-			zip_code = $5
-		WHERE volunteer_id = $6
+			zip_code = $5,
+			role = $6,
+		WHERE volunteer_id = $7
 	`
-	_, err = s.DB.ExecContext(ctx, query, profile.FirstName, profile.LastName, profile.Email, profile.Phone, profile.ZipCode, volInt)
+	_, err = s.DB.ExecContext(ctx, query, profile.FirstName, profile.LastName, profile.Email, profile.Phone, profile.ZipCode, profile.Role, volInt)
 
 	if err != nil {
 		return &models.MutationResult{

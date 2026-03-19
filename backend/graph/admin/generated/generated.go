@@ -132,6 +132,7 @@ type ComplexityRoot struct {
 		ID        func(childComplexity int) int
 		LastName  func(childComplexity int) int
 		Phone     func(childComplexity int) int
+		Role      func(childComplexity int) int
 		ZipCode   func(childComplexity int) int
 	}
 
@@ -140,6 +141,7 @@ type ComplexityRoot struct {
 		FirstName func(childComplexity int) int
 		LastName  func(childComplexity int) int
 		Phone     func(childComplexity int) int
+		Role      func(childComplexity int) int
 		ZipCode   func(childComplexity int) int
 	}
 }
@@ -694,6 +696,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Volunteer.Phone(childComplexity), true
+	case "Volunteer.role":
+		if e.complexity.Volunteer.Role == nil {
+			break
+		}
+
+		return e.complexity.Volunteer.Role(childComplexity), true
 	case "Volunteer.zipCode":
 		if e.complexity.Volunteer.ZipCode == nil {
 			break
@@ -725,6 +733,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.VolunteerProfile.Phone(childComplexity), true
+	case "VolunteerProfile.role":
+		if e.complexity.VolunteerProfile.Role == nil {
+			break
+		}
+
+		return e.complexity.VolunteerProfile.Role(childComplexity), true
 	case "VolunteerProfile.zipCode":
 		if e.complexity.VolunteerProfile.ZipCode == nil {
 			break
@@ -857,6 +871,11 @@ var sources = []*ast.Source{
 
 
 #-- ENUMS --
+enum Role {
+  VOLUNTEER
+  ADMINISTRATOR
+}
+
 enum EventType {
   VIRTUAL
   IN_PERSON
@@ -906,6 +925,7 @@ type VolunteerProfile {
   email: String!
   phone: String
   zipCode: String
+  role: Role!
 }
 
 type Venue {
@@ -1000,6 +1020,7 @@ type Volunteer {
   email: String!
   phone: String
   zipCode: String
+  role: Role!
 }
 
 type Opportunity {
@@ -1027,6 +1048,7 @@ input NewVolunteerInput {
   email: String!
   phone: String
   zipCode: String
+  role: Role!
 }
 
 input UpdateVolunteerInput {
@@ -1036,6 +1058,7 @@ input UpdateVolunteerInput {
   email: String!
   phone: String
   zipCode: String
+  role: Role!
 }
 
 input NewVenueInput {
@@ -3094,6 +3117,8 @@ func (ec *executionContext) fieldContext_Query_volunteerProfile(_ context.Contex
 				return ec.fieldContext_VolunteerProfile_phone(ctx, field)
 			case "zipCode":
 				return ec.fieldContext_VolunteerProfile_zipCode(ctx, field)
+			case "role":
+				return ec.fieldContext_VolunteerProfile_role(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type VolunteerProfile", field.Name)
 		},
@@ -3240,6 +3265,8 @@ func (ec *executionContext) fieldContext_Query_allVolunteers(ctx context.Context
 				return ec.fieldContext_Volunteer_phone(ctx, field)
 			case "zipCode":
 				return ec.fieldContext_Volunteer_zipCode(ctx, field)
+			case "role":
+				return ec.fieldContext_Volunteer_role(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Volunteer", field.Name)
 		},
@@ -3293,6 +3320,8 @@ func (ec *executionContext) fieldContext_Query_volunteerById(ctx context.Context
 				return ec.fieldContext_VolunteerProfile_phone(ctx, field)
 			case "zipCode":
 				return ec.fieldContext_VolunteerProfile_zipCode(ctx, field)
+			case "role":
+				return ec.fieldContext_VolunteerProfile_role(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type VolunteerProfile", field.Name)
 		},
@@ -3996,6 +4025,35 @@ func (ec *executionContext) fieldContext_Volunteer_zipCode(_ context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _Volunteer_role(ctx context.Context, field graphql.CollectedField, obj *Volunteer) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Volunteer_role,
+		func(ctx context.Context) (any, error) {
+			return obj.Role, nil
+		},
+		nil,
+		ec.marshalNRole2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRole,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Volunteer_role(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Volunteer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Role does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _VolunteerProfile_firstName(ctx context.Context, field graphql.CollectedField, obj *VolunteerProfile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -4136,6 +4194,35 @@ func (ec *executionContext) fieldContext_VolunteerProfile_zipCode(_ context.Cont
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerProfile_role(ctx context.Context, field graphql.CollectedField, obj *VolunteerProfile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerProfile_role,
+		func(ctx context.Context) (any, error) {
+			return obj.Role, nil
+		},
+		nil,
+		ec.marshalNRole2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRole,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerProfile_role(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerProfile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Role does not have child fields")
 		},
 	}
 	return fc, nil
@@ -6048,7 +6135,7 @@ func (ec *executionContext) unmarshalInputNewVolunteerInput(ctx context.Context,
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"firstName", "lastName", "email", "phone", "zipCode"}
+	fieldsInOrder := [...]string{"firstName", "lastName", "email", "phone", "zipCode", "role"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -6090,6 +6177,13 @@ func (ec *executionContext) unmarshalInputNewVolunteerInput(ctx context.Context,
 				return it, err
 			}
 			it.ZipCode = data
+		case "role":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("role"))
+			data, err := ec.unmarshalNRole2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRole(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Role = data
 		}
 	}
 
@@ -6399,7 +6493,7 @@ func (ec *executionContext) unmarshalInputUpdateVolunteerInput(ctx context.Conte
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "firstName", "lastName", "email", "phone", "zipCode"}
+	fieldsInOrder := [...]string{"id", "firstName", "lastName", "email", "phone", "zipCode", "role"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -6448,6 +6542,13 @@ func (ec *executionContext) unmarshalInputUpdateVolunteerInput(ctx context.Conte
 				return it, err
 			}
 			it.ZipCode = data
+		case "role":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("role"))
+			data, err := ec.unmarshalNRole2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRole(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Role = data
 		}
 	}
 
@@ -7225,6 +7326,11 @@ func (ec *executionContext) _Volunteer(ctx context.Context, sel ast.SelectionSet
 			out.Values[i] = ec._Volunteer_phone(ctx, field, obj)
 		case "zipCode":
 			out.Values[i] = ec._Volunteer_zipCode(ctx, field, obj)
+		case "role":
+			out.Values[i] = ec._Volunteer_role(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7278,6 +7384,11 @@ func (ec *executionContext) _VolunteerProfile(ctx context.Context, sel ast.Selec
 			out.Values[i] = ec._VolunteerProfile_phone(ctx, field, obj)
 		case "zipCode":
 			out.Values[i] = ec._VolunteerProfile_zipCode(ctx, field, obj)
+		case "role":
+			out.Values[i] = ec._VolunteerProfile_role(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7932,6 +8043,16 @@ func (ec *executionContext) marshalNOpportunity2ᚖvolunteerᚑschedulerᚋgraph
 		return graphql.Null
 	}
 	return ec._Opportunity(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNRole2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRole(ctx context.Context, v any) (Role, error) {
+	var res Role
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNRole2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRole(ctx context.Context, sel ast.SelectionSet, v Role) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNServiceType2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐServiceType(ctx context.Context, v any) (ServiceType, error) {

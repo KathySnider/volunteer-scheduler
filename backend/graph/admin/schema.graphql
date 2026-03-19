@@ -55,6 +55,7 @@ type Volunteer {
   email: String!
   phone: String
   zipCode: String
+  role: Role!
 }
 
 type Opportunity {
@@ -82,6 +83,7 @@ input NewVolunteerInput {
   email: String!
   phone: String
   zipCode: String
+  role: Role!
 }
 
 input UpdateVolunteerInput {
@@ -91,6 +93,7 @@ input UpdateVolunteerInput {
   email: String!
   phone: String
   zipCode: String
+  role: Role!
 }
 
 input NewVenueInput {

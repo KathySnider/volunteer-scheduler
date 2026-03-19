@@ -43,12 +43,14 @@ func toGenVolunteerProfile(m *models.VolunteerProfile) *generated.VolunteerProfi
 	if m == nil {
 		return nil
 	}
+
 	return &generated.VolunteerProfile{
 		FirstName: m.FirstName,
 		LastName:  m.LastName,
 		Email:     m.Email,
 		Phone:     m.Phone,
 		ZipCode:   m.ZipCode,
+		Role:      generated.Role(m.Role),
 	}
 }
 
