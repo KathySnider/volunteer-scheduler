@@ -10,9 +10,8 @@ import (
 )
 
 type VolunteerService struct {
-	DB        *sql.DB
-	mailer    *Mailer
-	roleCache map[string]int
+	DB     *sql.DB
+	mailer *Mailer
 }
 
 func NewVolunteerService(db *sql.DB, mailer *Mailer) *VolunteerService {
@@ -40,7 +39,8 @@ func (s *VolunteerService) FetchAllVolunteers(ctx context.Context, filter *model
 			phone, 
 			zip_code,
 			role
-		FROM volunteers 
+		FROM volunteers
+		WHERE is_active = TRUE
 	`
 	rows, err := s.DB.QueryContext(ctx, query)
 	if err != nil {
@@ -180,7 +180,7 @@ func (s *VolunteerService) UpdateVolunteerProfile(ctx context.Context, profile m
 			email = $3,
 			phone = $4,
 			zip_code = $5,
-			role = $6,
+			role = $6
 		WHERE volunteer_id = $7
 	`
 	_, err = s.DB.ExecContext(ctx, query, profile.FirstName, profile.LastName, profile.Email, profile.Phone, profile.ZipCode, profile.Role, volInt)
@@ -200,9 +200,9 @@ func (s *VolunteerService) UpdateVolunteerProfile(ctx context.Context, profile m
 	}, nil
 }
 
-// TODO: determine if we should delete volunteers or just mark them
-// as inactive or something. Maybe want them for history of events?
-// Meanwhile....
+// This is a "soft deletion". The volunteer will not be deleted from the DB,
+// since their history is tied to events. So we will rather mark the volunteer
+// as inactive (i.e., is_active = FALSE).
 func (s *VolunteerService) DeleteVolunteer(ctx context.Context, volId string) (*models.MutationResult, error) {
 
 	volInt, err := strconv.Atoi(volId)
@@ -214,19 +214,19 @@ func (s *VolunteerService) DeleteVolunteer(ctx context.Context, volId string) (*
 		}, err
 	}
 
-	_, err = s.DB.ExecContext(ctx, "DELETE FROM volunteers WHERE volunteer_id = $1", volInt)
+	_, err = s.DB.ExecContext(ctx, "UPDATE volunteers SET is_active = FALSE WHERE volunteer_id = $1", volInt)
 
 	if err != nil {
 		return &models.MutationResult{
 			Success: false,
-			Message: ptrString("Failed to delete volunteer."),
+			Message: ptrString("Failed to deactivate volunteer."),
 			ID:      &volId,
 		}, err
 	}
 
 	return &models.MutationResult{
 		Success: true,
-		Message: ptrString("Volunteer successfully deleted."),
+		Message: ptrString("Volunteer successfully deactivated."),
 		ID:      &volId,
 	}, nil
 }

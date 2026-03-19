@@ -54,6 +54,36 @@ func toGenVolunteerProfile(m *models.VolunteerProfile) *generated.VolunteerProfi
 	}
 }
 
+func toGenVolunteerShifts(ms []*models.VolunteerShift) []*generated.VolunteerShift {
+	result := make([]*generated.VolunteerShift, len(ms))
+	for i, m := range ms {
+		result[i] = toGenVolunteerShift(m)
+	}
+	return result
+}
+
+func toGenVolunteerShift(m *models.VolunteerShift) *generated.VolunteerShift {
+	if m == nil {
+		return nil
+	}
+	return &generated.VolunteerShift{
+		ShiftID:              m.ShiftId,
+		AssignedAt:           m.AssignedAt,
+		CancelledAt:          m.CancelledAt,
+		StartDateTime:        m.StartDateTime,
+		EndDateTime:          m.EndDateTime,
+		MaxVolunteers:        m.MaxVolunteers,
+		Job:                  generated.Job(m.Job),
+		OtherJobDescription:  m.OtherJobDescription,
+		IsVirtual:            m.IsVirtual,
+		PreEventInstructions: m.PreEventInstructions,
+		EventID:              m.EventId,
+		EventName:            m.EventName,
+		EventDescription:     m.EventDescription,
+		Venue:                toGenVenue(m.Venue),
+	}
+}
+
 func toGenEvents(ms []*models.Event) []*generated.Event {
 	result := make([]*generated.Event, len(ms))
 	for i, m := range ms {
@@ -101,6 +131,10 @@ func toGenEventDate(m *models.EventDate) *generated.EventDate {
 }
 
 // Convert generated types to models
+
+func toModelShiftTimeFilter(g generated.ShiftTimeFilter) models.ShiftsTimeFilter {
+	return models.ShiftsTimeFilter(g)
+}
 
 func toModelEventFilterInput(g *generated.EventFilterInput) *models.EventFilterInput {
 	if g == nil {

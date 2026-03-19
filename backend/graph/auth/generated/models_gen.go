@@ -20,3 +20,8 @@ type Mutation struct {
 
 type Query struct {
 }
+
+type RequestResult struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+}

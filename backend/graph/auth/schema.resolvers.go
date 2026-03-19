@@ -41,6 +41,7 @@ func (r *mutationResolver) RequestMagicLink(ctx context.Context, email string) (
 	}, nil
 }
 
+// ConsumeMagicLink is the resolver for the consumeMagicLink field.
 func (r *mutationResolver) ConsumeMagicLink(ctx context.Context, token string) (*generated.AuthResult, error) {
 	email, err := r.MagicLinkService.ConsumeMagicLink(ctx, token)
 	if err != nil {
@@ -66,6 +67,22 @@ func (r *mutationResolver) ConsumeMagicLink(ctx context.Context, token string) (
 		Message:      "Successfully authenticated.",
 		Email:        &email,
 		SessionToken: &sessionToken,
+	}, nil
+}
+
+// RequestAccount is the resolver for the requestAccount field.
+// No DB record is created — the request is emailed to all admins for review.
+func (r *mutationResolver) RequestAccount(ctx context.Context, email string, firstName string, lastName string) (*generated.RequestResult, error) {
+	if err := r.MagicLinkService.RequestAccount(ctx, email, firstName, lastName); err != nil {
+		return &generated.RequestResult{
+			Success: false,
+			Message: "Failed to submit account request. Please try again later.",
+		}, nil
+	}
+
+	return &generated.RequestResult{
+		Success: true,
+		Message: "Your request has been submitted. An administrator will be in touch soon.",
 	}, nil
 }
 

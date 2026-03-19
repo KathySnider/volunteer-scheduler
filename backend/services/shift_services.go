@@ -217,6 +217,21 @@ func (s *ShiftService) FetchShiftViewsForEvent(ctx context.Context, eventId stri
 	return shifts, nil
 }
 
+// These 2 functions get *all* of the information for each shift for a volunteer.
+// Only qualification is that it might include only upcoming shifts (>= NOW()),
+// only past shifts (< NOW()) or all shifts ever.
+func (s *ShiftService) FetchOwnShifts(ctx context.Context, volId int, filter models.ShiftsTimeFilter) ([]*models.VolunteerShift, error) {
+	return fetchVolunteerShifts(ctx, s.DB, volId, filter)
+}
+
+func (s *ShiftService) FetchVolunteerShifts(ctx context.Context, volId string, filter models.ShiftsTimeFilter) ([]*models.VolunteerShift, error) {
+	volInt, err := strconv.Atoi(volId)
+	if err != nil {
+		return nil, fmt.Errorf("volunteer id is not valid: %w", err)
+	}
+	return fetchVolunteerShifts(ctx, s.DB, volInt, filter)
+}
+
 // Mutations: Create opportunities and shifts.
 
 func (s *ShiftService) CreateOpportunity(ctx context.Context, opp models.NewOpportunityInput) (*models.MutationResult, error) {

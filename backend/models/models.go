@@ -14,6 +14,23 @@ type VolunteerProfile struct {
 	Role      Role
 }
 
+type VolunteerShift struct {
+	ShiftId              string
+	AssignedAt           string
+	CancelledAt          *string
+	StartDateTime        string
+	EndDateTime          string
+	MaxVolunteers        *int
+	Job                  Job
+	OtherJobDescription  *string
+	IsVirtual            bool
+	PreEventInstructions *string
+	EventId              string
+	EventName            string
+	EventDescription     *string
+	Venue                *Venue
+}
+
 // Admins can see/use ID.
 type Volunteer struct {
 	ID        string
@@ -270,6 +287,14 @@ const (
 	JobVolunteerLead Job = "VOLUNTEER_LEAD"
 	JobAttendeeOnly  Job = "ATTENDEE_ONLY"
 	JobOther         Job = "OTHER"
+)
+
+type ShiftsTimeFilter string
+
+const (
+	ShiftsFilterUpcoming ShiftsTimeFilter = "UPCOMING"
+	ShiftsFilterPast     ShiftsTimeFilter = "PAST"
+	ShiftsFilterAll      ShiftsTimeFilter = "ALL"
 )
 
 // Result types

@@ -217,6 +217,23 @@ type VolunteerProfile struct {
 	Role      Role    `json:"role"`
 }
 
+type VolunteerShift struct {
+	ShiftID              string  `json:"shiftId"`
+	AssignedAt           string  `json:"assignedAt"`
+	CancelledAt          *string `json:"cancelledAt,omitempty"`
+	StartDateTime        string  `json:"startDateTime"`
+	EndDateTime          string  `json:"endDateTime"`
+	MaxVolunteers        *int    `json:"maxVolunteers,omitempty"`
+	Job                  Job     `json:"job"`
+	OtherJobDescription  *string `json:"otherJobDescription,omitempty"`
+	IsVirtual            bool    `json:"isVirtual"`
+	PreEventInstructions *string `json:"preEventInstructions,omitempty"`
+	EventID              string  `json:"eventId"`
+	EventName            string  `json:"eventName"`
+	EventDescription     *string `json:"eventDescription,omitempty"`
+	Venue                *Venue  `json:"venue,omitempty"`
+}
+
 type EventType string
 
 const (
@@ -448,6 +465,63 @@ func (e *ServiceType) UnmarshalJSON(b []byte) error {
 }
 
 func (e ServiceType) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type ShiftTimeFilter string
+
+const (
+	ShiftTimeFilterUpcoming ShiftTimeFilter = "UPCOMING"
+	ShiftTimeFilterPast     ShiftTimeFilter = "PAST"
+	ShiftTimeFilterAll      ShiftTimeFilter = "ALL"
+)
+
+var AllShiftTimeFilter = []ShiftTimeFilter{
+	ShiftTimeFilterUpcoming,
+	ShiftTimeFilterPast,
+	ShiftTimeFilterAll,
+}
+
+func (e ShiftTimeFilter) IsValid() bool {
+	switch e {
+	case ShiftTimeFilterUpcoming, ShiftTimeFilterPast, ShiftTimeFilterAll:
+		return true
+	}
+	return false
+}
+
+func (e ShiftTimeFilter) String() string {
+	return string(e)
+}
+
+func (e *ShiftTimeFilter) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ShiftTimeFilter(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ShiftTimeFilter", str)
+	}
+	return nil
+}
+
+func (e ShiftTimeFilter) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *ShiftTimeFilter) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e ShiftTimeFilter) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

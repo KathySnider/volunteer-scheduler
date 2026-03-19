@@ -1,13 +1,12 @@
 ## This file contains queries and mutations available to
 ## those users logged in with "volunteer" privileges. 
 
-##TODO: remove volunteer id's from input EVERYWHERE. 
-## we'll get it from the token.
 
 type Query {
   volunteerProfile: VolunteerProfile!
   filteredEvents(filter: EventFilterInput): [Event!]! 
-  shiftsForEvent(eventId: ID!): [ShiftView!]!     
+  shiftsForEvent(eventId: ID!): [ShiftView!]!  
+  ownShifts(filter: ShiftTimeFilter!): [VolunteerShift!]! 
 }
 
 type Mutation {

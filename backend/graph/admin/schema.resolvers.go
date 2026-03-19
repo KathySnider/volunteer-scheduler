@@ -233,6 +233,15 @@ func (r *queryResolver) AllVolunteers(ctx context.Context, filter *generated.Vol
 	return toGenVolunteers(vols), nil
 }
 
+// VolunteerShifts is the resolver for the volunteerShifts field.
+func (r *queryResolver) VolunteerShifts(ctx context.Context, volunteerID string, filter generated.ShiftTimeFilter) ([]*generated.VolunteerShift, error) {
+	shifts, err := r.ShiftService.FetchVolunteerShifts(ctx, volunteerID, toModelShiftTimeFilter(filter))
+	if err != nil {
+		return nil, err
+	}
+	return toGenVolunteerShifts(shifts), nil
+}
+
 // VolunteerByID is the resolver for the volunteerById field.
 func (r *queryResolver) VolunteerByID(ctx context.Context, volunteerID string) (*generated.VolunteerProfile, error) {
 	vol, err := r.VolunteerService.FetchVolunteerProfileById(ctx, volunteerID)
