@@ -9,11 +9,15 @@ import (
 )
 
 type ShiftService struct {
-	DB *sql.DB
+	DB     *sql.DB
+	mailer *Mailer
 }
 
-func NewShiftService(db *sql.DB) *ShiftService {
-	return &ShiftService{DB: db}
+func NewShiftService(db *sql.DB, mailer *Mailer) *ShiftService {
+	return &ShiftService{
+		DB:     db,
+		mailer: mailer,
+	}
 }
 
 // Queries.
@@ -410,7 +414,7 @@ func (s *ShiftService) UpdateShift(ctx context.Context, shift models.UpdateShift
 }
 
 func (s *ShiftService) AssignSelfToShift(ctx context.Context, shiftId string, volId int) (*models.MutationResult, error) {
-	return assignVolToShift(ctx, s.DB, shiftId, volId)
+	return assignVolToShift(ctx, s.DB, s.mailer, shiftId, volId)
 }
 
 func (s *ShiftService) AssignVolunteerToShift(ctx context.Context, shiftId string, volunteerId string) (*models.MutationResult, error) {
@@ -424,7 +428,7 @@ func (s *ShiftService) AssignVolunteerToShift(ctx context.Context, shiftId strin
 		}, err
 	}
 
-	return assignVolToShift(ctx, s.DB, shiftId, volInt)
+	return assignVolToShift(ctx, s.DB, s.mailer, shiftId, volInt)
 }
 
 // Mutations: Deletions and cancellation of assignments.
@@ -471,14 +475,8 @@ func (s *ShiftService) DeleteShift(ctx context.Context, shiftId string) (*models
 	}, nil
 }
 
-// CancelShiftAssignment
-// Cancels a volunteer's shift assignment.
-// NOTE: in addition to taking the assignment out of the DB,
-// the code should send an email to the volunteer lead? or
-// to the volunteer coordinators? to someone?
-
 func (s *ShiftService) CancelOwnShift(ctx context.Context, shiftId string, volId int) (*models.MutationResult, error) {
-	return cancelShiftAssignment(ctx, s.DB, shiftId, volId)
+	return cancelShiftAssignment(ctx, s.DB, s.mailer, shiftId, volId)
 }
 
 func (s *ShiftService) CancelShiftAssignment(ctx context.Context, shiftId string, volId string) (*models.MutationResult, error) {
@@ -492,5 +490,5 @@ func (s *ShiftService) CancelShiftAssignment(ctx context.Context, shiftId string
 		}, err
 	}
 
-	return cancelShiftAssignment(ctx, s.DB, shiftId, volInt)
+	return cancelShiftAssignment(ctx, s.DB, s.mailer, shiftId, volInt)
 }

@@ -201,12 +201,12 @@ type SessionClaims struct {
 	Sub   string `json:"sub"` // subject (email)
 }
 
-// CreateSessionToken creates a signed JWT token for the authenticated user
-// For simplicity, we use a simple approach; production systems should use jwt library
+// CreateSessionToken creates a session token for the authenticated user,
+// storing both volunteer ID and role for fast context population on each request.
 func (s *MagicLinkService) CreateSessionToken(ctx context.Context, email string) (string, error) {
 
-	// Look up volunteer ID internally — never exposed to caller.
-	volunteerId, err := fetchVolunteerIdByEmail(ctx, s.DB, email)
+	// Look up volunteer ID and role — never exposed to caller.
+	volunteerId, role, err := fetchVolunteerIdAndRoleByEmail(ctx, s.DB, email)
 	if err != nil {
 		return "", err
 	}
@@ -227,37 +227,56 @@ func (s *MagicLinkService) CreateSessionToken(ctx context.Context, email string)
 	expiresAt := time.Now().Add(time.Duration(sessionMaxAge) * time.Second)
 
 	insertQuery := `
-        INSERT INTO sessions (email, token, created_at, expires_at, volunteer_id)
-        VALUES ($1, $2, NOW(), $3, $4)
+        INSERT INTO sessions (email, token, created_at, expires_at, volunteer_id, role)
+        VALUES ($1, $2, NOW(), $3, $4, $5)
         ON CONFLICT (email) DO UPDATE SET
             token = EXCLUDED.token,
             created_at = NOW(),
             expires_at = EXCLUDED.expires_at,
-            volunteer_id = EXCLUDED.volunteer_id
+            volunteer_id = EXCLUDED.volunteer_id,
+            role = EXCLUDED.role
     `
-	if _, err := s.DB.ExecContext(ctx, insertQuery, email, sessionToken, expiresAt, volunteerId); err != nil {
+	if _, err := s.DB.ExecContext(ctx, insertQuery, email, sessionToken, expiresAt, volunteerId, role); err != nil {
 		return "", fmt.Errorf("failed to store session: %w", err)
 	}
 
 	return sessionToken, nil
 }
 
-func (s *MagicLinkService) ValidateSessionToken(ctx context.Context, token string) (int, error) {
+// ValidateSessionToken validates the session token and returns the volunteer ID
+// and role stored at login time, avoiding a DB lookup on every request.
+func (s *MagicLinkService) ValidateSessionToken(ctx context.Context, token string) (int, string, error) {
 	query := `
-        SELECT volunteer_id FROM sessions
+        SELECT volunteer_id, role FROM sessions
         WHERE token = $1 AND expires_at > NOW()
         LIMIT 1
     `
 	var volunteerId int
-	if err := s.DB.QueryRowContext(ctx, query, token).Scan(&volunteerId); err != nil {
+	var role string
+	if err := s.DB.QueryRowContext(ctx, query, token).Scan(&volunteerId, &role); err != nil {
 		if err == sql.ErrNoRows {
-			return 0, fmt.Errorf("invalid or expired session token")
+			return 0, "", fmt.Errorf("invalid or expired session token")
 		}
-		return 0, fmt.Errorf("error validating session: %w", err)
+		return 0, "", fmt.Errorf("error validating session: %w", err)
 	}
 
 	// Update last activity.
 	s.DB.ExecContext(ctx, "UPDATE sessions SET last_activity_at = NOW() WHERE token = $1", token)
 
-	return volunteerId, nil
+	return volunteerId, role, nil
+}
+
+// fetchVolunteerIdAndRoleByEmail looks up both the volunteer ID and role in one query.
+func fetchVolunteerIdAndRoleByEmail(ctx context.Context, DB *sql.DB, email string) (int, string, error) {
+	var volunteerId int
+	var role string
+	err := DB.QueryRowContext(ctx,
+		"SELECT volunteer_id, role FROM volunteers WHERE email = $1", email).Scan(&volunteerId, &role)
+	if err == sql.ErrNoRows {
+		return 0, "", fmt.Errorf("no volunteer account found for this email")
+	}
+	if err != nil {
+		return 0, "", fmt.Errorf("error looking up volunteer: %w", err)
+	}
+	return volunteerId, role, nil
 }

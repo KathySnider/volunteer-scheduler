@@ -33,6 +33,17 @@ func fetchVolunteerIdByEmail(ctx context.Context, DB *sql.DB, email string) (int
 	}
 	return volunteerId, nil
 }
+
+func fetchEmailByVolId(ctx context.Context, DB *sql.DB, volId int) (string, error) {
+	var email string
+	err := DB.QueryRowContext(ctx,
+		"SELECT email FROM volunteers WHERE volunteer_id = $1", volId).Scan(&email)
+	if err != nil {
+		return "", fmt.Errorf("error fetching volunteer email: %w", err)
+	}
+	return email, nil
+}
+
 func fetchProfile(ctx context.Context, DB *sql.DB, volId int) (*models.VolunteerProfile, error) {
 	query := `
 		SELECT 
@@ -41,7 +52,8 @@ func fetchProfile(ctx context.Context, DB *sql.DB, volId int) (*models.Volunteer
 			last_name, 
 			email, 
 			phone, 
-			zip_code
+			zip_code,
+			role
 		FROM volunteers 
 		WHERE volunteer_id = $1
 	`
@@ -54,7 +66,8 @@ func fetchProfile(ctx context.Context, DB *sql.DB, volId int) (*models.Volunteer
 		&profile.LastName,
 		&profile.Email,
 		&phone,
-		&zip)
+		&zip,
+		&profile.Role)
 
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("volunteer not found")
@@ -154,13 +167,23 @@ func GetEventType(isVirtual bool, hasVenue bool) models.EventType {
 
 // ** Handling shift assignments **
 
-func assignVolToShift(ctx context.Context, DB *sql.DB, shiftId string, volId int) (*models.MutationResult, error) {
+func assignVolToShift(ctx context.Context, DB *sql.DB, mailer *Mailer, shiftId string, volId int) (*models.MutationResult, error) {
 	shiftInt, err := strconv.Atoi(shiftId)
 	if err != nil {
 		return &models.MutationResult{
 			Success: false,
 			Message: ptrString("Invalid shiftId."),
 			ID:      &shiftId,
+		}, err
+	}
+
+	email, err := fetchEmailByVolId(ctx, DB, volId)
+	if err != nil {
+		volStr := strconv.Itoa(volId)
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Unable to fetch email for volunteer."),
+			ID:      &volStr,
 		}, err
 	}
 
@@ -182,7 +205,7 @@ func assignVolToShift(ctx context.Context, DB *sql.DB, shiftId string, volId int
 	if err != nil {
 		return &models.MutationResult{
 			Success: false,
-			Message: ptrString("Failed to assign volunteer to shift."),
+			Message: ptrString("Failed to assign volunteer to shift: unable to query shift assignments."),
 			ID:      nil,
 		}, err
 	}
@@ -208,6 +231,16 @@ func assignVolToShift(ctx context.Context, DB *sql.DB, shiftId string, volId int
 		}, err
 	}
 
+	err = mailer.SendEmail(ctx, email, "Shift Assignment", "", "")
+	if err != nil {
+		volStr := strconv.Itoa(volId)
+		return &models.MutationResult{
+			Success: true,
+			Message: ptrString("Successfully assigned shift to vol. Unable to send confirmation email to vol."),
+			ID:      &volStr,
+		}, err
+	}
+
 	return &models.MutationResult{
 		Success: true,
 		Message: ptrString("Volunteer successfully assigned."),
@@ -215,13 +248,29 @@ func assignVolToShift(ctx context.Context, DB *sql.DB, shiftId string, volId int
 	}, nil
 }
 
-func cancelShiftAssignment(ctx context.Context, DB *sql.DB, shiftId string, volId int) (*models.MutationResult, error) {
+// CancelShiftAssignment
+// Cancels a volunteer's shift assignment.
+// NOTE: in addition to taking the assignment out of the DB,
+// the code should send an email to the volunteer lead? or
+// to the volunteer coordinators? to someone?
+
+func cancelShiftAssignment(ctx context.Context, DB *sql.DB, mailer *Mailer, shiftId string, volId int) (*models.MutationResult, error) {
 	shiftInt, err := strconv.Atoi(shiftId)
 	if err != nil {
 		return &models.MutationResult{
 			Success: false,
 			Message: ptrString("ShiftId is not valid."),
 			ID:      nil,
+		}, err
+	}
+
+	email, err := fetchEmailByVolId(ctx, DB, volId)
+	if err != nil {
+		volStr := strconv.Itoa(volId)
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Unable to fetch email for volunteer."),
+			ID:      &volStr,
 		}, err
 	}
 
@@ -239,7 +288,15 @@ func cancelShiftAssignment(ctx context.Context, DB *sql.DB, shiftId string, volI
 		}, err
 	}
 
-	// No errors.
+	err = mailer.SendEmail(ctx, email, "Shift Assignment", "", "")
+	if err != nil {
+		volStr := strconv.Itoa(volId)
+		return &models.MutationResult{
+			Success: true,
+			Message: ptrString("Successfully canceled assignment. Unable to send email to volunteer"),
+			ID:      &volStr,
+		}, err
+	}
 
 	return &models.MutationResult{
 		Success: true,

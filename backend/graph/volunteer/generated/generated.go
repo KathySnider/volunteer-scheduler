@@ -110,6 +110,7 @@ type ComplexityRoot struct {
 		FirstName func(childComplexity int) int
 		LastName  func(childComplexity int) int
 		Phone     func(childComplexity int) int
+		Role      func(childComplexity int) int
 		ZipCode   func(childComplexity int) int
 	}
 }
@@ -417,6 +418,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.VolunteerProfile.Phone(childComplexity), true
+	case "VolunteerProfile.role":
+		if e.complexity.VolunteerProfile.Role == nil {
+			break
+		}
+
+		return e.complexity.VolunteerProfile.Role(childComplexity), true
 	case "VolunteerProfile.zipCode":
 		if e.complexity.VolunteerProfile.ZipCode == nil {
 			break
@@ -535,6 +542,11 @@ var sources = []*ast.Source{
 
 
 #-- ENUMS --
+enum Role {
+  VOLUNTEER
+  ADMINISTRATOR
+}
+
 enum EventType {
   VIRTUAL
   IN_PERSON
@@ -584,6 +596,7 @@ type VolunteerProfile {
   email: String!
   phone: String
   zipCode: String
+  role: Role!
 }
 
 type Venue {
@@ -1368,6 +1381,8 @@ func (ec *executionContext) fieldContext_Query_volunteerProfile(_ context.Contex
 				return ec.fieldContext_VolunteerProfile_phone(ctx, field)
 			case "zipCode":
 				return ec.fieldContext_VolunteerProfile_zipCode(ctx, field)
+			case "role":
+				return ec.fieldContext_VolunteerProfile_role(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type VolunteerProfile", field.Name)
 		},
@@ -2232,6 +2247,35 @@ func (ec *executionContext) fieldContext_VolunteerProfile_zipCode(_ context.Cont
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerProfile_role(ctx context.Context, field graphql.CollectedField, obj *VolunteerProfile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerProfile_role,
+		func(ctx context.Context) (any, error) {
+			return obj.Role, nil
+		},
+		nil,
+		ec.marshalNRole2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐRole,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerProfile_role(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerProfile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Role does not have child fields")
 		},
 	}
 	return fc, nil
@@ -4341,6 +4385,11 @@ func (ec *executionContext) _VolunteerProfile(ctx context.Context, sel ast.Selec
 			out.Values[i] = ec._VolunteerProfile_phone(ctx, field, obj)
 		case "zipCode":
 			out.Values[i] = ec._VolunteerProfile_zipCode(ctx, field, obj)
+		case "role":
+			out.Values[i] = ec._VolunteerProfile_role(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4887,6 +4936,16 @@ func (ec *executionContext) marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgr
 		return graphql.Null
 	}
 	return ec._MutationResult(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNRole2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐRole(ctx context.Context, v any) (Role, error) {
+	var res Role
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNRole2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐRole(ctx context.Context, sel ast.SelectionSet, v Role) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNServiceType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐServiceType(ctx context.Context, v any) (ServiceType, error) {
