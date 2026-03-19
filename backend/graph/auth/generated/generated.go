@@ -60,17 +60,24 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		ConsumeMagicLink func(childComplexity int, token string) int
+		RequestAccount   func(childComplexity int, email string, firstName string, lastName string) int
 		RequestMagicLink func(childComplexity int, email string) int
 	}
 
 	Query struct {
 		AuthHealthCheck func(childComplexity int) int
 	}
+
+	RequestResult struct {
+		Message func(childComplexity int) int
+		Success func(childComplexity int) int
+	}
 }
 
 type MutationResolver interface {
 	RequestMagicLink(ctx context.Context, email string) (*MagicLinkResult, error)
 	ConsumeMagicLink(ctx context.Context, token string) (*AuthResult, error)
+	RequestAccount(ctx context.Context, email string, firstName string, lastName string) (*RequestResult, error)
 }
 type QueryResolver interface {
 	AuthHealthCheck(ctx context.Context) (*bool, error)
@@ -150,6 +157,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.ConsumeMagicLink(childComplexity, args["token"].(string)), true
+	case "Mutation.requestAccount":
+		if e.complexity.Mutation.RequestAccount == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_requestAccount_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RequestAccount(childComplexity, args["email"].(string), args["firstName"].(string), args["lastName"].(string)), true
 	case "Mutation.requestMagicLink":
 		if e.complexity.Mutation.RequestMagicLink == nil {
 			break
@@ -168,6 +186,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.AuthHealthCheck(childComplexity), true
+
+	case "RequestResult.message":
+		if e.complexity.RequestResult.Message == nil {
+			break
+		}
+
+		return e.complexity.RequestResult.Message(childComplexity), true
+	case "RequestResult.success":
+		if e.complexity.RequestResult.Success == nil {
+			break
+		}
+
+		return e.complexity.RequestResult.Success(childComplexity), true
 
 	}
 	return 0, false
@@ -283,6 +314,7 @@ type Query {
 type Mutation {
   requestMagicLink(email: String!): MagicLinkResult!
   consumeMagicLink(token: String!): AuthResult!
+  requestAccount(email: String!, firstName: String!, lastName: String!): RequestResult!
 }
 
 type MagicLinkResult {
@@ -296,7 +328,13 @@ type AuthResult {
   message: String!
   email: String
   sessionToken: String
-}`, BuiltIn: false},
+}
+
+type RequestResult {
+  success: Boolean!
+  message: String!
+}
+`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -312,6 +350,27 @@ func (ec *executionContext) field_Mutation_consumeMagicLink_args(ctx context.Con
 		return nil, err
 	}
 	args["token"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_requestAccount_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "email", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["email"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "firstName", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["firstName"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "lastName", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["lastName"] = arg2
 	return args, nil
 }
 
@@ -692,6 +751,53 @@ func (ec *executionContext) fieldContext_Mutation_consumeMagicLink(ctx context.C
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_requestAccount(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_requestAccount,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().RequestAccount(ctx, fc.Args["email"].(string), fc.Args["firstName"].(string), fc.Args["lastName"].(string))
+		},
+		nil,
+		ec.marshalNRequestResult2ᚖvolunteerᚑschedulerᚋgraphᚋauthᚋgeneratedᚐRequestResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_requestAccount(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_RequestResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_RequestResult_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RequestResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_requestAccount_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query__authHealthCheck(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -824,6 +930,64 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 				return ec.fieldContext___Schema_directives(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Schema", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RequestResult_success(ctx context.Context, field graphql.CollectedField, obj *RequestResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RequestResult_success,
+		func(ctx context.Context) (any, error) {
+			return obj.Success, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RequestResult_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RequestResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RequestResult_message(ctx context.Context, field graphql.CollectedField, obj *RequestResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RequestResult_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RequestResult_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RequestResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2410,6 +2574,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "requestAccount":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_requestAccount(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2479,6 +2650,50 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___schema(ctx, field)
 			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var requestResultImplementors = []string{"RequestResult"}
+
+func (ec *executionContext) _RequestResult(ctx context.Context, sel ast.SelectionSet, obj *RequestResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, requestResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RequestResult")
+		case "success":
+			out.Values[i] = ec._RequestResult_success(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "message":
+			out.Values[i] = ec._RequestResult_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2879,6 +3094,20 @@ func (ec *executionContext) marshalNMagicLinkResult2ᚖvolunteerᚑschedulerᚋg
 		return graphql.Null
 	}
 	return ec._MagicLinkResult(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNRequestResult2volunteerᚑschedulerᚋgraphᚋauthᚋgeneratedᚐRequestResult(ctx context.Context, sel ast.SelectionSet, v RequestResult) graphql.Marshaler {
+	return ec._RequestResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNRequestResult2ᚖvolunteerᚑschedulerᚋgraphᚋauthᚋgeneratedᚐRequestResult(ctx context.Context, sel ast.SelectionSet, v *RequestResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._RequestResult(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) (string, error) {

@@ -21,19 +21,6 @@ func ptrString(s string) *string {
 // This allows us to get things that shouldn't necessarily be
 // exposed through services, as well as reduce duplicate code.
 
-func fetchVolunteerIdByEmail(ctx context.Context, DB *sql.DB, email string) (int, error) {
-	var volunteerId int
-	err := DB.QueryRowContext(ctx,
-		"SELECT volunteer_id FROM volunteers WHERE email = $1", email).Scan(&volunteerId)
-	if err == sql.ErrNoRows {
-		return 0, fmt.Errorf("no volunteer account found for this email")
-	}
-	if err != nil {
-		return 0, fmt.Errorf("error looking up volunteer: %w", err)
-	}
-	return volunteerId, nil
-}
-
 func fetchEmailByVolId(ctx context.Context, DB *sql.DB, volId int) (string, error) {
 	var email string
 	err := DB.QueryRowContext(ctx,
@@ -88,6 +75,144 @@ func fetchProfile(ctx context.Context, DB *sql.DB, volId int) (*models.Volunteer
 	}
 
 	return &profile, nil
+}
+
+func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter models.ShiftsTimeFilter) ([]*models.VolunteerShift, error) {
+
+	query := `
+        SELECT 
+			sv.shift_id,
+			sv.assigned_at,
+			sv.cancelled_at,
+			s.shift_start,
+			s.shift_end,
+			s.max_volunteers,
+			opp.job,
+			opp.other_job_description,
+			opp.opportunity_is_virtual,
+			opp.pre_event_instructions,
+            e.event_id,
+            e.event_name,
+            e.description,
+            v.venue_name,
+            v.street_address,
+            v.city,
+            v.state,
+            v.zip_code,
+			v.timezone
+    	FROM volunteer_shifts sv
+		LEFT JOIN shifts s ON s.shift_id = sv.shift_id
+		LEFT JOIN opportunities opp ON opp.opportunity_id = s.opportunity_id
+		LEFT JOIN events e ON e.event_id = opp.event_id
+		LEFT JOIN venues v ON e.venue_id = v.venue_id
+		WHERE sv.volunteer_id = $1
+    `
+	switch filter {
+	case "UPCOMING":
+		query += " AND s.shift_start >= NOW()"
+	case "PAST":
+		query += " AND s.shift_start < NOW()"
+	case "ALL":
+		// no filter
+	}
+
+	shiftRows, err := DB.QueryContext(ctx, query, volId)
+	if err != nil {
+		return nil, err
+	}
+	defer shiftRows.Close()
+
+	shiftsMap := make(map[int]*models.VolunteerShift)
+
+	for shiftRows.Next() {
+		var volShift models.VolunteerShift
+		var shiftInt, eventInt int
+		var cancelledAt, otherJobDesc, preEventInst, eventDesc sql.NullString
+		var venueName, streetAddress, city, state, zip, timezone sql.NullString
+		var maxVols sql.NullInt64
+
+		err := shiftRows.Scan(
+			&shiftInt,
+			&volShift.AssignedAt,
+			&cancelledAt,
+			&volShift.StartDateTime,
+			&volShift.EndDateTime,
+			&maxVols,
+			&volShift.Job,
+			&otherJobDesc,
+			&volShift.IsVirtual,
+			&preEventInst,
+			&eventInt,
+			&volShift.EventName,
+			&eventDesc,
+			&venueName,
+			&streetAddress,
+			&city,
+			&state,
+			&zip,
+			&timezone,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning shift row: %w", err)
+		}
+
+		volShift.ShiftId = strconv.Itoa(shiftInt)
+		if cancelledAt.Valid {
+			volShift.CancelledAt = &cancelledAt.String
+		} else {
+			volShift.CancelledAt = nil
+		}
+		if maxVols.Valid {
+			maxVolInt := int(maxVols.Int64)
+			volShift.MaxVolunteers = &maxVolInt
+		} else {
+			volShift.MaxVolunteers = nil
+		}
+		if otherJobDesc.Valid {
+			volShift.OtherJobDescription = &otherJobDesc.String
+		} else {
+			volShift.OtherJobDescription = nil
+		}
+		if preEventInst.Valid {
+			volShift.PreEventInstructions = &preEventInst.String
+		} else {
+			volShift.PreEventInstructions = nil
+		}
+		if eventDesc.Valid {
+			volShift.EventDescription = &eventDesc.String
+		} else {
+			volShift.EventDescription = nil
+		}
+		if venueName.Valid {
+			volShift.Venue = &models.Venue{
+				Name:     &venueName.String,
+				Address:  streetAddress.String,
+				City:     city.String,
+				State:    state.String,
+				Timezone: timezone.String,
+			}
+			if zip.Valid {
+				volShift.Venue.ZipCode = &zip.String
+			} else {
+				volShift.Venue.ZipCode = nil
+			}
+		} else {
+			volShift.Venue = nil
+		}
+
+		_, exists := shiftsMap[shiftInt]
+		if !exists {
+			shiftsMap[shiftInt] = &volShift
+		}
+	}
+
+	// Convert map to slice
+	shifts := make([]*models.VolunteerShift, 0, len(shiftsMap))
+	for _, shift := range shiftsMap {
+		shifts = append(shifts, shift)
+	}
+
+	return shifts, nil
 }
 
 // ** Handling datetimes **
@@ -190,7 +315,7 @@ func assignVolToShift(ctx context.Context, DB *sql.DB, mailer *Mailer, shiftId s
 	query := `
 		SELECT
 			s.shift_id,
-			COUNT(vs.volunteer_id) as curr_vols,
+			COUNT(vs.volunteer_id) FILTER (WHERE vs.cancelled_at IS NULL) as curr_vols,
 			s.max_volunteers
 		FROM shifts s
 		LEFT JOIN volunteer_shifts vs 
@@ -249,11 +374,7 @@ func assignVolToShift(ctx context.Context, DB *sql.DB, mailer *Mailer, shiftId s
 }
 
 // CancelShiftAssignment
-// Cancels a volunteer's shift assignment.
-// NOTE: in addition to taking the assignment out of the DB,
-// the code should send an email to the volunteer lead? or
-// to the volunteer coordinators? to someone?
-
+// Cancels a volunteer's shift assignment. Another soft delete for history's sake.
 func cancelShiftAssignment(ctx context.Context, DB *sql.DB, mailer *Mailer, shiftId string, volId int) (*models.MutationResult, error) {
 	shiftInt, err := strconv.Atoi(shiftId)
 	if err != nil {
@@ -274,11 +395,12 @@ func cancelShiftAssignment(ctx context.Context, DB *sql.DB, mailer *Mailer, shif
 		}, err
 	}
 
-	delete := `
-		DELETE FROM volunteer_shifts
+	update := `
+		UPDATE volunteer_shifts
+		SET cancelled_at = NOW()
 		WHERE volunteer_id = $1 AND shift_id = $2
 	`
-	_, err = DB.ExecContext(ctx, delete, volId, shiftInt)
+	_, err = DB.ExecContext(ctx, update, volId, shiftInt)
 
 	if err != nil {
 		return &models.MutationResult{
@@ -287,6 +409,9 @@ func cancelShiftAssignment(ctx context.Context, DB *sql.DB, mailer *Mailer, shif
 			ID:      nil,
 		}, err
 	}
+
+	// NOTE: in addition to mailing the volunteer, cancelling a shift should send
+	// an eamil to the volunteer lead or to the volunteer coordinators or to SOMEONE.
 
 	err = mailer.SendEmail(ctx, email, "Shift Assignment", "", "")
 	if err != nil {
@@ -316,7 +441,7 @@ func FetchAssignedVolunteersForShift(ctx context.Context, shiftId int, DB *sql.D
 			v.last_name
 		FROM volunteers v
 		JOIN volunteer_shifts vs ON v.volunteer_id = vs.volunteer_id
-		WHERE vs.shift_id = $1
+		WHERE vs.shift_id = $1 AND vs.cancelled_at IS NULL
 	`
 	volRows, err := DB.QueryContext(ctx, volQuery, shiftId)
 	if err != nil {

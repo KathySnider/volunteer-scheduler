@@ -34,6 +34,13 @@ enum Job {
   OTHER
 }
 
+enum ShiftTimeFilter {
+  UPCOMING
+  PAST
+  ALL
+}
+
+
 #-- Input --
 
 ## The EventFilter reflects all of the fields on which 
@@ -57,6 +64,23 @@ type VolunteerProfile {
   phone: String
   zipCode: String
   role: Role!
+}
+
+type VolunteerShift {
+  shiftId: ID!
+  assignedAt: String!
+  cancelledAt: String
+  startDateTime: String!
+  endDateTime: String!
+  maxVolunteers: Int
+  job: Job!
+  otherJobDescription: String
+  isVirtual: Boolean!
+  preEventInstructions: String
+  eventId: ID!
+  eventName: String!
+  eventDescription: String
+  venue: Venue
 }
 
 type Venue {

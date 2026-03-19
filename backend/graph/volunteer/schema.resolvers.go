@@ -90,6 +90,21 @@ func (r *queryResolver) ShiftsForEvent(ctx context.Context, eventID string) ([]*
 	return toGenShiftViews(shiftviews), nil
 }
 
+// OwnShifts is the resolver for the ownShifts field.
+func (r *queryResolver) OwnShifts(ctx context.Context, filter generated.ShiftTimeFilter) ([]*generated.VolunteerShift, error) {
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	shifts, err := r.ShiftService.FetchOwnShifts(ctx, volId, toModelShiftTimeFilter(filter))
+	if err != nil {
+		return nil, err
+	}
+
+	return toGenVolunteerShifts(shifts), nil
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 

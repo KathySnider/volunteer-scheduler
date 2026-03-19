@@ -11,6 +11,7 @@ type Query {
   # Admin-only queries:
   venues: [Venue!]!
   allVolunteers(filter: VolunteerFilterInput): [Volunteer!]! 
+  volunteerShifts(volunteerId: ID!, filter: ShiftTimeFilter!): [VolunteerShift!]! 
   volunteerById(volunteerId: ID!): VolunteerProfile
   opportunitiesForEvent(eventId: ID!): [Opportunity!]!
 } 

@@ -280,3 +280,93 @@ func fetchVolunteerIdAndRoleByEmail(ctx context.Context, DB *sql.DB, email strin
 	}
 	return volunteerId, role, nil
 }
+
+// RequestAccount sends an account request email to all admins.
+// No DB record is created — the admin reviews the request and
+// creates the volunteer manually if approved.
+func (s *MagicLinkService) RequestAccount(ctx context.Context, email, firstName, lastName string) error {
+
+	// Fetch all admin email addresses.
+	rows, err := s.DB.QueryContext(ctx,
+		"SELECT email FROM volunteers WHERE role = 'ADMINISTRATOR'")
+	if err != nil {
+		return fmt.Errorf("error fetching admin emails: %w", err)
+	}
+	defer rows.Close()
+
+	var adminEmails []string
+	for rows.Next() {
+		var adminEmail string
+		if err := rows.Scan(&adminEmail); err != nil {
+			return fmt.Errorf("error scanning admin email: %w", err)
+		}
+		adminEmails = append(adminEmails, adminEmail)
+	}
+
+	if len(adminEmails) == 0 {
+		// No admins found — log it but still return success so we
+		// don't reveal anything about the system to the requester.
+		log.Printf("Warning: account request from %s %s <%s> but no admins found to notify", firstName, lastName, email)
+		return nil
+	}
+
+	subject := fmt.Sprintf("New Volunteer Account Request — %s %s", firstName, lastName)
+
+	htmlBody := fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background-color: #0066cc; color: white; padding: 20px; text-align: center;">
+            <h1 style="margin: 0; color: white;">AARP Volunteer System</h1>
+        </div>
+        <div style="padding: 20px; background-color: #f9f9f9;">
+            <p>A new volunteer account request has been submitted:</p>
+            <table style="width: 100%%; border-collapse: collapse; margin: 20px 0;">
+                <tr>
+                    <td style="padding: 8px; font-weight: bold; width: 120px;">Name:</td>
+                    <td style="padding: 8px;">%s %s</td>
+                </tr>
+                <tr style="background-color: #f0f0f0;">
+                    <td style="padding: 8px; font-weight: bold;">Email:</td>
+                    <td style="padding: 8px;">%s</td>
+                </tr>
+            </table>
+            <p>To approve this request, log in to the AARP Volunteer System and create an account for this volunteer.</p>
+            <p>If you do not recognize this person or do not wish to approve their request, no action is needed.</p>
+            <p>Thank you,<br>AARP Volunteer System</p>
+        </div>
+        <div style="font-size: 12px; color: #666; text-align: center; padding: 20px;">
+            <p>&copy; 2026 AARP. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
+    `, firstName, lastName, email)
+
+	textBody := fmt.Sprintf(`
+A new volunteer account request has been submitted:
+
+Name:  %s %s
+Email: %s
+
+To approve this request, log in to the AARP Volunteer System and create an account for this volunteer.
+
+If you do not recognize this person or do not wish to approve their request, no action is needed.
+
+Thank you,
+AARP Volunteer System
+    `, firstName, lastName, email)
+
+	// Email each admin. Log failures but continue so all admins are notified.
+	for _, adminEmail := range adminEmails {
+		if err := s.mailer.SendEmail(ctx, adminEmail, subject, htmlBody, textBody); err != nil {
+			log.Printf("Warning: failed to send account request notification to %s: %v", adminEmail, err)
+		}
+	}
+
+	return nil
+}
