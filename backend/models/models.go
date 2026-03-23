@@ -42,7 +42,14 @@ type Volunteer struct {
 	Role      Role
 }
 
-// Venues
+// Venues (include regions)
+
+type Region struct {
+	ID       int
+	Code     string
+	Name     string
+	IsActive bool
+}
 
 type Venue struct {
 	ID       string
@@ -52,6 +59,7 @@ type Venue struct {
 	State    string
 	ZipCode  *string
 	Timezone string
+	Region   []int
 }
 
 // Opportunities and Shifts
@@ -109,7 +117,7 @@ type EventDate struct {
 // Input types for queries (e.g., filters).
 
 type EventFilterInput struct {
-	Cities         []string
+	Regions        []int
 	EventType      *EventType
 	Jobs           []Job
 	ShiftStartDate *string
@@ -140,6 +148,12 @@ type NewVenueInput struct {
 	State    string
 	ZipCode  *string
 	IanaZone string
+	Region   []int
+}
+
+type NewRegionInput struct {
+	Code string
+	Name string
 }
 
 type NewEventInput struct {
@@ -217,6 +231,12 @@ type UpdateVenueInput struct {
 	State    string
 	ZipCode  *string
 	IanaZone string
+}
+
+type UpdateRegionInput struct {
+	ID   int
+	Code string
+	Name string
 }
 
 type UpdateEventInput struct {

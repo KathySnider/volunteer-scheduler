@@ -86,7 +86,7 @@ func main() {
 	shiftService := services.NewShiftService(db, mailer)
 	venueService := services.NewVenueService(db)
 
-	eventService, err := services.NewEventService(db, shiftService)
+	eventService, err := services.NewEventService(db, mailer, shiftService)
 	if err != nil {
 		log.Fatal("Failed to initialize event service:", err)
 	}

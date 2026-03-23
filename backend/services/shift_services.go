@@ -449,6 +449,7 @@ func (s *ShiftService) AssignVolunteerToShift(ctx context.Context, shiftId strin
 // Mutations: Deletions and cancellation of assignments.
 
 // Deleting an opportunity will delete all shifts associated with it.
+
 func (s *ShiftService) DeleteOpportunity(ctx context.Context, oppId string) (*models.MutationResult, error) {
 	oppInt, err := strconv.Atoi(oppId)
 	if err == nil {

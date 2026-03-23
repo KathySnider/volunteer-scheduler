@@ -42,7 +42,7 @@ type EventDate struct {
 }
 
 type EventFilterInput struct {
-	Cities             []string   `json:"cities,omitempty"`
+	Regions            []int      `json:"regions,omitempty"`
 	EventType          *EventType `json:"eventType,omitempty"`
 	Jobs               []Job      `json:"jobs,omitempty"`
 	ShiftStartDateTime *string    `json:"shiftStartDateTime,omitempty"`
@@ -83,6 +83,11 @@ type NewOpportunityInput struct {
 	Shifts               []*NewShiftInput `json:"shifts"`
 }
 
+type NewRegionInput struct {
+	Code string `json:"code"`
+	Name string `json:"name"`
+}
+
 type NewShiftInput struct {
 	StartDateTime  string  `json:"startDateTime"`
 	EndDateTime    string  `json:"endDateTime"`
@@ -98,6 +103,7 @@ type NewVenueInput struct {
 	State    string  `json:"state"`
 	ZipCode  *string `json:"zipCode,omitempty"`
 	IanaZone string  `json:"ianaZone"`
+	Region   []int   `json:"region"`
 }
 
 type NewVolunteerInput struct {
@@ -119,6 +125,13 @@ type Opportunity struct {
 }
 
 type Query struct {
+}
+
+type Region struct {
+	ID       int    `json:"id"`
+	Code     string `json:"code"`
+	Name     string `json:"name"`
+	IsActive bool   `json:"is_active"`
 }
 
 type Shift struct {
@@ -151,6 +164,12 @@ type UpdateOpportunityInput struct {
 	OtherJobDescription  *string `json:"otherJobDescription,omitempty"`
 	IsVirtual            bool    `json:"isVirtual"`
 	PreEventInstructions *string `json:"preEventInstructions,omitempty"`
+}
+
+type UpdateRegionInput struct {
+	ID   int    `json:"id"`
+	Code string `json:"code"`
+	Name string `json:"name"`
 }
 
 type UpdateShiftInput struct {
@@ -190,6 +209,7 @@ type Venue struct {
 	State    string  `json:"state"`
 	ZipCode  *string `json:"zipCode,omitempty"`
 	Timezone string  `json:"timezone"`
+	Region   []int   `json:"region"`
 }
 
 type Volunteer struct {

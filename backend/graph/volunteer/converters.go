@@ -24,6 +24,15 @@ func toGenMutationResult(m *models.MutationResult) *generated.MutationResult {
 	}
 }
 
+func toGenRegion(m models.Region) generated.Region {
+	return generated.Region{
+		ID:       m.ID,
+		Code:     m.Code,
+		Name:     m.Name,
+		IsActive: m.IsActive,
+	}
+}
+
 func toGenVenue(m *models.Venue) *generated.Venue {
 	if m == nil {
 		return nil
@@ -36,6 +45,7 @@ func toGenVenue(m *models.Venue) *generated.Venue {
 		State:    m.State,
 		ZipCode:  m.ZipCode,
 		Timezone: m.Timezone,
+		Region:   m.Region,
 	}
 }
 
@@ -151,7 +161,7 @@ func toModelEventFilterInput(g *generated.EventFilterInput) *models.EventFilterI
 		jobs[i] = models.Job(j)
 	}
 	return &models.EventFilterInput{
-		Cities:         g.Cities,
+		Regions:        g.Regions,
 		EventType:      eventType,
 		Jobs:           jobs,
 		ShiftStartDate: g.ShiftStartDateTime,

@@ -99,12 +99,14 @@ func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter mod
             v.city,
             v.state,
             v.zip_code,
-			v.timezone
+			v.timezone,
+			vr.region_id
     	FROM volunteer_shifts sv
 		LEFT JOIN shifts s ON s.shift_id = sv.shift_id
 		LEFT JOIN opportunities opp ON opp.opportunity_id = s.opportunity_id
 		LEFT JOIN events e ON e.event_id = opp.event_id
 		LEFT JOIN venues v ON e.venue_id = v.venue_id
+		LEFT JOIN venue_regions vr on v.venue_id = vr.venue_id
 		WHERE sv.volunteer_id = $1
     `
 	switch filter {
@@ -129,6 +131,7 @@ func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter mod
 		var shiftInt, eventInt int
 		var cancelledAt, otherJobDesc, preEventInst, eventDesc sql.NullString
 		var venueName, streetAddress, city, state, zip, timezone sql.NullString
+		var regionInt sql.NullInt32
 		var maxVols sql.NullInt64
 
 		err := shiftRows.Scan(
@@ -151,6 +154,7 @@ func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter mod
 			&state,
 			&zip,
 			&timezone,
+			&regionInt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning shift row: %w", err)
@@ -201,7 +205,15 @@ func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter mod
 		}
 
 		_, exists := shiftsMap[shiftInt]
-		if !exists {
+		if exists {
+			// Duplicate row can be because the venue is in mutiple regions.
+			if (shiftsMap[shiftInt].Venue != nil) && (regionInt.Valid) {
+				shiftsMap[shiftInt].Venue.Region = append(shiftsMap[shiftInt].Venue.Region, int(regionInt.Int32))
+			}
+		} else {
+			if (volShift.Venue != nil) && (regionInt.Valid) {
+				volShift.Venue.Region = append(volShift.Venue.Region, int(regionInt.Int32))
+			}
 			shiftsMap[shiftInt] = &volShift
 		}
 	}
@@ -231,6 +243,35 @@ func DateTimeToUTC(dateTimeStr string, ianaZone string) (*string, error) {
 
 	rfc := datetime.UTC().Format(time.RFC3339)
 	return &rfc, nil
+}
+
+func UTCToTimeZone(utcTime string, ianaZone string) (*string, error) {
+	const Layout = "01-02-2006 15:04 MST"
+
+	loc, err := time.LoadLocation(ianaZone)
+	if err != nil {
+		return nil, fmt.Errorf("invalid timezone %s: %w", ianaZone, err)
+	}
+
+	dateTime, err := time.Parse(time.RFC3339, utcTime)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing %s: %w", utcTime, err)
+	}
+
+	strTime := dateTime.In(loc).Format(Layout)
+	return &strTime, nil
+}
+
+func UTCToDateTime(utcTime string) (*string, error) {
+	const Layout = "01-02-2006 15:04 MST"
+
+	dateTime, err := time.Parse(time.RFC3339, utcTime)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing %s: %w", utcTime, err)
+	}
+
+	strTime := dateTime.Format(Layout)
+	return &strTime, nil
 }
 
 // These "AddNew" functions are called internally, when creating a new event. The dates must be added
@@ -374,7 +415,7 @@ func assignVolToShift(ctx context.Context, DB *sql.DB, mailer *Mailer, shiftId s
 }
 
 // CancelShiftAssignment
-// Cancels a volunteer's shift assignment. Another soft delete for history's sake.
+// Cancels a volunteer's shift assignment. A soft delete for the sake of the volunteer's history.
 func cancelShiftAssignment(ctx context.Context, DB *sql.DB, mailer *Mailer, shiftId string, volId int) (*models.MutationResult, error) {
 	shiftInt, err := strconv.Atoi(shiftId)
 	if err != nil {
@@ -411,9 +452,9 @@ func cancelShiftAssignment(ctx context.Context, DB *sql.DB, mailer *Mailer, shif
 	}
 
 	// NOTE: in addition to mailing the volunteer, cancelling a shift should send
-	// an eamil to the volunteer lead or to the volunteer coordinators or to SOMEONE.
+	// an eamil to the staff lead or to the volunteer coordinators or to SOMEONE.
 
-	err = mailer.SendEmail(ctx, email, "Shift Assignment", "", "")
+	err = mailer.SendEmail(ctx, email, "Shift Assignment Cancelled", "We are sorry you are not able to volunteer for this shift...", "")
 	if err != nil {
 		volStr := strconv.Itoa(volId)
 		return &models.MutationResult{
@@ -541,9 +582,11 @@ func FetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
             v.state,
             v.zip_code,
 			v.timezone,
+			vr.region_id,
 			earliest.first_date
         FROM events e
         LEFT JOIN venues v ON e.venue_id = v.venue_id
+		LEFT JOIN venue_regions vr ON v.venue_id = vr.venue_id
         LEFT JOIN opportunities opp ON e.event_id = opp.event_id
 	    LEFT JOIN shifts s_filter ON opp.opportunity_id = s_filter.opportunity_id 
 		LEFT JOIN (
@@ -558,15 +601,15 @@ func FetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 	argCount := 1
 
 	if filter != nil {
-		// Filter by cities.
-		if len(filter.Cities) > 0 {
+		// Filter by regions.
+		if len(filter.Regions) > 0 {
 			placeholders := []string{}
-			for _, city := range filter.Cities {
+			for _, region := range filter.Regions {
 				placeholders = append(placeholders, fmt.Sprintf("$%d", argCount))
-				args = append(args, city)
+				args = append(args, region)
 				argCount++
 			}
-			query += fmt.Sprintf(" AND v.city IN (%s)", strings.Join(placeholders, ","))
+			query += fmt.Sprintf(" AND vr.region_id IN (%s)", strings.Join(placeholders, ","))
 		}
 
 		// Filter by event type.
@@ -633,6 +676,7 @@ func FetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 		var eventInt int
 		var venueInt sql.NullInt64
 		var isVirtual bool
+		var regionInt sql.NullInt32
 		var firstDate *time.Time
 		var eventDesc, venueName, streetAddress, city, state, zip, timezone sql.NullString
 
@@ -648,6 +692,7 @@ func FetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 			&state,
 			&zip,
 			&timezone,
+			&regionInt,
 			&firstDate,
 		)
 		if err != nil {
@@ -676,7 +721,15 @@ func FetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 
 		// Have we already processed this event?
 		_, exists := eventsMap[eventInt]
-		if !exists {
+		if exists {
+			// Duplicate rows can exist when the venue is in multiple regions.
+			if (eventsMap[eventInt].Venue != nil) && (regionInt.Valid) {
+				eventsMap[eventInt].Venue.Region = append(eventsMap[eventInt].Venue.Region, int(regionInt.Int32))
+			}
+		} else {
+			if (e.Venue != nil) && (regionInt.Valid) {
+				e.Venue.Region = append(e.Venue.Region, int(regionInt.Int32))
+			}
 			eventsMap[eventInt] = &e
 		}
 	}

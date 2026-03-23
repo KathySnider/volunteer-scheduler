@@ -24,6 +24,15 @@ func toGenMutationResult(m *models.MutationResult) *generated.MutationResult {
 	}
 }
 
+func toGenRegion(m models.Region) generated.Region {
+	return generated.Region{
+		ID:       m.ID,
+		Code:     m.Code,
+		Name:     m.Name,
+		IsActive: m.IsActive,
+	}
+}
+
 func toGenVenue(m *models.Venue) *generated.Venue {
 	if m == nil {
 		return nil
@@ -36,6 +45,7 @@ func toGenVenue(m *models.Venue) *generated.Venue {
 		State:    m.State,
 		ZipCode:  m.ZipCode,
 		Timezone: m.Timezone,
+		Region:   m.Region,
 	}
 }
 
@@ -151,7 +161,7 @@ func toModelEventFilterInput(g *generated.EventFilterInput) *models.EventFilterI
 		jobs[i] = models.Job(j)
 	}
 	return &models.EventFilterInput{
-		Cities:         g.Cities,
+		Regions:        g.Regions,
 		EventType:      eventType,
 		Jobs:           jobs,
 		ShiftStartDate: g.ShiftStartDateTime,
@@ -283,6 +293,14 @@ func toModelNewVenueInput(g generated.NewVenueInput) models.NewVenueInput {
 		State:    g.State,
 		ZipCode:  g.ZipCode,
 		IanaZone: g.IanaZone,
+		Region:   g.Region,
+	}
+}
+
+func toModelNewRegionInput(g generated.NewRegionInput) models.NewRegionInput {
+	return models.NewRegionInput{
+		Code: g.Code,
+		Name: g.Name,
 	}
 }
 
@@ -409,6 +427,14 @@ func toModelUpdateVenue(g generated.UpdateVenueInput) models.UpdateVenueInput {
 		State:    g.State,
 		ZipCode:  g.ZipCode,
 		IanaZone: g.IanaZone,
+	}
+}
+
+func toModelUpdateRegionInput(g generated.UpdateRegionInput) models.UpdateRegionInput {
+	return models.UpdateRegionInput{
+		ID:   g.ID,
+		Code: g.Code,
+		Name: g.Name,
 	}
 }
 
