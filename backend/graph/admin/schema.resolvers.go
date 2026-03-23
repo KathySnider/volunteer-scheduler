@@ -30,6 +30,11 @@ func (r *mutationResolver) CreateVenue(ctx context.Context, newVenue generated.N
 	return toGenMutationResult(result), nil
 }
 
+// CreateRegion is the resolver for the createRegion field.
+func (r *mutationResolver) CreateRegion(ctx context.Context, newRegion generated.NewRegionInput) (*generated.MutationResult, error) {
+	panic(fmt.Errorf("not implemented: CreateRegion - createRegion"))
+}
+
 // CreateEvent is the resolver for the createEvent field.
 func (r *mutationResolver) CreateEvent(ctx context.Context, newEvent generated.NewEventInput) (*generated.MutationResult, error) {
 	result, err := r.EventService.CreateEvent(ctx, toModelNewEventInput(newEvent))
@@ -84,6 +89,16 @@ func (r *mutationResolver) CancelShift(ctx context.Context, shiftID string, volu
 	return toGenMutationResult(result), nil
 }
 
+// AddVenueRegion is the resolver for the addVenueRegion field.
+func (r *mutationResolver) AddVenueRegion(ctx context.Context, venueID int, regionID int) (*generated.MutationResult, error) {
+	panic(fmt.Errorf("not implemented: AddVenueRegion - addVenueRegion"))
+}
+
+// RemoveVenueRegion is the resolver for the removeVenueRegion field.
+func (r *mutationResolver) RemoveVenueRegion(ctx context.Context, venueID int, regionID int) (*generated.MutationResult, error) {
+	panic(fmt.Errorf("not implemented: RemoveVenueRegion - removeVenueRegion"))
+}
+
 // UpdateVenue is the resolver for the updateVenue field.
 func (r *mutationResolver) UpdateVenue(ctx context.Context, venue generated.UpdateVenueInput) (*generated.MutationResult, error) {
 	result, err := r.VenueService.UpdateVenue(ctx, toModelUpdateVenue(venue))
@@ -91,6 +106,11 @@ func (r *mutationResolver) UpdateVenue(ctx context.Context, venue generated.Upda
 		return nil, err
 	}
 	return toGenMutationResult(result), nil
+}
+
+// UpdateRegion is the resolver for the updateRegion field.
+func (r *mutationResolver) UpdateRegion(ctx context.Context, region generated.UpdateRegionInput) (*generated.MutationResult, error) {
+	panic(fmt.Errorf("not implemented: UpdateRegion - updateRegion"))
 }
 
 // UpdateVolunteer is the resolver for the updateVolunteer field.
@@ -154,6 +174,11 @@ func (r *mutationResolver) DeleteVenue(ctx context.Context, venueID string) (*ge
 		return nil, err
 	}
 	return toGenMutationResult(result), nil
+}
+
+// DeleteRegion is the resolver for the deleteRegion field.
+func (r *mutationResolver) DeleteRegion(ctx context.Context, regionID int) (*generated.MutationResult, error) {
+	panic(fmt.Errorf("not implemented: DeleteRegion - deleteRegion"))
 }
 
 // DeleteEvent is the resolver for the deleteEvent field.
@@ -222,6 +247,11 @@ func (r *queryResolver) Venues(ctx context.Context) ([]*generated.Venue, error) 
 		return nil, err
 	}
 	return toGenVenues(venues), nil
+}
+
+// ActiveRegions is the resolver for the activeRegions field.
+func (r *queryResolver) ActiveRegions(ctx context.Context) ([]*generated.Region, error) {
+	panic(fmt.Errorf("not implemented: ActiveRegions - activeRegions"))
 }
 
 // AllVolunteers is the resolver for the allVolunteers field.

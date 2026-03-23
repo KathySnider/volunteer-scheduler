@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"strconv"
 
 	"volunteer-scheduler/models"
@@ -13,13 +14,15 @@ import (
 
 type EventService struct {
 	DB               *sql.DB
+	Mailer           *Mailer
 	ShiftService     *ShiftService
 	serviceTypeCache map[string]int
 }
 
-func NewEventService(db *sql.DB, shiftService *ShiftService) (*EventService, error) {
+func NewEventService(db *sql.DB, mailer *Mailer, shiftService *ShiftService) (*EventService, error) {
 	s := &EventService{
 		DB:           db,
+		Mailer:       mailer,
 		ShiftService: shiftService,
 	}
 
@@ -99,7 +102,6 @@ func (s *EventService) FetchFilteredEvents(ctx context.Context, filter *models.E
 	for _, event := range eventsMap {
 		events = append(events, event)
 	}
-
 	return events, nil
 }
 
@@ -395,6 +397,7 @@ func (s *EventService) UpdateEventDate(ctx context.Context, evDate models.Update
 	}, nil
 }
 
+// Send emails to all affected volunteers and staff, THEN delete the event.
 func (s *EventService) DeleteEvent(ctx context.Context, eventId string) (*models.MutationResult, error) {
 	eventInt, err := strconv.Atoi(eventId)
 	if err != nil {
@@ -405,12 +408,227 @@ func (s *EventService) DeleteEvent(ctx context.Context, eventId string) (*models
 		}, err
 	}
 
-	_, err = s.DB.ExecContext(ctx, "DELETE FROM events WHERE event_id = $1", eventInt)
-
+	// Get all of the information out of the DB that we'll need
+	// to send coherent emails.
+	query := `
+		SELECT
+		  e.event_name,
+		  ven.timezone,
+		  vs.shift_id,
+		  s.shift_start,
+		  s.shift_end,
+		  vol.volunteer_id,
+		  vol.email,
+		  vol.first_name,
+		  vol.last_name,
+		  staff.staff_id,
+		  staff.email,
+		  staff.first_name,
+		  staff.last_name
+		FROM events e
+		LEFT JOIN opportunities opp ON opp.event_id = e.event_id
+		LEFT JOIN shifts s ON s.opportunity_id = opp.opportunity_id
+		LEFT JOIN volunteer_shifts vs ON vs.shift_id = s.shift_id AND vs.cancelled_at IS NULL
+		LEFT JOIN volunteers vol ON vol.volunteer_id = vs.volunteer_id
+		LEFT JOIN staff ON staff.staff_id = s.staff_contact_id
+		LEFT JOIN venues ven ON ven.venue_id = e.venue_id
+	WHERE e.event_id = $1
+	`
+	rows, err := s.DB.QueryContext(ctx, query, eventInt)
 	if err != nil {
 		return &models.MutationResult{
 			Success: false,
-			Message: ptrString("Failed to delete event."),
+			Message: ptrString("Failed to delete event; unable to query DB."),
+			ID:      &eventId,
+		}, err
+	}
+	defer rows.Close()
+
+	// Create some structures to handle the information needed for an email
+	// for each user affected by the cancellation.
+	type shiftInfo struct {
+		shiftStart string
+		shiftEnd   string
+	}
+	type emailInfo struct {
+		email     string
+		firstName string
+		lastName  string
+		shiftsMap map[int]bool
+	}
+	// Make a map of volunteers to email, and a map for staff
+	// leads. We'll gather all of the information from the
+	// subsequent calls, and, finally send all of the emails.
+	volMap := make(map[int]*emailInfo)
+	leadMap := make(map[int]*emailInfo)
+	shiftMap := make(map[int]*shiftInfo)
+
+	var eventName string
+	var venueZone sql.NullString
+
+	for rows.Next() {
+		// This is a little tricky, since we could have a row for a
+		// shift that has a staff lead, but no volunteers have yet
+		// signed up, or a row with volunteers, but no staff lead.
+		// So a lot of this information may be NULLs coming from
+		// the DB.
+		// Also, since there is only one event Id, and
+		// either 0 or 1 venues, the eventName and venueZone s/b
+		// the same in every row. I don't bother to check for that.
+
+		var shiftId int
+		var shiftStart, shiftEnd string
+		var volId sql.NullInt32
+		var volEmail, volFirst, volLast sql.NullString
+		var leadId sql.NullInt32
+		var leadEmail, leadFirst, leadLast sql.NullString
+
+		err := rows.Scan(
+			&eventName,
+			&venueZone,
+			&shiftId,
+			&shiftStart,
+			&shiftEnd,
+			&volId,
+			&volEmail,
+			&volFirst,
+			&volLast,
+			&leadId,
+			&leadEmail,
+			&leadFirst,
+			&leadLast,
+		)
+		if err != nil {
+			return &models.MutationResult{
+				Success: false,
+				Message: ptrString("Failed to delete event; unable to scan rows."),
+				ID:      &eventId,
+			}, err
+		}
+
+		_, shiftExists := shiftMap[shiftId]
+		if !shiftExists {
+			var ss, se *string
+			var shift shiftInfo
+
+			// Convert the dates and times once and save them.
+			if venueZone.Valid {
+				ss, err = UTCToTimeZone(shiftStart, venueZone.String)
+				if err == nil {
+					se, err = UTCToTimeZone(shiftEnd, venueZone.String)
+				}
+			} else {
+				ss, err = UTCToDateTime(shiftStart)
+				if err == nil {
+					se, err = UTCToDateTime(shiftEnd)
+				}
+			}
+			if err != nil {
+				return &models.MutationResult{
+					Success: false,
+					Message: ptrString("Failed to delete event; unable to convert datetimes."),
+					ID:      &eventId,
+				}, err
+			}
+			shift.shiftStart = *ss
+			shift.shiftEnd = *se
+
+			shiftMap[shiftId] = &shift
+		}
+		if volId.Valid {
+			volInt := int(volId.Int32)
+			_, volExists := volMap[volInt]
+			if volExists {
+				// Is this a new shift for this vol?
+				_, shiftExists := volMap[volInt].shiftsMap[shiftId]
+				if shiftExists {
+					// Due to multiple-multiple joins, and possible
+					// situations, don't worry about this.
+				} else {
+					volMap[volInt].shiftsMap[shiftId] = true
+				}
+			} else {
+				// Haven't seen this volunteer yet. Since volId is
+				// not NULL, the volunteer's e
+				// mail, first- and last-
+				// names are also not NULL.
+				var vol emailInfo
+				vol.shiftsMap = make(map[int]bool)
+
+				vol.email = volEmail.String
+				vol.firstName = volFirst.String
+				vol.lastName = volLast.String
+				vol.shiftsMap[shiftId] = true
+				volMap[volInt] = &vol
+			}
+		}
+		if leadId.Valid {
+			leadInt := int(leadId.Int32)
+			_, leadExists := leadMap[leadInt]
+			if leadExists {
+				_, shiftExists := leadMap[leadInt].shiftsMap[shiftId]
+				if shiftExists {
+					// Do nothing
+				} else {
+					leadMap[leadInt].shiftsMap[shiftId] = true
+				}
+			} else {
+				// Haven't processed this staff lead.
+				var lead emailInfo
+				lead.shiftsMap = make(map[int]bool)
+
+				lead.email = leadEmail.String
+				lead.firstName = leadFirst.String
+				lead.lastName = leadLast.String
+				lead.shiftsMap[shiftId] = true
+				leadMap[leadInt] = &lead
+			}
+		}
+	}
+
+	// Our maps now have a single entry for each volunteer and staff
+	// lead contact. We also have the event name, and the formatted
+	// dates/times for each shift.
+	// TODO: Get the proper text for the emails.
+
+	subject := eventName + " has been cancelled"
+	volText := "Thank you for signing up to be a volunteer for " + eventName + ". Unfortunately this event has been cancelled ... shift times, etc."
+	leadText := "Thank you for signing up to be the lead contact for " + eventName + "...."
+	unsent := make([]*string, 0, len(volMap)+len(leadMap))
+
+	for _, emailInfo := range volMap {
+		greeting := "Dear " + emailInfo.firstName + " " + emailInfo.lastName + ",\n"
+		err = s.Mailer.SendEmail(ctx, emailInfo.email, subject, "", greeting+volText)
+		if err != nil {
+			// Not being able to send an email is not fatal.
+			// Try to notify the others.
+			unsent = append(unsent, &emailInfo.email)
+			continue
+		}
+	}
+	for _, emailInfo := range leadMap {
+		greeting := "Dear " + emailInfo.firstName + " " + emailInfo.lastName + ",\n"
+		err = s.Mailer.SendEmail(ctx, emailInfo.email, subject, "", greeting+leadText)
+		if err != nil {
+			unsent = append(unsent, &emailInfo.email)
+			continue
+		}
+	}
+
+	if len(unsent) > 0 {
+		log.Println("Unable to send the event (" + eventName + ") cancelled message to the following emails:")
+		for _, emailStr := range unsent {
+			log.Println(emailStr)
+		}
+	}
+
+	// Finally, delete the event (which will cascade to the opportunities, shifts, and volunteer_shifts).
+	// TODO: Delete the entry.
+	_, err = s.DB.ExecContext(ctx, "DELETE FROM events WHERE event_id = $1", eventInt)
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to delete event from DB."),
 			ID:      &eventId,
 		}, err
 	}

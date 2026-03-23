@@ -26,7 +26,7 @@ type EventDate struct {
 }
 
 type EventFilterInput struct {
-	Cities             []string   `json:"cities,omitempty"`
+	Regions            []int      `json:"regions,omitempty"`
 	EventType          *EventType `json:"eventType,omitempty"`
 	Jobs               []Job      `json:"jobs,omitempty"`
 	ShiftStartDateTime *string    `json:"shiftStartDateTime,omitempty"`
@@ -44,6 +44,13 @@ type MutationResult struct {
 }
 
 type Query struct {
+}
+
+type Region struct {
+	ID       int    `json:"id"`
+	Code     string `json:"code"`
+	Name     string `json:"name"`
+	IsActive bool   `json:"is_active"`
 }
 
 type ShiftView struct {
@@ -73,6 +80,7 @@ type Venue struct {
 	State    string  `json:"state"`
 	ZipCode  *string `json:"zipCode,omitempty"`
 	Timezone string  `json:"timezone"`
+	Region   []int   `json:"region"`
 }
 
 type VolunteerMutationResult struct {

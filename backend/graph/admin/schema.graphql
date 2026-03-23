@@ -10,6 +10,7 @@ type Query {
 
   # Admin-only queries:
   venues: [Venue!]!
+  activeRegions: [Region!]!
   allVolunteers(filter: VolunteerFilterInput): [Volunteer!]! 
   volunteerShifts(volunteerId: ID!, filter: ShiftTimeFilter!): [VolunteerShift!]! 
   volunteerById(volunteerId: ID!): VolunteerProfile
@@ -21,6 +22,7 @@ type Mutation {
   # Admin-only mutations:
   createVolunteer(newVol: NewVolunteerInput!): MutationResult!  
   createVenue(newVenue: NewVenueInput!): MutationResult!
+  createRegion(newRegion: NewRegionInput!): MutationResult!
   createEvent(newEvent: NewEventInput!): MutationResult!
   createOpportunity(newOpp: NewOpportunityInput!): MutationResult!
   createShift(newShift: AddShiftInput!): MutationResult!
@@ -29,19 +31,20 @@ type Mutation {
   assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): MutationResult!  
   cancelShift(shiftId: ID!, volunteerId: ID!): MutationResult!
 
+  addVenueRegion(venueId: Int!, regionId: Int!): MutationResult!
+  removeVenueRegion(venueId: Int!, regionId: Int!): MutationResult!
+
   updateVenue(venue: UpdateVenueInput!): MutationResult!
+  updateRegion(region: UpdateRegionInput!): MutationResult!
   updateVolunteer(profile: UpdateVolunteerInput!): MutationResult!  
   updateEvent(event: UpdateEventInput!): MutationResult!
   updateOpportunity(opp: UpdateOpportunityInput!): MutationResult!
   updateShift(shift: UpdateShiftInput!): MutationResult!
   updateEventDate(date: UpdateEventDateInput!): MutationResult!
 
-# TODO: figure out if we should ever delete a volunteer,
-#       or if we should just mark them inactive, since they
-#       are part of event history.
   deleteVolunteer(volunteerId: ID!): MutationResult!
-  
   deleteVenue(venueId: ID!): MutationResult!
+  deleteRegion(regionId: Int!): MutationResult!
   deleteEvent(eventId: ID!): MutationResult!
   deleteOpportunity(oppId: ID!): MutationResult!
   deleteShift(shiftId: ID!): MutationResult!
@@ -104,6 +107,12 @@ input NewVenueInput {
   state: String!
   zipCode: String
   ianaZone: String!
+  region: [Int!]! # array of ID's, but gqlgen won't keep making them strings.
+}
+
+input NewRegionInput {
+  code: String!
+  name: String!
 }
 
 input UpdateVenueInput {
@@ -116,6 +125,11 @@ input UpdateVenueInput {
   ianaZone: String!
 }
 
+input UpdateRegionInput {
+  id: Int!
+  code: String!
+  name: String!
+}
 
 input NewEventInput {
   name: String!

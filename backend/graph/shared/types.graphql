@@ -47,7 +47,7 @@ enum ShiftTimeFilter {
 ## a user can filter the results. If you want to add
 ## more ways to filter, this is the place.
 input EventFilterInput {
-  cities: [String!]
+  regions: [Int!]
   eventType: EventType
   jobs: [Job!]
   shiftStartDateTime: String
@@ -83,6 +83,13 @@ type VolunteerShift {
   venue: Venue
 }
 
+type Region {
+  id: Int!
+  code: String!
+  name: String!
+  is_active: Boolean!
+}
+
 type Venue {
   id: ID!
   name: String
@@ -91,6 +98,7 @@ type Venue {
   state: String!
   zipCode: String
   timezone: String!
+  region: [Int!]!
 }
 
 type Event {
