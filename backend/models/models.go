@@ -389,7 +389,7 @@ type FeedbackStatus string
 const (
 	FeedbackStatusOpen     FeedbackStatus = "OPEN"
 	FeedbackStatusQuestion FeedbackStatus = "QUESTION_SENT"
-	FeebackStatusGithub    FeedbackStatus = "RESOLVED_GITHUB"
+	FeedbackStatusGithub   FeedbackStatus = "RESOLVED_GITHUB"
 	FeedbackStatusRejected FeedbackStatus = "RESOLVED_REJECTED"
 )
 
