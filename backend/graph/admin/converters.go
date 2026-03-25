@@ -24,8 +24,19 @@ func toGenMutationResult(m *models.MutationResult) *generated.MutationResult {
 	}
 }
 
-func toGenRegion(m models.Region) generated.Region {
-	return generated.Region{
+func toGenRegions(ms []*models.Region) []*generated.Region {
+	result := make([]*generated.Region, len(ms))
+	for i, m := range ms {
+		result[i] = toGenRegion(m)
+	}
+	return result
+
+}
+func toGenRegion(m *models.Region) *generated.Region {
+	if m == nil {
+		return nil
+	}
+	return &generated.Region{
 		ID:       m.ID,
 		Code:     m.Code,
 		Name:     m.Name,

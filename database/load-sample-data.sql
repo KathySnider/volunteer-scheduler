@@ -1,284 +1,405 @@
--- ============================================
--- SAMPLE DATA - Volunteer Scheduler
--- ============================================
-
--- ============================================
--- STAFF
--- ============================================
-INSERT INTO staff (first_name, last_name, email, phone, position) VALUES
-  ('Maria', 'Gonzalez', 'mgonzalez@org.org', '702-555-0101', 'Volunteer Coordinator'),
-  ('James', 'Okafor',   'jokafor@org.org',   '702-555-0102', 'Outreach Director'),
-  ('Susan', 'Park',     'spark@org.org',      '702-555-0103', 'Advocacy Manager');
+-- ============================================================================
+-- VOLUNTEER SCHEDULER - SAMPLE DATA
+-- Washington State AARP Volunteer System
+-- Run AFTER init_schema.sql
+-- ============================================================================
 
 
--- ============================================
--- SERVICE TYPES
--- ============================================
-INSERT INTO service_types (code, name) VALUES
-  ('outreach',        'Outreach'),
-  ('advocacy',        'Advocacy'),
-  ('speakers_bureau', 'Speakers Bureau'),
-  ('office_support',  'Office Support'),
-  ('other',           'Other');
-
-
--- ============================================
+-- ============================================================================
 -- VENUES
--- Timezones match the city/state of each venue.
--- ============================================
+-- ============================================================================
+
 INSERT INTO venues (venue_name, street_address, city, state, zip_code, timezone) VALUES
-  ('City Community Center',     '100 Main St',         'Las Vegas',    'NV', '89101', 'America/Los_Angeles'),
-  ('Westside Library',          '250 W Sahara Ave',    'Las Vegas',    'NV', '89102', 'America/Los_Angeles'),
-  ('Henderson Civic Hall',      '400 N Water St',      'Henderson',    'NV', '89002', 'America/Los_Angeles'),
-  ('North Las Vegas Rec Center','1235 N Civic Dr',     'N. Las Vegas', 'NV', '89030', 'America/Los_Angeles'),
-  ('Phoenix Convention Center', '100 N 3rd St',        'Phoenix',      'AZ', '85004', 'America/Phoenix'),
-  ('Denver Community Hub',      '1400 Glenarm Pl',     'Denver',       'CO', '80202', 'America/Denver'),
-  ('Seattle Neighborhood Hall', '810 3rd Ave',         'Seattle',      'WA', '98104', 'America/Los_Angeles');
+    ('Seattle Central Library',       '1000 4th Ave',              'Seattle',    'WA', '98104', 'America/Los_Angeles'),
+    ('Spokane Convention Center',     '334 W Spokane Falls Blvd',  'Spokane',    'WA', '99201', 'America/Los_Angeles'),
+    ('Tacoma Convention Center',      '1500 Broadway',             'Tacoma',     'WA', '98402', 'America/Los_Angeles'),
+    ('Vancouver Community Library',   '901 C St',                  'Vancouver',  'WA', '98660', 'America/Los_Angeles'),
+    ('Bellevue City Hall',            '450 110th Ave NE',          'Bellevue',   'WA', '98004', 'America/Los_Angeles'),
+    ('Spokane Valley Library',        '12004 E Main Ave',          'Spokane Valley', 'WA', '99206', 'America/Los_Angeles'),
+    ('Olympia Center',                '222 Columbia St NW',        'Olympia',    'WA', '98501', 'America/Los_Angeles');
 
 
--- ============================================
+-- ============================================================================
+-- VENUE REGIONS
+-- ============================================================================
+
+-- Seattle Metro: Seattle, Tacoma, Bellevue
+INSERT INTO venue_regions (venue_id, region_id)
+SELECT v.venue_id, r.region_id
+FROM venues v, regions r
+WHERE v.city IN ('Seattle', 'Tacoma', 'Bellevue')
+  AND r.code = 'seattle';
+
+-- Spokane: Spokane, Spokane Valley
+INSERT INTO venue_regions (venue_id, region_id)
+SELECT v.venue_id, r.region_id
+FROM venues v, regions r
+WHERE v.city IN ('Spokane', 'Spokane Valley')
+  AND r.code = 'spokane';
+
+-- Southwest WA: Vancouver, Olympia
+INSERT INTO venue_regions (venue_id, region_id)
+SELECT v.venue_id, r.region_id
+FROM venues v, regions r
+WHERE v.city IN ('Vancouver', 'Olympia')
+  AND r.code = 'southwest_wa';
+
+
+-- ============================================================================
 -- VOLUNTEERS
--- ============================================
-INSERT INTO volunteers (first_name, last_name, email, phone, zip_code) VALUES
-  ('Alice',   'Thompson', 'alice.t@email.com',  '702-555-1001', '89101'),
-  ('Ben',     'Ruiz',     'ben.ruiz@email.com', '702-555-1002', '89102'),
-  ('Carla',   'Nguyen',   'carla.n@email.com',  '702-555-1003', '89002'),
-  ('David',   'Kim',      'david.k@email.com',  '702-555-1004', '89030'),
-  ('Estrella','Morales',  'estre.m@email.com',  '702-555-1005', '89101'),
-  ('Frank',   'Delgado',  'frank.d@email.com',  '602-555-2001', '85004'),
-  ('Grace',   'Huang',    'grace.h@email.com',  '303-555-3001', '80202'),
-  ('Henry',   'Osei',     'henry.o@email.com',  '206-555-4001', '98104');
+-- ============================================================================
+
+INSERT INTO volunteers (first_name, last_name, email, phone, zip_code, role, is_active) VALUES
+    ('Alice',   'Hansen',    'alice.hansen@example.com',    '206-555-0101', '98104', 'ADMINISTRATOR', TRUE),
+    ('Bob',     'Nguyen',    'bob.nguyen@example.com',      '509-555-0102', '99201', 'ADMINISTRATOR', TRUE),
+    ('Carol',   'Martinez',  'carol.martinez@example.com',  '206-555-0103', '98402', 'VOLUNTEER',     TRUE),
+    ('David',   'Kim',       'david.kim@example.com',       '509-555-0104', '99201', 'VOLUNTEER',     TRUE),
+    ('Ellen',   'Patel',     'ellen.patel@example.com',     '360-555-0105', '98660', 'VOLUNTEER',     TRUE),
+    ('Frank',   'Olsen',     'frank.olsen@example.com',     '206-555-0106', '98004', 'VOLUNTEER',     TRUE),
+    ('Grace',   'Williams',  'grace.williams@example.com',  '509-555-0107', '99206', 'VOLUNTEER',     TRUE),
+    ('Henry',   'Thompson',  'henry.thompson@example.com',  '360-555-0108', '98501', 'VOLUNTEER',     TRUE),
+    ('Isabel',  'Chen',      'isabel.chen@example.com',     '206-555-0109', '98104', 'VOLUNTEER',     TRUE),
+    ('James',   'Robinson',  'james.robinson@example.com',  '509-555-0110', '99201', 'VOLUNTEER',     TRUE);
 
 
--- ============================================
+-- ============================================================================
+-- STAFF
+-- ============================================================================
+
+INSERT INTO staff (first_name, last_name, email, phone, position) VALUES
+    ('Margaret', 'Sullivan',  'margaret.sullivan@aarp.org',  '206-555-0201', 'State Coordinator'),
+    ('Richard',  'Tanaka',    'richard.tanaka@aarp.org',     '509-555-0202', 'Regional Manager'),
+    ('Patricia', 'Flores',    'patricia.flores@aarp.org',    '360-555-0203', 'Event Coordinator');
+
+
+-- ============================================================================
 -- EVENTS
--- ============================================
+-- ============================================================================
+
+-- Seattle Metro events
 INSERT INTO events (event_name, description, event_is_virtual, venue_id) VALUES
-  -- Las Vegas events
-  ('Spring Outreach Fair',
-   'Annual community outreach fair connecting residents with local services.',
-   FALSE, 1),
-  ('Legislative Advocacy Day',
-   'Volunteers travel to the state capitol to meet with legislators.',
-   FALSE, 3),
-  ('Public Speaking Workshop',
-   'Training session for volunteers joining the speakers bureau.',
-   FALSE, 2),
-  ('Neighborhood Canvass - Downtown',
-   'Door-to-door outreach in the downtown corridor.',
-   FALSE, 1),
-  ('Office Volunteer Day',
-   'Help staff the office: answer phones, file, and assist walk-ins.',
-   FALSE, 1),
-  ('North LV Community Forum',
-   'Community forum addressing housing and health services in North LV.',
-   FALSE, 4),
-  ('Speakers Bureau Showcase',
-   'Volunteers present personal stories to community groups.',
-   FALSE, 2),
-  ('Henderson Resource Fair',
-   'Multi-agency resource fair serving Henderson residents.',
-   FALSE, 3),
-  -- Phoenix event
-  ('Phoenix Advocacy Summit',
-   'Regional summit bringing together advocates from across Arizona.',
-   FALSE, 5),
-  -- Denver event
-  ('Denver Outreach Blitz',
-   'Intensive one-day outreach effort across downtown Denver.',
-   FALSE, 6),
-  -- Seattle event
-  ('Seattle Speakers Night',
-   'Evening showcase of speakers bureau volunteers in Seattle.',
-   FALSE, 7),
-  -- Virtual events
-  ('Virtual Town Hall',
-   'Online town hall discussing upcoming policy changes.',
-   TRUE, NULL),
-  ('Virtual Advocacy Training',
-   'Online training covering advocacy skills and messaging.',
-   TRUE, NULL),
-  -- Hybrid event
-  ('Hybrid Leadership Forum',
-   'Leadership forum available in-person in Las Vegas and streamed online.',
-   TRUE, 1);
+    ('Medicare Q&A Workshop',
+     'Help seniors navigate Medicare enrollment and plan options. Volunteers assist with one-on-one sessions.',
+     FALSE,
+     (SELECT venue_id FROM venues WHERE city = 'Seattle')),
+
+    ('Tax Aide Preparation — Spring Session',
+     'Free tax preparation assistance for low-to-moderate income seniors. Training provided.',
+     FALSE,
+     (SELECT venue_id FROM venues WHERE city = 'Bellevue')),
+
+    ('Virtual Fraud Prevention Seminar',
+     'Online session covering the latest scams targeting seniors and how to stay safe.',
+     TRUE,
+     NULL);
+
+-- Spokane events
+INSERT INTO events (event_name, description, event_is_virtual, venue_id) VALUES
+    ('Spokane Senior Health Fair',
+     'Community health fair with blood pressure checks, medication reviews, and wellness resources.',
+     FALSE,
+     (SELECT venue_id FROM venues WHERE city = 'Spokane')),
+
+    ('Driver Safety Course',
+     'AARP Smart Driver course for seniors. Volunteers help with registration and materials.',
+     FALSE,
+     (SELECT venue_id FROM venues WHERE city = 'Spokane Valley'));
+
+-- Southwest WA events
+INSERT INTO events (event_name, description, event_is_virtual, venue_id) VALUES
+    ('Social Security Benefits Workshop',
+     'Informational session on maximizing Social Security benefits. Volunteers greet and assist attendees.',
+     FALSE,
+     (SELECT venue_id FROM venues WHERE city = 'Vancouver')),
+
+    ('Caregiver Support Forum',
+     'Forum connecting family caregivers with local resources and support networks.',
+     FALSE,
+     (SELECT venue_id FROM venues WHERE city = 'Olympia'));
 
 
--- ============================================
+-- ============================================================================
 -- EVENT SERVICE TYPES
--- ============================================
+-- ============================================================================
+
 INSERT INTO event_service_types (event_id, service_type_id)
-SELECT e.event_id, s.service_type_id
-FROM (VALUES
-  ('Spring Outreach Fair',            'outreach'),
-  ('Spring Outreach Fair',            'advocacy'),
-  ('Legislative Advocacy Day',        'advocacy'),
-  ('Public Speaking Workshop',        'speakers_bureau'),
-  ('Neighborhood Canvass - Downtown', 'outreach'),
-  ('Office Volunteer Day',            'office_support'),
-  ('North LV Community Forum',        'outreach'),
-  ('North LV Community Forum',        'advocacy'),
-  ('Speakers Bureau Showcase',        'speakers_bureau'),
-  ('Henderson Resource Fair',         'outreach'),
-  ('Henderson Resource Fair',         'office_support'),
-  ('Phoenix Advocacy Summit',         'advocacy'),
-  ('Denver Outreach Blitz',           'outreach'),
-  ('Seattle Speakers Night',          'speakers_bureau'),
-  ('Virtual Town Hall',               'advocacy'),
-  ('Virtual Town Hall',               'outreach'),
-  ('Virtual Advocacy Training',       'advocacy'),
-  ('Hybrid Leadership Forum',         'advocacy'),
-  ('Hybrid Leadership Forum',         'outreach')
-) AS mapping(event_name, code)
-JOIN events e ON e.event_name = mapping.event_name
-JOIN service_types s ON s.code = mapping.code;
+SELECT e.event_id, st.service_type_id
+FROM events e, service_types st
+WHERE e.event_name = 'Medicare Q&A Workshop'
+  AND st.code IN ('outreach', 'advocacy');
+
+INSERT INTO event_service_types (event_id, service_type_id)
+SELECT e.event_id, st.service_type_id
+FROM events e, service_types st
+WHERE e.event_name = 'Tax Aide Preparation — Spring Session'
+  AND st.code = 'office_support';
+
+INSERT INTO event_service_types (event_id, service_type_id)
+SELECT e.event_id, st.service_type_id
+FROM events e, service_types st
+WHERE e.event_name = 'Virtual Fraud Prevention Seminar'
+  AND st.code IN ('outreach', 'speakers_bureau');
+
+INSERT INTO event_service_types (event_id, service_type_id)
+SELECT e.event_id, st.service_type_id
+FROM events e, service_types st
+WHERE e.event_name = 'Spokane Senior Health Fair'
+  AND st.code = 'outreach';
+
+INSERT INTO event_service_types (event_id, service_type_id)
+SELECT e.event_id, st.service_type_id
+FROM events e, service_types st
+WHERE e.event_name = 'Driver Safety Course'
+  AND st.code = 'other';
+
+INSERT INTO event_service_types (event_id, service_type_id)
+SELECT e.event_id, st.service_type_id
+FROM events e, service_types st
+WHERE e.event_name = 'Social Security Benefits Workshop'
+  AND st.code IN ('outreach', 'advocacy');
+
+INSERT INTO event_service_types (event_id, service_type_id)
+SELECT e.event_id, st.service_type_id
+FROM events e, service_types st
+WHERE e.event_name = 'Caregiver Support Forum'
+  AND st.code = 'outreach';
 
 
--- ============================================
+-- ============================================================================
 -- EVENT DATES
--- Stored as UTC. Offsets:
---   Las Vegas / Seattle: UTC-7 (PDT) in spring/summer
---   Phoenix:             UTC-7 (MST, no DST)
---   Denver:              UTC-6 (MDT) in spring/summer
--- ============================================
+-- ============================================================================
+
 INSERT INTO event_dates (event_id, start_date_time, end_date_time)
-SELECT e.event_id, v.start_date_time::TIMESTAMP, v.end_date_time::TIMESTAMP
-FROM (VALUES
-  -- Las Vegas
-  ('Spring Outreach Fair',            '2026-04-11 16:00', '2026-04-12 00:00'),
-  ('Spring Outreach Fair',            '2026-04-12 16:00', '2026-04-12 21:00'),
-  ('Legislative Advocacy Day',        '2026-04-22 15:00', '2026-04-23 01:00'),
-  ('Public Speaking Workshop',        '2026-04-16 01:00', '2026-04-16 03:30'),
-  ('Neighborhood Canvass - Downtown', '2026-04-25 17:00', '2026-04-25 21:00'),
-  ('Office Volunteer Day',            '2026-05-02 16:00', '2026-05-03 00:00'),
-  ('Office Volunteer Day',            '2026-05-09 16:00', '2026-05-10 00:00'),
-  ('North LV Community Forum',        '2026-05-07 01:00', '2026-05-07 03:00'),
-  ('Speakers Bureau Showcase',        '2026-05-14 00:30', '2026-05-14 03:00'),
-  ('Henderson Resource Fair',         '2026-05-16 16:00', '2026-05-16 22:00'),
-  ('Henderson Resource Fair',         '2026-05-17 16:00', '2026-05-17 20:00'),
-  -- Phoenix (UTC-7)
-  ('Phoenix Advocacy Summit',         '2026-04-30 14:00', '2026-04-30 23:00'),
-  -- Denver (UTC-6)
-  ('Denver Outreach Blitz',           '2026-05-09 14:00', '2026-05-09 22:00'),
-  -- Seattle (UTC-7)
-  ('Seattle Speakers Night',          '2026-05-21 00:00', '2026-05-21 03:00'),
-  -- Virtual
-  ('Virtual Town Hall',               '2026-04-19 00:00', '2026-04-19 02:00'),
-  ('Virtual Advocacy Training',       '2026-05-07 19:00', '2026-05-07 21:00'),
-  ('Virtual Advocacy Training',       '2026-05-14 19:00', '2026-05-14 21:00'),
-  -- Hybrid
-  ('Hybrid Leadership Forum',         '2026-06-05 17:00', '2026-06-05 23:00')
-) AS v(event_name, start_date_time, end_date_time)
-JOIN events e ON e.event_name = v.event_name;
+SELECT event_id, '2026-05-10 09:00:00', '2026-05-10 15:00:00'
+FROM events WHERE event_name = 'Medicare Q&A Workshop';
+
+INSERT INTO event_dates (event_id, start_date_time, end_date_time)
+SELECT event_id, '2026-05-17 10:00:00', '2026-05-17 16:00:00'
+FROM events WHERE event_name = 'Tax Aide Preparation — Spring Session';
+
+INSERT INTO event_dates (event_id, start_date_time, end_date_time)
+SELECT event_id, '2026-04-30 13:00:00', '2026-04-30 15:00:00'
+FROM events WHERE event_name = 'Virtual Fraud Prevention Seminar';
+
+INSERT INTO event_dates (event_id, start_date_time, end_date_time)
+SELECT event_id, '2026-06-07 09:00:00', '2026-06-07 14:00:00'
+FROM events WHERE event_name = 'Spokane Senior Health Fair';
+
+INSERT INTO event_dates (event_id, start_date_time, end_date_time)
+SELECT event_id, '2026-05-24 08:30:00', '2026-05-24 12:30:00'
+FROM events WHERE event_name = 'Driver Safety Course';
+
+INSERT INTO event_dates (event_id, start_date_time, end_date_time)
+SELECT event_id, '2026-06-14 10:00:00', '2026-06-14 13:00:00'
+FROM events WHERE event_name = 'Social Security Benefits Workshop';
+
+INSERT INTO event_dates (event_id, start_date_time, end_date_time)
+SELECT event_id, '2026-06-21 13:00:00', '2026-06-21 16:00:00'
+FROM events WHERE event_name = 'Caregiver Support Forum';
 
 
--- ============================================
--- OPPORTUNITIES
--- ============================================
+-- ============================================================================
+-- OPPORTUNITIES AND SHIFTS
+-- ============================================================================
+
+-- Medicare Q&A Workshop
 INSERT INTO opportunities (event_id, job, opportunity_is_virtual, pre_event_instructions)
-SELECT e.event_id, v.job::job_type, v.is_virtual, v.instructions
-FROM (VALUES
-  ('Spring Outreach Fair',            'event_support',  FALSE, 'Wear org t-shirt. Arrive 30 min early for setup.'),
-  ('Spring Outreach Fair',            'volunteer_lead', FALSE, 'Lead a team of 4 event support volunteers.'),
-  ('Legislative Advocacy Day',        'advocacy',       FALSE, 'Review talking points sent via email before the event.'),
-  ('Public Speaking Workshop',        'speaker',        FALSE, 'Prepare a 5-minute personal story to share.'),
-  ('Neighborhood Canvass - Downtown', 'event_support',  FALSE, 'Bring comfortable shoes. Materials provided on site.'),
-  ('Office Volunteer Day',            'event_support',  FALSE, 'Check in with Maria at the front desk upon arrival.'),
-  ('North LV Community Forum',        'event_support',  FALSE, 'Help with setup, registration, and breakdown.'),
-  ('Speakers Bureau Showcase',        'speaker',        FALSE, 'Prepare a 10-minute story. Run-through at 5pm before event.'),
-  ('Henderson Resource Fair',         'event_support',  FALSE, 'Arrive 45 min early. Wear org t-shirt.'),
-  ('Phoenix Advocacy Summit',         'advocacy',       FALSE, 'Review the summit agenda and prepare questions for legislators.'),
-  ('Phoenix Advocacy Summit',         'volunteer_lead', FALSE, 'Coordinate check-in and manage breakout room logistics.'),
-  ('Denver Outreach Blitz',           'event_support',  FALSE, 'Teams of 3. Meet at venue at 7:45am for assignment.'),
-  ('Seattle Speakers Night',          'speaker',        FALSE, 'Prepare an 8-minute story. Arrive by 5:30pm for sound check.'),
-  ('Virtual Town Hall',               'advocacy',       TRUE,  'Log in 10 minutes early to test audio/video.'),
-  ('Virtual Advocacy Training',       'attendee_only',  TRUE,  'No prep needed. Just bring your questions!'),
-  ('Hybrid Leadership Forum',         'event_support',  FALSE, 'Assist with in-person registration and AV setup.'),
-  ('Hybrid Leadership Forum',         'advocacy',       TRUE,  'Moderate the online chat during the forum.')
-) AS v(event_name, job, is_virtual, instructions)
-JOIN events e ON e.event_name = v.event_name;
+SELECT event_id, 'event_support', FALSE,
+    'Please arrive 30 minutes early for briefing. Wear your AARP volunteer badge.'
+FROM events WHERE event_name = 'Medicare Q&A Workshop';
+
+INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
+SELECT o.opportunity_id, '2026-05-10 08:30:00', '2026-05-10 12:00:00', 4,
+    (SELECT staff_id FROM staff WHERE last_name = 'Sullivan')
+FROM opportunities o
+JOIN events e ON o.event_id = e.event_id
+WHERE e.event_name = 'Medicare Q&A Workshop';
+
+INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
+SELECT o.opportunity_id, '2026-05-10 12:00:00', '2026-05-10 15:30:00', 4,
+    (SELECT staff_id FROM staff WHERE last_name = 'Sullivan')
+FROM opportunities o
+JOIN events e ON o.event_id = e.event_id
+WHERE e.event_name = 'Medicare Q&A Workshop';
+
+-- Tax Aide
+INSERT INTO opportunities (event_id, job, opportunity_is_virtual, pre_event_instructions)
+SELECT event_id, 'office_support', FALSE,
+    'IRS certification required before volunteering. Contact coordinator for training dates.'
+FROM events WHERE event_name = 'Tax Aide Preparation — Spring Session';
+
+INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
+SELECT o.opportunity_id, '2026-05-17 09:30:00', '2026-05-17 13:00:00', 6,
+    (SELECT staff_id FROM staff WHERE last_name = 'Sullivan')
+FROM opportunities o
+JOIN events e ON o.event_id = e.event_id
+WHERE e.event_name = 'Tax Aide Preparation — Spring Session';
+
+INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
+SELECT o.opportunity_id, '2026-05-17 13:00:00', '2026-05-17 16:30:00', 6,
+    (SELECT staff_id FROM staff WHERE last_name = 'Sullivan')
+FROM opportunities o
+JOIN events e ON o.event_id = e.event_id
+WHERE e.event_name = 'Tax Aide Preparation — Spring Session';
+
+-- Virtual Fraud Prevention
+INSERT INTO opportunities (event_id, job, opportunity_is_virtual, pre_event_instructions)
+SELECT event_id, 'speaker', TRUE,
+    'Zoom link will be emailed 24 hours before the event. Test your audio/video beforehand.'
+FROM events WHERE event_name = 'Virtual Fraud Prevention Seminar';
+
+INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers)
+SELECT o.opportunity_id, '2026-04-30 12:45:00', '2026-04-30 15:15:00', 3
+FROM opportunities o
+JOIN events e ON o.event_id = e.event_id
+WHERE e.event_name = 'Virtual Fraud Prevention Seminar';
+
+-- Spokane Health Fair
+INSERT INTO opportunities (event_id, job, opportunity_is_virtual, pre_event_instructions)
+SELECT event_id, 'event_support', FALSE,
+    'Wear comfortable shoes. Setup begins at 8:00 AM.'
+FROM events WHERE event_name = 'Spokane Senior Health Fair';
+
+INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
+SELECT o.opportunity_id, '2026-06-07 08:00:00', '2026-06-07 11:30:00', 5,
+    (SELECT staff_id FROM staff WHERE last_name = 'Tanaka')
+FROM opportunities o
+JOIN events e ON o.event_id = e.event_id
+WHERE e.event_name = 'Spokane Senior Health Fair';
+
+INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
+SELECT o.opportunity_id, '2026-06-07 11:30:00', '2026-06-07 14:30:00', 5,
+    (SELECT staff_id FROM staff WHERE last_name = 'Tanaka')
+FROM opportunities o
+JOIN events e ON o.event_id = e.event_id
+WHERE e.event_name = 'Spokane Senior Health Fair';
+
+-- Driver Safety Course
+INSERT INTO opportunities (event_id, job, opportunity_is_virtual, pre_event_instructions)
+SELECT event_id, 'volunteer_lead', FALSE,
+    'Lead volunteers coordinate check-in and distribute course materials.'
+FROM events WHERE event_name = 'Driver Safety Course';
+
+INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
+SELECT o.opportunity_id, '2026-05-24 08:00:00', '2026-05-24 13:00:00', 2,
+    (SELECT staff_id FROM staff WHERE last_name = 'Tanaka')
+FROM opportunities o
+JOIN events e ON o.event_id = e.event_id
+WHERE e.event_name = 'Driver Safety Course';
+
+-- Social Security Workshop
+INSERT INTO opportunities (event_id, job, opportunity_is_virtual, pre_event_instructions)
+SELECT event_id, 'event_support', FALSE,
+    'Greet attendees and help them find seating. Light refreshments provided.'
+FROM events WHERE event_name = 'Social Security Benefits Workshop';
+
+INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
+SELECT o.opportunity_id, '2026-06-14 09:30:00', '2026-06-14 13:30:00', 4,
+    (SELECT staff_id FROM staff WHERE last_name = 'Flores')
+FROM opportunities o
+JOIN events e ON o.event_id = e.event_id
+WHERE e.event_name = 'Social Security Benefits Workshop';
+
+-- Caregiver Forum
+INSERT INTO opportunities (event_id, job, opportunity_is_virtual, pre_event_instructions)
+SELECT event_id, 'event_support', FALSE,
+    'Help set up resource tables and guide attendees to breakout sessions.'
+FROM events WHERE event_name = 'Caregiver Support Forum';
+
+INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
+SELECT o.opportunity_id, '2026-06-21 12:30:00', '2026-06-21 16:30:00', 3,
+    (SELECT staff_id FROM staff WHERE last_name = 'Flores')
+FROM opportunities o
+JOIN events e ON o.event_id = e.event_id
+WHERE e.event_name = 'Caregiver Support Forum';
 
 
--- ============================================
--- SHIFTS
--- Stored as UTC.
--- ============================================
-INSERT INTO shifts (opportunity_id, shift_start, shift_end, staff_contact_id, max_volunteers)
-SELECT o.opportunity_id, v.shift_start::TIMESTAMP, v.shift_end::TIMESTAMP, s.staff_id, v.max_volunteers
-FROM (VALUES
-  -- Spring Outreach Fair
-  ('Spring Outreach Fair', 'event_support',  '2026-04-11 15:30', '2026-04-11 21:00', 'mgonzalez@org.org', 6),
-  ('Spring Outreach Fair', 'event_support',  '2026-04-12 15:30', '2026-04-12 21:30', 'mgonzalez@org.org', 6),
-  ('Spring Outreach Fair', 'volunteer_lead', '2026-04-11 15:00', '2026-04-12 00:30', 'mgonzalez@org.org', 1),
-  -- Legislative Advocacy Day
-  ('Legislative Advocacy Day', 'advocacy',   '2026-04-22 15:00', '2026-04-23 01:00', 'jokafor@org.org',   10),
-  -- Public Speaking Workshop
-  ('Public Speaking Workshop', 'speaker',    '2026-04-16 00:45', '2026-04-16 03:30', 'spark@org.org',     8),
-  -- Neighborhood Canvass
-  ('Neighborhood Canvass - Downtown', 'event_support', '2026-04-25 16:45', '2026-04-25 21:00', 'mgonzalez@org.org', 12),
-  -- Office Volunteer Day
-  ('Office Volunteer Day', 'event_support',  '2026-05-02 16:00', '2026-05-02 20:00', 'mgonzalez@org.org', 3),
-  ('Office Volunteer Day', 'event_support',  '2026-05-02 20:00', '2026-05-03 00:00', 'mgonzalez@org.org', 3),
-  ('Office Volunteer Day', 'event_support',  '2026-05-09 16:00', '2026-05-09 20:00', 'mgonzalez@org.org', 3),
-  ('Office Volunteer Day', 'event_support',  '2026-05-09 20:00', '2026-05-10 00:00', 'mgonzalez@org.org', 3),
-  -- North LV Community Forum
-  ('North LV Community Forum', 'event_support', '2026-05-07 00:30', '2026-05-07 03:30', 'mgonzalez@org.org', 5),
-  -- Speakers Bureau Showcase
-  ('Speakers Bureau Showcase', 'speaker',    '2026-05-14 00:00', '2026-05-14 03:30', 'spark@org.org',     6),
-  -- Henderson Resource Fair
-  ('Henderson Resource Fair', 'event_support', '2026-05-16 15:15', '2026-05-16 22:00', 'mgonzalez@org.org', 8),
-  ('Henderson Resource Fair', 'event_support', '2026-05-17 15:15', '2026-05-17 20:00', 'mgonzalez@org.org', 5),
-  -- Phoenix Advocacy Summit
-  ('Phoenix Advocacy Summit', 'advocacy',      '2026-04-30 14:00', '2026-04-30 20:00', 'jokafor@org.org',  15),
-  ('Phoenix Advocacy Summit', 'volunteer_lead','2026-04-30 13:00', '2026-04-30 23:00', 'mgonzalez@org.org', 2),
-  -- Denver Outreach Blitz
-  ('Denver Outreach Blitz', 'event_support',   '2026-05-09 14:00', '2026-05-09 18:00', 'mgonzalez@org.org', 10),
-  ('Denver Outreach Blitz', 'event_support',   '2026-05-09 18:00', '2026-05-09 22:00', 'mgonzalez@org.org', 10),
-  -- Seattle Speakers Night
-  ('Seattle Speakers Night', 'speaker',        '2026-05-21 00:00', '2026-05-21 03:00', 'spark@org.org',     8),
-  -- Virtual Town Hall
-  ('Virtual Town Hall', 'advocacy',            '2026-04-18 23:50', '2026-04-19 02:00', 'jokafor@org.org',  20),
-  -- Virtual Advocacy Training
-  ('Virtual Advocacy Training', 'attendee_only', '2026-05-07 19:00', '2026-05-07 21:00', 'jokafor@org.org', 30),
-  ('Virtual Advocacy Training', 'attendee_only', '2026-05-14 19:00', '2026-05-14 21:00', 'jokafor@org.org', 30),
-  -- Hybrid Leadership Forum
-  ('Hybrid Leadership Forum', 'event_support', '2026-06-05 16:30', '2026-06-05 23:00', 'mgonzalez@org.org', 6),
-  ('Hybrid Leadership Forum', 'advocacy',      '2026-06-05 17:00', '2026-06-05 23:00', 'jokafor@org.org',   5)
-) AS v(event_name, job, shift_start, shift_end, staff_email, max_volunteers)
-JOIN events e ON e.event_name = v.event_name
-JOIN opportunities o ON o.event_id = e.event_id AND o.job = v.job::job_type
-JOIN staff s ON s.email = v.staff_email;
+-- ============================================================================
+-- SAMPLE VOLUNTEER SHIFT ASSIGNMENTS
+-- ============================================================================
 
-
--- ============================================
--- VOLUNTEER SHIFT ASSIGNMENTS
--- ============================================
+-- Carol and Frank sign up for Medicare Q&A morning shift
 INSERT INTO volunteer_shifts (volunteer_id, shift_id, assigned_at)
-SELECT vol.volunteer_id, sh.shift_id, NOW()
-FROM (VALUES
-  ('alice.t@email.com',  'Spring Outreach Fair',            'event_support',  '2026-04-11 15:30'),
-  ('alice.t@email.com',  'Virtual Advocacy Training',       'attendee_only',  '2026-05-07 19:00'),
-  ('alice.t@email.com',  'Henderson Resource Fair',         'event_support',  '2026-05-16 15:15'),
-  ('ben.ruiz@email.com', 'Spring Outreach Fair',            'event_support',  '2026-04-11 15:30'),
-  ('ben.ruiz@email.com', 'Office Volunteer Day',            'event_support',  '2026-05-02 16:00'),
-  ('ben.ruiz@email.com', 'Henderson Resource Fair',         'event_support',  '2026-05-16 15:15'),
-  ('carla.n@email.com',  'Legislative Advocacy Day',        'advocacy',       '2026-04-22 15:00'),
-  ('carla.n@email.com',  'Virtual Town Hall',               'advocacy',       '2026-04-18 23:50'),
-  ('carla.n@email.com',  'Hybrid Leadership Forum',         'advocacy',       '2026-06-05 17:00'),
-  ('david.k@email.com',  'Neighborhood Canvass - Downtown', 'event_support',  '2026-04-25 16:45'),
-  ('david.k@email.com',  'North LV Community Forum',        'event_support',  '2026-05-07 00:30'),
-  ('estre.m@email.com',  'Public Speaking Workshop',        'speaker',        '2026-04-16 00:45'),
-  ('estre.m@email.com',  'Speakers Bureau Showcase',        'speaker',        '2026-05-14 00:00'),
-  ('estre.m@email.com',  'Seattle Speakers Night',          'speaker',        '2026-05-21 00:00'),
-  ('frank.d@email.com',  'Phoenix Advocacy Summit',         'advocacy',       '2026-04-30 14:00'),
-  ('frank.d@email.com',  'Phoenix Advocacy Summit',         'volunteer_lead', '2026-04-30 13:00'),
-  ('grace.h@email.com',  'Denver Outreach Blitz',           'event_support',  '2026-05-09 14:00'),
-  ('grace.h@email.com',  'Virtual Advocacy Training',       'attendee_only',  '2026-05-14 19:00'),
-  ('henry.o@email.com',  'Seattle Speakers Night',          'speaker',        '2026-05-21 00:00'),
-  ('henry.o@email.com',  'Virtual Town Hall',               'advocacy',       '2026-04-18 23:50')
-) AS v(vol_email, event_name, job, shift_start)
-JOIN volunteers vol ON vol.email = v.vol_email
-JOIN events e ON e.event_name = v.event_name
-JOIN opportunities o ON o.event_id = e.event_id AND o.job = v.job::job_type
-JOIN shifts sh ON sh.opportunity_id = o.opportunity_id
-              AND sh.shift_start = v.shift_start::TIMESTAMP;
+SELECT v.volunteer_id, s.shift_id, NOW()
+FROM volunteers v, shifts s
+JOIN opportunities o ON s.opportunity_id = o.opportunity_id
+JOIN events e ON o.event_id = e.event_id
+WHERE v.first_name = 'Carol'
+  AND e.event_name = 'Medicare Q&A Workshop'
+  AND s.shift_start = '2026-05-10 08:30:00';
+
+INSERT INTO volunteer_shifts (volunteer_id, shift_id, assigned_at)
+SELECT v.volunteer_id, s.shift_id, NOW()
+FROM volunteers v, shifts s
+JOIN opportunities o ON s.opportunity_id = o.opportunity_id
+JOIN events e ON o.event_id = e.event_id
+WHERE v.first_name = 'Frank'
+  AND e.event_name = 'Medicare Q&A Workshop'
+  AND s.shift_start = '2026-05-10 08:30:00';
+
+-- David and Grace sign up for Spokane Health Fair morning shift
+INSERT INTO volunteer_shifts (volunteer_id, shift_id, assigned_at)
+SELECT v.volunteer_id, s.shift_id, NOW()
+FROM volunteers v, shifts s
+JOIN opportunities o ON s.opportunity_id = o.opportunity_id
+JOIN events e ON o.event_id = e.event_id
+WHERE v.first_name = 'David'
+  AND e.event_name = 'Spokane Senior Health Fair'
+  AND s.shift_start = '2026-06-07 08:00:00';
+
+INSERT INTO volunteer_shifts (volunteer_id, shift_id, assigned_at)
+SELECT v.volunteer_id, s.shift_id, NOW()
+FROM volunteers v, shifts s
+JOIN opportunities o ON s.opportunity_id = o.opportunity_id
+JOIN events e ON o.event_id = e.event_id
+WHERE v.first_name = 'Grace'
+  AND e.event_name = 'Spokane Senior Health Fair'
+  AND s.shift_start = '2026-06-07 08:00:00';
+
+-- Ellen signs up for Social Security Workshop (then cancels)
+INSERT INTO volunteer_shifts (volunteer_id, shift_id, assigned_at, cancelled_at)
+SELECT v.volunteer_id, s.shift_id, NOW() - INTERVAL '5 days', NOW() - INTERVAL '2 days'
+FROM volunteers v, shifts s
+JOIN opportunities o ON s.opportunity_id = o.opportunity_id
+JOIN events e ON o.event_id = e.event_id
+WHERE v.first_name = 'Ellen'
+  AND e.event_name = 'Social Security Benefits Workshop';
+
+-- Henry signs up for Caregiver Forum
+INSERT INTO volunteer_shifts (volunteer_id, shift_id, assigned_at)
+SELECT v.volunteer_id, s.shift_id, NOW()
+FROM volunteers v, shifts s
+JOIN opportunities o ON s.opportunity_id = o.opportunity_id
+JOIN events e ON o.event_id = e.event_id
+WHERE v.first_name = 'Henry'
+  AND e.event_name = 'Caregiver Support Forum';
+
+
+-- ============================================================================
+-- SAMPLE FEEDBACK
+-- ============================================================================
+
+INSERT INTO feedback (volunteer_id, feedback_type, status, subject, app_page_name, text, created_at)
+SELECT volunteer_id, 'BUG', 'OPEN',
+    'Event date not showing correctly',
+    'Event Detail',
+    'When I click on the Medicare workshop, the date shows as January instead of May. Might be a timezone issue.',
+    NOW() - INTERVAL '3 days'
+FROM volunteers WHERE first_name = 'Carol';
+
+INSERT INTO feedback (volunteer_id, feedback_type, status, subject, app_page_name, text, created_at)
+SELECT volunteer_id, 'ENHANCEMENT', 'OPEN',
+    'Add email reminders for upcoming shifts',
+    'My Signups',
+    'It would be really helpful to get an email reminder 24 hours before a shift. I almost forgot about my last one!',
+    NOW() - INTERVAL '1 day'
+FROM volunteers WHERE first_name = 'David';
+
+-- Admin note on the bug report
+INSERT INTO feedback_notes (feedback_id, volunteer_id, note, created_at)
+SELECT f.feedback_id, v.volunteer_id,
+    'Reproduced the issue. Looks like the event date is being stored correctly in UTC but displaying without timezone conversion. Assigned to dev team.',
+    NOW() - INTERVAL '2 days'
+FROM feedback f, volunteers v
+WHERE f.subject = 'Event date not showing correctly'
+  AND v.first_name = 'Alice';
