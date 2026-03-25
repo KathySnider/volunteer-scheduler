@@ -114,6 +114,33 @@ type EventDate struct {
 	IanaZone      string
 }
 
+// Feedback
+
+// Show admins all of the notes complete with who
+// wrote each and when.
+
+type FeedbackNote struct {
+	ID        string
+	Creator   string
+	CreatedAt string
+	Note      string
+}
+
+type Feedback struct {
+	ID             string
+	VolunteerName  string
+	Type           FeedbackType
+	Status         FeedbackStatus
+	Subject        string
+	AppPageName    string
+	Text           string
+	Notes          []*FeedbackNote
+	GithubIssueURL *string
+	CreatedAt      string
+	LastUpdatedAt  *string
+	ResolvedAt     *string
+}
+
 // Input types for queries (e.g., filters).
 
 type EventFilterInput struct {
@@ -129,6 +156,11 @@ type VolunteerFilterInput struct {
 	FirstName *string
 	LastName  *string
 	Email     *string
+}
+
+type FeedbackFilterInput struct {
+	Status *FeedbackStatus
+	Type   *FeedbackType
 }
 
 // Input types for new elements.
@@ -204,6 +236,13 @@ type AddShiftInput struct {
 	StaffContactId *string
 }
 
+type NewFeedbackInput struct {
+	Type        FeedbackType
+	Subject     string
+	AppPageName string
+	Text        string
+}
+
 // Input types for updating.
 type UpdateOwnProfileInput struct {
 	FirstName string
@@ -272,6 +311,26 @@ type UpdateShiftInput struct {
 	StaffContactId *string
 }
 
+type QuestionFeedbackInput struct {
+	ID        string
+	EmailText string
+	Note      string
+}
+
+type UpdateFeedbackInput struct {
+	ID             string
+	Status         FeedbackStatus
+	Note           string
+	GithubIssueURL *string
+}
+
+type ResolveFeedbackInput struct {
+	ID             string
+	Status         FeedbackStatus
+	Note           string
+	GithubIssueURL *string
+}
+
 // Enums
 type Role string
 
@@ -315,6 +374,23 @@ const (
 	ShiftsFilterUpcoming ShiftsTimeFilter = "UPCOMING"
 	ShiftsFilterPast     ShiftsTimeFilter = "PAST"
 	ShiftsFilterAll      ShiftsTimeFilter = "ALL"
+)
+
+type FeedbackType string
+
+const (
+	FeedbackTypeBug         FeedbackType = "BUG"
+	FeedbackTypeEnhancement FeedbackType = "ENHANCEMENT"
+	FeedbackTypeGeneral     FeedbackType = "GENERAL"
+)
+
+type FeedbackStatus string
+
+const (
+	FeedbackStatusOpen     FeedbackStatus = "OPEN"
+	FeedbackStatusQuestion FeedbackStatus = "QUESTION_SENT"
+	FeebackStatusGithub    FeedbackStatus = "RESOLVED_GITHUB"
+	FeedbackStatusRejected FeedbackStatus = "RESOLVED_REJECTED"
 )
 
 // Result types

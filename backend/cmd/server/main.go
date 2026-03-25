@@ -85,6 +85,7 @@ func main() {
 	volunteerService := services.NewVolunteerService(db, mailer)
 	shiftService := services.NewShiftService(db, mailer)
 	venueService := services.NewVenueService(db)
+	feedbackService := services.NewFeedbackService(db, mailer)
 
 	eventService, err := services.NewEventService(db, mailer, shiftService)
 	if err != nil {
@@ -102,6 +103,7 @@ func main() {
 		VolunteerService: volunteerService,
 		ShiftService:     shiftService,
 		VenueService:     venueService,
+		FeedbackService:  feedbackService,
 	}
 
 	adminResolver := &admin.Resolver{
@@ -110,6 +112,7 @@ func main() {
 		VolunteerService: volunteerService,
 		ShiftService:     shiftService,
 		VenueService:     venueService,
+		FeedbackService:  feedbackService,
 	}
 
 	// Set up GraphQL servers with endpoints for user type.

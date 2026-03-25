@@ -170,6 +170,15 @@ func toModelEventFilterInput(g *generated.EventFilterInput) *models.EventFilterI
 	}
 }
 
+func toModelNewFeedbackInput(g generated.NewFeedbackInput) models.NewFeedbackInput {
+	return models.NewFeedbackInput{
+		Type:        models.FeedbackType(g.Type),
+		Subject:     g.Subject,
+		AppPageName: g.AppPageName,
+		Text:        g.Text,
+	}
+}
+
 // END OF DUPLICATE CODE
 
 // Everything below this is unique to admins only.
@@ -254,6 +263,51 @@ func toGenShift(m *models.Shift) *generated.Shift {
 	}
 }
 
+func toGenFeedbacks(ms []*models.Feedback) []*generated.Feedback {
+	result := make([]*generated.Feedback, len(ms))
+	for i, m := range ms {
+		result[i] = toGenFeedback(m)
+	}
+	return result
+}
+
+func toGenFeedback(m *models.Feedback) *generated.Feedback {
+	if m == nil {
+		return nil
+	}
+
+	return &generated.Feedback{
+		ID:             m.ID,
+		VolunteerName:  m.VolunteerName,
+		Type:           generated.FeedbackType(m.Type),
+		Status:         generated.FeedbackStatus(m.Status),
+		Subject:        m.Subject,
+		AppPageName:    m.AppPageName,
+		Text:           m.Text,
+		Notes:          toGenFeedbackNotes(m.Notes),
+		GithubIssueURL: m.GithubIssueURL,
+		CreatedAt:      m.CreatedAt,
+		LastUpdatedAt:  m.LastUpdatedAt,
+		ResolvedAt:     m.ResolvedAt,
+	}
+}
+
+func toGenFeedbackNotes(ms []*models.FeedbackNote) []*generated.FeedbackNote {
+	notes := make([]*generated.FeedbackNote, len(ms))
+	for i, m := range ms {
+		notes[i] = toGenFeedbackNote(m)
+	}
+	return notes
+}
+
+func toGenFeedbackNote(m *models.FeedbackNote) *generated.FeedbackNote {
+	if m == nil {
+		return nil
+	}
+	return &generated.FeedbackNote{}
+
+}
+
 // Convert generated types to models.
 
 // Filters from the API to the services.
@@ -267,6 +321,32 @@ func toModelVolunteerFilterInput(g *generated.VolunteerFilterInput) *models.Volu
 		FirstName: g.FirstName,
 		LastName:  g.LastName,
 		Email:     g.Email,
+	}
+}
+
+/*
+	if g.EventType != nil {
+			et := models.EventType(*g.EventType)
+			eventType = &et
+		}
+*/
+func toModelFeedbackFilterInput(g *generated.FeedbackFilterInput) *models.FeedbackFilterInput {
+	if g == nil {
+		return nil
+	}
+
+	var fs models.FeedbackStatus
+	if g.Status != nil {
+		fs = models.FeedbackStatus(*g.Status)
+	}
+	var ft models.FeedbackType
+	if g.Type != nil {
+		ft = models.FeedbackType(*g.Type)
+	}
+
+	return &models.FeedbackFilterInput{
+		Status: &fs,
+		Type:   &ft,
 	}
 }
 
@@ -464,15 +544,6 @@ func toModelUpdateEventDateInput(g generated.UpdateEventDateInput) models.Update
 	}
 }
 
-func toModelUpdateOpportunities(gs []generated.UpdateOpportunityInput) []models.UpdateOpportunityInput {
-	result := make([]models.UpdateOpportunityInput, len(gs))
-
-	for i, g := range gs {
-		result[i] = toModelUpdateOpportunity(g)
-	}
-	return result
-}
-
 func toModelUpdateOpportunity(g generated.UpdateOpportunityInput) models.UpdateOpportunityInput {
 	return models.UpdateOpportunityInput{
 		ID:                   g.ID,
@@ -483,14 +554,6 @@ func toModelUpdateOpportunity(g generated.UpdateOpportunityInput) models.UpdateO
 	}
 }
 
-func toModelUpdateShifts(gs []generated.UpdateShiftInput) []models.UpdateShiftInput {
-	result := make([]models.UpdateShiftInput, len(gs))
-	for i, g := range gs {
-		result[i] = toModelUpdateShift(g)
-	}
-	return result
-}
-
 func toModelUpdateShift(g generated.UpdateShiftInput) models.UpdateShiftInput {
 	return models.UpdateShiftInput{
 		ID:             g.ID,
@@ -499,5 +562,31 @@ func toModelUpdateShift(g generated.UpdateShiftInput) models.UpdateShiftInput {
 		IanaZone:       g.IanaZone,
 		MaxVolunteers:  g.MaxVolunteers,
 		StaffContactId: g.StaffContactID,
+	}
+}
+
+func toModelQuestionFreedbackInput(g generated.QuestionFeedbackInput) models.QuestionFeedbackInput {
+	return models.QuestionFeedbackInput{
+		ID:        g.ID,
+		EmailText: g.EmailText,
+		Note:      g.Note,
+	}
+}
+
+func toModelUpdateFeedbackInput(g generated.UpdateFeedbackInput) models.UpdateFeedbackInput {
+	return models.UpdateFeedbackInput{
+		ID:             g.ID,
+		Status:         models.FeedbackStatus(g.Status),
+		Note:           g.Note,
+		GithubIssueURL: g.GithubIssueURL,
+	}
+}
+
+func toModelResolveFeedbackInput(g generated.ResolveFeedbackInput) models.ResolveFeedbackInput {
+	return models.ResolveFeedbackInput{
+		ID:             g.ID,
+		Status:         models.FeedbackStatus(g.Status),
+		Note:           g.Note,
+		GithubIssueURL: g.GithubIssueURL,
 	}
 }

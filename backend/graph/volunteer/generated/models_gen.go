@@ -43,6 +43,13 @@ type MutationResult struct {
 	ID      *string `json:"id,omitempty"`
 }
 
+type NewFeedbackInput struct {
+	Type        FeedbackType `json:"type"`
+	Subject     string       `json:"subject"`
+	AppPageName string       `json:"app_page_name"`
+	Text        string       `json:"text"`
+}
+
 type Query struct {
 }
 
@@ -166,6 +173,122 @@ func (e *EventType) UnmarshalJSON(b []byte) error {
 }
 
 func (e EventType) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type FeedbackStatus string
+
+const (
+	FeedbackStatusOpen             FeedbackStatus = "OPEN"
+	FeedbackStatusQuestionSent     FeedbackStatus = "QUESTION_SENT"
+	FeedbackStatusResolvedGithub   FeedbackStatus = "RESOLVED_GITHUB"
+	FeedbackStatusResolvedRejected FeedbackStatus = "RESOLVED_REJECTED"
+)
+
+var AllFeedbackStatus = []FeedbackStatus{
+	FeedbackStatusOpen,
+	FeedbackStatusQuestionSent,
+	FeedbackStatusResolvedGithub,
+	FeedbackStatusResolvedRejected,
+}
+
+func (e FeedbackStatus) IsValid() bool {
+	switch e {
+	case FeedbackStatusOpen, FeedbackStatusQuestionSent, FeedbackStatusResolvedGithub, FeedbackStatusResolvedRejected:
+		return true
+	}
+	return false
+}
+
+func (e FeedbackStatus) String() string {
+	return string(e)
+}
+
+func (e *FeedbackStatus) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = FeedbackStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid FeedbackStatus", str)
+	}
+	return nil
+}
+
+func (e FeedbackStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *FeedbackStatus) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e FeedbackStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type FeedbackType string
+
+const (
+	FeedbackTypeBug         FeedbackType = "BUG"
+	FeedbackTypeEnhancement FeedbackType = "ENHANCEMENT"
+	FeedbackTypeGeneral     FeedbackType = "GENERAL"
+)
+
+var AllFeedbackType = []FeedbackType{
+	FeedbackTypeBug,
+	FeedbackTypeEnhancement,
+	FeedbackTypeGeneral,
+}
+
+func (e FeedbackType) IsValid() bool {
+	switch e {
+	case FeedbackTypeBug, FeedbackTypeEnhancement, FeedbackTypeGeneral:
+		return true
+	}
+	return false
+}
+
+func (e FeedbackType) String() string {
+	return string(e)
+}
+
+func (e *FeedbackType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = FeedbackType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid FeedbackType", str)
+	}
+	return nil
+}
+
+func (e FeedbackType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *FeedbackType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e FeedbackType) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

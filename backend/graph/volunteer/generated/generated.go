@@ -64,6 +64,7 @@ type ComplexityRoot struct {
 	Mutation struct {
 		AssignSelfToShift func(childComplexity int, shiftID string) int
 		CancelOwnShift    func(childComplexity int, shiftID string) int
+		GiveFeedback      func(childComplexity int, feedback NewFeedbackInput) int
 		UpdateOwnProfile  func(childComplexity int, profile UpdateOwnProfileInput) int
 	}
 
@@ -145,6 +146,7 @@ type MutationResolver interface {
 	UpdateOwnProfile(ctx context.Context, profile UpdateOwnProfileInput) (*VolunteerMutationResult, error)
 	AssignSelfToShift(ctx context.Context, shiftID string) (*MutationResult, error)
 	CancelOwnShift(ctx context.Context, shiftID string) (*MutationResult, error)
+	GiveFeedback(ctx context.Context, feedback NewFeedbackInput) (*MutationResult, error)
 }
 type QueryResolver interface {
 	VolunteerProfile(ctx context.Context) (*VolunteerProfile, error)
@@ -256,6 +258,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.CancelOwnShift(childComplexity, args["shiftId"].(string)), true
+	case "Mutation.giveFeedback":
+		if e.complexity.Mutation.GiveFeedback == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_giveFeedback_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.GiveFeedback(childComplexity, args["feedback"].(NewFeedbackInput)), true
 	case "Mutation.updateOwnProfile":
 		if e.complexity.Mutation.UpdateOwnProfile == nil {
 			break
@@ -594,6 +607,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	ec := executionContext{opCtx, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputEventFilterInput,
+		ec.unmarshalInputNewFeedbackInput,
 		ec.unmarshalInputUpdateOwnProfileInput,
 	)
 	first := true
@@ -717,6 +731,19 @@ enum ServiceType {
   OTHER
 }
 
+enum FeedbackType {
+    BUG
+    ENHANCEMENT
+    GENERAL
+}
+
+enum FeedbackStatus {
+  OPEN
+  QUESTION_SENT
+  RESOLVED_GITHUB
+  RESOLVED_REJECTED
+}
+
 # Job describes the specific job for which a VolunteerProfile
 # is needed.
 enum Job {
@@ -734,7 +761,6 @@ enum ShiftTimeFilter {
   ALL
 }
 
-
 #-- Input --
 
 ## The EventFilter reflects all of the fields on which 
@@ -747,6 +773,13 @@ input EventFilterInput {
   shiftStartDateTime: String
   shiftEndDateTime: String
   ianaZone: String
+}
+
+input NewFeedbackInput {
+  type: FeedbackType!
+  subject: String!
+  app_page_name: String!
+  text: String!
 }
 
 #-- Output --
@@ -835,6 +868,7 @@ type Mutation {
   updateOwnProfile(profile: UpdateOwnProfileInput!): VolunteerMutationResult!    
   assignSelfToShift(shiftId: ID!): MutationResult!  
   cancelOwnShift(shiftId: ID!): MutationResult!
+  giveFeedback (feedback: NewFeedbackInput!): MutationResult!
 }
 
 type ShiftView {
@@ -887,6 +921,17 @@ func (ec *executionContext) field_Mutation_cancelOwnShift_args(ctx context.Conte
 		return nil, err
 	}
 	args["shiftId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_giveFeedback_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "feedback", ec.unmarshalNNewFeedbackInput2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐNewFeedbackInput)
+	if err != nil {
+		return nil, err
+	}
+	args["feedback"] = arg0
 	return args, nil
 }
 
@@ -1452,6 +1497,55 @@ func (ec *executionContext) fieldContext_Mutation_cancelOwnShift(ctx context.Con
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_cancelOwnShift_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_giveFeedback(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_giveFeedback,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().GiveFeedback(ctx, fc.Args["feedback"].(NewFeedbackInput))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_giveFeedback(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_giveFeedback_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -4627,6 +4721,54 @@ func (ec *executionContext) unmarshalInputEventFilterInput(ctx context.Context, 
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputNewFeedbackInput(ctx context.Context, obj any) (NewFeedbackInput, error) {
+	var it NewFeedbackInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"type", "subject", "app_page_name", "text"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "type":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
+			data, err := ec.unmarshalNFeedbackType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFeedbackType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Type = data
+		case "subject":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subject"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Subject = data
+		case "app_page_name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("app_page_name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AppPageName = data
+		case "text":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("text"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Text = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUpdateOwnProfileInput(ctx context.Context, obj any) (UpdateOwnProfileInput, error) {
 	var it UpdateOwnProfileInput
 	asMap := map[string]any{}
@@ -4835,6 +4977,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "cancelOwnShift":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_cancelOwnShift(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "giveFeedback":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_giveFeedback(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -5887,6 +6036,16 @@ func (ec *executionContext) marshalNEventType2volunteerᚑschedulerᚋgraphᚋvo
 	return v
 }
 
+func (ec *executionContext) unmarshalNFeedbackType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFeedbackType(ctx context.Context, v any) (FeedbackType, error) {
+	var res FeedbackType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFeedbackType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFeedbackType(ctx context.Context, sel ast.SelectionSet, v FeedbackType) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v any) (string, error) {
 	res, err := graphql.UnmarshalID(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -5971,6 +6130,11 @@ func (ec *executionContext) marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgr
 		return graphql.Null
 	}
 	return ec._MutationResult(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNNewFeedbackInput2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐNewFeedbackInput(ctx context.Context, v any) (NewFeedbackInput, error) {
+	res, err := ec.unmarshalInputNewFeedbackInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNRole2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐRole(ctx context.Context, v any) (Role, error) {

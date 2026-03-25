@@ -12,6 +12,20 @@ import (
 	"volunteer-scheduler/middleware"
 )
 
+// GiveFeedback is the resolver for the giveFeedback field.
+func (r *mutationResolver) GiveFeedback(ctx context.Context, feedback generated.NewFeedbackInput) (*generated.MutationResult, error) {
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	result, err := r.FeedbackService.CreateNewFeedback(ctx, volId, toModelNewFeedbackInput(feedback))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
 // CreateVolunteer is the resolver for the createVolunteer field.
 func (r *mutationResolver) CreateVolunteer(ctx context.Context, newVol generated.NewVolunteerInput) (*generated.MutationResult, error) {
 	result, err := r.VolunteerService.CreateVolunteer(ctx, toModelNewVolunteerInput(newVol))
@@ -158,6 +172,33 @@ func (r *mutationResolver) UpdateEventDate(ctx context.Context, date generated.U
 	return toGenMutationResult(result), nil
 }
 
+// QuestionFeedback is the resolver for the questionFeedback field.
+func (r *mutationResolver) QuestionFeedback(ctx context.Context, question generated.QuestionFeedbackInput) (*generated.MutationResult, error) {
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	result, err := r.FeedbackService.QuestionFeedback(ctx, volId, toModelQuestionFreedbackInput(question))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// UpdateFeedback is the resolver for the updateFeedback field.
+func (r *mutationResolver) UpdateFeedback(ctx context.Context, feedback generated.UpdateFeedbackInput) (*generated.MutationResult, error) {
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+	result, err := r.FeedbackService.UpdateFeedback(ctx, volId, toModelUpdateFeedbackInput(feedback))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
 // DeleteVolunteer is the resolver for the deleteVolunteer field.
 func (r *mutationResolver) DeleteVolunteer(ctx context.Context, volunteerID string) (*generated.MutationResult, error) {
 	result, err := r.VolunteerService.DeleteVolunteer(ctx, volunteerID)
@@ -211,6 +252,19 @@ func (r *mutationResolver) DeleteShift(ctx context.Context, shiftID string) (*ge
 // DeleteEventDate is the resolver for the deleteEventDate field.
 func (r *mutationResolver) DeleteEventDate(ctx context.Context, eventDateID string) (*generated.MutationResult, error) {
 	result, err := r.EventService.DeleteEventDate(ctx, eventDateID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// ResolveFeedback is the resolver for the resolveFeedback field.
+func (r *mutationResolver) ResolveFeedback(ctx context.Context, resolution generated.ResolveFeedbackInput) (*generated.MutationResult, error) {
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+	result, err := r.FeedbackService.ResolveFeedback(ctx, volId, toModelResolveFeedbackInput(resolution))
 	if err != nil {
 		return nil, err
 	}
@@ -288,6 +342,24 @@ func (r *queryResolver) OpportunitiesForEvent(ctx context.Context, eventID strin
 		return nil, err
 	}
 	return toGenOpportunities(opps), nil
+}
+
+// Feedback is the resolver for the feedback field.
+func (r *queryResolver) Feedback(ctx context.Context, filter *generated.FeedbackFilterInput) ([]*generated.Feedback, error) {
+	fbs, err := r.FeedbackService.FetchFeedback(ctx, toModelFeedbackFilterInput(filter))
+	if err != nil {
+		return nil, err
+	}
+	return toGenFeedbacks(fbs), nil
+}
+
+// FeedbackByID is the resolver for the feedbackById field.
+func (r *queryResolver) FeedbackByID(ctx context.Context, feedbackID string) (*generated.Feedback, error) {
+	fb, err := r.FeedbackService.FetchFeedbackById(ctx, feedbackID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenFeedback(fb), nil
 }
 
 // Mutation returns generated.MutationResolver implementation.
