@@ -15,9 +15,13 @@ type Query {
   volunteerShifts(volunteerId: ID!, filter: ShiftTimeFilter!): [VolunteerShift!]! 
   volunteerById(volunteerId: ID!): VolunteerProfile
   opportunitiesForEvent(eventId: ID!): [Opportunity!]!
+  feedback(filter: FeedbackFilterInput): [Feedback!]!
+  feedbackById(feedbackId: ID!): Feedback
 } 
 
 type Mutation {
+  # Shared mutations:
+  giveFeedback (feedback: NewFeedbackInput!): MutationResult!
 
   # Admin-only mutations:
   createVolunteer(newVol: NewVolunteerInput!): MutationResult!  
@@ -42,6 +46,9 @@ type Mutation {
   updateShift(shift: UpdateShiftInput!): MutationResult!
   updateEventDate(date: UpdateEventDateInput!): MutationResult!
 
+  questionFeedback(question: QuestionFeedbackInput!): MutationResult!
+  updateFeedback(feedback: UpdateFeedbackInput!): MutationResult!
+
   deleteVolunteer(volunteerId: ID!): MutationResult!
   deleteVenue(venueId: ID!): MutationResult!
   deleteRegion(regionId: Int!): MutationResult!
@@ -49,6 +56,8 @@ type Mutation {
   deleteOpportunity(oppId: ID!): MutationResult!
   deleteShift(shiftId: ID!): MutationResult!
   deleteEventDate(eventDateId: ID!): MutationResult!
+
+  resolveFeedback(resolution: ResolveFeedbackInput!): MutationResult!
 }
 #-- Outputs (for queries) --
 
@@ -79,6 +88,26 @@ type Shift {
   staffContactId: ID
 }
 
+type Feedback {
+  id: ID!
+  volunteerName: String!
+  type: FeedbackType!
+  status: FeedbackStatus!
+  subject: String!
+  appPageName: String!
+  text: String!
+  notes: [FeedbackNote!]!
+  githubIssueURL: String
+  createdAt: String!
+  lastUpdatedAt: String
+  resolvedAt: String
+}
+type FeedbackNote {
+  id: ID!
+  creator: String!
+  createdAt: String!
+  note: String!
+}
 
 #-- Inputs --
 input NewVolunteerInput {
@@ -107,7 +136,7 @@ input NewVenueInput {
   state: String!
   zipCode: String
   ianaZone: String!
-  region: [Int!]! # array of ID's, but gqlgen won't keep making them strings.
+  region: [Int!]! # array of ID's, but gqlgen won't keep making them Strings.
 }
 
 input NewRegionInput {
@@ -221,3 +250,27 @@ input VolunteerFilterInput {
   email: String
 }
 
+input FeedbackFilterInput {
+  status: FeedbackStatus
+  type: FeedbackType
+}
+
+input QuestionFeedbackInput {
+  id: ID!
+  emailText: String!
+  note: String!
+}
+
+input UpdateFeedbackInput {
+  id: ID!
+  status: FeedbackStatus!
+  note: String!
+  githubIssueURL: String
+}
+
+input ResolveFeedbackInput {
+  id: ID!
+  status: FeedbackStatus!
+  note: String!
+  githubIssueURL: String
+}

@@ -397,6 +397,7 @@ func assignVolToShift(ctx context.Context, DB *sql.DB, mailer *Mailer, shiftId s
 		}, err
 	}
 
+	// TODO: get text for email.
 	err = mailer.SendEmail(ctx, email, "Shift Assignment", "", "")
 	if err != nil {
 		volStr := strconv.Itoa(volId)
@@ -453,6 +454,8 @@ func cancelShiftAssignment(ctx context.Context, DB *sql.DB, mailer *Mailer, shif
 
 	// NOTE: in addition to mailing the volunteer, cancelling a shift should send
 	// an eamil to the staff lead or to the volunteer coordinators or to SOMEONE.
+
+	// TODO: get text for email(s).
 
 	err = mailer.SendEmail(ctx, email, "Shift Assignment Cancelled", "We are sorry you are not able to volunteer for this shift...", "")
 	if err != nil {
@@ -561,6 +564,33 @@ func AddNewOpportunityShift(ctx context.Context, shift *models.NewShiftInput, op
 
 	}
 	// No errors.
+	return nil
+}
+
+func AddNoteToFeedback(ctx context.Context, DB *sql.DB, feedbackId int, adminId int, note string) error {
+
+	insert := `
+		INSERT INTO feedback_notes (
+			feedback_id,
+			volunteer_id, 
+			note,
+			createdAt)
+		VALUES ($1, $2, $3, NOW())
+		RETURNING note_id
+	`
+
+	var noteInt int
+	err := DB.QueryRowContext(ctx, insert, feedbackId, adminId, note).Scan(&noteInt)
+	if err != nil {
+		return fmt.Errorf("error adding feedback note to DB: %w", err)
+	}
+
+	_, err = DB.ExecContext(ctx, "UPDATE feedback SET status last_updated_at = NOW() WHERE feedback_id = $1", feedbackId)
+	if err != nil {
+		return fmt.Errorf("error updating feedback table: %w", err)
+	}
+
+	// All good.
 	return nil
 }
 

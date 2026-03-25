@@ -58,6 +58,21 @@ func (r *mutationResolver) CancelOwnShift(ctx context.Context, shiftID string) (
 	return toGenMutationResult(result), nil
 }
 
+// GiveFeedback is the resolver for the giveFeedback field.
+func (r *mutationResolver) GiveFeedback(ctx context.Context, feedback generated.NewFeedbackInput) (*generated.MutationResult, error) {
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	result, err := r.FeedbackService.CreateNewFeedback(ctx, volId, toModelNewFeedbackInput(feedback))
+	if err != nil {
+		return nil, err
+	}
+
+	return toGenMutationResult(result), nil
+}
+
 // VolunteerProfile is the resolver for the volunteerProfile field.
 func (r *queryResolver) VolunteerProfile(ctx context.Context) (*generated.VolunteerProfile, error) {
 	volId, ok := middleware.VolunteerIdFromContext(ctx)

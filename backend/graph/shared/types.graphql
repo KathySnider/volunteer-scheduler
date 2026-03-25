@@ -23,6 +23,19 @@ enum ServiceType {
   OTHER
 }
 
+enum FeedbackType {
+    BUG
+    ENHANCEMENT
+    GENERAL
+}
+
+enum FeedbackStatus {
+  OPEN
+  QUESTION_SENT
+  RESOLVED_GITHUB
+  RESOLVED_REJECTED
+}
+
 # Job describes the specific job for which a VolunteerProfile
 # is needed.
 enum Job {
@@ -40,7 +53,6 @@ enum ShiftTimeFilter {
   ALL
 }
 
-
 #-- Input --
 
 ## The EventFilter reflects all of the fields on which 
@@ -53,6 +65,13 @@ input EventFilterInput {
   shiftStartDateTime: String
   shiftEndDateTime: String
   ianaZone: String
+}
+
+input NewFeedbackInput {
+  type: FeedbackType!
+  subject: String!
+  app_page_name: String!
+  text: String!
 }
 
 #-- Output --

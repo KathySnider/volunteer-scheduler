@@ -13,6 +13,7 @@ type Mutation {
   updateOwnProfile(profile: UpdateOwnProfileInput!): VolunteerMutationResult!    
   assignSelfToShift(shiftId: ID!): MutationResult!  
   cancelOwnShift(shiftId: ID!): MutationResult!
+  giveFeedback (feedback: NewFeedbackInput!): MutationResult!
 }
 
 type ShiftView {

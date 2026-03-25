@@ -170,6 +170,15 @@ func toModelEventFilterInput(g *generated.EventFilterInput) *models.EventFilterI
 	}
 }
 
+func toModelNewFeedbackInput(g generated.NewFeedbackInput) models.NewFeedbackInput {
+	return models.NewFeedbackInput{
+		Type:        models.FeedbackType(g.Type),
+		Subject:     g.Subject,
+		AppPageName: g.AppPageName,
+		Text:        g.Text,
+	}
+}
+
 // END OF DUPLICATE CODE
 
 func toGenShiftViews(ms []*models.ShiftView) []*generated.ShiftView {
