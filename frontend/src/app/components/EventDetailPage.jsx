@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar, MapPin, Monitor, Users, ArrowLeft, Clock, CheckCircle } from 'lucide-react';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/graphql/admin';
+
 const EventDetailPage = ({ eventId }) => {
   const router = useRouter();
   const [event, setEvent] = useState(null);
@@ -54,7 +56,7 @@ const EventDetailPage = ({ eventId }) => {
           }
           opportunities {
             id
-            role
+            job
             shifts {
               id
               date
@@ -73,7 +75,7 @@ const EventDetailPage = ({ eventId }) => {
     `;
 
     try {
-      const response = await fetch('http://localhost:8080/query', {
+      const response = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -115,7 +117,7 @@ const EventDetailPage = ({ eventId }) => {
     `;
 
     try {
-      const assignResponse = await fetch('http://localhost:8080/query', {
+      const assignResponse = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -186,8 +188,8 @@ const EventDetailPage = ({ eventId }) => {
     return type.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  const getRoleLabel = (role) => {
-    return role.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+  const getJobLabel = (job) => {
+    return job.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
   };
 
   if (loading) {
@@ -271,7 +273,7 @@ const EventDetailPage = ({ eventId }) => {
               <div key={opportunity.id} className="bg-white rounded-lg shadow-md overflow-hidden">
                 <div className="bg-blue-50 px-6 py-4 border-b border-blue-100">
                   <h3 className="text-xl font-semibold text-gray-800">
-                    {getRoleLabel(opportunity.role)}
+                    {getJobLabel(opportunity.job)}
                   </h3>
                 </div>
 

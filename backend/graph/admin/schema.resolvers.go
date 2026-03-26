@@ -7,348 +7,383 @@ package admin
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
-	"strings"
-	"time"
 	"volunteer-scheduler/graph/admin/generated"
-
-	"github.com/lib/pq"
+	"volunteer-scheduler/middleware"
 )
 
-// CreateVolunteer is the resolver for the createVolunteer field.
-func (r *mutationResolver) CreateVolunteer(ctx context.Context, firstName string, lastName string) (*generated.Volunteer, error) {
-	query := `
-		INSERT INTO volunteers (first_name, last_name, created_at)
-		VALUES ($1, $2, NOW())
-		RETURNING volunteer_id
-	`
-
-	var volunteerID int
-	err := r.DB.QueryRowContext(ctx, query, firstName, lastName).Scan(&volunteerID)
-	if err != nil {
-		return nil, fmt.Errorf("error creating volunteer: %w", err)
+// GiveFeedback is the resolver for the giveFeedback field.
+func (r *mutationResolver) GiveFeedback(ctx context.Context, feedback generated.NewFeedbackInput) (*generated.MutationResult, error) {
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
 	}
 
-	return &generated.Volunteer{
-		ID:        fmt.Sprintf("%d", volunteerID),
-		FirstName: firstName,
-		LastName:  lastName,
-	}, nil
-}
-
-// AssignVolunteerToShift is the resolver for the assignVolunteerToShift field.
-func (r *mutationResolver) AssignVolunteerToShift(ctx context.Context, shiftID string, volunteerID string) (*generated.AssignmentResult, error) {
-	query := `
-		INSERT INTO volunteer_shifts (volunteer_id, shift_id, assigned_at, status)
-		VALUES ($1, $2, NOW(), 'confirmed')
-		ON CONFLICT (volunteer_id, shift_id) DO NOTHING
-	`
-
-	_, err := r.DB.ExecContext(ctx, query, volunteerID, shiftID)
-	if err != nil {
-		return &generated.AssignmentResult{
-			Success: false,
-			Message: ptrString("Failed to assign volunteer to shift"),
-		}, nil
-	}
-
-	return &generated.AssignmentResult{
-		Success: true,
-		Message: ptrString("Volunteer successfully assigned"),
-	}, nil
-}
-
-// CreateEvent is the resolver for the createEvent field.
-<<<<<<< HEAD:backend/graph/admin/schema.resolvers.go
-func (r *mutationResolver) CreateEvent(ctx context.Context, name string, description *string, eventType generated.EventType, locationName *string) (*generated.Event, error) {
-	panic(fmt.Errorf("not implemented: CreateEvent - createEvent"))
-=======
-func (r *mutationResolver) CreateEvent(ctx context.Context, name string, description *string, eventType model.EventType, locationName *string) (*model.Event, error) {
-	return nil, fmt.Errorf("error creating event: not yet implemented")
-	//panic(fmt.Errorf("not implemented: CreateEvent - createEvent"))
->>>>>>> main:vol_sched_api/graph/schema.resolvers.go
-}
-
-// Events is the resolver for the events field.
-func (r *queryResolver) Events(ctx context.Context, filter *generated.EventFilter) ([]*generated.Event, error) {
-	query := `
-        SELECT DISTINCT
-            e.event_id,
-            e.event_name,
-            e.description,
-            e.event_is_virtual,
-            e.location_id,
-            l.location_name,
-            l.street_address,
-            l.city,
-            l.state,
-            l.zip_code
-        FROM events e
-        LEFT JOIN locations l ON e.location_id = l.location_id
-        LEFT JOIN opportunities opp ON e.event_id = opp.event_id
-        WHERE 1=1
-    `
-
-	args := []interface{}{}
-	argCount := 1
-
-	rows, err := r.DB.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("error querying events: %w", err)
-	}
-	defer rows.Close()
-
-	// Now we have selected all of the events 
-	eventsMap := make(map[string]*generated.Event)
-
-	for rows.Next() {
-		var e generated.Event
-		var loc generated.Location
-		var locationID *int
-		var locationName, address, city, state, zipCode *string
-
-		var eventInt int
-		var eventStr string
-		var isVirtual bool // Temporary variable for database value
-
-		err := rows.Scan(
-			&eventInt,
-			&e.Name,
-			&e.Description,
-			&isVirtual,
-			&locationID,
-			&locationName,
-			&address,
-			&city,
-			&state,
-			&zipCode,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("error scanning event: %w", err)
-		}
-
-		eventStr = fmt.Sprintf("%d", eventInt) // string for GraphQL.
-		e.ID = eventStr
-
-		// Determine if event is virtual, in person, or both.
-		if isVirtual && locationID != nil {
-			e.EventType = "HYBRID"
-		} else if isVirtual {
-			e.EventType = "VIRTUAL"
-		} else {
-			e.EventType = "IN_PERSON"
-		}
-
-		// Check if we've already processed this event.
-		if _, exists := eventsMap[eventStr]; !exists {
-			// Add location if it exists.
-			if locationID != nil && address != nil && city != nil && state != nil {
-				loc.Name = locationName
-				loc.Address = *address
-				loc.City = *city
-				loc.State = *state
-				loc.ZipCode = zipCode
-				e.Location = &loc
-			}
-
-			eventsMap[eventStr] = &e
-		}
-	}
-
-	// Now fetch shifts for these events.
-	if len(eventsMap) > 0 {
-		eventIDs := []string{}
-		for id := range eventsMap {
-			eventIDs = append(eventIDs, id)
-		}
-
-		shiftsQuery := `
-            SELECT 
-                s.shift_id,
-                s.shift_start,
-                s.shift_end,
-                opp.role,
-                opp.event_id
-            FROM shifts s
-            JOIN opportunities opp ON s.opportunity_id = opp.opportunity_id
-            WHERE opp.event_id = ANY($1)
-        `
-
-		shiftArgs := []interface{}{pq.Array(eventIDs)}
-		argNum := 2
-
-		shiftRows, err := r.DB.QueryContext(ctx, shiftsQuery, shiftArgs...)
-		if err != nil {
-			return nil, fmt.Errorf("error querying shifts: %w", err)
-		}
-		defer shiftRows.Close()
-
-		// Do some formatting.
-		for shiftRows.Next() {
-			var shift generated.Shift
-			var eventInt int
-			var eventStr string
-			var startTime, endTime time.Time
-			var role string
-			var shiftInt int
-
-			err := shiftRows.Scan(
-				&shiftInt,
-				&startTime,
-				&endTime,
-				&role,
-				&eventInt,
-			)
-			if err != nil {
-				return nil, fmt.Errorf("error scanning shift: %w", err)
-			}
-
-			eventStr = fmt.Sprintf("%d", eventInt) // string for GraphQL.
-
-			// Format the timestamps.
-			shift.Date = startTime.Format("2006-01-02")
-			shift.StartTime = startTime.Format("15:04:05")
-			shift.EndTime = endTime.Format("15:04:05")
-
-			// Convert role string to RoleType enum.
-			shift.Role = generated.RoleType(strings.ToUpper(role))
-
-			if event, exists := eventsMap[eventStr]; exists {
-				event.Shifts = append(event.Shifts, &shift)
-			}
-		}
-	}
-
-	// Convert map to slice
-	events := make([]*generated.Event, 0, len(eventsMap))
-	for _, event := range eventsMap {
-		events = append(events, event)
-	}
-
-	return events, nil
-}
-
-// Event is the resolver for the event field.
-func (r *queryResolver) Event(ctx context.Context, id string) (*generated.Event, error) {
-	query := `
-		SELECT 
-			e.event_id,
-			e.event_name,
-			e.description,
-			e.event_is_virtual,
-			e.location_id,
-			l.location_name,
-			l.street_address,
-			l.city,
-			l.state,
-			l.zip_code
-		FROM events e
-		LEFT JOIN locations l ON e.location_id = l.location_id
-		WHERE e.event_id = $1
-	`
-	var event generated.Event
-	var eventID int
-	var isVirtual bool
-	var locationID *int
-	var locationName, address, city, state, zipCode *string
-
-	err := r.DB.QueryRowContext(ctx, query, id).Scan(
-		&eventID,
-		&event.Name,
-		&event.Description,
-		&isVirtual,
-		&locationID,
-		&locationName,
-		&address,
-		&city,
-		&state,
-		&zipCode,
-	)
-
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("event not found")
-	}
-	if err != nil {
-		return nil, fmt.Errorf("error querying event: %w", err)
-	}
-
-	event.ID = fmt.Sprintf("%d", eventID) // string for GraphQl
-
-	// Determine if the event is virtual, in person, or either (hybrid).
-	if isVirtual && locationID != nil {
-		event.EventType = "HYBRID"
-	} else if isVirtual {
-		event.EventType = "VIRTUAL"
-	} else {
-		event.EventType = "IN_PERSON"
-	}
-
-	// Add location if it exists.
-	if locationID != nil && address != nil && city != nil && state != nil {
-		loc := &generated.Location{
-			Name:    locationName,
-			Address: *address,
-			City:    *city,
-			State:   *state,
-			ZipCode: zipCode,
-		}
-		event.Location = loc
-	}
-
-	// Fetch opportunities for this event
-	opportunities, err := r.getOpportunitiesForEvent(ctx, eventID)
+	result, err := r.FeedbackService.CreateNewFeedback(ctx, volId, toModelNewFeedbackInput(feedback))
 	if err != nil {
 		return nil, err
 	}
-	event.Opportunities = opportunities
-
-	return &event, nil
+	return toGenMutationResult(result), nil
 }
 
-// Volunteers is the resolver for the volunteers field.
-func (r *queryResolver) Volunteers(ctx context.Context, qualifications []string) ([]*generated.Volunteer, error) {
-	var query string
-	var args []interface{}
-
-	if len(qualifications) > 0 {
-		// Filter by qualifications
-		query = `
-			SELECT DISTINCT v.volunteer_id, v.first_name, v.last_name
-			FROM volunteers v
-			JOIN volunteer_qualifications vq ON v.volunteer_id = vq.volunteer_id
-			WHERE vq.qualification = ANY($1)
-		`
-		args = append(args, pq.Array(qualifications))
-	} else {
-		// Get all volunteers
-		query = `
-			SELECT volunteer_id, first_name, last_name
-			FROM volunteers
-		`
-	}
-
-	rows, err := r.DB.QueryContext(ctx, query, args...)
+// CreateVolunteer is the resolver for the createVolunteer field.
+func (r *mutationResolver) CreateVolunteer(ctx context.Context, newVol generated.NewVolunteerInput) (*generated.MutationResult, error) {
+	result, err := r.VolunteerService.CreateVolunteer(ctx, toModelNewVolunteerInput(newVol))
 	if err != nil {
-		return nil, fmt.Errorf("error querying volunteers: %w", err)
+		return nil, err
 	}
-	defer rows.Close()
+	return toGenMutationResult(result), nil
+}
 
-	var volunteers []*generated.Volunteer
-	for rows.Next() {
-		var v generated.Volunteer
-		var volunteerID int
+// CreateVenue is the resolver for the createVenue field.
+func (r *mutationResolver) CreateVenue(ctx context.Context, newVenue generated.NewVenueInput) (*generated.MutationResult, error) {
+	result, err := r.VenueService.CreateVenue(ctx, toModelNewVenueInput(newVenue))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
 
-		err := rows.Scan(&volunteerID, &v.FirstName, &v.LastName)
-		if err != nil {
-			return nil, fmt.Errorf("error scanning volunteer: %w", err)
-		}
+// CreateRegion is the resolver for the createRegion field.
+func (r *mutationResolver) CreateRegion(ctx context.Context, newRegion generated.NewRegionInput) (*generated.MutationResult, error) {
+	result, err := r.VenueService.CreateRegion(ctx, toModelNewRegionInput(newRegion))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
 
-		v.ID = fmt.Sprintf("%d", volunteerID)
-		volunteers = append(volunteers, &v)
+// CreateEvent is the resolver for the createEvent field.
+func (r *mutationResolver) CreateEvent(ctx context.Context, newEvent generated.NewEventInput) (*generated.MutationResult, error) {
+	result, err := r.EventService.CreateEvent(ctx, toModelNewEventInput(newEvent))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// CreateOpportunity is the resolver for the createOpportunity field.
+func (r *mutationResolver) CreateOpportunity(ctx context.Context, newOpp generated.NewOpportunityInput) (*generated.MutationResult, error) {
+	result, err := r.ShiftService.CreateOpportunity(ctx, toModelNewOpportunity(newOpp))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// CreateShift is the resolver for the createShift field.
+func (r *mutationResolver) CreateShift(ctx context.Context, newShift generated.AddShiftInput) (*generated.MutationResult, error) {
+	result, err := r.ShiftService.CreateShift(ctx, toModelAddShiftInput(newShift))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// CreateEventDate is the resolver for the createEventDate field.
+func (r *mutationResolver) CreateEventDate(ctx context.Context, newDate generated.AddEventDateInput) (*generated.MutationResult, error) {
+	result, err := r.EventService.CreateEventDate(ctx, toModelAddEventDate(newDate))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// AssignVolunteerToShift is the resolver for the assignVolunteerToShift field.
+func (r *mutationResolver) AssignVolunteerToShift(ctx context.Context, shiftID string, volunteerID string) (*generated.MutationResult, error) {
+	result, err := r.ShiftService.AssignVolunteerToShift(ctx, shiftID, volunteerID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// CancelShift is the resolver for the cancelShift field.
+func (r *mutationResolver) CancelShift(ctx context.Context, shiftID string, volunteerID string) (*generated.MutationResult, error) {
+	result, err := r.ShiftService.CancelShiftAssignment(ctx, shiftID, volunteerID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// AddVenueRegion is the resolver for the addVenueRegion field.
+func (r *mutationResolver) AddVenueRegion(ctx context.Context, venueID int, regionID int) (*generated.MutationResult, error) {
+	result, err := r.VenueService.AddVenueRegion(ctx, venueID, regionID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// RemoveVenueRegion is the resolver for the removeVenueRegion field.
+func (r *mutationResolver) RemoveVenueRegion(ctx context.Context, venueID int, regionID int) (*generated.MutationResult, error) {
+	result, err := r.VenueService.RemoveVenueRegion(ctx, venueID, regionID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// UpdateVenue is the resolver for the updateVenue field.
+func (r *mutationResolver) UpdateVenue(ctx context.Context, venue generated.UpdateVenueInput) (*generated.MutationResult, error) {
+	result, err := r.VenueService.UpdateVenue(ctx, toModelUpdateVenue(venue))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// UpdateRegion is the resolver for the updateRegion field.
+func (r *mutationResolver) UpdateRegion(ctx context.Context, region generated.UpdateRegionInput) (*generated.MutationResult, error) {
+	result, err := r.VenueService.UpdateRegion(ctx, toModelUpdateRegionInput(region))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// UpdateVolunteer is the resolver for the updateVolunteer field.
+func (r *mutationResolver) UpdateVolunteer(ctx context.Context, profile generated.UpdateVolunteerInput) (*generated.MutationResult, error) {
+	result, err := r.VolunteerService.UpdateVolunteerProfile(ctx, toModelUpdateVolunteerInput(profile))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// UpdateEvent is the resolver for the updateEvent field.
+func (r *mutationResolver) UpdateEvent(ctx context.Context, event generated.UpdateEventInput) (*generated.MutationResult, error) {
+	result, err := r.EventService.UpdateEvent(ctx, toModelUpdateEventInput(event))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// UpdateOpportunity is the resolver for the updateOpportunity field.
+func (r *mutationResolver) UpdateOpportunity(ctx context.Context, opp generated.UpdateOpportunityInput) (*generated.MutationResult, error) {
+	result, err := r.ShiftService.UpdateOpportunity(ctx, toModelUpdateOpportunity(opp))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// UpdateShift is the resolver for the updateShift field.
+func (r *mutationResolver) UpdateShift(ctx context.Context, shift generated.UpdateShiftInput) (*generated.MutationResult, error) {
+	result, err := r.ShiftService.UpdateShift(ctx, toModelUpdateShift(shift))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// UpdateEventDate is the resolver for the updateEventDate field.
+func (r *mutationResolver) UpdateEventDate(ctx context.Context, date generated.UpdateEventDateInput) (*generated.MutationResult, error) {
+	result, err := r.EventService.UpdateEventDate(ctx, toModelUpdateEventDateInput(date))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// QuestionFeedback is the resolver for the questionFeedback field.
+func (r *mutationResolver) QuestionFeedback(ctx context.Context, question generated.QuestionFeedbackInput) (*generated.MutationResult, error) {
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
 	}
 
-	return volunteers, nil
+	result, err := r.FeedbackService.QuestionFeedback(ctx, volId, toModelQuestionFreedbackInput(question))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// UpdateFeedback is the resolver for the updateFeedback field.
+func (r *mutationResolver) UpdateFeedback(ctx context.Context, feedback generated.UpdateFeedbackInput) (*generated.MutationResult, error) {
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+	result, err := r.FeedbackService.UpdateFeedback(ctx, volId, toModelUpdateFeedbackInput(feedback))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// DeleteVolunteer is the resolver for the deleteVolunteer field.
+func (r *mutationResolver) DeleteVolunteer(ctx context.Context, volunteerID string) (*generated.MutationResult, error) {
+	result, err := r.VolunteerService.DeleteVolunteer(ctx, volunteerID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// DeleteVenue is the resolver for the deleteVenue field.
+func (r *mutationResolver) DeleteVenue(ctx context.Context, venueID string) (*generated.MutationResult, error) {
+	result, err := r.VenueService.DeleteVenue(ctx, venueID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// DeleteRegion is the resolver for the deleteRegion field.
+func (r *mutationResolver) DeleteRegion(ctx context.Context, regionID int) (*generated.MutationResult, error) {
+	result, err := r.VenueService.DeleteRegion(ctx, regionID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// DeleteEvent is the resolver for the deleteEvent field.
+func (r *mutationResolver) DeleteEvent(ctx context.Context, eventID string) (*generated.MutationResult, error) {
+	result, err := r.EventService.DeleteEvent(ctx, eventID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// DeleteOpportunity is the resolver for the deleteOpportunity field.
+func (r *mutationResolver) DeleteOpportunity(ctx context.Context, oppID string) (*generated.MutationResult, error) {
+	result, err := r.ShiftService.DeleteOpportunity(ctx, oppID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// DeleteShift is the resolver for the deleteShift field.
+func (r *mutationResolver) DeleteShift(ctx context.Context, shiftID string) (*generated.MutationResult, error) {
+	result, err := r.ShiftService.DeleteShift(ctx, shiftID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// DeleteEventDate is the resolver for the deleteEventDate field.
+func (r *mutationResolver) DeleteEventDate(ctx context.Context, eventDateID string) (*generated.MutationResult, error) {
+	result, err := r.EventService.DeleteEventDate(ctx, eventDateID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// ResolveFeedback is the resolver for the resolveFeedback field.
+func (r *mutationResolver) ResolveFeedback(ctx context.Context, resolution generated.ResolveFeedbackInput) (*generated.MutationResult, error) {
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+	result, err := r.FeedbackService.ResolveFeedback(ctx, volId, toModelResolveFeedbackInput(resolution))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// VolunteerProfile is the resolver for the volunteerProfile field.
+func (r *queryResolver) VolunteerProfile(ctx context.Context) (*generated.VolunteerProfile, error) {
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	profile, err := r.VolunteerService.FetchOwnProfile(ctx, volId)
+	if err != nil {
+		return nil, err
+	}
+	return toGenVolunteerProfile(profile), nil
+}
+
+// FilteredEvents is the resolver for the filteredEvents field.
+func (r *queryResolver) FilteredEvents(ctx context.Context, filter *generated.EventFilterInput) ([]*generated.Event, error) {
+	events, err := r.EventService.FetchFilteredEvents(ctx, toModelEventFilterInput(filter))
+	if err != nil {
+		return nil, err
+	}
+	return toGenEvents(events), nil
+}
+
+// Venues is the resolver for the venues field.
+func (r *queryResolver) Venues(ctx context.Context) ([]*generated.Venue, error) {
+	venues, err := r.VenueService.FetchVenues(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return toGenVenues(venues), nil
+}
+
+// ActiveRegions is the resolver for the activeRegions field.
+func (r *queryResolver) ActiveRegions(ctx context.Context) ([]*generated.Region, error) {
+	regions, err := r.VenueService.FetchActiveRegions(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return toGenRegions(regions), nil
+}
+
+// AllVolunteers is the resolver for the allVolunteers field.
+func (r *queryResolver) AllVolunteers(ctx context.Context, filter *generated.VolunteerFilterInput) ([]*generated.Volunteer, error) {
+	vols, err := r.VolunteerService.FetchAllVolunteers(ctx, toModelVolunteerFilterInput(filter))
+	if err != nil {
+		return nil, err
+	}
+	return toGenVolunteers(vols), nil
+}
+
+// VolunteerShifts is the resolver for the volunteerShifts field.
+func (r *queryResolver) VolunteerShifts(ctx context.Context, volunteerID string, filter generated.ShiftTimeFilter) ([]*generated.VolunteerShift, error) {
+	shifts, err := r.ShiftService.FetchVolunteerShifts(ctx, volunteerID, toModelShiftTimeFilter(filter))
+	if err != nil {
+		return nil, err
+	}
+	return toGenVolunteerShifts(shifts), nil
+}
+
+// VolunteerByID is the resolver for the volunteerById field.
+func (r *queryResolver) VolunteerByID(ctx context.Context, volunteerID string) (*generated.VolunteerProfile, error) {
+	vol, err := r.VolunteerService.FetchVolunteerProfileById(ctx, volunteerID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenVolunteerProfile(vol), nil
+}
+
+// OpportunitiesForEvent is the resolver for the opportunitiesForEvent field.
+func (r *queryResolver) OpportunitiesForEvent(ctx context.Context, eventID string) ([]*generated.Opportunity, error) {
+	opps, err := r.ShiftService.FetchOpportunitiesForEvent(ctx, eventID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenOpportunities(opps), nil
+}
+
+// Feedback is the resolver for the feedback field.
+func (r *queryResolver) Feedback(ctx context.Context, filter *generated.FeedbackFilterInput) ([]*generated.Feedback, error) {
+	fbs, err := r.FeedbackService.FetchFeedback(ctx, toModelFeedbackFilterInput(filter))
+	if err != nil {
+		return nil, err
+	}
+	return toGenFeedbacks(fbs), nil
+}
+
+// FeedbackByID is the resolver for the feedbackById field.
+func (r *queryResolver) FeedbackByID(ctx context.Context, feedbackID string) (*generated.Feedback, error) {
+	fb, err := r.FeedbackService.FetchFeedbackById(ctx, feedbackID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenFeedback(fb), nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

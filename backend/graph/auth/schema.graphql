@@ -1,0 +1,30 @@
+# Auth schema - public endpoint, no authentication required.
+
+type Query {
+  # gqlgen requires at least one query, so this is a placeholder.
+  _authHealthCheck: Boolean
+}
+
+type Mutation {
+  requestMagicLink(email: String!): MagicLinkResult!
+  consumeMagicLink(token: String!): AuthResult!
+  requestAccount(email: String!, firstName: String!, lastName: String!): RequestResult!
+}
+
+type MagicLinkResult {
+  success: Boolean!
+  message: String!
+  email: String
+}
+
+type AuthResult {
+  success: Boolean!
+  message: String!
+  email: String
+  sessionToken: String
+}
+
+type RequestResult {
+  success: Boolean!
+  message: String!
+}

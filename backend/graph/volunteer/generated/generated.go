@@ -45,77 +45,114 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
-	AssignmentResult struct {
+	Event struct {
+		Description  func(childComplexity int) int
+		EventDates   func(childComplexity int) int
+		EventType    func(childComplexity int) int
+		ID           func(childComplexity int) int
+		Name         func(childComplexity int) int
+		ServiceTypes func(childComplexity int) int
+		Venue        func(childComplexity int) int
+	}
+
+	EventDate struct {
+		EndDateTime   func(childComplexity int) int
+		ID            func(childComplexity int) int
+		StartDateTime func(childComplexity int) int
+	}
+
+	Mutation struct {
+		AssignSelfToShift func(childComplexity int, shiftID string) int
+		CancelOwnShift    func(childComplexity int, shiftID string) int
+		GiveFeedback      func(childComplexity int, feedback NewFeedbackInput) int
+		UpdateOwnProfile  func(childComplexity int, profile UpdateOwnProfileInput) int
+	}
+
+	MutationResult struct {
+		ID      func(childComplexity int) int
 		Message func(childComplexity int) int
 		Success func(childComplexity int) int
 	}
 
-	Event struct {
-		Description   func(childComplexity int) int
-		EventType     func(childComplexity int) int
-		ID            func(childComplexity int) int
-		Name          func(childComplexity int) int
-		Opportunities func(childComplexity int) int
-		Shifts        func(childComplexity int) int
-		Venue         func(childComplexity int) int
-	}
-
-	Mutation struct {
-		AssignVolunteerToShift func(childComplexity int, shiftID string, volunteerID string) int
-		CancelShift            func(childComplexity int, shiftID string, volunteerID string) int
-		EditVolunteerProfile   func(childComplexity int, volunteerID string) int
-	}
-
-	Opportunity struct {
-		ID     func(childComplexity int) int
-		Role   func(childComplexity int) int
-		Shifts func(childComplexity int) int
-	}
-
 	Query struct {
-		AllVolunteers    func(childComplexity int, filter *VolunteerFilter) int
-		EventByID        func(childComplexity int, id string) int
-		Events           func(childComplexity int, filter *EventFilter) int
-		VolunteerProfile func(childComplexity int, volunteerID string) int
+		FilteredEvents   func(childComplexity int, filter *EventFilterInput) int
+		OwnShifts        func(childComplexity int, filter ShiftTimeFilter) int
+		ShiftsForEvent   func(childComplexity int, eventID string) int
+		VolunteerProfile func(childComplexity int) int
 	}
 
-	Shift struct {
-		AssignedVolunteers func(childComplexity int) int
-		Date               func(childComplexity int) int
-		EndTime            func(childComplexity int) int
-		ID                 func(childComplexity int) int
-		MaxVolunteers      func(childComplexity int) int
-		Role               func(childComplexity int) int
-		StartTime          func(childComplexity int) int
+	Region struct {
+		Code     func(childComplexity int) int
+		ID       func(childComplexity int) int
+		IsActive func(childComplexity int) int
+		Name     func(childComplexity int) int
+	}
+
+	ShiftView struct {
+		AssignedVolunteers  func(childComplexity int) int
+		EndDateTime         func(childComplexity int) int
+		ID                  func(childComplexity int) int
+		IsVirtual           func(childComplexity int) int
+		Job                 func(childComplexity int) int
+		MaxVolunteers       func(childComplexity int) int
+		OtherJobDescription func(childComplexity int) int
+		StartDateTime       func(childComplexity int) int
 	}
 
 	Venue struct {
-		Address func(childComplexity int) int
-		City    func(childComplexity int) int
-		Name    func(childComplexity int) int
-		State   func(childComplexity int) int
-		ZipCode func(childComplexity int) int
+		Address  func(childComplexity int) int
+		City     func(childComplexity int) int
+		ID       func(childComplexity int) int
+		Name     func(childComplexity int) int
+		Region   func(childComplexity int) int
+		State    func(childComplexity int) int
+		Timezone func(childComplexity int) int
+		ZipCode  func(childComplexity int) int
 	}
 
-	Volunteer struct {
-		Email        func(childComplexity int) int
-		FirstName    func(childComplexity int) int
-		ID           func(childComplexity int) int
-		LastName     func(childComplexity int) int
-		ServiceTypes func(childComplexity int) int
+	VolunteerMutationResult struct {
+		Message func(childComplexity int) int
+		Success func(childComplexity int) int
+	}
+
+	VolunteerProfile struct {
+		Email     func(childComplexity int) int
+		FirstName func(childComplexity int) int
+		LastName  func(childComplexity int) int
+		Phone     func(childComplexity int) int
+		Role      func(childComplexity int) int
+		ZipCode   func(childComplexity int) int
+	}
+
+	VolunteerShift struct {
+		AssignedAt           func(childComplexity int) int
+		CancelledAt          func(childComplexity int) int
+		EndDateTime          func(childComplexity int) int
+		EventDescription     func(childComplexity int) int
+		EventID              func(childComplexity int) int
+		EventName            func(childComplexity int) int
+		IsVirtual            func(childComplexity int) int
+		Job                  func(childComplexity int) int
+		MaxVolunteers        func(childComplexity int) int
+		OtherJobDescription  func(childComplexity int) int
+		PreEventInstructions func(childComplexity int) int
+		ShiftID              func(childComplexity int) int
+		StartDateTime        func(childComplexity int) int
+		Venue                func(childComplexity int) int
 	}
 }
 
 type MutationResolver interface {
-	EditVolunteerProfile(ctx context.Context, volunteerID string) (*Volunteer, error)
-	AssignVolunteerToShift(ctx context.Context, shiftID string, volunteerID string) (*AssignmentResult, error)
-	CancelShift(ctx context.Context, shiftID string, volunteerID string) (*AssignmentResult, error)
+	UpdateOwnProfile(ctx context.Context, profile UpdateOwnProfileInput) (*VolunteerMutationResult, error)
+	AssignSelfToShift(ctx context.Context, shiftID string) (*MutationResult, error)
+	CancelOwnShift(ctx context.Context, shiftID string) (*MutationResult, error)
+	GiveFeedback(ctx context.Context, feedback NewFeedbackInput) (*MutationResult, error)
 }
 type QueryResolver interface {
-	Events(ctx context.Context, filter *EventFilter) ([]*Event, error)
-	EventByID(ctx context.Context, id string) (*Event, error)
-	VolunteerProfile(ctx context.Context, volunteerID string) (*Volunteer, error)
-	AllVolunteers(ctx context.Context, filter *VolunteerFilter) ([]*Volunteer, error)
+	VolunteerProfile(ctx context.Context) (*VolunteerProfile, error)
+	FilteredEvents(ctx context.Context, filter *EventFilterInput) ([]*Event, error)
+	ShiftsForEvent(ctx context.Context, eventID string) ([]*ShiftView, error)
+	OwnShifts(ctx context.Context, filter ShiftTimeFilter) ([]*VolunteerShift, error)
 }
 
 type executableSchema struct {
@@ -137,25 +174,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 	_ = ec
 	switch typeName + "." + field {
 
-	case "AssignmentResult.message":
-		if e.complexity.AssignmentResult.Message == nil {
-			break
-		}
-
-		return e.complexity.AssignmentResult.Message(childComplexity), true
-	case "AssignmentResult.success":
-		if e.complexity.AssignmentResult.Success == nil {
-			break
-		}
-
-		return e.complexity.AssignmentResult.Success(childComplexity), true
-
 	case "Event.description":
 		if e.complexity.Event.Description == nil {
 			break
 		}
 
 		return e.complexity.Event.Description(childComplexity), true
+	case "Event.eventDates":
+		if e.complexity.Event.EventDates == nil {
+			break
+		}
+
+		return e.complexity.Event.EventDates(childComplexity), true
 	case "Event.eventType":
 		if e.complexity.Event.EventType == nil {
 			break
@@ -174,18 +204,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Event.Name(childComplexity), true
-	case "Event.opportunities":
-		if e.complexity.Event.Opportunities == nil {
+	case "Event.serviceTypes":
+		if e.complexity.Event.ServiceTypes == nil {
 			break
 		}
 
-		return e.complexity.Event.Opportunities(childComplexity), true
-	case "Event.shifts":
-		if e.complexity.Event.Shifts == nil {
-			break
-		}
-
-		return e.complexity.Event.Shifts(childComplexity), true
+		return e.complexity.Event.ServiceTypes(childComplexity), true
 	case "Event.venue":
 		if e.complexity.Event.Venue == nil {
 			break
@@ -193,146 +217,202 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Event.Venue(childComplexity), true
 
-	case "Mutation.assignVolunteerToShift":
-		if e.complexity.Mutation.AssignVolunteerToShift == nil {
+	case "EventDate.endDateTime":
+		if e.complexity.EventDate.EndDateTime == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_assignVolunteerToShift_args(ctx, rawArgs)
+		return e.complexity.EventDate.EndDateTime(childComplexity), true
+	case "EventDate.id":
+		if e.complexity.EventDate.ID == nil {
+			break
+		}
+
+		return e.complexity.EventDate.ID(childComplexity), true
+	case "EventDate.startDateTime":
+		if e.complexity.EventDate.StartDateTime == nil {
+			break
+		}
+
+		return e.complexity.EventDate.StartDateTime(childComplexity), true
+
+	case "Mutation.assignSelfToShift":
+		if e.complexity.Mutation.AssignSelfToShift == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_assignSelfToShift_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AssignVolunteerToShift(childComplexity, args["shiftId"].(string), args["volunteerId"].(string)), true
-	case "Mutation.cancelShift":
-		if e.complexity.Mutation.CancelShift == nil {
+		return e.complexity.Mutation.AssignSelfToShift(childComplexity, args["shiftId"].(string)), true
+	case "Mutation.cancelOwnShift":
+		if e.complexity.Mutation.CancelOwnShift == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_cancelShift_args(ctx, rawArgs)
+		args, err := ec.field_Mutation_cancelOwnShift_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CancelShift(childComplexity, args["shiftId"].(string), args["volunteerId"].(string)), true
-	case "Mutation.editVolunteerProfile":
-		if e.complexity.Mutation.EditVolunteerProfile == nil {
+		return e.complexity.Mutation.CancelOwnShift(childComplexity, args["shiftId"].(string)), true
+	case "Mutation.giveFeedback":
+		if e.complexity.Mutation.GiveFeedback == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_editVolunteerProfile_args(ctx, rawArgs)
+		args, err := ec.field_Mutation_giveFeedback_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.EditVolunteerProfile(childComplexity, args["volunteerId"].(string)), true
-
-	case "Opportunity.id":
-		if e.complexity.Opportunity.ID == nil {
+		return e.complexity.Mutation.GiveFeedback(childComplexity, args["feedback"].(NewFeedbackInput)), true
+	case "Mutation.updateOwnProfile":
+		if e.complexity.Mutation.UpdateOwnProfile == nil {
 			break
 		}
 
-		return e.complexity.Opportunity.ID(childComplexity), true
-	case "Opportunity.role":
-		if e.complexity.Opportunity.Role == nil {
-			break
-		}
-
-		return e.complexity.Opportunity.Role(childComplexity), true
-	case "Opportunity.shifts":
-		if e.complexity.Opportunity.Shifts == nil {
-			break
-		}
-
-		return e.complexity.Opportunity.Shifts(childComplexity), true
-
-	case "Query.allVolunteers":
-		if e.complexity.Query.AllVolunteers == nil {
-			break
-		}
-
-		args, err := ec.field_Query_allVolunteers_args(ctx, rawArgs)
+		args, err := ec.field_Mutation_updateOwnProfile_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.AllVolunteers(childComplexity, args["filter"].(*VolunteerFilter)), true
-	case "Query.eventById":
-		if e.complexity.Query.EventByID == nil {
+		return e.complexity.Mutation.UpdateOwnProfile(childComplexity, args["profile"].(UpdateOwnProfileInput)), true
+
+	case "MutationResult.id":
+		if e.complexity.MutationResult.ID == nil {
 			break
 		}
 
-		args, err := ec.field_Query_eventById_args(ctx, rawArgs)
+		return e.complexity.MutationResult.ID(childComplexity), true
+	case "MutationResult.message":
+		if e.complexity.MutationResult.Message == nil {
+			break
+		}
+
+		return e.complexity.MutationResult.Message(childComplexity), true
+	case "MutationResult.success":
+		if e.complexity.MutationResult.Success == nil {
+			break
+		}
+
+		return e.complexity.MutationResult.Success(childComplexity), true
+
+	case "Query.filteredEvents":
+		if e.complexity.Query.FilteredEvents == nil {
+			break
+		}
+
+		args, err := ec.field_Query_filteredEvents_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.EventByID(childComplexity, args["id"].(string)), true
-	case "Query.events":
-		if e.complexity.Query.Events == nil {
+		return e.complexity.Query.FilteredEvents(childComplexity, args["filter"].(*EventFilterInput)), true
+	case "Query.ownShifts":
+		if e.complexity.Query.OwnShifts == nil {
 			break
 		}
 
-		args, err := ec.field_Query_events_args(ctx, rawArgs)
+		args, err := ec.field_Query_ownShifts_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.Events(childComplexity, args["filter"].(*EventFilter)), true
+		return e.complexity.Query.OwnShifts(childComplexity, args["filter"].(ShiftTimeFilter)), true
+	case "Query.shiftsForEvent":
+		if e.complexity.Query.ShiftsForEvent == nil {
+			break
+		}
+
+		args, err := ec.field_Query_shiftsForEvent_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ShiftsForEvent(childComplexity, args["eventId"].(string)), true
 	case "Query.volunteerProfile":
 		if e.complexity.Query.VolunteerProfile == nil {
 			break
 		}
 
-		args, err := ec.field_Query_volunteerProfile_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
+		return e.complexity.Query.VolunteerProfile(childComplexity), true
 
-		return e.complexity.Query.VolunteerProfile(childComplexity, args["volunteerId"].(string)), true
-
-	case "Shift.assignedVolunteers":
-		if e.complexity.Shift.AssignedVolunteers == nil {
+	case "Region.code":
+		if e.complexity.Region.Code == nil {
 			break
 		}
 
-		return e.complexity.Shift.AssignedVolunteers(childComplexity), true
-	case "Shift.date":
-		if e.complexity.Shift.Date == nil {
+		return e.complexity.Region.Code(childComplexity), true
+	case "Region.id":
+		if e.complexity.Region.ID == nil {
 			break
 		}
 
-		return e.complexity.Shift.Date(childComplexity), true
-	case "Shift.endTime":
-		if e.complexity.Shift.EndTime == nil {
+		return e.complexity.Region.ID(childComplexity), true
+	case "Region.is_active":
+		if e.complexity.Region.IsActive == nil {
 			break
 		}
 
-		return e.complexity.Shift.EndTime(childComplexity), true
-	case "Shift.id":
-		if e.complexity.Shift.ID == nil {
+		return e.complexity.Region.IsActive(childComplexity), true
+	case "Region.name":
+		if e.complexity.Region.Name == nil {
 			break
 		}
 
-		return e.complexity.Shift.ID(childComplexity), true
-	case "Shift.maxVolunteers":
-		if e.complexity.Shift.MaxVolunteers == nil {
+		return e.complexity.Region.Name(childComplexity), true
+
+	case "ShiftView.assignedVolunteers":
+		if e.complexity.ShiftView.AssignedVolunteers == nil {
 			break
 		}
 
-		return e.complexity.Shift.MaxVolunteers(childComplexity), true
-	case "Shift.role":
-		if e.complexity.Shift.Role == nil {
+		return e.complexity.ShiftView.AssignedVolunteers(childComplexity), true
+	case "ShiftView.endDateTime":
+		if e.complexity.ShiftView.EndDateTime == nil {
 			break
 		}
 
-		return e.complexity.Shift.Role(childComplexity), true
-	case "Shift.startTime":
-		if e.complexity.Shift.StartTime == nil {
+		return e.complexity.ShiftView.EndDateTime(childComplexity), true
+	case "ShiftView.id":
+		if e.complexity.ShiftView.ID == nil {
 			break
 		}
 
-		return e.complexity.Shift.StartTime(childComplexity), true
+		return e.complexity.ShiftView.ID(childComplexity), true
+	case "ShiftView.isVirtual":
+		if e.complexity.ShiftView.IsVirtual == nil {
+			break
+		}
+
+		return e.complexity.ShiftView.IsVirtual(childComplexity), true
+	case "ShiftView.job":
+		if e.complexity.ShiftView.Job == nil {
+			break
+		}
+
+		return e.complexity.ShiftView.Job(childComplexity), true
+	case "ShiftView.maxVolunteers":
+		if e.complexity.ShiftView.MaxVolunteers == nil {
+			break
+		}
+
+		return e.complexity.ShiftView.MaxVolunteers(childComplexity), true
+	case "ShiftView.otherJobDescription":
+		if e.complexity.ShiftView.OtherJobDescription == nil {
+			break
+		}
+
+		return e.complexity.ShiftView.OtherJobDescription(childComplexity), true
+	case "ShiftView.startDateTime":
+		if e.complexity.ShiftView.StartDateTime == nil {
+			break
+		}
+
+		return e.complexity.ShiftView.StartDateTime(childComplexity), true
 
 	case "Venue.address":
 		if e.complexity.Venue.Address == nil {
@@ -346,18 +426,36 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Venue.City(childComplexity), true
+	case "Venue.id":
+		if e.complexity.Venue.ID == nil {
+			break
+		}
+
+		return e.complexity.Venue.ID(childComplexity), true
 	case "Venue.name":
 		if e.complexity.Venue.Name == nil {
 			break
 		}
 
 		return e.complexity.Venue.Name(childComplexity), true
+	case "Venue.region":
+		if e.complexity.Venue.Region == nil {
+			break
+		}
+
+		return e.complexity.Venue.Region(childComplexity), true
 	case "Venue.state":
 		if e.complexity.Venue.State == nil {
 			break
 		}
 
 		return e.complexity.Venue.State(childComplexity), true
+	case "Venue.timezone":
+		if e.complexity.Venue.Timezone == nil {
+			break
+		}
+
+		return e.complexity.Venue.Timezone(childComplexity), true
 	case "Venue.zipCode":
 		if e.complexity.Venue.ZipCode == nil {
 			break
@@ -365,36 +463,140 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Venue.ZipCode(childComplexity), true
 
-	case "Volunteer.email":
-		if e.complexity.Volunteer.Email == nil {
+	case "VolunteerMutationResult.message":
+		if e.complexity.VolunteerMutationResult.Message == nil {
 			break
 		}
 
-		return e.complexity.Volunteer.Email(childComplexity), true
-	case "Volunteer.firstName":
-		if e.complexity.Volunteer.FirstName == nil {
+		return e.complexity.VolunteerMutationResult.Message(childComplexity), true
+	case "VolunteerMutationResult.success":
+		if e.complexity.VolunteerMutationResult.Success == nil {
 			break
 		}
 
-		return e.complexity.Volunteer.FirstName(childComplexity), true
-	case "Volunteer.id":
-		if e.complexity.Volunteer.ID == nil {
+		return e.complexity.VolunteerMutationResult.Success(childComplexity), true
+
+	case "VolunteerProfile.email":
+		if e.complexity.VolunteerProfile.Email == nil {
 			break
 		}
 
-		return e.complexity.Volunteer.ID(childComplexity), true
-	case "Volunteer.lastName":
-		if e.complexity.Volunteer.LastName == nil {
+		return e.complexity.VolunteerProfile.Email(childComplexity), true
+	case "VolunteerProfile.firstName":
+		if e.complexity.VolunteerProfile.FirstName == nil {
 			break
 		}
 
-		return e.complexity.Volunteer.LastName(childComplexity), true
-	case "Volunteer.serviceTypes":
-		if e.complexity.Volunteer.ServiceTypes == nil {
+		return e.complexity.VolunteerProfile.FirstName(childComplexity), true
+	case "VolunteerProfile.lastName":
+		if e.complexity.VolunteerProfile.LastName == nil {
 			break
 		}
 
-		return e.complexity.Volunteer.ServiceTypes(childComplexity), true
+		return e.complexity.VolunteerProfile.LastName(childComplexity), true
+	case "VolunteerProfile.phone":
+		if e.complexity.VolunteerProfile.Phone == nil {
+			break
+		}
+
+		return e.complexity.VolunteerProfile.Phone(childComplexity), true
+	case "VolunteerProfile.role":
+		if e.complexity.VolunteerProfile.Role == nil {
+			break
+		}
+
+		return e.complexity.VolunteerProfile.Role(childComplexity), true
+	case "VolunteerProfile.zipCode":
+		if e.complexity.VolunteerProfile.ZipCode == nil {
+			break
+		}
+
+		return e.complexity.VolunteerProfile.ZipCode(childComplexity), true
+
+	case "VolunteerShift.assignedAt":
+		if e.complexity.VolunteerShift.AssignedAt == nil {
+			break
+		}
+
+		return e.complexity.VolunteerShift.AssignedAt(childComplexity), true
+	case "VolunteerShift.cancelledAt":
+		if e.complexity.VolunteerShift.CancelledAt == nil {
+			break
+		}
+
+		return e.complexity.VolunteerShift.CancelledAt(childComplexity), true
+	case "VolunteerShift.endDateTime":
+		if e.complexity.VolunteerShift.EndDateTime == nil {
+			break
+		}
+
+		return e.complexity.VolunteerShift.EndDateTime(childComplexity), true
+	case "VolunteerShift.eventDescription":
+		if e.complexity.VolunteerShift.EventDescription == nil {
+			break
+		}
+
+		return e.complexity.VolunteerShift.EventDescription(childComplexity), true
+	case "VolunteerShift.eventId":
+		if e.complexity.VolunteerShift.EventID == nil {
+			break
+		}
+
+		return e.complexity.VolunteerShift.EventID(childComplexity), true
+	case "VolunteerShift.eventName":
+		if e.complexity.VolunteerShift.EventName == nil {
+			break
+		}
+
+		return e.complexity.VolunteerShift.EventName(childComplexity), true
+	case "VolunteerShift.isVirtual":
+		if e.complexity.VolunteerShift.IsVirtual == nil {
+			break
+		}
+
+		return e.complexity.VolunteerShift.IsVirtual(childComplexity), true
+	case "VolunteerShift.job":
+		if e.complexity.VolunteerShift.Job == nil {
+			break
+		}
+
+		return e.complexity.VolunteerShift.Job(childComplexity), true
+	case "VolunteerShift.maxVolunteers":
+		if e.complexity.VolunteerShift.MaxVolunteers == nil {
+			break
+		}
+
+		return e.complexity.VolunteerShift.MaxVolunteers(childComplexity), true
+	case "VolunteerShift.otherJobDescription":
+		if e.complexity.VolunteerShift.OtherJobDescription == nil {
+			break
+		}
+
+		return e.complexity.VolunteerShift.OtherJobDescription(childComplexity), true
+	case "VolunteerShift.preEventInstructions":
+		if e.complexity.VolunteerShift.PreEventInstructions == nil {
+			break
+		}
+
+		return e.complexity.VolunteerShift.PreEventInstructions(childComplexity), true
+	case "VolunteerShift.shiftId":
+		if e.complexity.VolunteerShift.ShiftID == nil {
+			break
+		}
+
+		return e.complexity.VolunteerShift.ShiftID(childComplexity), true
+	case "VolunteerShift.startDateTime":
+		if e.complexity.VolunteerShift.StartDateTime == nil {
+			break
+		}
+
+		return e.complexity.VolunteerShift.StartDateTime(childComplexity), true
+	case "VolunteerShift.venue":
+		if e.complexity.VolunteerShift.Venue == nil {
+			break
+		}
+
+		return e.complexity.VolunteerShift.Venue(childComplexity), true
 
 	}
 	return 0, false
@@ -404,8 +606,9 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	opCtx := graphql.GetOperationContext(ctx)
 	ec := executionContext{opCtx, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
-		ec.unmarshalInputEventFilter,
-		ec.unmarshalInputVolunteerFilter,
+		ec.unmarshalInputEventFilterInput,
+		ec.unmarshalInputNewFeedbackInput,
+		ec.unmarshalInputUpdateOwnProfileInput,
 	)
 	first := true
 
@@ -503,37 +706,13 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "../schema.graphql", Input: `## This file contains queries and mutations available to
-## those with "volunteer" privileges. 
+	{Name: "../../shared/types.graphql", Input: `## Types common to all of the schemas.
 
 
-type Query {
-  events(filter: EventFilter): [Event!]!
-  eventById(id: ID!): Event!               
-  volunteerProfile(volunteerId: ID!): Volunteer!
-  allVolunteers(filter: VolunteerFilter): [Volunteer!]! 
-}
-
-type Mutation {
-  editVolunteerProfile(volunteerId: ID!): Volunteer!  
-  assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): AssignmentResult!  
-  ## TODO! send an email to the volunteer lead and the
-  ## volunteer coordinators when a volunteer cancels.
-  cancelShift(shiftId: ID!, volunteerId: ID!): AssignmentResult!
-}
-
-input EventFilter {
-  cities: [String!]
-  eventType: EventType
-  roles: [Role!]
-  startDate: String
-  endDate: String
-}
-
-input VolunteerFilter {
-  firstName: [String!]
-  lastName: [String!]
-  email: [String!]
+#-- ENUMS --
+enum Role {
+  VOLUNTEER
+  ADMINISTRATOR
 }
 
 enum EventType {
@@ -542,8 +721,8 @@ enum EventType {
   HYBRID
 }
 
-# ServiceType describes the category(s) of services for 
-# which this person has training or wants to help.
+# ServiceType describes the category(s) of service
+# into which this event falls.
 enum ServiceType {
   OUTREACH
   ADVOCACY
@@ -552,8 +731,22 @@ enum ServiceType {
   OTHER
 }
 
-# Role describes the role needed for a shift.
-enum Role {
+enum FeedbackType {
+    BUG
+    ENHANCEMENT
+    GENERAL
+}
+
+enum FeedbackStatus {
+  OPEN
+  QUESTION_SENT
+  RESOLVED_GITHUB
+  RESOLVED_REJECTED
+}
+
+# Job describes the specific job for which a VolunteerProfile
+# is needed.
+enum Job {
   EVENT_SUPPORT
   ADVOCACY
   SPEAKER
@@ -562,53 +755,145 @@ enum Role {
   OTHER
 }
 
+enum ShiftTimeFilter {
+  UPCOMING
+  PAST
+  ALL
+}
+
+#-- Input --
+
+## The EventFilter reflects all of the fields on which 
+## a user can filter the results. If you want to add
+## more ways to filter, this is the place.
+input EventFilterInput {
+  regions: [Int!]
+  eventType: EventType
+  jobs: [Job!]
+  shiftStartDateTime: String
+  shiftEndDateTime: String
+  ianaZone: String
+}
+
+input NewFeedbackInput {
+  type: FeedbackType!
+  subject: String!
+  app_page_name: String!
+  text: String!
+}
+
+#-- Output --
+
+type VolunteerProfile {
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  zipCode: String
+  role: Role!
+}
+
+type VolunteerShift {
+  shiftId: ID!
+  assignedAt: String!
+  cancelledAt: String
+  startDateTime: String!
+  endDateTime: String!
+  maxVolunteers: Int
+  job: Job!
+  otherJobDescription: String
+  isVirtual: Boolean!
+  preEventInstructions: String
+  eventId: ID!
+  eventName: String!
+  eventDescription: String
+  venue: Venue
+}
+
+type Region {
+  id: Int!
+  code: String!
+  name: String!
+  is_active: Boolean!
+}
+
+type Venue {
+  id: ID!
+  name: String
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String
+  timezone: String!
+  region: [Int!]!
+}
+
 type Event {
   id: ID!
   name: String!
   description: String
   eventType: EventType!
   venue: Venue
-  shifts: [Shift!]!
-  opportunities: [Opportunity!]!  
+  serviceTypes: [ServiceType!]
+  eventDates: [EventDate!]!  
 }
 
-type Venue {
-  name: String
-  address: String!
-  city: String!
-  state: String!
-  zipCode: String
-}
-
-type Shift {
+type EventDate {
   id: ID!
-  role: Role!
-  date: String!
-  startTime: String!
-  endTime: String!
+  startDateTime: String!
+  endDateTime: String!
+}
+
+
+
+#-- Results --
+type MutationResult {
+  success: Boolean!
+  message: String
+  id: ID
+}
+`, BuiltIn: false},
+	{Name: "../schema.graphql", Input: `## This file contains queries and mutations available to
+## those users logged in with "volunteer" privileges. 
+
+
+type Query {
+  volunteerProfile: VolunteerProfile!
+  filteredEvents(filter: EventFilterInput): [Event!]! 
+  shiftsForEvent(eventId: ID!): [ShiftView!]!  
+  ownShifts(filter: ShiftTimeFilter!): [VolunteerShift!]! 
+}
+
+type Mutation {
+  updateOwnProfile(profile: UpdateOwnProfileInput!): VolunteerMutationResult!    
+  assignSelfToShift(shiftId: ID!): MutationResult!  
+  cancelOwnShift(shiftId: ID!): MutationResult!
+  giveFeedback (feedback: NewFeedbackInput!): MutationResult!
+}
+
+type ShiftView {
+  id: ID!
+  job: Job!
+  otherJobDescription: String
+  startDateTime: String!
+  endDateTime: String!
+  isVirtual: Boolean!
   maxVolunteers: Int
-  assignedVolunteers: [Volunteer!]
+  assignedVolunteers: Int!
 }
 
-type Volunteer {
-  id: ID!
+input UpdateOwnProfileInput {
   firstName: String!
   lastName: String!
   email: String!
-  serviceTypes: [ServiceType!]
+  phone: String
+  zipCode: String
 }
 
-type Opportunity {
-  id: ID!
-  role: Role!
-  shifts: [Shift!]!
-}
-
-type AssignmentResult {
+type VolunteerMutationResult {
   success: Boolean!
   message: String
 }
-
 `, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
@@ -617,7 +902,7 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
-func (ec *executionContext) field_Mutation_assignVolunteerToShift_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+func (ec *executionContext) field_Mutation_assignSelfToShift_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "shiftId", ec.unmarshalNID2string)
@@ -625,15 +910,10 @@ func (ec *executionContext) field_Mutation_assignVolunteerToShift_args(ctx conte
 		return nil, err
 	}
 	args["shiftId"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "volunteerId", ec.unmarshalNID2string)
-	if err != nil {
-		return nil, err
-	}
-	args["volunteerId"] = arg1
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_cancelShift_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+func (ec *executionContext) field_Mutation_cancelOwnShift_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "shiftId", ec.unmarshalNID2string)
@@ -641,22 +921,28 @@ func (ec *executionContext) field_Mutation_cancelShift_args(ctx context.Context,
 		return nil, err
 	}
 	args["shiftId"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "volunteerId", ec.unmarshalNID2string)
-	if err != nil {
-		return nil, err
-	}
-	args["volunteerId"] = arg1
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_editVolunteerProfile_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+func (ec *executionContext) field_Mutation_giveFeedback_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "volunteerId", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "feedback", ec.unmarshalNNewFeedbackInput2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐNewFeedbackInput)
 	if err != nil {
 		return nil, err
 	}
-	args["volunteerId"] = arg0
+	args["feedback"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateOwnProfile_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "profile", ec.unmarshalNUpdateOwnProfileInput2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐUpdateOwnProfileInput)
+	if err != nil {
+		return nil, err
+	}
+	args["profile"] = arg0
 	return args, nil
 }
 
@@ -671,10 +957,10 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_allVolunteers_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+func (ec *executionContext) field_Query_filteredEvents_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOVolunteerFilter2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerFilter)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOEventFilterInput2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventFilterInput)
 	if err != nil {
 		return nil, err
 	}
@@ -682,21 +968,10 @@ func (ec *executionContext) field_Query_allVolunteers_args(ctx context.Context, 
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_eventById_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+func (ec *executionContext) field_Query_ownShifts_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
-	if err != nil {
-		return nil, err
-	}
-	args["id"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_events_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOEventFilter2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventFilter)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalNShiftTimeFilter2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐShiftTimeFilter)
 	if err != nil {
 		return nil, err
 	}
@@ -704,14 +979,14 @@ func (ec *executionContext) field_Query_events_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_volunteerProfile_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+func (ec *executionContext) field_Query_shiftsForEvent_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "volunteerId", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "eventId", ec.unmarshalNID2string)
 	if err != nil {
 		return nil, err
 	}
-	args["volunteerId"] = arg0
+	args["eventId"] = arg0
 	return args, nil
 }
 
@@ -766,64 +1041,6 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
-
-func (ec *executionContext) _AssignmentResult_success(ctx context.Context, field graphql.CollectedField, obj *AssignmentResult) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_AssignmentResult_success,
-		func(ctx context.Context) (any, error) {
-			return obj.Success, nil
-		},
-		nil,
-		ec.marshalNBoolean2bool,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_AssignmentResult_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AssignmentResult",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AssignmentResult_message(ctx context.Context, field graphql.CollectedField, obj *AssignmentResult) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_AssignmentResult_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_AssignmentResult_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AssignmentResult",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
 
 func (ec *executionContext) _Event_id(ctx context.Context, field graphql.CollectedField, obj *Event) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
@@ -965,6 +1182,8 @@ func (ec *executionContext) fieldContext_Event_venue(_ context.Context, field gr
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "id":
+				return ec.fieldContext_Venue_id(ctx, field)
 			case "name":
 				return ec.fieldContext_Venue_name(ctx, field)
 			case "address":
@@ -975,6 +1194,10 @@ func (ec *executionContext) fieldContext_Event_venue(_ context.Context, field gr
 				return ec.fieldContext_Venue_state(ctx, field)
 			case "zipCode":
 				return ec.fieldContext_Venue_zipCode(ctx, field)
+			case "timezone":
+				return ec.fieldContext_Venue_timezone(ctx, field)
+			case "region":
+				return ec.fieldContext_Venue_region(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Venue", field.Name)
 		},
@@ -982,23 +1205,52 @@ func (ec *executionContext) fieldContext_Event_venue(_ context.Context, field gr
 	return fc, nil
 }
 
-func (ec *executionContext) _Event_shifts(ctx context.Context, field graphql.CollectedField, obj *Event) (ret graphql.Marshaler) {
+func (ec *executionContext) _Event_serviceTypes(ctx context.Context, field graphql.CollectedField, obj *Event) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Event_shifts,
+		ec.fieldContext_Event_serviceTypes,
 		func(ctx context.Context) (any, error) {
-			return obj.Shifts, nil
+			return obj.ServiceTypes, nil
 		},
 		nil,
-		ec.marshalNShift2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐShiftᚄ,
+		ec.marshalOServiceType2ᚕvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐServiceTypeᚄ,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Event_serviceTypes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Event",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ServiceType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Event_eventDates(ctx context.Context, field graphql.CollectedField, obj *Event) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Event_eventDates,
+		func(ctx context.Context) (any, error) {
+			return obj.EventDates, nil
+		},
+		nil,
+		ec.marshalNEventDate2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventDateᚄ,
 		true,
 		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Event_shifts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Event_eventDates(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Event",
 		Field:      field,
@@ -1007,216 +1259,24 @@ func (ec *executionContext) fieldContext_Event_shifts(_ context.Context, field g
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_Shift_id(ctx, field)
-			case "role":
-				return ec.fieldContext_Shift_role(ctx, field)
-			case "date":
-				return ec.fieldContext_Shift_date(ctx, field)
-			case "startTime":
-				return ec.fieldContext_Shift_startTime(ctx, field)
-			case "endTime":
-				return ec.fieldContext_Shift_endTime(ctx, field)
-			case "maxVolunteers":
-				return ec.fieldContext_Shift_maxVolunteers(ctx, field)
-			case "assignedVolunteers":
-				return ec.fieldContext_Shift_assignedVolunteers(ctx, field)
+				return ec.fieldContext_EventDate_id(ctx, field)
+			case "startDateTime":
+				return ec.fieldContext_EventDate_startDateTime(ctx, field)
+			case "endDateTime":
+				return ec.fieldContext_EventDate_endDateTime(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Shift", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type EventDate", field.Name)
 		},
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Event_opportunities(ctx context.Context, field graphql.CollectedField, obj *Event) (ret graphql.Marshaler) {
+func (ec *executionContext) _EventDate_id(ctx context.Context, field graphql.CollectedField, obj *EventDate) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Event_opportunities,
-		func(ctx context.Context) (any, error) {
-			return obj.Opportunities, nil
-		},
-		nil,
-		ec.marshalNOpportunity2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐOpportunityᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Event_opportunities(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Event",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Opportunity_id(ctx, field)
-			case "role":
-				return ec.fieldContext_Opportunity_role(ctx, field)
-			case "shifts":
-				return ec.fieldContext_Opportunity_shifts(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Opportunity", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_editVolunteerProfile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_editVolunteerProfile,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().EditVolunteerProfile(ctx, fc.Args["volunteerId"].(string))
-		},
-		nil,
-		ec.marshalNVolunteer2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteer,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_editVolunteerProfile(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Volunteer_id(ctx, field)
-			case "firstName":
-				return ec.fieldContext_Volunteer_firstName(ctx, field)
-			case "lastName":
-				return ec.fieldContext_Volunteer_lastName(ctx, field)
-			case "email":
-				return ec.fieldContext_Volunteer_email(ctx, field)
-			case "serviceTypes":
-				return ec.fieldContext_Volunteer_serviceTypes(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Volunteer", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_editVolunteerProfile_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_assignVolunteerToShift(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_assignVolunteerToShift,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().AssignVolunteerToShift(ctx, fc.Args["shiftId"].(string), fc.Args["volunteerId"].(string))
-		},
-		nil,
-		ec.marshalNAssignmentResult2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐAssignmentResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_assignVolunteerToShift(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_AssignmentResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_AssignmentResult_message(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AssignmentResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_assignVolunteerToShift_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_cancelShift(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_cancelShift,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CancelShift(ctx, fc.Args["shiftId"].(string), fc.Args["volunteerId"].(string))
-		},
-		nil,
-		ec.marshalNAssignmentResult2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐAssignmentResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_cancelShift(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_AssignmentResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_AssignmentResult_message(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AssignmentResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_cancelShift_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Opportunity_id(ctx context.Context, field graphql.CollectedField, obj *Opportunity) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Opportunity_id,
+		ec.fieldContext_EventDate_id,
 		func(ctx context.Context) (any, error) {
 			return obj.ID, nil
 		},
@@ -1227,9 +1287,9 @@ func (ec *executionContext) _Opportunity_id(ctx context.Context, field graphql.C
 	)
 }
 
-func (ec *executionContext) fieldContext_Opportunity_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_EventDate_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Opportunity",
+		Object:     "EventDate",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -1240,121 +1300,95 @@ func (ec *executionContext) fieldContext_Opportunity_id(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Opportunity_role(ctx context.Context, field graphql.CollectedField, obj *Opportunity) (ret graphql.Marshaler) {
+func (ec *executionContext) _EventDate_startDateTime(ctx context.Context, field graphql.CollectedField, obj *EventDate) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Opportunity_role,
+		ec.fieldContext_EventDate_startDateTime,
 		func(ctx context.Context) (any, error) {
-			return obj.Role, nil
+			return obj.StartDateTime, nil
 		},
 		nil,
-		ec.marshalNRole2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐRole,
+		ec.marshalNString2string,
 		true,
 		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Opportunity_role(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_EventDate_startDateTime(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Opportunity",
+		Object:     "EventDate",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Role does not have child fields")
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Opportunity_shifts(ctx context.Context, field graphql.CollectedField, obj *Opportunity) (ret graphql.Marshaler) {
+func (ec *executionContext) _EventDate_endDateTime(ctx context.Context, field graphql.CollectedField, obj *EventDate) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Opportunity_shifts,
+		ec.fieldContext_EventDate_endDateTime,
 		func(ctx context.Context) (any, error) {
-			return obj.Shifts, nil
+			return obj.EndDateTime, nil
 		},
 		nil,
-		ec.marshalNShift2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐShiftᚄ,
+		ec.marshalNString2string,
 		true,
 		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Opportunity_shifts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_EventDate_endDateTime(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Opportunity",
+		Object:     "EventDate",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Shift_id(ctx, field)
-			case "role":
-				return ec.fieldContext_Shift_role(ctx, field)
-			case "date":
-				return ec.fieldContext_Shift_date(ctx, field)
-			case "startTime":
-				return ec.fieldContext_Shift_startTime(ctx, field)
-			case "endTime":
-				return ec.fieldContext_Shift_endTime(ctx, field)
-			case "maxVolunteers":
-				return ec.fieldContext_Shift_maxVolunteers(ctx, field)
-			case "assignedVolunteers":
-				return ec.fieldContext_Shift_assignedVolunteers(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Shift", field.Name)
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_events(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_updateOwnProfile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_events,
+		ec.fieldContext_Mutation_updateOwnProfile,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().Events(ctx, fc.Args["filter"].(*EventFilter))
+			return ec.resolvers.Mutation().UpdateOwnProfile(ctx, fc.Args["profile"].(UpdateOwnProfileInput))
 		},
 		nil,
-		ec.marshalNEvent2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventᚄ,
+		ec.marshalNVolunteerMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerMutationResult,
 		true,
 		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_events(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_updateOwnProfile(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Query",
+		Object:     "Mutation",
 		Field:      field,
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Event_id(ctx, field)
-			case "name":
-				return ec.fieldContext_Event_name(ctx, field)
-			case "description":
-				return ec.fieldContext_Event_description(ctx, field)
-			case "eventType":
-				return ec.fieldContext_Event_eventType(ctx, field)
-			case "venue":
-				return ec.fieldContext_Event_venue(ctx, field)
-			case "shifts":
-				return ec.fieldContext_Event_shifts(ctx, field)
-			case "opportunities":
-				return ec.fieldContext_Event_opportunities(ctx, field)
+			case "success":
+				return ec.fieldContext_VolunteerMutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_VolunteerMutationResult_message(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Event", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type VolunteerMutationResult", field.Name)
 		},
 	}
 	defer func() {
@@ -1364,54 +1398,46 @@ func (ec *executionContext) fieldContext_Query_events(ctx context.Context, field
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_events_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_updateOwnProfile_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_eventById(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_assignSelfToShift(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_eventById,
+		ec.fieldContext_Mutation_assignSelfToShift,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().EventByID(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Mutation().AssignSelfToShift(ctx, fc.Args["shiftId"].(string))
 		},
 		nil,
-		ec.marshalNEvent2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEvent,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐMutationResult,
 		true,
 		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_eventById(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_assignSelfToShift(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Query",
+		Object:     "Mutation",
 		Field:      field,
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
 			case "id":
-				return ec.fieldContext_Event_id(ctx, field)
-			case "name":
-				return ec.fieldContext_Event_name(ctx, field)
-			case "description":
-				return ec.fieldContext_Event_description(ctx, field)
-			case "eventType":
-				return ec.fieldContext_Event_eventType(ctx, field)
-			case "venue":
-				return ec.fieldContext_Event_venue(ctx, field)
-			case "shifts":
-				return ec.fieldContext_Event_shifts(ctx, field)
-			case "opportunities":
-				return ec.fieldContext_Event_opportunities(ctx, field)
+				return ec.fieldContext_MutationResult_id(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Event", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
 		},
 	}
 	defer func() {
@@ -1421,9 +1447,194 @@ func (ec *executionContext) fieldContext_Query_eventById(ctx context.Context, fi
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_eventById_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_assignSelfToShift_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_cancelOwnShift(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_cancelOwnShift,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CancelOwnShift(ctx, fc.Args["shiftId"].(string))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_cancelOwnShift(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_cancelOwnShift_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_giveFeedback(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_giveFeedback,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().GiveFeedback(ctx, fc.Args["feedback"].(NewFeedbackInput))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_giveFeedback(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_giveFeedback_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MutationResult_success(ctx context.Context, field graphql.CollectedField, obj *MutationResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MutationResult_success,
+		func(ctx context.Context) (any, error) {
+			return obj.Success, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_MutationResult_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MutationResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MutationResult_message(ctx context.Context, field graphql.CollectedField, obj *MutationResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MutationResult_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_MutationResult_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MutationResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MutationResult_id(ctx context.Context, field graphql.CollectedField, obj *MutationResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MutationResult_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalOID2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_MutationResult_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MutationResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
 	}
 	return fc, nil
 }
@@ -1435,17 +1646,60 @@ func (ec *executionContext) _Query_volunteerProfile(ctx context.Context, field g
 		field,
 		ec.fieldContext_Query_volunteerProfile,
 		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().VolunteerProfile(ctx, fc.Args["volunteerId"].(string))
+			return ec.resolvers.Query().VolunteerProfile(ctx)
 		},
 		nil,
-		ec.marshalNVolunteer2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteer,
+		ec.marshalNVolunteerProfile2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerProfile,
 		true,
 		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_volunteerProfile(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_volunteerProfile(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "firstName":
+				return ec.fieldContext_VolunteerProfile_firstName(ctx, field)
+			case "lastName":
+				return ec.fieldContext_VolunteerProfile_lastName(ctx, field)
+			case "email":
+				return ec.fieldContext_VolunteerProfile_email(ctx, field)
+			case "phone":
+				return ec.fieldContext_VolunteerProfile_phone(ctx, field)
+			case "zipCode":
+				return ec.fieldContext_VolunteerProfile_zipCode(ctx, field)
+			case "role":
+				return ec.fieldContext_VolunteerProfile_role(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type VolunteerProfile", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_filteredEvents(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_filteredEvents,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().FilteredEvents(ctx, fc.Args["filter"].(*EventFilterInput))
+		},
+		nil,
+		ec.marshalNEvent2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_filteredEvents(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -1454,17 +1708,21 @@ func (ec *executionContext) fieldContext_Query_volunteerProfile(ctx context.Cont
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_Volunteer_id(ctx, field)
-			case "firstName":
-				return ec.fieldContext_Volunteer_firstName(ctx, field)
-			case "lastName":
-				return ec.fieldContext_Volunteer_lastName(ctx, field)
-			case "email":
-				return ec.fieldContext_Volunteer_email(ctx, field)
+				return ec.fieldContext_Event_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Event_name(ctx, field)
+			case "description":
+				return ec.fieldContext_Event_description(ctx, field)
+			case "eventType":
+				return ec.fieldContext_Event_eventType(ctx, field)
+			case "venue":
+				return ec.fieldContext_Event_venue(ctx, field)
 			case "serviceTypes":
-				return ec.fieldContext_Volunteer_serviceTypes(ctx, field)
+				return ec.fieldContext_Event_serviceTypes(ctx, field)
+			case "eventDates":
+				return ec.fieldContext_Event_eventDates(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Volunteer", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type Event", field.Name)
 		},
 	}
 	defer func() {
@@ -1474,31 +1732,31 @@ func (ec *executionContext) fieldContext_Query_volunteerProfile(ctx context.Cont
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_volunteerProfile_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_filteredEvents_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_allVolunteers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_shiftsForEvent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_allVolunteers,
+		ec.fieldContext_Query_shiftsForEvent,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().AllVolunteers(ctx, fc.Args["filter"].(*VolunteerFilter))
+			return ec.resolvers.Query().ShiftsForEvent(ctx, fc.Args["eventId"].(string))
 		},
 		nil,
-		ec.marshalNVolunteer2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerᚄ,
+		ec.marshalNShiftView2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐShiftViewᚄ,
 		true,
 		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_allVolunteers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_shiftsForEvent(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -1507,17 +1765,23 @@ func (ec *executionContext) fieldContext_Query_allVolunteers(ctx context.Context
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_Volunteer_id(ctx, field)
-			case "firstName":
-				return ec.fieldContext_Volunteer_firstName(ctx, field)
-			case "lastName":
-				return ec.fieldContext_Volunteer_lastName(ctx, field)
-			case "email":
-				return ec.fieldContext_Volunteer_email(ctx, field)
-			case "serviceTypes":
-				return ec.fieldContext_Volunteer_serviceTypes(ctx, field)
+				return ec.fieldContext_ShiftView_id(ctx, field)
+			case "job":
+				return ec.fieldContext_ShiftView_job(ctx, field)
+			case "otherJobDescription":
+				return ec.fieldContext_ShiftView_otherJobDescription(ctx, field)
+			case "startDateTime":
+				return ec.fieldContext_ShiftView_startDateTime(ctx, field)
+			case "endDateTime":
+				return ec.fieldContext_ShiftView_endDateTime(ctx, field)
+			case "isVirtual":
+				return ec.fieldContext_ShiftView_isVirtual(ctx, field)
+			case "maxVolunteers":
+				return ec.fieldContext_ShiftView_maxVolunteers(ctx, field)
+			case "assignedVolunteers":
+				return ec.fieldContext_ShiftView_assignedVolunteers(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Volunteer", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type ShiftView", field.Name)
 		},
 	}
 	defer func() {
@@ -1527,7 +1791,78 @@ func (ec *executionContext) fieldContext_Query_allVolunteers(ctx context.Context
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_allVolunteers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_shiftsForEvent_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_ownShifts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_ownShifts,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().OwnShifts(ctx, fc.Args["filter"].(ShiftTimeFilter))
+		},
+		nil,
+		ec.marshalNVolunteerShift2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerShiftᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_ownShifts(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "shiftId":
+				return ec.fieldContext_VolunteerShift_shiftId(ctx, field)
+			case "assignedAt":
+				return ec.fieldContext_VolunteerShift_assignedAt(ctx, field)
+			case "cancelledAt":
+				return ec.fieldContext_VolunteerShift_cancelledAt(ctx, field)
+			case "startDateTime":
+				return ec.fieldContext_VolunteerShift_startDateTime(ctx, field)
+			case "endDateTime":
+				return ec.fieldContext_VolunteerShift_endDateTime(ctx, field)
+			case "maxVolunteers":
+				return ec.fieldContext_VolunteerShift_maxVolunteers(ctx, field)
+			case "job":
+				return ec.fieldContext_VolunteerShift_job(ctx, field)
+			case "otherJobDescription":
+				return ec.fieldContext_VolunteerShift_otherJobDescription(ctx, field)
+			case "isVirtual":
+				return ec.fieldContext_VolunteerShift_isVirtual(ctx, field)
+			case "preEventInstructions":
+				return ec.fieldContext_VolunteerShift_preEventInstructions(ctx, field)
+			case "eventId":
+				return ec.fieldContext_VolunteerShift_eventId(ctx, field)
+			case "eventName":
+				return ec.fieldContext_VolunteerShift_eventName(ctx, field)
+			case "eventDescription":
+				return ec.fieldContext_VolunteerShift_eventDescription(ctx, field)
+			case "venue":
+				return ec.fieldContext_VolunteerShift_venue(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type VolunteerShift", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_ownShifts_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -1642,170 +1977,25 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Shift_id(ctx context.Context, field graphql.CollectedField, obj *Shift) (ret graphql.Marshaler) {
+func (ec *executionContext) _Region_id(ctx context.Context, field graphql.CollectedField, obj *Region) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Shift_id,
+		ec.fieldContext_Region_id,
 		func(ctx context.Context) (any, error) {
 			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNInt2int,
 		true,
 		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Shift_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Region_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Shift",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Shift_role(ctx context.Context, field graphql.CollectedField, obj *Shift) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Shift_role,
-		func(ctx context.Context) (any, error) {
-			return obj.Role, nil
-		},
-		nil,
-		ec.marshalNRole2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐRole,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Shift_role(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Shift",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Role does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Shift_date(ctx context.Context, field graphql.CollectedField, obj *Shift) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Shift_date,
-		func(ctx context.Context) (any, error) {
-			return obj.Date, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Shift_date(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Shift",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Shift_startTime(ctx context.Context, field graphql.CollectedField, obj *Shift) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Shift_startTime,
-		func(ctx context.Context) (any, error) {
-			return obj.StartTime, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Shift_startTime(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Shift",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Shift_endTime(ctx context.Context, field graphql.CollectedField, obj *Shift) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Shift_endTime,
-		func(ctx context.Context) (any, error) {
-			return obj.EndTime, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Shift_endTime(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Shift",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Shift_maxVolunteers(ctx context.Context, field graphql.CollectedField, obj *Shift) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Shift_maxVolunteers,
-		func(ctx context.Context) (any, error) {
-			return obj.MaxVolunteers, nil
-		},
-		nil,
-		ec.marshalOInt2ᚖint,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_Shift_maxVolunteers(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Shift",
+		Object:     "Region",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -1816,42 +2006,349 @@ func (ec *executionContext) fieldContext_Shift_maxVolunteers(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Shift_assignedVolunteers(ctx context.Context, field graphql.CollectedField, obj *Shift) (ret graphql.Marshaler) {
+func (ec *executionContext) _Region_code(ctx context.Context, field graphql.CollectedField, obj *Region) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Shift_assignedVolunteers,
+		ec.fieldContext_Region_code,
 		func(ctx context.Context) (any, error) {
-			return obj.AssignedVolunteers, nil
+			return obj.Code, nil
 		},
 		nil,
-		ec.marshalOVolunteer2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerᚄ,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Region_code(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Region",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Region_name(ctx context.Context, field graphql.CollectedField, obj *Region) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Region_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Region_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Region",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Region_is_active(ctx context.Context, field graphql.CollectedField, obj *Region) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Region_is_active,
+		func(ctx context.Context) (any, error) {
+			return obj.IsActive, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Region_is_active(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Region",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ShiftView_id(ctx context.Context, field graphql.CollectedField, obj *ShiftView) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ShiftView_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ShiftView_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ShiftView",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ShiftView_job(ctx context.Context, field graphql.CollectedField, obj *ShiftView) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ShiftView_job,
+		func(ctx context.Context) (any, error) {
+			return obj.Job, nil
+		},
+		nil,
+		ec.marshalNJob2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐJob,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ShiftView_job(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ShiftView",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Job does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ShiftView_otherJobDescription(ctx context.Context, field graphql.CollectedField, obj *ShiftView) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ShiftView_otherJobDescription,
+		func(ctx context.Context) (any, error) {
+			return obj.OtherJobDescription, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
 		true,
 		false,
 	)
 }
 
-func (ec *executionContext) fieldContext_Shift_assignedVolunteers(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_ShiftView_otherJobDescription(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Shift",
+		Object:     "ShiftView",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Volunteer_id(ctx, field)
-			case "firstName":
-				return ec.fieldContext_Volunteer_firstName(ctx, field)
-			case "lastName":
-				return ec.fieldContext_Volunteer_lastName(ctx, field)
-			case "email":
-				return ec.fieldContext_Volunteer_email(ctx, field)
-			case "serviceTypes":
-				return ec.fieldContext_Volunteer_serviceTypes(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Volunteer", field.Name)
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ShiftView_startDateTime(ctx context.Context, field graphql.CollectedField, obj *ShiftView) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ShiftView_startDateTime,
+		func(ctx context.Context) (any, error) {
+			return obj.StartDateTime, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ShiftView_startDateTime(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ShiftView",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ShiftView_endDateTime(ctx context.Context, field graphql.CollectedField, obj *ShiftView) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ShiftView_endDateTime,
+		func(ctx context.Context) (any, error) {
+			return obj.EndDateTime, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ShiftView_endDateTime(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ShiftView",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ShiftView_isVirtual(ctx context.Context, field graphql.CollectedField, obj *ShiftView) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ShiftView_isVirtual,
+		func(ctx context.Context) (any, error) {
+			return obj.IsVirtual, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ShiftView_isVirtual(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ShiftView",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ShiftView_maxVolunteers(ctx context.Context, field graphql.CollectedField, obj *ShiftView) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ShiftView_maxVolunteers,
+		func(ctx context.Context) (any, error) {
+			return obj.MaxVolunteers, nil
+		},
+		nil,
+		ec.marshalOInt2ᚖint,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ShiftView_maxVolunteers(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ShiftView",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ShiftView_assignedVolunteers(ctx context.Context, field graphql.CollectedField, obj *ShiftView) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ShiftView_assignedVolunteers,
+		func(ctx context.Context) (any, error) {
+			return obj.AssignedVolunteers, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ShiftView_assignedVolunteers(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ShiftView",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Venue_id(ctx context.Context, field graphql.CollectedField, obj *Venue) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Venue_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Venue_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Venue",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2002,41 +2499,128 @@ func (ec *executionContext) fieldContext_Venue_zipCode(_ context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _Volunteer_id(ctx context.Context, field graphql.CollectedField, obj *Volunteer) (ret graphql.Marshaler) {
+func (ec *executionContext) _Venue_timezone(ctx context.Context, field graphql.CollectedField, obj *Venue) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Volunteer_id,
+		ec.fieldContext_Venue_timezone,
 		func(ctx context.Context) (any, error) {
-			return obj.ID, nil
+			return obj.Timezone, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNString2string,
 		true,
 		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Volunteer_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Venue_timezone(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Volunteer",
+		Object:     "Venue",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Volunteer_firstName(ctx context.Context, field graphql.CollectedField, obj *Volunteer) (ret graphql.Marshaler) {
+func (ec *executionContext) _Venue_region(ctx context.Context, field graphql.CollectedField, obj *Venue) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Volunteer_firstName,
+		ec.fieldContext_Venue_region,
+		func(ctx context.Context) (any, error) {
+			return obj.Region, nil
+		},
+		nil,
+		ec.marshalNInt2ᚕintᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Venue_region(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Venue",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerMutationResult_success(ctx context.Context, field graphql.CollectedField, obj *VolunteerMutationResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerMutationResult_success,
+		func(ctx context.Context) (any, error) {
+			return obj.Success, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerMutationResult_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerMutationResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerMutationResult_message(ctx context.Context, field graphql.CollectedField, obj *VolunteerMutationResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerMutationResult_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerMutationResult_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerMutationResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerProfile_firstName(ctx context.Context, field graphql.CollectedField, obj *VolunteerProfile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerProfile_firstName,
 		func(ctx context.Context) (any, error) {
 			return obj.FirstName, nil
 		},
@@ -2047,9 +2631,9 @@ func (ec *executionContext) _Volunteer_firstName(ctx context.Context, field grap
 	)
 }
 
-func (ec *executionContext) fieldContext_Volunteer_firstName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_VolunteerProfile_firstName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Volunteer",
+		Object:     "VolunteerProfile",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -2060,12 +2644,12 @@ func (ec *executionContext) fieldContext_Volunteer_firstName(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Volunteer_lastName(ctx context.Context, field graphql.CollectedField, obj *Volunteer) (ret graphql.Marshaler) {
+func (ec *executionContext) _VolunteerProfile_lastName(ctx context.Context, field graphql.CollectedField, obj *VolunteerProfile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Volunteer_lastName,
+		ec.fieldContext_VolunteerProfile_lastName,
 		func(ctx context.Context) (any, error) {
 			return obj.LastName, nil
 		},
@@ -2076,9 +2660,9 @@ func (ec *executionContext) _Volunteer_lastName(ctx context.Context, field graph
 	)
 }
 
-func (ec *executionContext) fieldContext_Volunteer_lastName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_VolunteerProfile_lastName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Volunteer",
+		Object:     "VolunteerProfile",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -2089,12 +2673,12 @@ func (ec *executionContext) fieldContext_Volunteer_lastName(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Volunteer_email(ctx context.Context, field graphql.CollectedField, obj *Volunteer) (ret graphql.Marshaler) {
+func (ec *executionContext) _VolunteerProfile_email(ctx context.Context, field graphql.CollectedField, obj *VolunteerProfile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Volunteer_email,
+		ec.fieldContext_VolunteerProfile_email,
 		func(ctx context.Context) (any, error) {
 			return obj.Email, nil
 		},
@@ -2105,9 +2689,9 @@ func (ec *executionContext) _Volunteer_email(ctx context.Context, field graphql.
 	)
 }
 
-func (ec *executionContext) fieldContext_Volunteer_email(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_VolunteerProfile_email(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Volunteer",
+		Object:     "VolunteerProfile",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -2118,30 +2702,512 @@ func (ec *executionContext) fieldContext_Volunteer_email(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _Volunteer_serviceTypes(ctx context.Context, field graphql.CollectedField, obj *Volunteer) (ret graphql.Marshaler) {
+func (ec *executionContext) _VolunteerProfile_phone(ctx context.Context, field graphql.CollectedField, obj *VolunteerProfile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Volunteer_serviceTypes,
+		ec.fieldContext_VolunteerProfile_phone,
 		func(ctx context.Context) (any, error) {
-			return obj.ServiceTypes, nil
+			return obj.Phone, nil
 		},
 		nil,
-		ec.marshalOServiceType2ᚕvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐServiceTypeᚄ,
+		ec.marshalOString2ᚖstring,
 		true,
 		false,
 	)
 }
 
-func (ec *executionContext) fieldContext_Volunteer_serviceTypes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_VolunteerProfile_phone(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Volunteer",
+		Object:     "VolunteerProfile",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ServiceType does not have child fields")
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerProfile_zipCode(ctx context.Context, field graphql.CollectedField, obj *VolunteerProfile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerProfile_zipCode,
+		func(ctx context.Context) (any, error) {
+			return obj.ZipCode, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerProfile_zipCode(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerProfile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerProfile_role(ctx context.Context, field graphql.CollectedField, obj *VolunteerProfile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerProfile_role,
+		func(ctx context.Context) (any, error) {
+			return obj.Role, nil
+		},
+		nil,
+		ec.marshalNRole2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐRole,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerProfile_role(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerProfile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Role does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerShift_shiftId(ctx context.Context, field graphql.CollectedField, obj *VolunteerShift) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerShift_shiftId,
+		func(ctx context.Context) (any, error) {
+			return obj.ShiftID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerShift_shiftId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerShift",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerShift_assignedAt(ctx context.Context, field graphql.CollectedField, obj *VolunteerShift) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerShift_assignedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.AssignedAt, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerShift_assignedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerShift",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerShift_cancelledAt(ctx context.Context, field graphql.CollectedField, obj *VolunteerShift) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerShift_cancelledAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CancelledAt, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerShift_cancelledAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerShift",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerShift_startDateTime(ctx context.Context, field graphql.CollectedField, obj *VolunteerShift) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerShift_startDateTime,
+		func(ctx context.Context) (any, error) {
+			return obj.StartDateTime, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerShift_startDateTime(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerShift",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerShift_endDateTime(ctx context.Context, field graphql.CollectedField, obj *VolunteerShift) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerShift_endDateTime,
+		func(ctx context.Context) (any, error) {
+			return obj.EndDateTime, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerShift_endDateTime(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerShift",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerShift_maxVolunteers(ctx context.Context, field graphql.CollectedField, obj *VolunteerShift) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerShift_maxVolunteers,
+		func(ctx context.Context) (any, error) {
+			return obj.MaxVolunteers, nil
+		},
+		nil,
+		ec.marshalOInt2ᚖint,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerShift_maxVolunteers(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerShift",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerShift_job(ctx context.Context, field graphql.CollectedField, obj *VolunteerShift) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerShift_job,
+		func(ctx context.Context) (any, error) {
+			return obj.Job, nil
+		},
+		nil,
+		ec.marshalNJob2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐJob,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerShift_job(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerShift",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Job does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerShift_otherJobDescription(ctx context.Context, field graphql.CollectedField, obj *VolunteerShift) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerShift_otherJobDescription,
+		func(ctx context.Context) (any, error) {
+			return obj.OtherJobDescription, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerShift_otherJobDescription(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerShift",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerShift_isVirtual(ctx context.Context, field graphql.CollectedField, obj *VolunteerShift) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerShift_isVirtual,
+		func(ctx context.Context) (any, error) {
+			return obj.IsVirtual, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerShift_isVirtual(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerShift",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerShift_preEventInstructions(ctx context.Context, field graphql.CollectedField, obj *VolunteerShift) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerShift_preEventInstructions,
+		func(ctx context.Context) (any, error) {
+			return obj.PreEventInstructions, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerShift_preEventInstructions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerShift",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerShift_eventId(ctx context.Context, field graphql.CollectedField, obj *VolunteerShift) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerShift_eventId,
+		func(ctx context.Context) (any, error) {
+			return obj.EventID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerShift_eventId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerShift",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerShift_eventName(ctx context.Context, field graphql.CollectedField, obj *VolunteerShift) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerShift_eventName,
+		func(ctx context.Context) (any, error) {
+			return obj.EventName, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerShift_eventName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerShift",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerShift_eventDescription(ctx context.Context, field graphql.CollectedField, obj *VolunteerShift) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerShift_eventDescription,
+		func(ctx context.Context) (any, error) {
+			return obj.EventDescription, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerShift_eventDescription(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerShift",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerShift_venue(ctx context.Context, field graphql.CollectedField, obj *VolunteerShift) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerShift_venue,
+		func(ctx context.Context) (any, error) {
+			return obj.Venue, nil
+		},
+		nil,
+		ec.marshalOVenue2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVenue,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerShift_venue(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerShift",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Venue_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Venue_name(ctx, field)
+			case "address":
+				return ec.fieldContext_Venue_address(ctx, field)
+			case "city":
+				return ec.fieldContext_Venue_city(ctx, field)
+			case "state":
+				return ec.fieldContext_Venue_state(ctx, field)
+			case "zipCode":
+				return ec.fieldContext_Venue_zipCode(ctx, field)
+			case "timezone":
+				return ec.fieldContext_Venue_timezone(ctx, field)
+			case "region":
+				return ec.fieldContext_Venue_region(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Venue", field.Name)
 		},
 	}
 	return fc, nil
@@ -3593,27 +4659,27 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputEventFilter(ctx context.Context, obj any) (EventFilter, error) {
-	var it EventFilter
+func (ec *executionContext) unmarshalInputEventFilterInput(ctx context.Context, obj any) (EventFilterInput, error) {
+	var it EventFilterInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"cities", "eventType", "roles", "startDate", "endDate"}
+	fieldsInOrder := [...]string{"regions", "eventType", "jobs", "shiftStartDateTime", "shiftEndDateTime", "ianaZone"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "cities":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cities"))
-			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+		case "regions":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("regions"))
+			data, err := ec.unmarshalOInt2ᚕintᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.Cities = data
+			it.Regions = data
 		case "eventType":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("eventType"))
 			data, err := ec.unmarshalOEventType2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventType(ctx, v)
@@ -3621,41 +4687,96 @@ func (ec *executionContext) unmarshalInputEventFilter(ctx context.Context, obj a
 				return it, err
 			}
 			it.EventType = data
-		case "roles":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
-			data, err := ec.unmarshalORole2ᚕvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐRoleᚄ(ctx, v)
+		case "jobs":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("jobs"))
+			data, err := ec.unmarshalOJob2ᚕvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐJobᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.Roles = data
-		case "startDate":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("startDate"))
+			it.Jobs = data
+		case "shiftStartDateTime":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("shiftStartDateTime"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.StartDate = data
-		case "endDate":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("endDate"))
+			it.ShiftStartDateTime = data
+		case "shiftEndDateTime":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("shiftEndDateTime"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.EndDate = data
+			it.ShiftEndDateTime = data
+		case "ianaZone":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ianaZone"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IanaZone = data
 		}
 	}
 
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputVolunteerFilter(ctx context.Context, obj any) (VolunteerFilter, error) {
-	var it VolunteerFilter
+func (ec *executionContext) unmarshalInputNewFeedbackInput(ctx context.Context, obj any) (NewFeedbackInput, error) {
+	var it NewFeedbackInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"firstName", "lastName", "email"}
+	fieldsInOrder := [...]string{"type", "subject", "app_page_name", "text"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "type":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
+			data, err := ec.unmarshalNFeedbackType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFeedbackType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Type = data
+		case "subject":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subject"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Subject = data
+		case "app_page_name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("app_page_name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AppPageName = data
+		case "text":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("text"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Text = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdateOwnProfileInput(ctx context.Context, obj any) (UpdateOwnProfileInput, error) {
+	var it UpdateOwnProfileInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"firstName", "lastName", "email", "phone", "zipCode"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -3664,25 +4785,39 @@ func (ec *executionContext) unmarshalInputVolunteerFilter(ctx context.Context, o
 		switch k {
 		case "firstName":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("firstName"))
-			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.FirstName = data
 		case "lastName":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lastName"))
-			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.LastName = data
 		case "email":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
-			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.Email = data
+		case "phone":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Phone = data
+		case "zipCode":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("zipCode"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ZipCode = data
 		}
 	}
 
@@ -3696,47 +4831,6 @@ func (ec *executionContext) unmarshalInputVolunteerFilter(ctx context.Context, o
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
-
-var assignmentResultImplementors = []string{"AssignmentResult"}
-
-func (ec *executionContext) _AssignmentResult(ctx context.Context, sel ast.SelectionSet, obj *AssignmentResult) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, assignmentResultImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("AssignmentResult")
-		case "success":
-			out.Values[i] = ec._AssignmentResult_success(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "message":
-			out.Values[i] = ec._AssignmentResult_message(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
 
 var eventImplementors = []string{"Event"}
 
@@ -3768,13 +4862,59 @@ func (ec *executionContext) _Event(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "venue":
 			out.Values[i] = ec._Event_venue(ctx, field, obj)
-		case "shifts":
-			out.Values[i] = ec._Event_shifts(ctx, field, obj)
+		case "serviceTypes":
+			out.Values[i] = ec._Event_serviceTypes(ctx, field, obj)
+		case "eventDates":
+			out.Values[i] = ec._Event_eventDates(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "opportunities":
-			out.Values[i] = ec._Event_opportunities(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var eventDateImplementors = []string{"EventDate"}
+
+func (ec *executionContext) _EventDate(ctx context.Context, sel ast.SelectionSet, obj *EventDate) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, eventDateImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EventDate")
+		case "id":
+			out.Values[i] = ec._EventDate_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "startDateTime":
+			out.Values[i] = ec._EventDate_startDateTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "endDateTime":
+			out.Values[i] = ec._EventDate_endDateTime(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -3820,23 +4960,30 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
-		case "editVolunteerProfile":
+		case "updateOwnProfile":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_editVolunteerProfile(ctx, field)
+				return ec._Mutation_updateOwnProfile(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "assignVolunteerToShift":
+		case "assignSelfToShift":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_assignVolunteerToShift(ctx, field)
+				return ec._Mutation_assignSelfToShift(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "cancelShift":
+		case "cancelOwnShift":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_cancelShift(ctx, field)
+				return ec._Mutation_cancelOwnShift(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "giveFeedback":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_giveFeedback(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -3864,32 +5011,26 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 	return out
 }
 
-var opportunityImplementors = []string{"Opportunity"}
+var mutationResultImplementors = []string{"MutationResult"}
 
-func (ec *executionContext) _Opportunity(ctx context.Context, sel ast.SelectionSet, obj *Opportunity) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, opportunityImplementors)
+func (ec *executionContext) _MutationResult(ctx context.Context, sel ast.SelectionSet, obj *MutationResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, mutationResultImplementors)
 
 	out := graphql.NewFieldSet(fields)
 	deferred := make(map[string]*graphql.FieldSet)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("Opportunity")
+			out.Values[i] = graphql.MarshalString("MutationResult")
+		case "success":
+			out.Values[i] = ec._MutationResult_success(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "message":
+			out.Values[i] = ec._MutationResult_message(ctx, field, obj)
 		case "id":
-			out.Values[i] = ec._Opportunity_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "role":
-			out.Values[i] = ec._Opportunity_role(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "shifts":
-			out.Values[i] = ec._Opportunity_shifts(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
+			out.Values[i] = ec._MutationResult_id(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3932,50 +5073,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
-		case "events":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_events(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "eventById":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_eventById(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "volunteerProfile":
 			field := field
 
@@ -3998,7 +5095,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "allVolunteers":
+		case "filteredEvents":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -4007,7 +5104,51 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_allVolunteers(ctx, field)
+				res = ec._Query_filteredEvents(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "shiftsForEvent":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_shiftsForEvent(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "ownShifts":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_ownShifts(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -4051,46 +5192,105 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 	return out
 }
 
-var shiftImplementors = []string{"Shift"}
+var regionImplementors = []string{"Region"}
 
-func (ec *executionContext) _Shift(ctx context.Context, sel ast.SelectionSet, obj *Shift) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, shiftImplementors)
+func (ec *executionContext) _Region(ctx context.Context, sel ast.SelectionSet, obj *Region) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, regionImplementors)
 
 	out := graphql.NewFieldSet(fields)
 	deferred := make(map[string]*graphql.FieldSet)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("Shift")
+			out.Values[i] = graphql.MarshalString("Region")
 		case "id":
-			out.Values[i] = ec._Shift_id(ctx, field, obj)
+			out.Values[i] = ec._Region_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "role":
-			out.Values[i] = ec._Shift_role(ctx, field, obj)
+		case "code":
+			out.Values[i] = ec._Region_code(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "date":
-			out.Values[i] = ec._Shift_date(ctx, field, obj)
+		case "name":
+			out.Values[i] = ec._Region_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "startTime":
-			out.Values[i] = ec._Shift_startTime(ctx, field, obj)
+		case "is_active":
+			out.Values[i] = ec._Region_is_active(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "endTime":
-			out.Values[i] = ec._Shift_endTime(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var shiftViewImplementors = []string{"ShiftView"}
+
+func (ec *executionContext) _ShiftView(ctx context.Context, sel ast.SelectionSet, obj *ShiftView) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, shiftViewImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ShiftView")
+		case "id":
+			out.Values[i] = ec._ShiftView_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "job":
+			out.Values[i] = ec._ShiftView_job(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "otherJobDescription":
+			out.Values[i] = ec._ShiftView_otherJobDescription(ctx, field, obj)
+		case "startDateTime":
+			out.Values[i] = ec._ShiftView_startDateTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "endDateTime":
+			out.Values[i] = ec._ShiftView_endDateTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isVirtual":
+			out.Values[i] = ec._ShiftView_isVirtual(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
 		case "maxVolunteers":
-			out.Values[i] = ec._Shift_maxVolunteers(ctx, field, obj)
+			out.Values[i] = ec._ShiftView_maxVolunteers(ctx, field, obj)
 		case "assignedVolunteers":
-			out.Values[i] = ec._Shift_assignedVolunteers(ctx, field, obj)
+			out.Values[i] = ec._ShiftView_assignedVolunteers(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4125,6 +5325,11 @@ func (ec *executionContext) _Venue(ctx context.Context, sel ast.SelectionSet, ob
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Venue")
+		case "id":
+			out.Values[i] = ec._Venue_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "name":
 			out.Values[i] = ec._Venue_name(ctx, field, obj)
 		case "address":
@@ -4144,6 +5349,16 @@ func (ec *executionContext) _Venue(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "zipCode":
 			out.Values[i] = ec._Venue_zipCode(ctx, field, obj)
+		case "timezone":
+			out.Values[i] = ec._Venue_timezone(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "region":
+			out.Values[i] = ec._Venue_region(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4167,39 +5382,168 @@ func (ec *executionContext) _Venue(ctx context.Context, sel ast.SelectionSet, ob
 	return out
 }
 
-var volunteerImplementors = []string{"Volunteer"}
+var volunteerMutationResultImplementors = []string{"VolunteerMutationResult"}
 
-func (ec *executionContext) _Volunteer(ctx context.Context, sel ast.SelectionSet, obj *Volunteer) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, volunteerImplementors)
+func (ec *executionContext) _VolunteerMutationResult(ctx context.Context, sel ast.SelectionSet, obj *VolunteerMutationResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, volunteerMutationResultImplementors)
 
 	out := graphql.NewFieldSet(fields)
 	deferred := make(map[string]*graphql.FieldSet)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("Volunteer")
-		case "id":
-			out.Values[i] = ec._Volunteer_id(ctx, field, obj)
+			out.Values[i] = graphql.MarshalString("VolunteerMutationResult")
+		case "success":
+			out.Values[i] = ec._VolunteerMutationResult_success(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "message":
+			out.Values[i] = ec._VolunteerMutationResult_message(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var volunteerProfileImplementors = []string{"VolunteerProfile"}
+
+func (ec *executionContext) _VolunteerProfile(ctx context.Context, sel ast.SelectionSet, obj *VolunteerProfile) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, volunteerProfileImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("VolunteerProfile")
 		case "firstName":
-			out.Values[i] = ec._Volunteer_firstName(ctx, field, obj)
+			out.Values[i] = ec._VolunteerProfile_firstName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
 		case "lastName":
-			out.Values[i] = ec._Volunteer_lastName(ctx, field, obj)
+			out.Values[i] = ec._VolunteerProfile_lastName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
 		case "email":
-			out.Values[i] = ec._Volunteer_email(ctx, field, obj)
+			out.Values[i] = ec._VolunteerProfile_email(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "serviceTypes":
-			out.Values[i] = ec._Volunteer_serviceTypes(ctx, field, obj)
+		case "phone":
+			out.Values[i] = ec._VolunteerProfile_phone(ctx, field, obj)
+		case "zipCode":
+			out.Values[i] = ec._VolunteerProfile_zipCode(ctx, field, obj)
+		case "role":
+			out.Values[i] = ec._VolunteerProfile_role(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var volunteerShiftImplementors = []string{"VolunteerShift"}
+
+func (ec *executionContext) _VolunteerShift(ctx context.Context, sel ast.SelectionSet, obj *VolunteerShift) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, volunteerShiftImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("VolunteerShift")
+		case "shiftId":
+			out.Values[i] = ec._VolunteerShift_shiftId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "assignedAt":
+			out.Values[i] = ec._VolunteerShift_assignedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "cancelledAt":
+			out.Values[i] = ec._VolunteerShift_cancelledAt(ctx, field, obj)
+		case "startDateTime":
+			out.Values[i] = ec._VolunteerShift_startDateTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "endDateTime":
+			out.Values[i] = ec._VolunteerShift_endDateTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "maxVolunteers":
+			out.Values[i] = ec._VolunteerShift_maxVolunteers(ctx, field, obj)
+		case "job":
+			out.Values[i] = ec._VolunteerShift_job(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "otherJobDescription":
+			out.Values[i] = ec._VolunteerShift_otherJobDescription(ctx, field, obj)
+		case "isVirtual":
+			out.Values[i] = ec._VolunteerShift_isVirtual(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "preEventInstructions":
+			out.Values[i] = ec._VolunteerShift_preEventInstructions(ctx, field, obj)
+		case "eventId":
+			out.Values[i] = ec._VolunteerShift_eventId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "eventName":
+			out.Values[i] = ec._VolunteerShift_eventName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "eventDescription":
+			out.Values[i] = ec._VolunteerShift_eventDescription(ctx, field, obj)
+		case "venue":
+			out.Values[i] = ec._VolunteerShift_venue(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4558,20 +5902,6 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
-func (ec *executionContext) marshalNAssignmentResult2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐAssignmentResult(ctx context.Context, sel ast.SelectionSet, v AssignmentResult) graphql.Marshaler {
-	return ec._AssignmentResult(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNAssignmentResult2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐAssignmentResult(ctx context.Context, sel ast.SelectionSet, v *AssignmentResult) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._AssignmentResult(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v any) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4586,10 +5916,6 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) marshalNEvent2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEvent(ctx context.Context, sel ast.SelectionSet, v Event) graphql.Marshaler {
-	return ec._Event(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNEvent2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventᚄ(ctx context.Context, sel ast.SelectionSet, v []*Event) graphql.Marshaler {
@@ -4646,33 +5972,7 @@ func (ec *executionContext) marshalNEvent2ᚖvolunteerᚑschedulerᚋgraphᚋvol
 	return ec._Event(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNEventType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventType(ctx context.Context, v any) (EventType, error) {
-	var res EventType
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNEventType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventType(ctx context.Context, sel ast.SelectionSet, v EventType) graphql.Marshaler {
-	return v
-}
-
-func (ec *executionContext) unmarshalNID2string(ctx context.Context, v any) (string, error) {
-	res, err := graphql.UnmarshalID(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
-	_ = sel
-	res := graphql.MarshalID(v)
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-	}
-	return res
-}
-
-func (ec *executionContext) marshalNOpportunity2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐOpportunityᚄ(ctx context.Context, sel ast.SelectionSet, v []*Opportunity) graphql.Marshaler {
+func (ec *executionContext) marshalNEventDate2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventDateᚄ(ctx context.Context, sel ast.SelectionSet, v []*EventDate) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4696,7 +5996,7 @@ func (ec *executionContext) marshalNOpportunity2ᚕᚖvolunteerᚑschedulerᚋgr
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNOpportunity2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐOpportunity(ctx, sel, v[i])
+			ret[i] = ec.marshalNEventDate2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventDate(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4716,14 +6016,125 @@ func (ec *executionContext) marshalNOpportunity2ᚕᚖvolunteerᚑschedulerᚋgr
 	return ret
 }
 
-func (ec *executionContext) marshalNOpportunity2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐOpportunity(ctx context.Context, sel ast.SelectionSet, v *Opportunity) graphql.Marshaler {
+func (ec *executionContext) marshalNEventDate2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventDate(ctx context.Context, sel ast.SelectionSet, v *EventDate) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
 		}
 		return graphql.Null
 	}
-	return ec._Opportunity(ctx, sel, v)
+	return ec._EventDate(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNEventType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventType(ctx context.Context, v any) (EventType, error) {
+	var res EventType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNEventType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventType(ctx context.Context, sel ast.SelectionSet, v EventType) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNFeedbackType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFeedbackType(ctx context.Context, v any) (FeedbackType, error) {
+	var res FeedbackType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFeedbackType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFeedbackType(ctx context.Context, sel ast.SelectionSet, v FeedbackType) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNID2string(ctx context.Context, v any) (string, error) {
+	res, err := graphql.UnmarshalID(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalID(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v any) (int, error) {
+	res, err := graphql.UnmarshalInt(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalInt(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNInt2ᚕintᚄ(ctx context.Context, v any) ([]int, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]int, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNInt2int(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNInt2ᚕintᚄ(ctx context.Context, sel ast.SelectionSet, v []int) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNInt2int(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalNJob2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐJob(ctx context.Context, v any) (Job, error) {
+	var res Job
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNJob2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐJob(ctx context.Context, sel ast.SelectionSet, v Job) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNMutationResult2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐMutationResult(ctx context.Context, sel ast.SelectionSet, v MutationResult) graphql.Marshaler {
+	return ec._MutationResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐMutationResult(ctx context.Context, sel ast.SelectionSet, v *MutationResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._MutationResult(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNNewFeedbackInput2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐNewFeedbackInput(ctx context.Context, v any) (NewFeedbackInput, error) {
+	res, err := ec.unmarshalInputNewFeedbackInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNRole2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐRole(ctx context.Context, v any) (Role, error) {
@@ -4746,7 +6157,17 @@ func (ec *executionContext) marshalNServiceType2volunteerᚑschedulerᚋgraphᚋ
 	return v
 }
 
-func (ec *executionContext) marshalNShift2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐShiftᚄ(ctx context.Context, sel ast.SelectionSet, v []*Shift) graphql.Marshaler {
+func (ec *executionContext) unmarshalNShiftTimeFilter2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐShiftTimeFilter(ctx context.Context, v any) (ShiftTimeFilter, error) {
+	var res ShiftTimeFilter
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNShiftTimeFilter2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐShiftTimeFilter(ctx context.Context, sel ast.SelectionSet, v ShiftTimeFilter) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNShiftView2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐShiftViewᚄ(ctx context.Context, sel ast.SelectionSet, v []*ShiftView) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4770,7 +6191,7 @@ func (ec *executionContext) marshalNShift2ᚕᚖvolunteerᚑschedulerᚋgraphᚋ
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNShift2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐShift(ctx, sel, v[i])
+			ret[i] = ec.marshalNShiftView2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐShiftView(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4790,14 +6211,14 @@ func (ec *executionContext) marshalNShift2ᚕᚖvolunteerᚑschedulerᚋgraphᚋ
 	return ret
 }
 
-func (ec *executionContext) marshalNShift2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐShift(ctx context.Context, sel ast.SelectionSet, v *Shift) graphql.Marshaler {
+func (ec *executionContext) marshalNShiftView2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐShiftView(ctx context.Context, sel ast.SelectionSet, v *ShiftView) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
 		}
 		return graphql.Null
 	}
-	return ec._Shift(ctx, sel, v)
+	return ec._ShiftView(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) (string, error) {
@@ -4816,11 +6237,40 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) marshalNVolunteer2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteer(ctx context.Context, sel ast.SelectionSet, v Volunteer) graphql.Marshaler {
-	return ec._Volunteer(ctx, sel, &v)
+func (ec *executionContext) unmarshalNUpdateOwnProfileInput2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐUpdateOwnProfileInput(ctx context.Context, v any) (UpdateOwnProfileInput, error) {
+	res, err := ec.unmarshalInputUpdateOwnProfileInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNVolunteer2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerᚄ(ctx context.Context, sel ast.SelectionSet, v []*Volunteer) graphql.Marshaler {
+func (ec *executionContext) marshalNVolunteerMutationResult2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerMutationResult(ctx context.Context, sel ast.SelectionSet, v VolunteerMutationResult) graphql.Marshaler {
+	return ec._VolunteerMutationResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNVolunteerMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerMutationResult(ctx context.Context, sel ast.SelectionSet, v *VolunteerMutationResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._VolunteerMutationResult(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNVolunteerProfile2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerProfile(ctx context.Context, sel ast.SelectionSet, v VolunteerProfile) graphql.Marshaler {
+	return ec._VolunteerProfile(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNVolunteerProfile2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerProfile(ctx context.Context, sel ast.SelectionSet, v *VolunteerProfile) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._VolunteerProfile(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNVolunteerShift2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerShiftᚄ(ctx context.Context, sel ast.SelectionSet, v []*VolunteerShift) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4844,7 +6294,7 @@ func (ec *executionContext) marshalNVolunteer2ᚕᚖvolunteerᚑschedulerᚋgrap
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNVolunteer2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteer(ctx, sel, v[i])
+			ret[i] = ec.marshalNVolunteerShift2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerShift(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4864,14 +6314,14 @@ func (ec *executionContext) marshalNVolunteer2ᚕᚖvolunteerᚑschedulerᚋgrap
 	return ret
 }
 
-func (ec *executionContext) marshalNVolunteer2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteer(ctx context.Context, sel ast.SelectionSet, v *Volunteer) graphql.Marshaler {
+func (ec *executionContext) marshalNVolunteerShift2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerShift(ctx context.Context, sel ast.SelectionSet, v *VolunteerShift) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
 		}
 		return graphql.Null
 	}
-	return ec._Volunteer(ctx, sel, v)
+	return ec._VolunteerShift(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -5157,11 +6607,11 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
-func (ec *executionContext) unmarshalOEventFilter2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventFilter(ctx context.Context, v any) (*EventFilter, error) {
+func (ec *executionContext) unmarshalOEventFilterInput2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventFilterInput(ctx context.Context, v any) (*EventFilterInput, error) {
 	if v == nil {
 		return nil, nil
 	}
-	res, err := ec.unmarshalInputEventFilter(ctx, v)
+	res, err := ec.unmarshalInputEventFilterInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -5179,6 +6629,60 @@ func (ec *executionContext) marshalOEventType2ᚖvolunteerᚑschedulerᚋgraph�
 		return graphql.Null
 	}
 	return v
+}
+
+func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v any) (*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalID(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalID(*v)
+	return res
+}
+
+func (ec *executionContext) unmarshalOInt2ᚕintᚄ(ctx context.Context, v any) ([]int, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]int, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNInt2int(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOInt2ᚕintᚄ(ctx context.Context, sel ast.SelectionSet, v []int) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNInt2int(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v any) (*int, error) {
@@ -5199,17 +6703,17 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return res
 }
 
-func (ec *executionContext) unmarshalORole2ᚕvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐRoleᚄ(ctx context.Context, v any) ([]Role, error) {
+func (ec *executionContext) unmarshalOJob2ᚕvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐJobᚄ(ctx context.Context, v any) ([]Job, error) {
 	if v == nil {
 		return nil, nil
 	}
 	var vSlice []any
 	vSlice = graphql.CoerceList(v)
 	var err error
-	res := make([]Role, len(vSlice))
+	res := make([]Job, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNRole2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐRole(ctx, vSlice[i])
+		res[i], err = ec.unmarshalNJob2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐJob(ctx, vSlice[i])
 		if err != nil {
 			return nil, err
 		}
@@ -5217,7 +6721,7 @@ func (ec *executionContext) unmarshalORole2ᚕvolunteerᚑschedulerᚋgraphᚋvo
 	return res, nil
 }
 
-func (ec *executionContext) marshalORole2ᚕvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐRoleᚄ(ctx context.Context, sel ast.SelectionSet, v []Role) graphql.Marshaler {
+func (ec *executionContext) marshalOJob2ᚕvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐJobᚄ(ctx context.Context, sel ast.SelectionSet, v []Job) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -5244,7 +6748,7 @@ func (ec *executionContext) marshalORole2ᚕvolunteerᚑschedulerᚋgraphᚋvolu
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNRole2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐRole(ctx, sel, v[i])
+			ret[i] = ec.marshalNJob2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐJob(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -5329,42 +6833,6 @@ func (ec *executionContext) marshalOServiceType2ᚕvolunteerᚑschedulerᚋgraph
 	return ret
 }
 
-func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
-	var err error
-	res := make([]string, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	for i := range v {
-		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
-	}
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v any) (*string, error) {
 	if v == nil {
 		return nil, nil
@@ -5388,61 +6856,6 @@ func (ec *executionContext) marshalOVenue2ᚖvolunteerᚑschedulerᚋgraphᚋvol
 		return graphql.Null
 	}
 	return ec._Venue(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOVolunteer2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerᚄ(ctx context.Context, sel ast.SelectionSet, v []*Volunteer) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNVolunteer2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteer(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) unmarshalOVolunteerFilter2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerFilter(ctx context.Context, v any) (*VolunteerFilter, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputVolunteerFilter(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {
