@@ -15,6 +15,7 @@ docker-compose up -d
 
 ## volunteer-scheduler ERD
 
+```mermaid
 erDiagram
   venues {
     serial venue_id PK
@@ -155,7 +156,7 @@ erDiagram
   opportunities ||--o{ shifts : "has"
   shifts ||--o{ volunteer_shifts : "has"
   feedback ||--o{ feedback_notes : "has"
-
+```
 ### Loading Sample Data
 
 Sample data is not loaded by default. 
