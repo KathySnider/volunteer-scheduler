@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, MapPin, Monitor, Users, ChevronDown, UserCircle, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/graphql/admin';
+
+
 const VolunteerEventsApp = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -21,8 +24,8 @@ const VolunteerEventsApp = () => {
   // Available cities - will be fetched from DB
   const [availableCities, setAvailableCities] = useState([]);
   
-  // Available roles (static)
-  const availableRoles = [
+  // Available jobs (static)
+  const availableJobs = [
     { value: 'EVENT_SUPPORT', label: 'Event Support' },
     { value: 'ADVOCACY', label: 'Advocacy' },
     { value: 'SPEAKER', label: 'Speaker' },
@@ -39,7 +42,7 @@ const VolunteerEventsApp = () => {
 
   // Filter states with defaults
   const [selectedCities, setSelectedCities] = useState([]);
-  const [selectedRoles, setSelectedRoles] = useState(availableRoles.map(r => r.value));
+  const [selectedJobs, setSelectedJobs] = useState(availableJobs.map(r => r.value));
   const [eventType, setEventType] = useState('');
   const [startDate, setStartDate] = useState(getCurrentDate());
   const [endDate, setEndDate] = useState('');
@@ -73,29 +76,30 @@ const VolunteerEventsApp = () => {
     const nameParts = nameInput.trim().split(/\s+/);
     const firstName = nameParts[0];
     const lastName = nameParts.slice(1).join(' ') || '';
-
+    
     if (!lastName) {
-      setNameError('Please enter both first and last name.');
+      setNameError('Please enter first name and last name.');
       return;
     }
 
     const createMutation = `
-      mutation($firstName: String!, $lastName: String!) {
-        createVolunteer(firstName: $firstName, lastName: $lastName) {
+      mutation($firstName: String!, $lastName) {
+        createVolunteer(firstName: $firstName, lastName: $lastName, email: "bogus.com") {
           id
           firstName
           lastName
+          email
         }
       }
     `;
 
     try {
-      const createResponse = await fetch('http://localhost:8080/query', {
+      const createResponse = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: createMutation,
-          variables: { firstName, lastName }
+          variables: { firstName, lastName, email }
         })
       });
 
@@ -132,7 +136,7 @@ const VolunteerEventsApp = () => {
     `;
 
     try {
-      const response = await fetch('http://localhost:8080/query', {
+      const response = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query })
@@ -162,13 +166,13 @@ const VolunteerEventsApp = () => {
 
     const filter = {};
     if (selectedCities.length > 0) filter.cities = selectedCities;
-    if (selectedRoles.length > 0) filter.roles = selectedRoles;
+    if (selectedJobs.length > 0) filter.jobs = selectedJobs;
     if (eventType) filter.eventType = eventType;
     if (startDate) filter.startDate = startDate;
     if (endDate) filter.endDate = endDate;
 
     const query = `
-      query($filter: EventFilter) {
+      query($filter: EventFilterInput) {
         events(filter: $filter) {
           id
           name
@@ -192,7 +196,7 @@ const VolunteerEventsApp = () => {
     `;
 
     try {
-      const response = await fetch('http://localhost:8080/query', {
+      const response = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -246,7 +250,7 @@ const VolunteerEventsApp = () => {
     `;
 
     try {
-      const response = await fetch('http://localhost:8080/query', {
+      const response = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query })
@@ -299,11 +303,11 @@ const VolunteerEventsApp = () => {
     );
   };
 
-  const handleRoleToggle = (role) => {
-    setSelectedRoles(prev =>
-      prev.includes(role)
-        ? prev.filter(r => r !== role)
-        : [...prev, role]
+  const handleJobToggle = (job) => {
+    setSelectedJobs(prev =>
+      prev.includes(job)
+        ? prev.filter(r => r !== job)
+        : [...prev, job]
     );
   };
 
@@ -481,20 +485,20 @@ const VolunteerEventsApp = () => {
           </select>
         </div>
 
-        {/* Roles Filter */}
+        {/* Jobs Filter */}
         <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Roles</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Jobs</label>
           <div className="space-y-2">
-            {availableRoles.map(role => (
-              <label key={role.value} className="flex items-center cursor-pointer">
+            {availableJobs.map(job => (
+              <label key={job.value} className="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={selectedRoles.includes(role.value)}
-                  onChange={() => handleRoleToggle(role.value)}
+                  checked={selectedJobs.includes(job.value)}
+                  onChange={() => handleJobToggle(job.value)}
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  id="rolesCheckbox"
+                  id="jobsCheckbox"
                 />
-                <span className="ml-3 text-gray-700">{role.label}</span>
+                <span className="ml-3 text-gray-700">{job.label}</span>
               </label>
             ))}
           </div>
@@ -536,7 +540,7 @@ const VolunteerEventsApp = () => {
         <button
           onClick={() => {
             setSelectedCities(availableCities);
-            setSelectedRoles(availableRoles.map(r => r.value));
+            setSelectedJobs(availableJobs.map(r => r.value));
             setEventType('');
             setStartDate(getCurrentDate());
             setEndDate('');

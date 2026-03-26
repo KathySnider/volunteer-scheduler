@@ -8,7 +8,6 @@ FROM golang:1.25-alpine AS builder
 
 # Install build dependencies and gqlgen
 RUN apk add --no-cache git
-RUN go install github.com/99designs/gqlgen@latest
 
 # Set working directory
 WORKDIR /app
@@ -23,8 +22,9 @@ RUN go mod download
 COPY . .
 
 # Generate GraphQL code
-RUN gqlgen generate --config gqlgen-volunteer.yml
-#RUN gqlgen generate --config gqlgen-admin.yml
+RUN go run github.com/99designs/gqlgen generate --config gqlgen-volunteer.yml
+RUN go run github.com/99designs/gqlgen generate --config gqlgen-admin.yml
+RUN go run github.com/99designs/gqlgen generate --config gqlgen-auth.yml
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o volunteer-api ./cmd/server
@@ -39,6 +39,9 @@ WORKDIR /root/
 
 # Copy the binary from builder
 COPY --from=builder /app/volunteer-api .
+
+# and the DB migrations
+COPY --from=builder /app/migrations/ /app/migrations/
 
 # Expose port
 EXPOSE 8080

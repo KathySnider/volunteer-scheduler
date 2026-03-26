@@ -1,82 +1,276 @@
+## These definitions apply to those users with admin status
+## only. The definitions in the volunteer schema are also
+## available to admins. So the admin privilege allows the 
+## definitions in the union of the 2 schema files.
 
 type Query {
-  events(filter: EventFilter): [Event!]!
-  event(id: ID!): Event                 
-  volunteers(qualifications: [String!]): [Volunteer!]!  
-}
+  # Shared queries:
+  volunteerProfile: VolunteerProfile!
+  filteredEvents(filter: EventFilterInput): [Event!]! 
+
+  # Admin-only queries:
+  venues: [Venue!]!
+  activeRegions: [Region!]!
+  allVolunteers(filter: VolunteerFilterInput): [Volunteer!]! 
+  volunteerShifts(volunteerId: ID!, filter: ShiftTimeFilter!): [VolunteerShift!]! 
+  volunteerById(volunteerId: ID!): VolunteerProfile
+  opportunitiesForEvent(eventId: ID!): [Opportunity!]!
+  feedback(filter: FeedbackFilterInput): [Feedback!]!
+  feedbackById(feedbackId: ID!): Feedback
+} 
 
 type Mutation {
-  createVolunteer(firstName: String!, lastName: String!): Volunteer!  
-  assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): AssignmentResult!  
-  createEvent(name: String!, description: String, eventType: EventType!, locationName: String): Event!
-}
+  # Shared mutations:
+  giveFeedback (feedback: NewFeedbackInput!): MutationResult!
 
-input EventFilter {
-  cities: [String!]
-  eventType: EventType
-  roles: [RoleType!]
-  startDate: String
-  endDate: String
-}
+  # Admin-only mutations:
+  createVolunteer(newVol: NewVolunteerInput!): MutationResult!  
+  createVenue(newVenue: NewVenueInput!): MutationResult!
+  createRegion(newRegion: NewRegionInput!): MutationResult!
+  createEvent(newEvent: NewEventInput!): MutationResult!
+  createOpportunity(newOpp: NewOpportunityInput!): MutationResult!
+  createShift(newShift: AddShiftInput!): MutationResult!
+  createEventDate(newDate: AddEventDateInput!): MutationResult!
 
-enum EventType {
-  VIRTUAL
-  IN_PERSON
-  HYBRID
-}
+  assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): MutationResult!  
+  cancelShift(shiftId: ID!, volunteerId: ID!): MutationResult!
 
-enum RoleType {
-  EVENT_SUPPORT
-  ADVOCACY
-  SPEAKER
-  VOLUNTEER_LEAD
-  OTHER
-}
+  addVenueRegion(venueId: Int!, regionId: Int!): MutationResult!
+  removeVenueRegion(venueId: Int!, regionId: Int!): MutationResult!
 
-type Event {
-  id: ID!
-  name: String!
-  description: String
-  eventType: EventType!
-  location: Location
-  shifts: [Shift!]!
-  opportunities: [Opportunity!]!  
-}
+  updateVenue(venue: UpdateVenueInput!): MutationResult!
+  updateRegion(region: UpdateRegionInput!): MutationResult!
+  updateVolunteer(profile: UpdateVolunteerInput!): MutationResult!  
+  updateEvent(event: UpdateEventInput!): MutationResult!
+  updateOpportunity(opp: UpdateOpportunityInput!): MutationResult!
+  updateShift(shift: UpdateShiftInput!): MutationResult!
+  updateEventDate(date: UpdateEventDateInput!): MutationResult!
 
-type Location {
-  name: String
-  address: String!
-  city: String!
-  state: String!
-  zipCode: String
-}
+  questionFeedback(question: QuestionFeedbackInput!): MutationResult!
+  updateFeedback(feedback: UpdateFeedbackInput!): MutationResult!
 
-type Shift {
-  id: ID!
-  role: RoleType!
-  date: String!
-  startTime: String!
-  endTime: String!
-  maxVolunteers: Int
-  assignedVolunteers: [Volunteer!]
+  deleteVolunteer(volunteerId: ID!): MutationResult!
+  deleteVenue(venueId: ID!): MutationResult!
+  deleteRegion(regionId: Int!): MutationResult!
+  deleteEvent(eventId: ID!): MutationResult!
+  deleteOpportunity(oppId: ID!): MutationResult!
+  deleteShift(shiftId: ID!): MutationResult!
+  deleteEventDate(eventDateId: ID!): MutationResult!
+
+  resolveFeedback(resolution: ResolveFeedbackInput!): MutationResult!
 }
+#-- Outputs (for queries) --
 
 type Volunteer {
   id: ID!
   firstName: String!
   lastName: String!
-  qualifications: [String!]
+  email: String!
+  phone: String
+  zipCode: String
+  role: Role!
 }
 
 type Opportunity {
   id: ID!
-  role: RoleType!
-  requiresQualifications: [String!]
+  job: Job!
+  otherJobDescription: String
+  isVirtual: Boolean!
+  preEventInstructions: String
   shifts: [Shift!]!
 }
 
-type AssignmentResult {
-  success: Boolean!
-  message: String
+type Shift {
+  id: ID!
+  startDateTime: String!
+  endDateTime: String!
+  maxVolunteers: Int
+  staffContactId: ID
 }
 
+type Feedback {
+  id: ID!
+  volunteerName: String!
+  type: FeedbackType!
+  status: FeedbackStatus!
+  subject: String!
+  appPageName: String!
+  text: String!
+  notes: [FeedbackNote!]!
+  githubIssueURL: String
+  createdAt: String!
+  lastUpdatedAt: String
+  resolvedAt: String
+}
+type FeedbackNote {
+  id: ID!
+  creator: String!
+  createdAt: String!
+  note: String!
+}
+
+#-- Inputs --
+input NewVolunteerInput {
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  zipCode: String
+  role: Role!
+}
+
+input UpdateVolunteerInput {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  zipCode: String
+  role: Role!
+}
+
+input NewVenueInput {
+  name: String
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String
+  ianaZone: String!
+  region: [Int!]! # array of ID's, but gqlgen won't keep making them Strings.
+}
+
+input NewRegionInput {
+  code: String!
+  name: String!
+}
+
+input UpdateVenueInput {
+  id: ID!
+  name: String
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String
+  ianaZone: String!
+}
+
+input UpdateRegionInput {
+  id: Int!
+  code: String!
+  name: String!
+}
+
+input NewEventInput {
+  name: String!
+  description: String
+  eventType: EventType!
+  venueId: ID
+  serviceTypes: [ServiceType!]!
+  eventDates: [NewEventDateInput!]! # a new event must have at least one date.
+}
+
+input UpdateEventInput {
+  id: ID!
+  name: String!
+  description: String
+  eventType: EventType!
+  venueId: ID
+  serviceTypes: [ServiceType!]!
+}
+
+input NewEventDateInput {
+  startDateTime: String!
+  endDateTime: String!
+  ianaZone: String!
+}
+
+input AddEventDateInput {
+  eventId: ID!
+  startDateTime: String!
+  endDateTime: String!
+  ianaZone: String!
+}
+
+input UpdateEventDateInput {
+  id: ID!
+  startDateTime: String!
+  endDateTime: String!
+  ianaZone: String!
+}
+
+# A new opp MUST include at 
+# least 1 new shift.
+
+input NewOpportunityInput {
+  eventId: ID!
+  job: Job!
+  otherJobDescription: String
+  isVirtual: Boolean!
+  preEventInstructions: String
+  shifts: [NewShiftInput!]! # a new opportunity must have at least one shift.
+}
+
+input UpdateOpportunityInput {
+  id: ID!
+  job: Job!
+  otherJobDescription: String
+  isVirtual: Boolean!
+  preEventInstructions: String
+}
+
+input NewShiftInput {
+  startDateTime: String!
+  endDateTime: String!
+  ianaZone: String!
+  maxVolunteers: Int
+  staffContactId: ID
+}
+
+input AddShiftInput {
+  opportunityId: ID!
+  startDateTime: String!
+  endDateTime: String!
+  ianaZone: String!
+  maxVolunteers: Int
+  staffContactId: ID
+}
+
+input UpdateShiftInput {
+  id: ID!
+  startDateTime: String!
+  endDateTime: String!
+  ianaZone: String!
+  maxVolunteers: Int
+  staffContactId: ID
+}
+
+input VolunteerFilterInput {
+  firstName: String
+  lastName: String
+  email: String
+}
+
+input FeedbackFilterInput {
+  status: FeedbackStatus
+  type: FeedbackType
+}
+
+input QuestionFeedbackInput {
+  id: ID!
+  emailText: String!
+  note: String!
+}
+
+input UpdateFeedbackInput {
+  id: ID!
+  status: FeedbackStatus!
+  note: String!
+  githubIssueURL: String
+}
+
+input ResolveFeedbackInput {
+  id: ID!
+  status: FeedbackStatus!
+  note: String!
+  githubIssueURL: String
+}

@@ -1,0 +1,146 @@
+## Types common to all of the schemas.
+
+
+#-- ENUMS --
+enum Role {
+  VOLUNTEER
+  ADMINISTRATOR
+}
+
+enum EventType {
+  VIRTUAL
+  IN_PERSON
+  HYBRID
+}
+
+# ServiceType describes the category(s) of service
+# into which this event falls.
+enum ServiceType {
+  OUTREACH
+  ADVOCACY
+  SPEAKERS_BUREAU
+  OFFICE_SUPPORT
+  OTHER
+}
+
+enum FeedbackType {
+    BUG
+    ENHANCEMENT
+    GENERAL
+}
+
+enum FeedbackStatus {
+  OPEN
+  QUESTION_SENT
+  RESOLVED_GITHUB
+  RESOLVED_REJECTED
+}
+
+# Job describes the specific job for which a VolunteerProfile
+# is needed.
+enum Job {
+  EVENT_SUPPORT
+  ADVOCACY
+  SPEAKER
+  VOLUNTEER_LEAD
+  ATTENDEE_ONLY
+  OTHER
+}
+
+enum ShiftTimeFilter {
+  UPCOMING
+  PAST
+  ALL
+}
+
+#-- Input --
+
+## The EventFilter reflects all of the fields on which 
+## a user can filter the results. If you want to add
+## more ways to filter, this is the place.
+input EventFilterInput {
+  regions: [Int!]
+  eventType: EventType
+  jobs: [Job!]
+  shiftStartDateTime: String
+  shiftEndDateTime: String
+  ianaZone: String
+}
+
+input NewFeedbackInput {
+  type: FeedbackType!
+  subject: String!
+  app_page_name: String!
+  text: String!
+}
+
+#-- Output --
+
+type VolunteerProfile {
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  zipCode: String
+  role: Role!
+}
+
+type VolunteerShift {
+  shiftId: ID!
+  assignedAt: String!
+  cancelledAt: String
+  startDateTime: String!
+  endDateTime: String!
+  maxVolunteers: Int
+  job: Job!
+  otherJobDescription: String
+  isVirtual: Boolean!
+  preEventInstructions: String
+  eventId: ID!
+  eventName: String!
+  eventDescription: String
+  venue: Venue
+}
+
+type Region {
+  id: Int!
+  code: String!
+  name: String!
+  is_active: Boolean!
+}
+
+type Venue {
+  id: ID!
+  name: String
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String
+  timezone: String!
+  region: [Int!]!
+}
+
+type Event {
+  id: ID!
+  name: String!
+  description: String
+  eventType: EventType!
+  venue: Venue
+  serviceTypes: [ServiceType!]
+  eventDates: [EventDate!]!  
+}
+
+type EventDate {
+  id: ID!
+  startDateTime: String!
+  endDateTime: String!
+}
+
+
+
+#-- Results --
+type MutationResult {
+  success: Boolean!
+  message: String
+  id: ID
+}

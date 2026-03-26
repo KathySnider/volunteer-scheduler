@@ -9,6 +9,22 @@ import (
 	"strconv"
 )
 
+type AddEventDateInput struct {
+	EventID       string `json:"eventId"`
+	StartDateTime string `json:"startDateTime"`
+	EndDateTime   string `json:"endDateTime"`
+	IanaZone      string `json:"ianaZone"`
+}
+
+type AddShiftInput struct {
+	OpportunityID  string  `json:"opportunityId"`
+	StartDateTime  string  `json:"startDateTime"`
+	EndDateTime    string  `json:"endDateTime"`
+	IanaZone       string  `json:"ianaZone"`
+	MaxVolunteers  *int    `json:"maxVolunteers,omitempty"`
+	StaffContactID *string `json:"staffContactId,omitempty"`
+}
+
 type Event struct {
 	ID           string        `json:"id"`
 	Name         string        `json:"name"`
@@ -34,6 +50,33 @@ type EventFilterInput struct {
 	IanaZone           *string    `json:"ianaZone,omitempty"`
 }
 
+type Feedback struct {
+	ID             string          `json:"id"`
+	VolunteerName  string          `json:"volunteerName"`
+	Type           FeedbackType    `json:"type"`
+	Status         FeedbackStatus  `json:"status"`
+	Subject        string          `json:"subject"`
+	AppPageName    string          `json:"appPageName"`
+	Text           string          `json:"text"`
+	Notes          []*FeedbackNote `json:"notes"`
+	GithubIssueURL *string         `json:"githubIssueURL,omitempty"`
+	CreatedAt      string          `json:"createdAt"`
+	LastUpdatedAt  *string         `json:"lastUpdatedAt,omitempty"`
+	ResolvedAt     *string         `json:"resolvedAt,omitempty"`
+}
+
+type FeedbackFilterInput struct {
+	Status *FeedbackStatus `json:"status,omitempty"`
+	Type   *FeedbackType   `json:"type,omitempty"`
+}
+
+type FeedbackNote struct {
+	ID        string `json:"id"`
+	Creator   string `json:"creator"`
+	CreatedAt string `json:"createdAt"`
+	Note      string `json:"note"`
+}
+
 type Mutation struct {
 }
 
@@ -43,6 +86,21 @@ type MutationResult struct {
 	ID      *string `json:"id,omitempty"`
 }
 
+type NewEventDateInput struct {
+	StartDateTime string `json:"startDateTime"`
+	EndDateTime   string `json:"endDateTime"`
+	IanaZone      string `json:"ianaZone"`
+}
+
+type NewEventInput struct {
+	Name         string               `json:"name"`
+	Description  *string              `json:"description,omitempty"`
+	EventType    EventType            `json:"eventType"`
+	VenueID      *string              `json:"venueId,omitempty"`
+	ServiceTypes []ServiceType        `json:"serviceTypes"`
+	EventDates   []*NewEventDateInput `json:"eventDates"`
+}
+
 type NewFeedbackInput struct {
 	Type        FeedbackType `json:"type"`
 	Subject     string       `json:"subject"`
@@ -50,7 +108,63 @@ type NewFeedbackInput struct {
 	Text        string       `json:"text"`
 }
 
+type NewOpportunityInput struct {
+	EventID              string           `json:"eventId"`
+	Job                  Job              `json:"job"`
+	OtherJobDescription  *string          `json:"otherJobDescription,omitempty"`
+	IsVirtual            bool             `json:"isVirtual"`
+	PreEventInstructions *string          `json:"preEventInstructions,omitempty"`
+	Shifts               []*NewShiftInput `json:"shifts"`
+}
+
+type NewRegionInput struct {
+	Code string `json:"code"`
+	Name string `json:"name"`
+}
+
+type NewShiftInput struct {
+	StartDateTime  string  `json:"startDateTime"`
+	EndDateTime    string  `json:"endDateTime"`
+	IanaZone       string  `json:"ianaZone"`
+	MaxVolunteers  *int    `json:"maxVolunteers,omitempty"`
+	StaffContactID *string `json:"staffContactId,omitempty"`
+}
+
+type NewVenueInput struct {
+	Name     *string `json:"name,omitempty"`
+	Address  string  `json:"address"`
+	City     string  `json:"city"`
+	State    string  `json:"state"`
+	ZipCode  *string `json:"zipCode,omitempty"`
+	IanaZone string  `json:"ianaZone"`
+	Region   []int   `json:"region"`
+}
+
+type NewVolunteerInput struct {
+	FirstName string  `json:"firstName"`
+	LastName  string  `json:"lastName"`
+	Email     string  `json:"email"`
+	Phone     *string `json:"phone,omitempty"`
+	ZipCode   *string `json:"zipCode,omitempty"`
+	Role      Role    `json:"role"`
+}
+
+type Opportunity struct {
+	ID                   string   `json:"id"`
+	Job                  Job      `json:"job"`
+	OtherJobDescription  *string  `json:"otherJobDescription,omitempty"`
+	IsVirtual            bool     `json:"isVirtual"`
+	PreEventInstructions *string  `json:"preEventInstructions,omitempty"`
+	Shifts               []*Shift `json:"shifts"`
+}
+
 type Query struct {
+}
+
+type QuestionFeedbackInput struct {
+	ID        string `json:"id"`
+	EmailText string `json:"emailText"`
+	Note      string `json:"note"`
 }
 
 type Region struct {
@@ -60,23 +174,85 @@ type Region struct {
 	IsActive bool   `json:"is_active"`
 }
 
-type ShiftView struct {
-	ID                  string  `json:"id"`
-	Job                 Job     `json:"job"`
-	OtherJobDescription *string `json:"otherJobDescription,omitempty"`
-	StartDateTime       string  `json:"startDateTime"`
-	EndDateTime         string  `json:"endDateTime"`
-	IsVirtual           bool    `json:"isVirtual"`
-	MaxVolunteers       *int    `json:"maxVolunteers,omitempty"`
-	AssignedVolunteers  int     `json:"assignedVolunteers"`
+type ResolveFeedbackInput struct {
+	ID             string         `json:"id"`
+	Status         FeedbackStatus `json:"status"`
+	Note           string         `json:"note"`
+	GithubIssueURL *string        `json:"githubIssueURL,omitempty"`
 }
 
-type UpdateOwnProfileInput struct {
+type Shift struct {
+	ID             string  `json:"id"`
+	StartDateTime  string  `json:"startDateTime"`
+	EndDateTime    string  `json:"endDateTime"`
+	MaxVolunteers  *int    `json:"maxVolunteers,omitempty"`
+	StaffContactID *string `json:"staffContactId,omitempty"`
+}
+
+type UpdateEventDateInput struct {
+	ID            string `json:"id"`
+	StartDateTime string `json:"startDateTime"`
+	EndDateTime   string `json:"endDateTime"`
+	IanaZone      string `json:"ianaZone"`
+}
+
+type UpdateEventInput struct {
+	ID           string        `json:"id"`
+	Name         string        `json:"name"`
+	Description  *string       `json:"description,omitempty"`
+	EventType    EventType     `json:"eventType"`
+	VenueID      *string       `json:"venueId,omitempty"`
+	ServiceTypes []ServiceType `json:"serviceTypes"`
+}
+
+type UpdateFeedbackInput struct {
+	ID             string         `json:"id"`
+	Status         FeedbackStatus `json:"status"`
+	Note           string         `json:"note"`
+	GithubIssueURL *string        `json:"githubIssueURL,omitempty"`
+}
+
+type UpdateOpportunityInput struct {
+	ID                   string  `json:"id"`
+	Job                  Job     `json:"job"`
+	OtherJobDescription  *string `json:"otherJobDescription,omitempty"`
+	IsVirtual            bool    `json:"isVirtual"`
+	PreEventInstructions *string `json:"preEventInstructions,omitempty"`
+}
+
+type UpdateRegionInput struct {
+	ID   int    `json:"id"`
+	Code string `json:"code"`
+	Name string `json:"name"`
+}
+
+type UpdateShiftInput struct {
+	ID             string  `json:"id"`
+	StartDateTime  string  `json:"startDateTime"`
+	EndDateTime    string  `json:"endDateTime"`
+	IanaZone       string  `json:"ianaZone"`
+	MaxVolunteers  *int    `json:"maxVolunteers,omitempty"`
+	StaffContactID *string `json:"staffContactId,omitempty"`
+}
+
+type UpdateVenueInput struct {
+	ID       string  `json:"id"`
+	Name     *string `json:"name,omitempty"`
+	Address  string  `json:"address"`
+	City     string  `json:"city"`
+	State    string  `json:"state"`
+	ZipCode  *string `json:"zipCode,omitempty"`
+	IanaZone string  `json:"ianaZone"`
+}
+
+type UpdateVolunteerInput struct {
+	ID        string  `json:"id"`
 	FirstName string  `json:"firstName"`
 	LastName  string  `json:"lastName"`
 	Email     string  `json:"email"`
 	Phone     *string `json:"phone,omitempty"`
 	ZipCode   *string `json:"zipCode,omitempty"`
+	Role      Role    `json:"role"`
 }
 
 type Venue struct {
@@ -90,9 +266,20 @@ type Venue struct {
 	Region   []int   `json:"region"`
 }
 
-type VolunteerMutationResult struct {
-	Success bool    `json:"success"`
-	Message *string `json:"message,omitempty"`
+type Volunteer struct {
+	ID        string  `json:"id"`
+	FirstName string  `json:"firstName"`
+	LastName  string  `json:"lastName"`
+	Email     string  `json:"email"`
+	Phone     *string `json:"phone,omitempty"`
+	ZipCode   *string `json:"zipCode,omitempty"`
+	Role      Role    `json:"role"`
+}
+
+type VolunteerFilterInput struct {
+	FirstName *string `json:"firstName,omitempty"`
+	LastName  *string `json:"lastName,omitempty"`
+	Email     *string `json:"email,omitempty"`
 }
 
 type VolunteerProfile struct {

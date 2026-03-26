@@ -1,4 +1,4 @@
-package volunteer
+package admin
 
 import (
 	"database/sql"
@@ -8,9 +8,9 @@ import (
 // Resolver holds the services needed by GraphQL resolvers
 type Resolver struct {
 	DB               *sql.DB
+	ShiftService     *services.ShiftService
 	EventService     *services.EventService
 	VolunteerService *services.VolunteerService
-	ShiftService     *services.ShiftService
 	VenueService     *services.VenueService
 	FeedbackService  *services.FeedbackService
 }
