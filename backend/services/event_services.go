@@ -572,10 +572,6 @@ func (s *EventService) DeleteEvent(ctx context.Context, eventId string) (*models
 
 	// Create some structures to handle the information needed for an email
 	// for each user affected by the cancellation.
-	type shiftInfo struct {
-		shiftStart string
-		shiftEnd   string
-	}
 	type emailInfo struct {
 		email     string
 		firstName string
@@ -587,7 +583,7 @@ func (s *EventService) DeleteEvent(ctx context.Context, eventId string) (*models
 	// subsequent calls, and, finally send all of the emails.
 	volMap := make(map[int]*emailInfo)
 	leadMap := make(map[int]*emailInfo)
-	shiftMap := make(map[int]*shiftInfo)
+	shiftMap := make(map[int]*ShiftSummary)
 
 	var eventName string
 	var venueZone sql.NullString
@@ -635,7 +631,7 @@ func (s *EventService) DeleteEvent(ctx context.Context, eventId string) (*models
 		_, shiftExists := shiftMap[shiftId]
 		if !shiftExists {
 			var ss, se *string
-			var shift shiftInfo
+			var shift ShiftSummary
 
 			// Convert the dates and times once and save them.
 			if venueZone.Valid {
@@ -656,8 +652,8 @@ func (s *EventService) DeleteEvent(ctx context.Context, eventId string) (*models
 					ID:      &eventId,
 				}, err
 			}
-			shift.shiftStart = *ss
-			shift.shiftEnd = *se
+			shift.Start = *ss
+			shift.End = *se
 
 			shiftMap[shiftId] = &shift
 		}
@@ -715,16 +711,16 @@ func (s *EventService) DeleteEvent(ctx context.Context, eventId string) (*models
 	// Our maps now have a single entry for each volunteer and staff
 	// lead contact. We also have the event name, and the formatted
 	// dates/times for each shift.
-	// TODO: Get the proper text for the emails.
 
-	subject := eventName + " has been cancelled"
-	volText := "Thank you for signing up to be a volunteer for " + eventName + ". Unfortunately this event has been cancelled ... shift times, etc."
-	leadText := "Thank you for signing up to be the lead contact for " + eventName + "...."
 	unsent := make([]*string, 0, len(volMap)+len(leadMap))
 
 	for _, emailInfo := range volMap {
-		greeting := "Dear " + emailInfo.firstName + " " + emailInfo.lastName + ",\n"
-		err = s.Mailer.SendEmail(ctx, emailInfo.email, subject, "", greeting+volText)
+		// Get all of the shift start and end times for this email.
+		shiftSummaries := make([]ShiftSummary, 0, len(emailInfo.shiftsMap))
+		for shiftKey := range emailInfo.shiftsMap {
+			shiftSummaries = append(shiftSummaries, *shiftMap[shiftKey])
+		}
+		err = sendEventCancelledToVolunteer(ctx, s.Mailer, emailInfo.firstName, eventName, shiftSummaries, emailInfo.email)
 		if err != nil {
 			// Not being able to send an email is not fatal.
 			// Try to notify the others.
@@ -733,8 +729,12 @@ func (s *EventService) DeleteEvent(ctx context.Context, eventId string) (*models
 		}
 	}
 	for _, emailInfo := range leadMap {
-		greeting := "Dear " + emailInfo.firstName + " " + emailInfo.lastName + ",\n"
-		err = s.Mailer.SendEmail(ctx, emailInfo.email, subject, "", greeting+leadText)
+		// Get all of the shift start and end times for this email.
+		shiftSummaries := make([]ShiftSummary, 0, len(emailInfo.shiftsMap))
+		for shiftKey := range emailInfo.shiftsMap {
+			shiftSummaries = append(shiftSummaries, *shiftMap[shiftKey])
+		}
+		err = sendEventCancelledToStaff(ctx, s.Mailer, emailInfo.firstName, eventName, shiftSummaries, emailInfo.email)
 		if err != nil {
 			unsent = append(unsent, &emailInfo.email)
 			continue

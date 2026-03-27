@@ -17,7 +17,10 @@ func ptrString(s string) *string {
 	return &s
 }
 
-// ** Fetching things from the DB **
+// ============================================================================
+// Fetching things from the DB
+// ============================================================================
+
 // This allows us to get things that shouldn't necessarily be
 // exposed through services, as well as reduce duplicate code.
 
@@ -306,31 +309,29 @@ func DateTimeToUTC(dateTimeStr string, ianaZone string) (*string, error) {
 }
 
 func UTCToTimeZone(utcTime string, ianaZone string) (*string, error) {
-	const Layout = "01-02-2006 15:04 MST"
+
+	dateTime, err := time.Parse(time.RFC3339, utcTime)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing %s: %w", utcTime, err)
+	}
 
 	loc, err := time.LoadLocation(ianaZone)
 	if err != nil {
 		return nil, fmt.Errorf("invalid timezone %s: %w", ianaZone, err)
 	}
+	strTime := dateTime.In(loc).Format("01-02-2006 15:04 MST")
 
-	dateTime, err := time.Parse(time.RFC3339, utcTime)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing %s: %w", utcTime, err)
-	}
-
-	strTime := dateTime.In(loc).Format(Layout)
 	return &strTime, nil
 }
 
 func UTCToDateTime(utcTime string) (*string, error) {
-	const Layout = "01-02-2006 15:04 MST"
 
 	dateTime, err := time.Parse(time.RFC3339, utcTime)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing %s: %w", utcTime, err)
 	}
 
-	strTime := dateTime.Format(Layout)
+	strTime := dateTime.Format("01-02-2006 15:04 MST")
 	return &strTime, nil
 }
 
@@ -347,6 +348,31 @@ func AddNewEventDates(ctx context.Context, dates []*models.NewEventDateInput, ev
 
 	// No errors.
 	return nil
+}
+
+func formatStartEnd(ctx context.Context, start string, end string, timezone sql.NullString) (*string, *string, error) {
+	var fmtStart, fmtEnd *string
+	var err error
+
+	if timezone.Valid {
+		fmtStart, err = UTCToTimeZone(start, timezone.String)
+		if err == nil {
+			fmtEnd, err = UTCToTimeZone(end, timezone.String)
+		}
+		if err != nil {
+			return nil, nil, fmt.Errorf("unable to format shift times: %w", err)
+		}
+	} else {
+		fmtStart, err = UTCToDateTime(start)
+		if err == nil {
+			fmtEnd, err = UTCToDateTime(end)
+		}
+		if err != nil {
+			return nil, nil, fmt.Errorf("unable to format shift times: %w", err)
+		}
+	}
+
+	return fmtStart, fmtEnd, nil
 }
 
 // ** Converting event types **
@@ -403,16 +429,6 @@ func assignVolToShift(ctx context.Context, DB *sql.DB, mailer *Mailer, shiftId s
 		}, err
 	}
 
-	email, err := fetchEmailByVolId(ctx, DB, volId)
-	if err != nil {
-		volStr := strconv.Itoa(volId)
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("Unable to fetch email for volunteer."),
-			ID:      &volStr,
-		}, err
-	}
-
 	query := `
 		SELECT
 			s.shift_id,
@@ -457,8 +473,7 @@ func assignVolToShift(ctx context.Context, DB *sql.DB, mailer *Mailer, shiftId s
 		}, err
 	}
 
-	// TODO: get text for email.
-	err = mailer.SendEmail(ctx, email, "Shift Assignment", "", "")
+	err = sendAssignmentConfirmation(ctx, DB, mailer, shiftInt, volId)
 	if err != nil {
 		volStr := strconv.Itoa(volId)
 		return &models.MutationResult{
@@ -487,43 +502,26 @@ func cancelShiftAssignment(ctx context.Context, DB *sql.DB, mailer *Mailer, shif
 		}, err
 	}
 
-	email, err := fetchEmailByVolId(ctx, DB, volId)
-	if err != nil {
-		volStr := strconv.Itoa(volId)
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("Unable to fetch email for volunteer."),
-			ID:      &volStr,
-		}, err
-	}
-
 	update := `
 		UPDATE volunteer_shifts
 		SET cancelled_at = NOW()
 		WHERE volunteer_id = $1 AND shift_id = $2
 	`
 	_, err = DB.ExecContext(ctx, update, volId, shiftInt)
-
 	if err != nil {
 		return &models.MutationResult{
 			Success: false,
-			Message: ptrString("Failed to delete shift assignment."),
+			Message: ptrString("Failed to cancel shift assignment."),
 			ID:      nil,
 		}, err
 	}
 
-	// NOTE: in addition to mailing the volunteer, cancelling a shift should send
-	// an eamil to the staff lead or to the volunteer coordinators or to SOMEONE.
-
-	// TODO: get text for email(s).
-
-	err = mailer.SendEmail(ctx, email, "Shift Assignment Cancelled", "We are sorry you are not able to volunteer for this shift...", "")
+	err = sendCancellationConfirmation(ctx, DB, mailer, shiftInt, volId)
 	if err != nil {
-		volStr := strconv.Itoa(volId)
 		return &models.MutationResult{
-			Success: true,
-			Message: ptrString("Successfully canceled assignment. Unable to send email to volunteer"),
-			ID:      &volStr,
+			Success: false,
+			Message: ptrString("Cancelled shift assignment; failed to send email to volunteer."),
+			ID:      nil,
 		}, err
 	}
 
