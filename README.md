@@ -1,5 +1,6 @@
 # Volunteer Scheduler
 
+# Under Construction - Lots of changes to the backend, but the frontend *is* coming!
 A full-stack web prototype for managing organizational events, volunteer opportunities, and shift assignments. Built with Next.js (React) frontend and Go GraphQL backend.
 
 ## Overview
