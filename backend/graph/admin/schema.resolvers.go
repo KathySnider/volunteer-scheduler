@@ -28,7 +28,12 @@ func (r *mutationResolver) GiveFeedback(ctx context.Context, feedback generated.
 
 // CreateVolunteer is the resolver for the createVolunteer field.
 func (r *mutationResolver) CreateVolunteer(ctx context.Context, newVol generated.NewVolunteerInput) (*generated.MutationResult, error) {
-	result, err := r.VolunteerService.CreateVolunteer(ctx, toModelNewVolunteerInput(newVol))
+	creatorId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	result, err := r.VolunteerService.CreateVolunteer(ctx, creatorId, toModelNewVolunteerInput(newVol))
 	if err != nil {
 		return nil, err
 	}

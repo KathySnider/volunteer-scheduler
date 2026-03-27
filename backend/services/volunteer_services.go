@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"strconv"
 
 	"volunteer-scheduler/models"
@@ -124,7 +125,7 @@ func (s *VolunteerService) UpdateOwnProfile(ctx context.Context, volId int, prof
 // Mutations.
 
 // CreateVolunteer is the resolver for the createVolunteer field.
-func (s *VolunteerService) CreateVolunteer(ctx context.Context, newVol models.NewVolunteerInput) (*models.MutationResult, error) {
+func (s *VolunteerService) CreateVolunteer(ctx context.Context, creatorId int, newVol models.NewVolunteerInput) (*models.MutationResult, error) {
 	query := `
 		INSERT INTO volunteers (
 			first_name, 
@@ -146,6 +147,33 @@ func (s *VolunteerService) CreateVolunteer(ctx context.Context, newVol models.Ne
 			Message: ptrString("Failed to create volunteer."),
 			ID:      nil,
 		}, err
+	}
+
+	// Temporary, until we fix role handling.
+	var role string
+	if newVol.Role == "VOLUNTEER" {
+		role = "volunteer"
+	} else {
+		role = "administrator"
+	}
+
+	// Get the creating admin's email for the notification.
+	createdByEmail, err := fetchEmailByVolId(ctx, s.DB, creatorId)
+	if err != nil {
+		log.Printf("Warning: could not fetch creating admin email: %v", err)
+		createdByEmail = "unknown"
+	}
+
+	// Welcome email to the new volunteer.
+	err = sendAccountCreated(ctx, s.mailer, newVol.FirstName, newVol.LastName, newVol.Email, role)
+	if err != nil {
+		log.Printf("Warning: failed to send welcome email to %s: %v", newVol.Email, err)
+	}
+
+	// Notification to all admins.
+	err = sendAccountCreatedAdminNotification(ctx, s.DB, s.mailer, newVol.FirstName, newVol.LastName, newVol.Email, role, createdByEmail)
+	if err != nil {
+		log.Printf("Warning: failed to send admin notification for %s: %v", newVol.Email, err)
 	}
 
 	volStr := strconv.Itoa(volInt)
