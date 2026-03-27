@@ -26,13 +26,13 @@ type AddShiftInput struct {
 }
 
 type Event struct {
-	ID           string        `json:"id"`
-	Name         string        `json:"name"`
-	Description  *string       `json:"description,omitempty"`
-	EventType    EventType     `json:"eventType"`
-	Venue        *Venue        `json:"venue,omitempty"`
-	ServiceTypes []ServiceType `json:"serviceTypes,omitempty"`
-	EventDates   []*EventDate  `json:"eventDates"`
+	ID           string       `json:"id"`
+	Name         string       `json:"name"`
+	Description  *string      `json:"description,omitempty"`
+	EventType    EventType    `json:"eventType"`
+	Venue        *Venue       `json:"venue,omitempty"`
+	ServiceTypes []string     `json:"serviceTypes,omitempty"`
+	EventDates   []*EventDate `json:"eventDates"`
 }
 
 type EventDate struct {
@@ -44,7 +44,7 @@ type EventDate struct {
 type EventFilterInput struct {
 	Regions            []int      `json:"regions,omitempty"`
 	EventType          *EventType `json:"eventType,omitempty"`
-	Jobs               []Job      `json:"jobs,omitempty"`
+	Jobs               []int      `json:"jobs,omitempty"`
 	ShiftStartDateTime *string    `json:"shiftStartDateTime,omitempty"`
 	ShiftEndDateTime   *string    `json:"shiftEndDateTime,omitempty"`
 	IanaZone           *string    `json:"ianaZone,omitempty"`
@@ -77,6 +77,19 @@ type FeedbackNote struct {
 	Note      string `json:"note"`
 }
 
+type JobType struct {
+	ID       int    `json:"id"`
+	Code     string `json:"code"`
+	Name     string `json:"name"`
+	IsActive bool   `json:"isActive"`
+}
+
+type LookupValues struct {
+	Regions      []*Region      `json:"regions"`
+	ServiceTypes []*ServiceType `json:"serviceTypes"`
+	JobTypes     []*JobType     `json:"jobTypes"`
+}
+
 type Mutation struct {
 }
 
@@ -97,7 +110,7 @@ type NewEventInput struct {
 	Description  *string              `json:"description,omitempty"`
 	EventType    EventType            `json:"eventType"`
 	VenueID      *string              `json:"venueId,omitempty"`
-	ServiceTypes []ServiceType        `json:"serviceTypes"`
+	ServiceTypes []int                `json:"serviceTypes"`
 	EventDates   []*NewEventDateInput `json:"eventDates"`
 }
 
@@ -110,8 +123,7 @@ type NewFeedbackInput struct {
 
 type NewOpportunityInput struct {
 	EventID              string           `json:"eventId"`
-	Job                  Job              `json:"job"`
-	OtherJobDescription  *string          `json:"otherJobDescription,omitempty"`
+	JobID                int              `json:"jobId"`
 	IsVirtual            bool             `json:"isVirtual"`
 	PreEventInstructions *string          `json:"preEventInstructions,omitempty"`
 	Shifts               []*NewShiftInput `json:"shifts"`
@@ -151,8 +163,7 @@ type NewVolunteerInput struct {
 
 type Opportunity struct {
 	ID                   string   `json:"id"`
-	Job                  Job      `json:"job"`
-	OtherJobDescription  *string  `json:"otherJobDescription,omitempty"`
+	JobID                int      `json:"jobId"`
 	IsVirtual            bool     `json:"isVirtual"`
 	PreEventInstructions *string  `json:"preEventInstructions,omitempty"`
 	Shifts               []*Shift `json:"shifts"`
@@ -171,7 +182,7 @@ type Region struct {
 	ID       int    `json:"id"`
 	Code     string `json:"code"`
 	Name     string `json:"name"`
-	IsActive bool   `json:"is_active"`
+	IsActive bool   `json:"isActive"`
 }
 
 type ResolveFeedbackInput struct {
@@ -179,6 +190,13 @@ type ResolveFeedbackInput struct {
 	Status         FeedbackStatus `json:"status"`
 	Note           string         `json:"note"`
 	GithubIssueURL *string        `json:"githubIssueURL,omitempty"`
+}
+
+type ServiceType struct {
+	ID       int    `json:"id"`
+	Code     string `json:"code"`
+	Name     string `json:"name"`
+	IsActive bool   `json:"isActive"`
 }
 
 type Shift struct {
@@ -197,12 +215,12 @@ type UpdateEventDateInput struct {
 }
 
 type UpdateEventInput struct {
-	ID           string        `json:"id"`
-	Name         string        `json:"name"`
-	Description  *string       `json:"description,omitempty"`
-	EventType    EventType     `json:"eventType"`
-	VenueID      *string       `json:"venueId,omitempty"`
-	ServiceTypes []ServiceType `json:"serviceTypes"`
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	Description  *string   `json:"description,omitempty"`
+	EventType    EventType `json:"eventType"`
+	VenueID      *string   `json:"venueId,omitempty"`
+	ServiceTypes []int     `json:"serviceTypes"`
 }
 
 type UpdateFeedbackInput struct {
@@ -214,8 +232,7 @@ type UpdateFeedbackInput struct {
 
 type UpdateOpportunityInput struct {
 	ID                   string  `json:"id"`
-	Job                  Job     `json:"job"`
-	OtherJobDescription  *string `json:"otherJobDescription,omitempty"`
+	JobID                int     `json:"jobId"`
 	IsVirtual            bool    `json:"isVirtual"`
 	PreEventInstructions *string `json:"preEventInstructions,omitempty"`
 }
@@ -298,8 +315,7 @@ type VolunteerShift struct {
 	StartDateTime        string  `json:"startDateTime"`
 	EndDateTime          string  `json:"endDateTime"`
 	MaxVolunteers        *int    `json:"maxVolunteers,omitempty"`
-	Job                  Job     `json:"job"`
-	OtherJobDescription  *string `json:"otherJobDescription,omitempty"`
+	JobName              string  `json:"jobName"`
 	IsVirtual            bool    `json:"isVirtual"`
 	PreEventInstructions *string `json:"preEventInstructions,omitempty"`
 	EventID              string  `json:"eventId"`
@@ -481,69 +497,6 @@ func (e FeedbackType) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-type Job string
-
-const (
-	JobEventSupport  Job = "EVENT_SUPPORT"
-	JobAdvocacy      Job = "ADVOCACY"
-	JobSpeaker       Job = "SPEAKER"
-	JobVolunteerLead Job = "VOLUNTEER_LEAD"
-	JobAttendeeOnly  Job = "ATTENDEE_ONLY"
-	JobOther         Job = "OTHER"
-)
-
-var AllJob = []Job{
-	JobEventSupport,
-	JobAdvocacy,
-	JobSpeaker,
-	JobVolunteerLead,
-	JobAttendeeOnly,
-	JobOther,
-}
-
-func (e Job) IsValid() bool {
-	switch e {
-	case JobEventSupport, JobAdvocacy, JobSpeaker, JobVolunteerLead, JobAttendeeOnly, JobOther:
-		return true
-	}
-	return false
-}
-
-func (e Job) String() string {
-	return string(e)
-}
-
-func (e *Job) UnmarshalGQL(v any) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = Job(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid Job", str)
-	}
-	return nil
-}
-
-func (e Job) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-func (e *Job) UnmarshalJSON(b []byte) error {
-	s, err := strconv.Unquote(string(b))
-	if err != nil {
-		return err
-	}
-	return e.UnmarshalGQL(s)
-}
-
-func (e Job) MarshalJSON() ([]byte, error) {
-	var buf bytes.Buffer
-	e.MarshalGQL(&buf)
-	return buf.Bytes(), nil
-}
-
 type Role string
 
 const (
@@ -594,67 +547,6 @@ func (e *Role) UnmarshalJSON(b []byte) error {
 }
 
 func (e Role) MarshalJSON() ([]byte, error) {
-	var buf bytes.Buffer
-	e.MarshalGQL(&buf)
-	return buf.Bytes(), nil
-}
-
-type ServiceType string
-
-const (
-	ServiceTypeOutreach       ServiceType = "OUTREACH"
-	ServiceTypeAdvocacy       ServiceType = "ADVOCACY"
-	ServiceTypeSpeakersBureau ServiceType = "SPEAKERS_BUREAU"
-	ServiceTypeOfficeSupport  ServiceType = "OFFICE_SUPPORT"
-	ServiceTypeOther          ServiceType = "OTHER"
-)
-
-var AllServiceType = []ServiceType{
-	ServiceTypeOutreach,
-	ServiceTypeAdvocacy,
-	ServiceTypeSpeakersBureau,
-	ServiceTypeOfficeSupport,
-	ServiceTypeOther,
-}
-
-func (e ServiceType) IsValid() bool {
-	switch e {
-	case ServiceTypeOutreach, ServiceTypeAdvocacy, ServiceTypeSpeakersBureau, ServiceTypeOfficeSupport, ServiceTypeOther:
-		return true
-	}
-	return false
-}
-
-func (e ServiceType) String() string {
-	return string(e)
-}
-
-func (e *ServiceType) UnmarshalGQL(v any) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = ServiceType(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid ServiceType", str)
-	}
-	return nil
-}
-
-func (e ServiceType) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-func (e *ServiceType) UnmarshalJSON(b []byte) error {
-	s, err := strconv.Unquote(string(b))
-	if err != nil {
-		return err
-	}
-	return e.UnmarshalGQL(s)
-}
-
-func (e ServiceType) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

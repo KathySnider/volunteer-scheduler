@@ -5,12 +5,13 @@
 
 type Query {
   # Shared queries:
+  lookupValues: LookupValues!
   volunteerProfile: VolunteerProfile!
   filteredEvents(filter: EventFilterInput): [Event!]! 
+  eventById(eventId: ID!): Event!
 
   # Admin-only queries:
   venues: [Venue!]!
-  activeRegions: [Region!]!
   allVolunteers(filter: VolunteerFilterInput): [Volunteer!]! 
   volunteerShifts(volunteerId: ID!, filter: ShiftTimeFilter!): [VolunteerShift!]! 
   volunteerById(volunteerId: ID!): VolunteerProfile
@@ -73,8 +74,7 @@ type Volunteer {
 
 type Opportunity {
   id: ID!
-  job: Job!
-  otherJobDescription: String
+  jobId: Int!
   isVirtual: Boolean!
   preEventInstructions: String
   shifts: [Shift!]!
@@ -136,7 +136,7 @@ input NewVenueInput {
   state: String!
   zipCode: String
   ianaZone: String!
-  region: [Int!]! # array of ID's, but gqlgen won't keep making them Strings.
+  region: [Int!]! # using array of ints instead of IDs, so gqlgen won't keep making them Strings.
 }
 
 input NewRegionInput {
@@ -165,7 +165,7 @@ input NewEventInput {
   description: String
   eventType: EventType!
   venueId: ID
-  serviceTypes: [ServiceType!]!
+  serviceTypes: [Int!]!
   eventDates: [NewEventDateInput!]! # a new event must have at least one date.
 }
 
@@ -175,7 +175,7 @@ input UpdateEventInput {
   description: String
   eventType: EventType!
   venueId: ID
-  serviceTypes: [ServiceType!]!
+  serviceTypes: [Int!]!
 }
 
 input NewEventDateInput {
@@ -203,8 +203,7 @@ input UpdateEventDateInput {
 
 input NewOpportunityInput {
   eventId: ID!
-  job: Job!
-  otherJobDescription: String
+  jobId: Int!
   isVirtual: Boolean!
   preEventInstructions: String
   shifts: [NewShiftInput!]! # a new opportunity must have at least one shift.
@@ -212,8 +211,7 @@ input NewOpportunityInput {
 
 input UpdateOpportunityInput {
   id: ID!
-  job: Job!
-  otherJobDescription: String
+  jobId: Int!
   isVirtual: Boolean!
   preEventInstructions: String
 }

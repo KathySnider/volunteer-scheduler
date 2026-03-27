@@ -24,19 +24,68 @@ func toGenMutationResult(m *models.MutationResult) *generated.MutationResult {
 	}
 }
 
+func toGenLookupValues(m models.LookupValues) generated.LookupValues {
+	return generated.LookupValues{
+		Regions:      toGenRegions(m.Regions),
+		ServiceTypes: toGenServiceTypes(m.ServiceTypes),
+		JobTypes:     toGenJobTypes(m.JobTypes),
+	}
+}
+
 func toGenRegions(ms []*models.Region) []*generated.Region {
 	result := make([]*generated.Region, len(ms))
 	for i, m := range ms {
 		result[i] = toGenRegion(m)
 	}
 	return result
-
 }
+
+func toGenServiceTypes(ms []*models.ServiceType) []*generated.ServiceType {
+	result := make([]*generated.ServiceType, len(ms))
+	for i, m := range ms {
+		result[i] = toGenServiceType(m)
+	}
+	return result
+}
+
+func toGenJobTypes(ms []*models.JobType) []*generated.JobType {
+	result := make([]*generated.JobType, len(ms))
+	for i, m := range ms {
+		result[i] = toGenJobType(m)
+	}
+	return result
+}
+
 func toGenRegion(m *models.Region) *generated.Region {
 	if m == nil {
 		return nil
 	}
 	return &generated.Region{
+		ID:       m.ID,
+		Code:     m.Code,
+		Name:     m.Name,
+		IsActive: m.IsActive,
+	}
+}
+
+func toGenServiceType(m *models.ServiceType) *generated.ServiceType {
+	if m == nil {
+		return nil
+	}
+	return &generated.ServiceType{
+		ID:       m.ID,
+		Code:     m.Code,
+		Name:     m.Name,
+		IsActive: m.IsActive,
+	}
+}
+
+func toGenJobType(m *models.JobType) *generated.JobType {
+	if m == nil {
+		return nil
+	}
+
+	return &generated.JobType{
 		ID:       m.ID,
 		Code:     m.Code,
 		Name:     m.Name,
@@ -94,8 +143,7 @@ func toGenVolunteerShift(m *models.VolunteerShift) *generated.VolunteerShift {
 		StartDateTime:        m.StartDateTime,
 		EndDateTime:          m.EndDateTime,
 		MaxVolunteers:        m.MaxVolunteers,
-		Job:                  generated.Job(m.Job),
-		OtherJobDescription:  m.OtherJobDescription,
+		JobName:              m.JobName,
 		IsVirtual:            m.IsVirtual,
 		PreEventInstructions: m.PreEventInstructions,
 		EventID:              m.EventId,
@@ -118,11 +166,6 @@ func toGenEvent(m *models.Event) *generated.Event {
 		return nil
 	}
 
-	serviceTypes := make([]generated.ServiceType, len(m.ServiceTypes))
-	for i, st := range m.ServiceTypes {
-		serviceTypes[i] = generated.ServiceType(st)
-	}
-
 	return &generated.Event{
 		ID:           m.ID,
 		Name:         m.Name,
@@ -130,7 +173,7 @@ func toGenEvent(m *models.Event) *generated.Event {
 		EventType:    generated.EventType(m.EventType),
 		Venue:        toGenVenue(m.Venue),
 		EventDates:   toGenEventDates(m.EventDates),
-		ServiceTypes: serviceTypes,
+		ServiceTypes: m.ServiceTypes,
 	}
 }
 
@@ -167,14 +210,10 @@ func toModelEventFilterInput(g *generated.EventFilterInput) *models.EventFilterI
 		et := models.EventType(*g.EventType)
 		eventType = &et
 	}
-	jobs := make([]models.Job, len(g.Jobs))
-	for i, j := range g.Jobs {
-		jobs[i] = models.Job(j)
-	}
 	return &models.EventFilterInput{
 		Regions:        g.Regions,
 		EventType:      eventType,
-		Jobs:           jobs,
+		Jobs:           g.Jobs,
 		ShiftStartDate: g.ShiftStartDateTime,
 		ShiftEndDate:   g.ShiftEndDateTime,
 		IanaZone:       g.IanaZone,
@@ -245,8 +284,7 @@ func toGenOpportunity(m *models.Opportunity) *generated.Opportunity {
 
 	return &generated.Opportunity{
 		ID:                   m.ID,
-		Job:                  generated.Job(m.Job),
-		OtherJobDescription:  m.OtherJobDescription,
+		JobID:                m.JobId,
 		IsVirtual:            m.IsVirtual,
 		PreEventInstructions: m.PreEventInstructions,
 		Shifts:               toGenShifts(m.Shifts),
@@ -315,7 +353,12 @@ func toGenFeedbackNote(m *models.FeedbackNote) *generated.FeedbackNote {
 	if m == nil {
 		return nil
 	}
-	return &generated.FeedbackNote{}
+	return &generated.FeedbackNote{
+		ID:        m.ID,
+		Creator:   m.Creator,
+		Note:      m.Note,
+		CreatedAt: m.CreatedAt,
+	}
 
 }
 
@@ -335,12 +378,6 @@ func toModelVolunteerFilterInput(g *generated.VolunteerFilterInput) *models.Volu
 	}
 }
 
-/*
-	if g.EventType != nil {
-			et := models.EventType(*g.EventType)
-			eventType = &et
-		}
-*/
 func toModelFeedbackFilterInput(g *generated.FeedbackFilterInput) *models.FeedbackFilterInput {
 	if g == nil {
 		return nil
@@ -399,17 +436,12 @@ func toModelNewEventInput(g generated.NewEventInput) models.NewEventInput {
 
 	eventType := models.EventType(g.EventType)
 
-	serviceTypes := make([]models.ServiceType, len(g.ServiceTypes))
-	for i, st := range g.ServiceTypes {
-		serviceTypes[i] = models.ServiceType(st)
-	}
-
 	return models.NewEventInput{
 		Name:         g.Name,
 		Description:  g.Description,
 		EventType:    eventType,
 		VenueId:      g.VenueID,
-		ServiceTypes: serviceTypes,
+		ServiceTypes: g.ServiceTypes,
 		EventDates:   toModelNewEventDates(g.EventDates),
 	}
 }
@@ -455,8 +487,7 @@ func toModelNewOpportunity(g generated.NewOpportunityInput) models.NewOpportunit
 
 	return models.NewOpportunityInput{
 		EventId:              g.EventID,
-		Job:                  models.Job(g.Job),
-		OtherJobDescription:  g.OtherJobDescription,
+		JobId:                g.JobID,
 		IsVirtual:            g.IsVirtual,
 		PreEventInstructions: g.PreEventInstructions,
 		Shifts:               toModelNewShifts(g.Shifts),
@@ -506,6 +537,7 @@ func toModelUpdateVolunteerInput(g generated.UpdateVolunteerInput) models.Update
 		Email:     g.Email,
 		Phone:     g.Phone,
 		ZipCode:   g.ZipCode,
+		Role:      models.Role(g.Role),
 	}
 }
 
@@ -531,18 +563,13 @@ func toModelUpdateRegionInput(g generated.UpdateRegionInput) models.UpdateRegion
 
 func toModelUpdateEventInput(g generated.UpdateEventInput) models.UpdateEventInput {
 
-	serviceTypes := make([]models.ServiceType, len(g.ServiceTypes))
-	for i, st := range g.ServiceTypes {
-		serviceTypes[i] = models.ServiceType(st)
-	}
-
 	return models.UpdateEventInput{
 		ID:           g.ID,
 		Name:         g.Name,
 		Description:  g.Description,
 		EventType:    models.EventType(g.EventType),
 		VenueId:      g.VenueID,
-		ServiceTypes: serviceTypes,
+		ServiceTypes: g.ServiceTypes,
 	}
 }
 
@@ -558,8 +585,7 @@ func toModelUpdateEventDateInput(g generated.UpdateEventDateInput) models.Update
 func toModelUpdateOpportunity(g generated.UpdateOpportunityInput) models.UpdateOpportunityInput {
 	return models.UpdateOpportunityInput{
 		ID:                   g.ID,
-		Job:                  (models.Job)(g.Job),
-		OtherJobDescription:  g.OtherJobDescription,
+		JobId:                g.JobID,
 		IsVirtual:            g.IsVirtual,
 		PreEventInstructions: g.PreEventInstructions,
 	}
@@ -576,7 +602,7 @@ func toModelUpdateShift(g generated.UpdateShiftInput) models.UpdateShiftInput {
 	}
 }
 
-func toModelQuestionFreedbackInput(g generated.QuestionFeedbackInput) models.QuestionFeedbackInput {
+func toModelQuestionFeedbackInput(g generated.QuestionFeedbackInput) models.QuestionFeedbackInput {
 	return models.QuestionFeedbackInput{
 		ID:        g.ID,
 		EmailText: g.EmailText,
