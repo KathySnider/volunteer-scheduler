@@ -85,39 +85,6 @@ func (s *VenueService) FetchVenues(ctx context.Context) ([]*models.Venue, error)
 	return venues, nil
 }
 
-func (s *VenueService) FetchActiveRegions(ctx context.Context) ([]*models.Region, error) {
-	query := `
-        SELECT 
-			region_id,
-            code,
-            name
-        FROM regions
-		WHERE is_active = true
-    `
-	rows, err := s.DB.QueryContext(ctx, query)
-	if err != nil {
-		return nil, fmt.Errorf("error querying regions: %w", err)
-	}
-	defer rows.Close()
-
-	var regions []*models.Region
-	for rows.Next() {
-		var region models.Region
-		err := rows.Scan(
-			&region.ID,
-			&region.Code,
-			&region.Name,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("error scanning region: %w", err)
-		}
-
-		regions = append(regions, &region)
-	}
-
-	return regions, nil
-}
-
 // Create.
 
 func (s *VenueService) CreateVenue(ctx context.Context, newVenue models.NewVenueInput) (*models.MutationResult, error) {

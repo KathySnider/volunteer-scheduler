@@ -3,8 +3,10 @@
 
 
 type Query {
+  lookupValues: LookupValues!
   volunteerProfile: VolunteerProfile!
   filteredEvents(filter: EventFilterInput): [Event!]! 
+  eventById(eventId: ID!): Event!
   shiftsForEvent(eventId: ID!): [ShiftView!]!  
   ownShifts(filter: ShiftTimeFilter!): [VolunteerShift!]! 
 }
@@ -18,8 +20,7 @@ type Mutation {
 
 type ShiftView {
   id: ID!
-  job: Job!
-  otherJobDescription: String
+  jobName: String!
   startDateTime: String!
   endDateTime: String!
   isVirtual: Boolean!

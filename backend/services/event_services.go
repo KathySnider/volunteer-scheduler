@@ -13,10 +13,9 @@ import (
 // services/event_service.go
 
 type EventService struct {
-	DB               *sql.DB
-	Mailer           *Mailer
-	ShiftService     *ShiftService
-	serviceTypeCache map[string]int
+	DB           *sql.DB
+	Mailer       *Mailer
+	ShiftService *ShiftService
 }
 
 func NewEventService(db *sql.DB, mailer *Mailer, shiftService *ShiftService) (*EventService, error) {
@@ -26,36 +25,74 @@ func NewEventService(db *sql.DB, mailer *Mailer, shiftService *ShiftService) (*E
 		ShiftService: shiftService,
 	}
 
-	// Load cache on initialization
-	if err := s.loadServiceTypeCache(); err != nil {
-		return nil, err
-	}
-
 	return s, nil
 }
 
-// We only need to get the service categories at the start, or
-// if they change (unlikely).
-func (s *EventService) loadServiceTypeCache() error {
-	s.serviceTypeCache = make(map[string]int)
-	rows, err := s.DB.Query("SELECT service_type_id, code FROM service_types")
+// Queries.
+// FetchLookups
+// Retrieve regions, service types, job types,... anything
+// that uses a lookup table.
+func (s *EventService) FetchLookups(ctx context.Context) (*models.LookupValues, error) {
+
+	var lookup models.LookupValues
+
+	// Get regions.
+	lookup.Regions = make([]*models.Region, 0)
+	rows, err := s.DB.QueryContext(ctx, "Select region_id, code, name, is_active from regions")
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("error querying regions: %w", err)
 	}
-	defer rows.Close()
 
 	for rows.Next() {
-		var id int
-		var code string
-		if err := rows.Scan(&id, &code); err != nil {
-			return err
-		}
-		s.serviceTypeCache[code] = id
-	}
-	return nil
-}
+		var r models.Region
 
-// Queries.
+		err = rows.Scan(&r.ID, &r.Code, &r.Name, &r.IsActive)
+		if err != nil {
+			rows.Close()
+			return nil, fmt.Errorf("error scanning regions: %w", err)
+		}
+		lookup.Regions = append(lookup.Regions, &r)
+	}
+	rows.Close()
+
+	// Get ServiceTypes.
+	lookup.ServiceTypes = make([]*models.ServiceType, 0)
+	rows, err = s.DB.QueryContext(ctx, "Select service_type_id, code, name from service_types")
+	if err != nil {
+		return nil, fmt.Errorf("error querying service types: %w", err)
+	}
+	for rows.Next() {
+		var st models.ServiceType
+
+		err = rows.Scan(&st.ID, &st.Code, &st.Name)
+		if err != nil {
+			rows.Close()
+			return nil, fmt.Errorf("error scanning service types: %w", err)
+		}
+		lookup.ServiceTypes = append(lookup.ServiceTypes, &st)
+	}
+	rows.Close()
+
+	// Get JobTypes.
+	lookup.JobTypes = make([]*models.JobType, 0)
+	rows, err = s.DB.QueryContext(ctx, "Select job_type_id, code, name, is_active from job_types")
+	if err != nil {
+		return nil, fmt.Errorf("error querying job types: %w", err)
+	}
+	for rows.Next() {
+		var jt models.JobType
+
+		err = rows.Scan(&jt.ID, &jt.Code, &jt.Name, &jt.IsActive)
+		if err != nil {
+			rows.Close()
+			return nil, fmt.Errorf("error scanning job types: %w", err)
+		}
+		lookup.JobTypes = append(lookup.JobTypes, &jt)
+	}
+	rows.Close()
+
+	return &lookup, nil
+}
 
 // FetchFilteredEvents
 // Retrieve events based on filter criteria.
@@ -103,6 +140,100 @@ func (s *EventService) FetchFilteredEvents(ctx context.Context, filter *models.E
 		events = append(events, event)
 	}
 	return events, nil
+}
+
+func (s *EventService) FetchEventById(ctx context.Context, eventId string) (*models.Event, error) {
+	eventInt, err := strconv.Atoi(eventId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid event id: %w", err)
+	}
+
+	query := `
+        SELECT 
+            e.event_name,
+            e.description,
+            e.event_is_virtual,
+            e.venue_id,
+            v.venue_name,
+            v.street_address,
+            v.city,
+            v.state,
+            v.zip_code,
+			v.timezone,
+			vr.region_id
+        FROM events e
+        LEFT JOIN venues v ON e.venue_id = v.venue_id
+		LEFT JOIN venue_regions vr ON v.venue_id = vr.venue_id
+		WHERE e.event_id = $1
+    `
+
+	row := s.DB.QueryRowContext(ctx, query, eventInt)
+
+	var e models.Event
+	e.ID = eventId
+
+	var isVirtual bool
+	var venueInt sql.NullInt64
+	var eventDesc, venueName, streetAddress, city, state, zip, timezone sql.NullString
+	var regionInt sql.NullInt32
+
+	err = row.Scan(
+		&e.Name,
+		&eventDesc,
+		&isVirtual,
+		&venueInt,
+		&venueName,
+		&streetAddress,
+		&city,
+		&state,
+		&zip,
+		&timezone,
+		&regionInt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error scanning event: %w", err)
+	}
+
+	if eventDesc.Valid {
+		e.Description = &eventDesc.String
+	}
+	e.EventType = GetEventType(isVirtual, venueInt.Valid)
+
+	if venueInt.Valid {
+		// Since venueInt is valid, most of the strings are valid, because
+		// the fields are NOT NULL in the DB. The exceptions are venue name
+		// and zip code; since we use pointers in those cases, we're fine.
+		var venue models.Venue
+		venue.ID = strconv.Itoa(int(venueInt.Int64))
+		venue.Name = &venueName.String
+		venue.Address = streetAddress.String
+		venue.City = city.String
+		venue.State = state.String
+		venue.ZipCode = &zip.String
+		venue.Timezone = timezone.String
+		e.Venue = &venue
+	} else {
+		e.Venue = nil
+	}
+
+	stPtrs, err := FetchEventServiceTypes(ctx, s.DB, eventInt)
+	if err != nil {
+		return nil, fmt.Errorf("error getting event's service types: %w", err)
+	}
+	// Convert the pointers to the actual strings.
+	e.ServiceTypes = make([]string, len(stPtrs))
+	for i := 0; i < len(stPtrs); i++ {
+		e.ServiceTypes[i] = *stPtrs[i]
+	}
+
+	dates, err := FetchEventDates(ctx, s.DB, eventInt)
+	if err != nil {
+		return nil, fmt.Errorf("error getting event's dates: %w", err)
+	}
+	e.EventDates = dates
+
+	// All good.
+	return &e, nil
 }
 
 // Mutations: create.
@@ -218,18 +349,13 @@ func (s *EventService) CreateEvent(ctx context.Context, newEvent models.NewEvent
 	}, nil
 }
 
-func (s *EventService) AddServiceTypesToEvent(ctx context.Context, tx *sql.Tx, eventId int, serviceTypes []models.ServiceType) error {
+func (s *EventService) AddServiceTypesToEvent(ctx context.Context, tx *sql.Tx, eventId int, serviceTypes []int) error {
 
 	query := `
 		INSERT INTO event_service_types (event_id, service_type_id)
 		VALUES ($1, $2)
 		`
-	for _, serviceType := range serviceTypes {
-		serviceTypeId, ok := s.serviceTypeCache[string(serviceType)]
-		if !ok {
-			return fmt.Errorf("unknown service type: %s", serviceType)
-		}
-
+	for _, serviceTypeId := range serviceTypes {
 		_, err := tx.ExecContext(ctx, query, eventId, serviceTypeId)
 
 		if err != nil {

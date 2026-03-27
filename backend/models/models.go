@@ -2,6 +2,12 @@ package models
 
 // Output types
 
+type LookupValues struct {
+	Regions      []*Region
+	ServiceTypes []*ServiceType
+	JobTypes     []*JobType
+}
+
 // Volunteers
 
 // Any user can see own profile (sans ID).
@@ -21,8 +27,7 @@ type VolunteerShift struct {
 	StartDateTime        string
 	EndDateTime          string
 	MaxVolunteers        *int
-	Job                  Job
-	OtherJobDescription  *string
+	JobName              string
 	IsVirtual            bool
 	PreEventInstructions *string
 	EventId              string
@@ -64,24 +69,28 @@ type Venue struct {
 
 // Opportunities and Shifts
 
+type JobType struct {
+	ID       int
+	Code     string
+	Name     string
+	IsActive bool
+}
 type Opportunity struct {
 	ID                   string
-	Job                  Job
-	OtherJobDescription  *string
+	JobId                int
 	IsVirtual            bool
 	PreEventInstructions *string
 	Shifts               []*Shift
 }
 
 type ShiftView struct {
-	ID                  string
-	Job                 Job
-	OtherJobDescription *string
-	StartDateTime       string
-	EndDateTime         string
-	IsVirtual           bool
-	MaxVolunteers       *int
-	AssignedVolunteers  int
+	ID                 string
+	JobName            string
+	StartDateTime      string
+	EndDateTime        string
+	IsVirtual          bool
+	MaxVolunteers      *int
+	AssignedVolunteers int
 }
 
 type Shift struct {
@@ -97,13 +106,20 @@ type Shift struct {
 // When showing events to users, get the whole thing all at once
 // (venue, dates, etc.)
 
+type ServiceType struct {
+	ID       int
+	Code     string
+	Name     string
+	IsActive bool
+}
+
 type Event struct {
 	ID           string
 	Name         string
 	Description  *string
 	EventType    EventType
 	Venue        *Venue
-	ServiceTypes []ServiceType
+	ServiceTypes []string
 	EventDates   []*EventDate
 }
 
@@ -146,7 +162,7 @@ type Feedback struct {
 type EventFilterInput struct {
 	Regions        []int
 	EventType      *EventType
-	Jobs           []Job
+	Jobs           []int
 	ShiftStartDate *string
 	ShiftEndDate   *string
 	IanaZone       *string
@@ -193,7 +209,7 @@ type NewEventInput struct {
 	Description  *string
 	EventType    EventType
 	VenueId      *string
-	ServiceTypes []ServiceType
+	ServiceTypes []int
 	EventDates   []*NewEventDateInput
 }
 
@@ -212,8 +228,7 @@ type AddEventDateInput struct {
 
 type NewOpportunityInput struct {
 	EventId              string
-	Job                  Job
-	OtherJobDescription  *string
+	JobId                int
 	IsVirtual            bool
 	PreEventInstructions *string
 	Shifts               []*NewShiftInput
@@ -284,7 +299,7 @@ type UpdateEventInput struct {
 	Description  *string
 	EventType    EventType
 	VenueId      *string
-	ServiceTypes []ServiceType
+	ServiceTypes []int
 }
 
 type UpdateEventDateInput struct {
@@ -296,8 +311,7 @@ type UpdateEventDateInput struct {
 
 type UpdateOpportunityInput struct {
 	ID                   string
-	Job                  Job
-	OtherJobDescription  *string
+	JobId                int
 	IsVirtual            bool
 	PreEventInstructions *string
 }
@@ -345,27 +359,6 @@ const (
 	EventTypeVirtual  EventType = "VIRTUAL"
 	EventTypeInPerson EventType = "IN_PERSON"
 	EventTypeHybrid   EventType = "HYBRID"
-)
-
-type ServiceType string
-
-const (
-	ServiceTypeOutreach       ServiceType = "OUTREACH"
-	ServiceTypeAdvocacy       ServiceType = "ADVOCACY"
-	ServiceTypeSpeakersBureau ServiceType = "SPEAKERS_BUREAU"
-	ServiceTypeOfficeSupport  ServiceType = "OFFICE_SUPPORT"
-	ServiceTypeOther          ServiceType = "OTHER"
-)
-
-type Job string
-
-const (
-	JobEventSupport  Job = "EVENT_SUPPORT"
-	JobAdvocacy      Job = "ADVOCACY"
-	JobSpeaker       Job = "SPEAKER"
-	JobVolunteerLead Job = "VOLUNTEER_LEAD"
-	JobAttendeeOnly  Job = "ATTENDEE_ONLY"
-	JobOther         Job = "OTHER"
 )
 
 type ShiftsTimeFilter string

@@ -13,16 +13,6 @@ enum EventType {
   HYBRID
 }
 
-# ServiceType describes the category(s) of service
-# into which this event falls.
-enum ServiceType {
-  OUTREACH
-  ADVOCACY
-  SPEAKERS_BUREAU
-  OFFICE_SUPPORT
-  OTHER
-}
-
 enum FeedbackType {
     BUG
     ENHANCEMENT
@@ -34,17 +24,6 @@ enum FeedbackStatus {
   QUESTION_SENT
   RESOLVED_GITHUB
   RESOLVED_REJECTED
-}
-
-# Job describes the specific job for which a VolunteerProfile
-# is needed.
-enum Job {
-  EVENT_SUPPORT
-  ADVOCACY
-  SPEAKER
-  VOLUNTEER_LEAD
-  ATTENDEE_ONLY
-  OTHER
 }
 
 enum ShiftTimeFilter {
@@ -61,7 +40,7 @@ enum ShiftTimeFilter {
 input EventFilterInput {
   regions: [Int!]
   eventType: EventType
-  jobs: [Job!]
+  jobs: [Int!]
   shiftStartDateTime: String
   shiftEndDateTime: String
   ianaZone: String
@@ -75,6 +54,33 @@ input NewFeedbackInput {
 }
 
 #-- Output --
+
+type Region {
+  id: Int!
+  code: String!
+  name: String!
+  isActive: Boolean!
+}
+
+type ServiceType{
+  id: Int!
+  code: String!
+  name: String!
+  isActive: Boolean!
+}
+  
+type JobType{
+  id: Int!
+  code: String!
+  name: String!
+  isActive: Boolean!
+}
+  
+type LookupValues{
+  regions: [Region!]!
+  serviceTypes: [ServiceType!]!
+  jobTypes: [JobType!]!
+}
 
 type VolunteerProfile {
   firstName: String!
@@ -92,21 +98,13 @@ type VolunteerShift {
   startDateTime: String!
   endDateTime: String!
   maxVolunteers: Int
-  job: Job!
-  otherJobDescription: String
+  jobName: String!
   isVirtual: Boolean!
   preEventInstructions: String
   eventId: ID!
   eventName: String!
   eventDescription: String
   venue: Venue
-}
-
-type Region {
-  id: Int!
-  code: String!
-  name: String!
-  is_active: Boolean!
 }
 
 type Venue {
@@ -126,7 +124,7 @@ type Event {
   description: String
   eventType: EventType!
   venue: Venue
-  serviceTypes: [ServiceType!]
+  serviceTypes: [String!]
   eventDates: [EventDate!]!  
 }
 

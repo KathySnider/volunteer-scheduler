@@ -73,6 +73,16 @@ func (r *mutationResolver) GiveFeedback(ctx context.Context, feedback generated.
 	return toGenMutationResult(result), nil
 }
 
+// LookupValues is the resolver for the lookupValues field.
+func (r *queryResolver) LookupValues(ctx context.Context) (*generated.LookupValues, error) {
+	lookup, err := r.EventService.FetchLookups(ctx)
+	if err != nil {
+		return nil, err
+	}
+	genLookup := toGenLookupValues(*lookup)
+	return &genLookup, nil
+}
+
 // VolunteerProfile is the resolver for the volunteerProfile field.
 func (r *queryResolver) VolunteerProfile(ctx context.Context) (*generated.VolunteerProfile, error) {
 	volId, ok := middleware.VolunteerIdFromContext(ctx)
@@ -94,6 +104,15 @@ func (r *queryResolver) FilteredEvents(ctx context.Context, filter *generated.Ev
 		return nil, fmt.Errorf("error calling FetchFilteredEvents: %w", err)
 	}
 	return toGenEvents(events), nil
+}
+
+// EventByID is the resolver for the eventById field.
+func (r *queryResolver) EventByID(ctx context.Context, eventID string) (*generated.Event, error) {
+	event, err := r.EventService.FetchEventById(ctx, eventID)
+	if err != nil {
+		return nil, fmt.Errorf("error calling FetchEventById: %w", err)
+	}
+	return toGenEvent(event), nil
 }
 
 // ShiftsForEvent is the resolver for the shiftsForEvent field.

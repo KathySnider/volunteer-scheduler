@@ -24,8 +24,68 @@ func toGenMutationResult(m *models.MutationResult) *generated.MutationResult {
 	}
 }
 
-func toGenRegion(m models.Region) generated.Region {
-	return generated.Region{
+func toGenLookupValues(m models.LookupValues) generated.LookupValues {
+	return generated.LookupValues{
+		Regions:      toGenRegions(m.Regions),
+		ServiceTypes: toGenServiceTypes(m.ServiceTypes),
+		JobTypes:     toGenJobTypes(m.JobTypes),
+	}
+}
+
+func toGenRegions(ms []*models.Region) []*generated.Region {
+	result := make([]*generated.Region, len(ms))
+	for i, m := range ms {
+		result[i] = toGenRegion(m)
+	}
+	return result
+}
+
+func toGenServiceTypes(ms []*models.ServiceType) []*generated.ServiceType {
+	result := make([]*generated.ServiceType, len(ms))
+	for i, m := range ms {
+		result[i] = toGenServiceType(m)
+	}
+	return result
+}
+
+func toGenJobTypes(ms []*models.JobType) []*generated.JobType {
+	result := make([]*generated.JobType, len(ms))
+	for i, m := range ms {
+		result[i] = toGenJobType(m)
+	}
+	return result
+}
+
+func toGenRegion(m *models.Region) *generated.Region {
+	if m == nil {
+		return nil
+	}
+	return &generated.Region{
+		ID:       m.ID,
+		Code:     m.Code,
+		Name:     m.Name,
+		IsActive: m.IsActive,
+	}
+}
+
+func toGenServiceType(m *models.ServiceType) *generated.ServiceType {
+	if m == nil {
+		return nil
+	}
+	return &generated.ServiceType{
+		ID:       m.ID,
+		Code:     m.Code,
+		Name:     m.Name,
+		IsActive: m.IsActive,
+	}
+}
+
+func toGenJobType(m *models.JobType) *generated.JobType {
+	if m == nil {
+		return nil
+	}
+
+	return &generated.JobType{
 		ID:       m.ID,
 		Code:     m.Code,
 		Name:     m.Name,
@@ -83,8 +143,7 @@ func toGenVolunteerShift(m *models.VolunteerShift) *generated.VolunteerShift {
 		StartDateTime:        m.StartDateTime,
 		EndDateTime:          m.EndDateTime,
 		MaxVolunteers:        m.MaxVolunteers,
-		Job:                  generated.Job(m.Job),
-		OtherJobDescription:  m.OtherJobDescription,
+		JobName:              m.JobName,
 		IsVirtual:            m.IsVirtual,
 		PreEventInstructions: m.PreEventInstructions,
 		EventID:              m.EventId,
@@ -107,11 +166,6 @@ func toGenEvent(m *models.Event) *generated.Event {
 		return nil
 	}
 
-	serviceTypes := make([]generated.ServiceType, len(m.ServiceTypes))
-	for i, st := range m.ServiceTypes {
-		serviceTypes[i] = generated.ServiceType(st)
-	}
-
 	return &generated.Event{
 		ID:           m.ID,
 		Name:         m.Name,
@@ -119,7 +173,7 @@ func toGenEvent(m *models.Event) *generated.Event {
 		EventType:    generated.EventType(m.EventType),
 		Venue:        toGenVenue(m.Venue),
 		EventDates:   toGenEventDates(m.EventDates),
-		ServiceTypes: serviceTypes,
+		ServiceTypes: m.ServiceTypes,
 	}
 }
 
@@ -156,14 +210,10 @@ func toModelEventFilterInput(g *generated.EventFilterInput) *models.EventFilterI
 		et := models.EventType(*g.EventType)
 		eventType = &et
 	}
-	jobs := make([]models.Job, len(g.Jobs))
-	for i, j := range g.Jobs {
-		jobs[i] = models.Job(j)
-	}
 	return &models.EventFilterInput{
 		Regions:        g.Regions,
 		EventType:      eventType,
-		Jobs:           jobs,
+		Jobs:           g.Jobs,
 		ShiftStartDate: g.ShiftStartDateTime,
 		ShiftEndDate:   g.ShiftEndDateTime,
 		IanaZone:       g.IanaZone,
@@ -194,14 +244,13 @@ func toGenShiftView(m *models.ShiftView) *generated.ShiftView {
 		return nil
 	}
 	return &generated.ShiftView{
-		ID:                  m.ID,
-		Job:                 generated.Job(m.Job),
-		OtherJobDescription: m.OtherJobDescription,
-		StartDateTime:       m.StartDateTime,
-		EndDateTime:         m.EndDateTime,
-		IsVirtual:           m.IsVirtual,
-		MaxVolunteers:       m.MaxVolunteers,
-		AssignedVolunteers:  m.AssignedVolunteers,
+		ID:                 m.ID,
+		JobName:            m.JobName,
+		StartDateTime:      m.StartDateTime,
+		EndDateTime:        m.EndDateTime,
+		IsVirtual:          m.IsVirtual,
+		MaxVolunteers:      m.MaxVolunteers,
+		AssignedVolunteers: m.AssignedVolunteers,
 	}
 }
 

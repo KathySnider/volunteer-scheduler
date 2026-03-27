@@ -195,7 +195,7 @@ func (r *mutationResolver) QuestionFeedback(ctx context.Context, question genera
 		return nil, fmt.Errorf("unauthorized")
 	}
 
-	result, err := r.FeedbackService.QuestionFeedback(ctx, volId, toModelQuestionFreedbackInput(question))
+	result, err := r.FeedbackService.QuestionFeedback(ctx, volId, toModelQuestionFeedbackInput(question))
 	if err != nil {
 		return nil, err
 	}
@@ -291,6 +291,16 @@ func (r *mutationResolver) ResolveFeedback(ctx context.Context, resolution gener
 	return toGenMutationResult(result), nil
 }
 
+// LookupValues is the resolver for the lookupValues field.
+func (r *queryResolver) LookupValues(ctx context.Context) (*generated.LookupValues, error) {
+	lookup, err := r.EventService.FetchLookups(ctx)
+	if err != nil {
+		return nil, err
+	}
+	genLookup := toGenLookupValues(*lookup)
+	return &genLookup, nil
+}
+
 // VolunteerProfile is the resolver for the volunteerProfile field.
 func (r *queryResolver) VolunteerProfile(ctx context.Context) (*generated.VolunteerProfile, error) {
 	volId, ok := middleware.VolunteerIdFromContext(ctx)
@@ -314,6 +324,15 @@ func (r *queryResolver) FilteredEvents(ctx context.Context, filter *generated.Ev
 	return toGenEvents(events), nil
 }
 
+// EventByID is the resolver for the eventById field.
+func (r *queryResolver) EventByID(ctx context.Context, eventID string) (*generated.Event, error) {
+	event, err := r.EventService.FetchEventById(ctx, eventID)
+	if err != nil {
+		return nil, fmt.Errorf("error calling FetchEventById: %w", err)
+	}
+	return toGenEvent(event), nil
+}
+
 // Venues is the resolver for the venues field.
 func (r *queryResolver) Venues(ctx context.Context) ([]*generated.Venue, error) {
 	venues, err := r.VenueService.FetchVenues(ctx)
@@ -321,15 +340,6 @@ func (r *queryResolver) Venues(ctx context.Context) ([]*generated.Venue, error) 
 		return nil, err
 	}
 	return toGenVenues(venues), nil
-}
-
-// ActiveRegions is the resolver for the activeRegions field.
-func (r *queryResolver) ActiveRegions(ctx context.Context) ([]*generated.Region, error) {
-	regions, err := r.VenueService.FetchActiveRegions(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return toGenRegions(regions), nil
 }
 
 // AllVolunteers is the resolver for the allVolunteers field.

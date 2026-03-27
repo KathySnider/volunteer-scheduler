@@ -22,6 +22,39 @@ func NewShiftService(db *sql.DB, mailer *Mailer) *ShiftService {
 
 // Queries.
 
+func (s *ShiftService) FetchActiveJobs(ctx context.Context) ([]*models.JobType, error) {
+	query := `
+        SELECT 
+			job_type_id,
+            code,
+            name
+        FROM job_types
+		WHERE is_active = true
+    `
+	rows, err := s.DB.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("error querying jobs: %w", err)
+	}
+	defer rows.Close()
+
+	var jobs []*models.JobType
+	for rows.Next() {
+		var job models.JobType
+		err := rows.Scan(
+			&job.ID,
+			&job.Code,
+			&job.Name,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning job types: %w", err)
+		}
+
+		jobs = append(jobs, &job)
+	}
+
+	return jobs, nil
+}
+
 // FetchOpportunitiesForEvent
 // Fetch opportunities associated with the event.
 func (s *ShiftService) FetchOpportunitiesForEvent(ctx context.Context, eventId string) ([]*models.Opportunity, error) {
@@ -34,8 +67,7 @@ func (s *ShiftService) FetchOpportunitiesForEvent(ctx context.Context, eventId s
 	query := `
 		SELECT 
 		  opportunity_id, 
-		  job, 
-		  other_job_description,
+		  job_type_id, 
 		  opportunity_is_virtual,
 		  pre_event_instructions
 		FROM opportunities
@@ -52,12 +84,11 @@ func (s *ShiftService) FetchOpportunitiesForEvent(ctx context.Context, eventId s
 	for rows.Next() {
 		var opp models.Opportunity
 		var oppInt int
-		var jobDesc, instruct sql.NullString
+		var instruct sql.NullString
 
 		err := rows.Scan(
 			&oppInt,
-			&opp.Job,
-			&jobDesc,
+			&opp.JobId,
 			&opp.IsVirtual,
 			&instruct)
 		if err != nil {
@@ -65,7 +96,6 @@ func (s *ShiftService) FetchOpportunitiesForEvent(ctx context.Context, eventId s
 		}
 
 		opp.ID = strconv.Itoa(oppInt)
-		opp.OtherJobDescription = &jobDesc.String
 		opp.PreEventInstructions = &instruct.String
 
 		// Fetch shifts for this opportunity
@@ -140,11 +170,11 @@ func (s *ShiftService) FetchShiftsForOpportunity(ctx context.Context, oppId stri
 }
 
 // This function gets the shifts in the "flattened" view for the
-// volunteers. Each shift includes the job (and job description),
-// even though those fields are really part of the opportunity
-// that includes these shifts.
-// Including them in each shift view makes it easier for a
-// volunteer to understand what they are signing up for.
+// volunteers. Each shift includes the job name, even though the
+// job is really part of the opportunity that includes these
+// shifts.
+// Including the name in each shift view makes it easier for
+// volunteers to understand what they are signing up for.
 func (s *ShiftService) FetchShiftViewsForEvent(ctx context.Context, eventId string) ([]*models.ShiftView, error) {
 
 	eventInt, err := strconv.Atoi(eventId)
@@ -156,14 +186,14 @@ func (s *ShiftService) FetchShiftViewsForEvent(ctx context.Context, eventId stri
 		SELECT 
 		o.opportunity_id,
 		s.shift_id, 
-		o.job,
-		o.other_job_description,
+		jt.name,
 		s.shift_start, 
 		s.shift_end, 
 		s.max_volunteers,
 		o.opportunity_is_virtual
 	FROM shifts s
-	JOIN opportunities o ON s.opportunity_id = o.opportunity_id
+	LEFT JOIN opportunities o ON s.opportunity_id = o.opportunity_id
+	LEFT JOIN job_types jt ON jt.job_type_id = o.job_type_id
 	WHERE o.event_id = $1
 	ORDER by o.opportunity_id, s.shift_id
 	`
@@ -178,14 +208,12 @@ func (s *ShiftService) FetchShiftViewsForEvent(ctx context.Context, eventId stri
 	for rows.Next() {
 		var shift models.ShiftView
 		var shiftInt, oppInt int
-		var jobDesc sql.NullString
 		var maxVols sql.NullInt64
 
 		err := rows.Scan(
 			&oppInt,
 			&shiftInt,
-			&shift.Job,
-			&jobDesc,
+			&shift.JobName,
 			&shift.StartDateTime,
 			&shift.EndDateTime,
 			&maxVols,
@@ -195,7 +223,6 @@ func (s *ShiftService) FetchShiftViewsForEvent(ctx context.Context, eventId stri
 		}
 
 		shift.ID = strconv.Itoa(shiftInt)
-		shift.OtherJobDescription = &jobDesc.String
 		if maxVols.Valid {
 			maxInt := int(maxVols.Int64)
 			shift.MaxVolunteers = &maxInt
@@ -252,14 +279,13 @@ func (s *ShiftService) CreateOpportunity(ctx context.Context, opp models.NewOppo
 	query := `
 		INSERT INTO opportunities (
 			event_id, 
-			job, 
-			other_job_description, 
+			job_type_id, 
 			opportunity_is_virtual, 
 			pre_event_instructions)
-		VALUES ($1, $2, $3, $4, $5)
+		VALUES ($1, $2, $3, $4)
 		RETURNING opportunity_id
 	`
-	err = tx.QueryRowContext(ctx, query, opp.EventId, opp.Job, opp.OtherJobDescription, opp.IsVirtual, opp.PreEventInstructions).Scan(&oppInt)
+	err = tx.QueryRowContext(ctx, query, opp.EventId, opp.JobId, opp.IsVirtual, opp.PreEventInstructions).Scan(&oppInt)
 
 	if err == nil {
 		// Opportunity was created. Add shifts.
@@ -368,13 +394,12 @@ func (s *ShiftService) UpdateOpportunity(ctx context.Context, opp models.UpdateO
 	update := `
 		UPDATE opportunities 
 		SET 
-			job = $1,
-			other_job_description = $2, 
-			opportunity_is_virtual = $3, 
-			pre_event_instructions = $4
-		WHERE opportunity_id = $5
+			job_type_id = $1,
+			opportunity_is_virtual = $2, 
+			pre_event_instructions = $3
+		WHERE opportunity_id = $4
 	`
-	_, err = s.DB.ExecContext(ctx, update, opp.Job, opp.OtherJobDescription, opp.IsVirtual, opp.PreEventInstructions, oppInt)
+	_, err = s.DB.ExecContext(ctx, update, opp.JobId, opp.IsVirtual, opp.PreEventInstructions, oppInt)
 	if err != nil {
 		return &models.MutationResult{
 			Success: false,

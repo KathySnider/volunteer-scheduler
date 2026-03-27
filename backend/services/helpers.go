@@ -87,8 +87,7 @@ func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter mod
 			s.shift_start,
 			s.shift_end,
 			s.max_volunteers,
-			opp.job,
-			opp.other_job_description,
+			jt.name,
 			opp.opportunity_is_virtual,
 			opp.pre_event_instructions,
             e.event_id,
@@ -104,6 +103,7 @@ func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter mod
     	FROM volunteer_shifts sv
 		LEFT JOIN shifts s ON s.shift_id = sv.shift_id
 		LEFT JOIN opportunities opp ON opp.opportunity_id = s.opportunity_id
+		LEFT JOIN job_types jt ON jt.job_type_id = opp.job_type_id
 		LEFT JOIN events e ON e.event_id = opp.event_id
 		LEFT JOIN venues v ON e.venue_id = v.venue_id
 		LEFT JOIN venue_regions vr on v.venue_id = vr.venue_id
@@ -129,7 +129,7 @@ func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter mod
 	for shiftRows.Next() {
 		var volShift models.VolunteerShift
 		var shiftInt, eventInt int
-		var cancelledAt, otherJobDesc, preEventInst, eventDesc sql.NullString
+		var cancelledAt, preEventInst, eventDesc sql.NullString
 		var venueName, streetAddress, city, state, zip, timezone sql.NullString
 		var regionInt sql.NullInt32
 		var maxVols sql.NullInt64
@@ -141,8 +141,7 @@ func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter mod
 			&volShift.StartDateTime,
 			&volShift.EndDateTime,
 			&maxVols,
-			&volShift.Job,
-			&otherJobDesc,
+			&volShift.JobName,
 			&volShift.IsVirtual,
 			&preEventInst,
 			&eventInt,
@@ -171,11 +170,6 @@ func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter mod
 			volShift.MaxVolunteers = &maxVolInt
 		} else {
 			volShift.MaxVolunteers = nil
-		}
-		if otherJobDesc.Valid {
-			volShift.OtherJobDescription = &otherJobDesc.String
-		} else {
-			volShift.OtherJobDescription = nil
 		}
 		if preEventInst.Valid {
 			volShift.PreEventInstructions = &preEventInst.String
@@ -225,6 +219,72 @@ func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter mod
 	}
 
 	return shifts, nil
+}
+
+func FetchEventServiceTypes(ctx context.Context, DB *sql.DB, eventId int) ([]*string, error) {
+	query := `
+        SELECT 
+			st.name
+		FROM event_service_types est
+		LEFT JOIN service_types st ON st.service_type_id = est.service_type_id
+    	WHERE est.event_id = $1
+    `
+	rows, err := DB.QueryContext(ctx, query, eventId)
+	if err != nil {
+		return nil, fmt.Errorf("error querying service types: %w", err)
+	}
+
+	serviceTypes := make([]*string, 0)
+
+	for rows.Next() {
+		var name string
+
+		err = rows.Scan(&name)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning service types: %w", err)
+		}
+
+		serviceTypes = append(serviceTypes, &name)
+	}
+
+	return serviceTypes, nil
+}
+
+func FetchEventDates(ctx context.Context, DB *sql.DB, eventId int) ([]*models.EventDate, error) {
+	query := `
+        SELECT 
+			event_date_id,
+            start_date_time,
+            end_date_time
+        FROM event_dates
+    	WHERE event_id = $1
+    `
+
+	rows, err := DB.QueryContext(ctx, query, eventId)
+	if err != nil {
+		return nil, fmt.Errorf("error querying dates %w", err)
+	}
+
+	dates := make([]*models.EventDate, 0)
+
+	for rows.Next() {
+		var date models.EventDate
+		date.IanaZone = "UTC"
+
+		err = rows.Scan(
+			&date.ID,
+			&date.StartDateTime,
+			&date.EndDateTime,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning dates: %w", err)
+		}
+
+		dates = append(dates, &date)
+	}
+
+	// Got 'em
+	return dates, nil
 }
 
 // ** Handling datetimes **
@@ -289,6 +349,22 @@ func AddNewEventDates(ctx context.Context, dates []*models.NewEventDateInput, ev
 	return nil
 }
 
+// ** Converting event types **
+func GetEventType(isVirtual bool, hasVenue bool) models.EventType {
+	// Determine if event is virtual, in person, or both.
+
+	if isVirtual && hasVenue {
+		// Either.
+		return "HYBRID"
+	}
+	if isVirtual {
+		// Virtual only event. No venue.
+		return "VIRTUAL"
+	}
+	// Not virtual.
+	return "IN_PERSON"
+}
+
 func AddNewEventDate(ctx context.Context, dates *models.NewEventDateInput, eventId int, tx *sql.Tx) error {
 	var startUTC, endUTC *string
 	startUTC, err := DateTimeToUTC(dates.StartDateTime, dates.IanaZone)
@@ -313,22 +389,6 @@ func AddNewEventDate(ctx context.Context, dates *models.NewEventDateInput, event
 
 	// No errors.
 	return nil
-}
-
-// ** Converting event types **
-func GetEventType(isVirtual bool, hasVenue bool) models.EventType {
-	// Determine if event is virtual, in person, or both.
-
-	if isVirtual && hasVenue {
-		// Either.
-		return "HYBRID"
-	}
-	if isVirtual {
-		// Virtual only event. No venue.
-		return "VIRTUAL"
-	}
-	// Not virtual.
-	return "IN_PERSON"
 }
 
 // ** Handling shift assignments **
@@ -585,7 +645,7 @@ func AddNoteToFeedback(ctx context.Context, DB *sql.DB, feedbackId int, adminId 
 		return fmt.Errorf("error adding feedback note to DB: %w", err)
 	}
 
-	_, err = DB.ExecContext(ctx, "UPDATE feedback SET status last_updated_at = NOW() WHERE feedback_id = $1", feedbackId)
+	_, err = DB.ExecContext(ctx, "UPDATE feedback SET last_updated_at = NOW() WHERE feedback_id = $1", feedbackId)
 	if err != nil {
 		return fmt.Errorf("error updating feedback table: %w", err)
 	}
@@ -618,6 +678,7 @@ func FetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
         LEFT JOIN venues v ON e.venue_id = v.venue_id
 		LEFT JOIN venue_regions vr ON v.venue_id = vr.venue_id
         LEFT JOIN opportunities opp ON e.event_id = opp.event_id
+		LEFT JOIN job_types jt ON jt.job_type_id = opp.job_type_id
 	    LEFT JOIN shifts s_filter ON opp.opportunity_id = s_filter.opportunity_id 
 		LEFT JOIN (
 			SELECT event_id, MIN(start_date_time) as first_date
@@ -657,13 +718,12 @@ func FetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 		// Filter by Jobs.
 		if len(filter.Jobs) > 0 {
 			placeholders := []string{}
-			for _, job := range filter.Jobs {
+			for _, jobId := range filter.Jobs {
 				placeholders = append(placeholders, fmt.Sprintf("$%d", argCount))
-				dbJob := strings.ToLower(string(job))
-				args = append(args, dbJob)
+				args = append(args, jobId)
 				argCount++
 			}
-			query += fmt.Sprintf(" AND opp.job IN (%s)", strings.Join(placeholders, ","))
+			query += fmt.Sprintf(" AND opp.job_type_id IN (%s)", strings.Join(placeholders, ","))
 		}
 
 		// Filter by Dates.
@@ -749,6 +809,21 @@ func FetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 			e.Venue = nil
 		}
 
+		stPtrs, err := FetchEventServiceTypes(ctx, db, eventInt)
+		if err != nil {
+			return nil, fmt.Errorf("error getting event's service types: %w", err)
+		}
+		e.ServiceTypes = make([]string, len(stPtrs))
+		for i := 0; i < len(stPtrs); i++ {
+			e.ServiceTypes[i] = *stPtrs[i]
+		}
+
+		dates, err := FetchEventDates(ctx, db, eventInt)
+		if err != nil {
+			return nil, fmt.Errorf("error getting event's dates: %w", err)
+		}
+		e.EventDates = dates
+
 		// Have we already processed this event?
 		_, exists := eventsMap[eventInt]
 		if exists {
@@ -812,14 +887,13 @@ func FetchFilteredPassTwo(ctx context.Context, filter *models.EventFilterInput, 
 		// Filter by job.
 		if len(filter.Jobs) > 0 {
 			placeholders := []string{}
-			for _, job := range filter.Jobs {
+			for _, jobId := range filter.Jobs {
 				placeholders = append(placeholders, fmt.Sprintf("$%d", argNum))
-				dbJob := strings.ToLower(string(job))
-				shiftArgs = append(shiftArgs, dbJob)
+				shiftArgs = append(shiftArgs, jobId)
 				argNum++
 			}
 
-			shiftsQuery += fmt.Sprintf(" AND opp.job IN (%s)", strings.Join(placeholders, ","))
+			shiftsQuery += fmt.Sprintf(" AND opp.job_type_id IN (%s)", strings.Join(placeholders, ","))
 		}
 	}
 
