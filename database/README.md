@@ -17,118 +17,146 @@ docker-compose up -d
 
 ```mermaid
 erDiagram
-    venues {
-        int venue_id PK
-        varchar venue_name
-        varchar street_address
-        varchar city
-        varchar state
-        varchar zip_code
-        text timezone
-    }
+  venues {
+    serial venue_id PK
+    text venue_name
+    text street_address
+    text city
+    text state
+    varchar zip_code
+    text timezone
+  }
+  regions {
+    serial region_id PK
+    varchar code
+    text name
+    boolean is_active
+  }
+  venue_regions {
+    int venue_id FK
+    int region_id FK
+  }
+  volunteers {
+    serial volunteer_id PK
+    text first_name
+    text last_name
+    text email
+    varchar phone
+    varchar zip_code
+    volunteer_role role
+    boolean is_active
+    timestamp created_at
+    timestamp last_login_at
+  }
+  staff {
+    serial staff_id PK
+    text first_name
+    text last_name
+    text email
+    varchar phone
+    text position
+  }
+  magic_links {
+    serial id PK
+    varchar email
+    varchar token
+    timestamp created_at
+    timestamp expires_at
+    timestamp used_at
+    varchar ip_address
+    text user_agent
+  }
+  sessions {
+    serial id PK
+    varchar email
+    varchar token
+    integer volunteer_id FK
+    volunteer_role role
+    timestamp created_at
+    timestamp expires_at
+    timestamp last_activity_at
+  }
+  events {
+    serial event_id PK
+    text event_name
+    text description
+    boolean event_is_virtual
+    int venue_id FK
+  }
+  event_dates {
+    serial event_date_id PK
+    int event_id FK
+    timestamp start_date_time
+    timestamp end_date_time
+  }
+  service_types {
+    serial service_type_id PK
+    varchar code
+    text name
+  }
+  event_service_types {
+    int event_id FK
+    int service_type_id FK
+  }
+  opportunities {
+    serial opportunity_id PK
+    int event_id FK
+    job_type job
+    text other_job_description
+    boolean opportunity_is_virtual
+    text pre_event_instructions
+  }
+  shifts {
+    serial shift_id PK
+    int opportunity_id FK
+    timestamp shift_start
+    timestamp shift_end
+    int staff_contact_id FK
+    int max_volunteers
+  }
+  volunteer_shifts {
+    int volunteer_id FK
+    int shift_id FK
+    timestamp assigned_at
+    timestamp cancelled_at
+  }
+  feedback {
+    serial feedback_id PK
+    int volunteer_id FK
+    feedback_type feedback_type
+    feedback_status status
+    varchar subject
+    varchar app_page_name
+    text text
+    text github_issue_url
+    timestamp created_at
+    timestamp last_updated_at
+    timestamp resolved_at
+  }
+  feedback_notes {
+    serial note_id PK
+    int feedback_id FK
+    int volunteer_id FK
+    text note
+    timestamp created_at
+  }
 
-    events {
-        int event_id PK
-        varchar event_name
-        text description
-        bool event_is_virtual
-        int venue_id FK
-    }
-
-    event_dates {
-        int event_date_id PK
-        int event_id FK
-        timestamp start_date_time
-        timestamp end_date_time
-    }
-
-    service_types {
-        int service_type_id PK
-        varchar service_type_name
-    }
-
-    event_service_types {
-        int event_id FK
-        int service_type_id FK
-    }
-
-    opportunities {
-        int opportunity_id PK
-        int event_id FK
-        varchar job
-        varchar other_job_description
-        bool opportunity_is_virtual
-        text pre_event_instructions
-    }
-
-    shifts {
-        int shift_id PK
-        int opportunity_id FK
-        timestamp shift_start
-        timestamp shift_end
-        int max_volunteers
-        int staff_contact_id FK
-    }
-
-    volunteers {
-        int volunteer_id PK
-        varchar first_name
-        varchar last_name
-        varchar email
-        varchar phone
-        varchar zip_code
-        timestamp created_at
-        timestamp last_login_at
-    }
-
-    volunteer_shifts {
-        int volunteer_id FK
-        int shift_id FK
-        timestamp assigned_at
-    }
-
-    staff {
-        int staff_id PK
-        varchar first_name
-        varchar last_name
-        varchar email
-    }
-
-    magic_links {
-        int id PK
-        varchar email
-        varchar token
-        timestamp created_at
-        timestamp expires_at
-        timestamp used_at
-        varchar ip_address
-        varchar user_agent
-    }
-
-    sessions {
-        int id PK
-        varchar email
-        varchar token
-        timestamp created_at
-        timestamp expires_at
-        timestamp last_activity_at
-        int volunteer_id FK
-    }
-
-    venues ||--o{ events : "hosts"
-    events ||--o{ event_dates : "has"
-    events ||--o{ event_service_types : "categorized by"
-    service_types ||--o{ event_service_types : "used in"
-    events ||--o{ opportunities : "offers"
-    opportunities ||--o{ shifts : "has"
-    shifts ||--o{ volunteer_shifts : "filled by"
-    volunteers ||--o{ volunteer_shifts : "assigned to"
-    staff ||--o{ shifts : "contacts"
-    volunteers ||--o{ sessions : "authenticated via"
-
+  venues ||--o{ venue_regions : "has"
+  regions ||--o{ venue_regions : "has"
+  venues ||--o{ events : "hosts"
+  volunteers ||--o{ sessions : "has"
+  volunteers ||--o{ volunteer_shifts : "assigned to"
+  volunteers ||--o{ feedback : "submits"
+  volunteers ||--o{ feedback_notes : "writes"
+  staff ||--o{ shifts : "contacts"
+  events ||--o{ event_dates : "has"
+  events ||--o{ event_service_types : "has"
+  service_types ||--o{ event_service_types : "used in"
+  events ||--o{ opportunities : "has"
+  opportunities ||--o{ shifts : "has"
+  shifts ||--o{ volunteer_shifts : "has"
+  feedback ||--o{ feedback_notes : "has"
 ```
-
-
 ### Loading Sample Data
 
 Sample data is not loaded by default. 
