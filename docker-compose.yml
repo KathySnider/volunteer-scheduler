@@ -2,8 +2,18 @@
 # docker-compose.yml
 # Full Stack Volunteer Scheduler
 # ============================================
+#
+# Secret files required (plain text, one value per file):
+#   secret_postgres_pw.txt    — PostgreSQL password
+#   secret_db_url.txt         — DB connection URL ("database_password" is the placeholder)
+#   secret_resend_api_key.txt — Resend API key (required when USE_RESEND=true)
+#
+# Note: postgres_password and secret_db_pw reference the same file.
+# The db service and api service use different secret names by convention.
+# ============================================
 
 services:
+
   # PostgreSQL Database
   db:
     build: ./database
@@ -11,7 +21,7 @@ services:
     environment:
       POSTGRES_DB: volunteer-scheduler
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password    
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
     secrets:
       - postgres_password
     ports:
@@ -32,20 +42,20 @@ services:
     build: ./backend
     container_name: volunteer-api
     environment:
-      DATABASE_PASSWORD_FILE: /run/secrets/secret_db_pw
-      DATABASE_URL_FILE: /run/secrets/secret_db_url
-      PORT: 8080
       MIGRATIONS_PATH: file:///app/migrations
       DB_NAME: volunteer-scheduler
+      APP_ENV: ${APP_ENV:-development}
       APP_URL: ${APP_URL:-http://localhost:3000}
+      MAGIC_LINK_CALLBACK_PATH: ${MAGIC_LINK_CALLBACK_PATH:-/auth/magic-link}
+      SESSION_MAX_AGE: ${SESSION_MAX_AGE:-2592000}
       EMAIL_FROM: ${EMAIL_FROM:-noreply@volunteer-scheduler.local}
       USE_RESEND: ${USE_RESEND:-false}
-      RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_SERVER_HOST: ${EMAIL_SERVER_HOST:-mailhog}
       EMAIL_SERVER_PORT: ${EMAIL_SERVER_PORT:-1025}
     secrets:
       - secret_db_pw
       - secret_db_url
+      - secret_resend_api_key
     ports:
       - "8080:8080"
     depends_on:
@@ -57,7 +67,8 @@ services:
       - volunteer-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/"]
+      # /auth serves the GraphQL playground and reliably returns 200 for GET requests.
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/auth"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -67,7 +78,9 @@ services:
     build: ./frontend
     container_name: volunteer-frontend
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8080/graphql/admin
+      NEXT_PUBLIC_GRAPHQL_AUTH_URL: ${NEXT_PUBLIC_GRAPHQL_AUTH_URL:-http://localhost:8080/graphql/auth}
+      NEXT_PUBLIC_GRAPHQL_VOLUNTEER_URL: ${NEXT_PUBLIC_GRAPHQL_VOLUNTEER_URL:-http://localhost:8080/graphql/volunteer}
+      NEXT_PUBLIC_GRAPHQL_ADMIN_URL: ${NEXT_PUBLIC_GRAPHQL_ADMIN_URL:-http://localhost:8080/graphql/admin}
     ports:
       - "3000:3000"
     depends_on:
@@ -75,7 +88,8 @@ services:
     networks:
       - volunteer-network
     restart: unless-stopped
-# Mailhog for local email testing
+
+  # Mailhog — local email testing only
   mailhog:
     image: mailhog/mailhog
     container_name: volunteer-mailhog
@@ -85,6 +99,7 @@ services:
     networks:
       - volunteer-network
     restart: unless-stopped
+
 networks:
   volunteer-network:
     driver: bridge
@@ -96,7 +111,9 @@ secrets:
     file: ./secret_postgres_pw.txt
   secret_db_url:
     file: ./secret_db_url.txt
-    
+  secret_resend_api_key:
+    file: ./secret_resend_api_key.txt
+
 volumes:
   volunteer-scheduler-data:
     driver: local

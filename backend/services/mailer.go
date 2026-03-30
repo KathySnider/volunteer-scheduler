@@ -388,10 +388,12 @@ type Mailer struct {
 	transport EmailTransport
 	fromEmail string
 	fromName  string
+	apiKey    string
 }
 
 // NewMailer creates a new Mailer instance based on environment configuration
-func NewMailer() (*Mailer, error) {
+func NewMailer(apiKey string) (*Mailer, error) {
+
 	fromEmail := os.Getenv("EMAIL_FROM")
 	if fromEmail == "" {
 		return nil, fmt.Errorf("EMAIL_FROM environment variable is required")
@@ -408,7 +410,7 @@ func NewMailer() (*Mailer, error) {
 	var err error
 
 	if useResend() {
-		transport, err = NewResendTransport()
+		transport, err = NewResendTransport(apiKey)
 		if err != nil {
 			return nil, err
 		}
@@ -433,7 +435,7 @@ func useResend() bool {
 	if os.Getenv("USE_RESEND") == "true" {
 		return true
 	}
-	if os.Getenv("NODE_ENV") == "production" {
+	if os.Getenv("APP_ENV") == "production" {
 		return true
 	}
 	return false
@@ -453,10 +455,9 @@ type ResendTransport struct {
 }
 
 // NewResendTransport creates a new Resend transport
-func NewResendTransport() (*ResendTransport, error) {
-	apiKey := os.Getenv("RESEND_API_KEY")
+func NewResendTransport(apiKey string) (*ResendTransport, error) {
 	if apiKey == "" {
-		return nil, fmt.Errorf("RESEND_API_KEY environment variable is required for Resend transport")
+		return nil, fmt.Errorf("RESEND_API_KEY is required for Resend transport")
 	}
 	return &ResendTransport{apiKey: apiKey}, nil
 }

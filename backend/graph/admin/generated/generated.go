@@ -84,10 +84,11 @@ type ComplexityRoot struct {
 	}
 
 	JobType struct {
-		Code     func(childComplexity int) int
-		ID       func(childComplexity int) int
-		IsActive func(childComplexity int) int
-		Name     func(childComplexity int) int
+		Code      func(childComplexity int) int
+		ID        func(childComplexity int) int
+		IsActive  func(childComplexity int) int
+		Name      func(childComplexity int) int
+		SortOrder func(childComplexity int) int
 	}
 
 	LookupValues struct {
@@ -102,16 +103,20 @@ type ComplexityRoot struct {
 		CancelShift            func(childComplexity int, shiftID string, volunteerID string) int
 		CreateEvent            func(childComplexity int, newEvent NewEventInput) int
 		CreateEventDate        func(childComplexity int, newDate AddEventDateInput) int
+		CreateJobType          func(childComplexity int, newJob NewJobInput) int
 		CreateOpportunity      func(childComplexity int, newOpp NewOpportunityInput) int
 		CreateRegion           func(childComplexity int, newRegion NewRegionInput) int
 		CreateShift            func(childComplexity int, newShift AddShiftInput) int
+		CreateStaff            func(childComplexity int, newStaff NewStaffInput) int
 		CreateVenue            func(childComplexity int, newVenue NewVenueInput) int
 		CreateVolunteer        func(childComplexity int, newVol NewVolunteerInput) int
 		DeleteEvent            func(childComplexity int, eventID string) int
 		DeleteEventDate        func(childComplexity int, eventDateID string) int
+		DeleteJob              func(childComplexity int, jobID int) int
 		DeleteOpportunity      func(childComplexity int, oppID string) int
 		DeleteRegion           func(childComplexity int, regionID int) int
 		DeleteShift            func(childComplexity int, shiftID string) int
+		DeleteStaff            func(childComplexity int, staffID string) int
 		DeleteVenue            func(childComplexity int, venueID string) int
 		DeleteVolunteer        func(childComplexity int, volunteerID string) int
 		GiveFeedback           func(childComplexity int, feedback NewFeedbackInput) int
@@ -121,9 +126,11 @@ type ComplexityRoot struct {
 		UpdateEvent            func(childComplexity int, event UpdateEventInput) int
 		UpdateEventDate        func(childComplexity int, date UpdateEventDateInput) int
 		UpdateFeedback         func(childComplexity int, feedback UpdateFeedbackInput) int
+		UpdateJob              func(childComplexity int, job UpdateJobInput) int
 		UpdateOpportunity      func(childComplexity int, opp UpdateOpportunityInput) int
 		UpdateRegion           func(childComplexity int, region UpdateRegionInput) int
 		UpdateShift            func(childComplexity int, shift UpdateShiftInput) int
+		UpdateStaff            func(childComplexity int, staff UpdateStaffInput) int
 		UpdateVenue            func(childComplexity int, venue UpdateVenueInput) int
 		UpdateVolunteer        func(childComplexity int, profile UpdateVolunteerInput) int
 	}
@@ -150,6 +157,7 @@ type ComplexityRoot struct {
 		FilteredEvents        func(childComplexity int, filter *EventFilterInput) int
 		LookupValues          func(childComplexity int) int
 		OpportunitiesForEvent func(childComplexity int, eventID string) int
+		Staff                 func(childComplexity int) int
 		Venues                func(childComplexity int) int
 		VolunteerByID         func(childComplexity int, volunteerID string) int
 		VolunteerProfile      func(childComplexity int) int
@@ -176,6 +184,15 @@ type ComplexityRoot struct {
 		MaxVolunteers  func(childComplexity int) int
 		StaffContactID func(childComplexity int) int
 		StartDateTime  func(childComplexity int) int
+	}
+
+	Staff struct {
+		Email     func(childComplexity int) int
+		FirstName func(childComplexity int) int
+		ID        func(childComplexity int) int
+		LastName  func(childComplexity int) int
+		Phone     func(childComplexity int) int
+		Position  func(childComplexity int) int
 	}
 
 	Venue struct {
@@ -231,9 +248,11 @@ type MutationResolver interface {
 	CreateVenue(ctx context.Context, newVenue NewVenueInput) (*MutationResult, error)
 	CreateRegion(ctx context.Context, newRegion NewRegionInput) (*MutationResult, error)
 	CreateEvent(ctx context.Context, newEvent NewEventInput) (*MutationResult, error)
+	CreateJobType(ctx context.Context, newJob NewJobInput) (*MutationResult, error)
 	CreateOpportunity(ctx context.Context, newOpp NewOpportunityInput) (*MutationResult, error)
 	CreateShift(ctx context.Context, newShift AddShiftInput) (*MutationResult, error)
 	CreateEventDate(ctx context.Context, newDate AddEventDateInput) (*MutationResult, error)
+	CreateStaff(ctx context.Context, newStaff NewStaffInput) (*MutationResult, error)
 	AssignVolunteerToShift(ctx context.Context, shiftID string, volunteerID string) (*MutationResult, error)
 	CancelShift(ctx context.Context, shiftID string, volunteerID string) (*MutationResult, error)
 	AddVenueRegion(ctx context.Context, venueID int, regionID int) (*MutationResult, error)
@@ -242,18 +261,22 @@ type MutationResolver interface {
 	UpdateRegion(ctx context.Context, region UpdateRegionInput) (*MutationResult, error)
 	UpdateVolunteer(ctx context.Context, profile UpdateVolunteerInput) (*MutationResult, error)
 	UpdateEvent(ctx context.Context, event UpdateEventInput) (*MutationResult, error)
+	UpdateJob(ctx context.Context, job UpdateJobInput) (*MutationResult, error)
 	UpdateOpportunity(ctx context.Context, opp UpdateOpportunityInput) (*MutationResult, error)
 	UpdateShift(ctx context.Context, shift UpdateShiftInput) (*MutationResult, error)
 	UpdateEventDate(ctx context.Context, date UpdateEventDateInput) (*MutationResult, error)
+	UpdateStaff(ctx context.Context, staff UpdateStaffInput) (*MutationResult, error)
 	QuestionFeedback(ctx context.Context, question QuestionFeedbackInput) (*MutationResult, error)
 	UpdateFeedback(ctx context.Context, feedback UpdateFeedbackInput) (*MutationResult, error)
 	DeleteVolunteer(ctx context.Context, volunteerID string) (*MutationResult, error)
 	DeleteVenue(ctx context.Context, venueID string) (*MutationResult, error)
 	DeleteRegion(ctx context.Context, regionID int) (*MutationResult, error)
 	DeleteEvent(ctx context.Context, eventID string) (*MutationResult, error)
+	DeleteJob(ctx context.Context, jobID int) (*MutationResult, error)
 	DeleteOpportunity(ctx context.Context, oppID string) (*MutationResult, error)
 	DeleteShift(ctx context.Context, shiftID string) (*MutationResult, error)
 	DeleteEventDate(ctx context.Context, eventDateID string) (*MutationResult, error)
+	DeleteStaff(ctx context.Context, staffID string) (*MutationResult, error)
 	ResolveFeedback(ctx context.Context, resolution ResolveFeedbackInput) (*MutationResult, error)
 }
 type QueryResolver interface {
@@ -262,6 +285,7 @@ type QueryResolver interface {
 	FilteredEvents(ctx context.Context, filter *EventFilterInput) ([]*Event, error)
 	EventByID(ctx context.Context, eventID string) (*Event, error)
 	Venues(ctx context.Context) ([]*Venue, error)
+	Staff(ctx context.Context) ([]*Staff, error)
 	AllVolunteers(ctx context.Context, filter *VolunteerFilterInput) ([]*Volunteer, error)
 	VolunteerShifts(ctx context.Context, volunteerID string, filter ShiftTimeFilter) ([]*VolunteerShift, error)
 	VolunteerByID(ctx context.Context, volunteerID string) (*VolunteerProfile, error)
@@ -473,6 +497,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.JobType.Name(childComplexity), true
+	case "JobType.sortOrder":
+		if e.complexity.JobType.SortOrder == nil {
+			break
+		}
+
+		return e.complexity.JobType.SortOrder(childComplexity), true
 
 	case "LookupValues.jobTypes":
 		if e.complexity.LookupValues.JobTypes == nil {
@@ -548,6 +578,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.CreateEventDate(childComplexity, args["newDate"].(AddEventDateInput)), true
+	case "Mutation.createJobType":
+		if e.complexity.Mutation.CreateJobType == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createJobType_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateJobType(childComplexity, args["newJob"].(NewJobInput)), true
 	case "Mutation.createOpportunity":
 		if e.complexity.Mutation.CreateOpportunity == nil {
 			break
@@ -581,6 +622,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.CreateShift(childComplexity, args["newShift"].(AddShiftInput)), true
+	case "Mutation.createStaff":
+		if e.complexity.Mutation.CreateStaff == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createStaff_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateStaff(childComplexity, args["newStaff"].(NewStaffInput)), true
 	case "Mutation.createVenue":
 		if e.complexity.Mutation.CreateVenue == nil {
 			break
@@ -625,6 +677,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteEventDate(childComplexity, args["eventDateId"].(string)), true
+	case "Mutation.deleteJob":
+		if e.complexity.Mutation.DeleteJob == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteJob_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteJob(childComplexity, args["JobId"].(int)), true
 	case "Mutation.deleteOpportunity":
 		if e.complexity.Mutation.DeleteOpportunity == nil {
 			break
@@ -658,6 +721,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteShift(childComplexity, args["shiftId"].(string)), true
+	case "Mutation.deleteStaff":
+		if e.complexity.Mutation.DeleteStaff == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteStaff_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteStaff(childComplexity, args["staffId"].(string)), true
 	case "Mutation.deleteVenue":
 		if e.complexity.Mutation.DeleteVenue == nil {
 			break
@@ -757,6 +831,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateFeedback(childComplexity, args["feedback"].(UpdateFeedbackInput)), true
+	case "Mutation.updateJob":
+		if e.complexity.Mutation.UpdateJob == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateJob_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateJob(childComplexity, args["job"].(UpdateJobInput)), true
 	case "Mutation.updateOpportunity":
 		if e.complexity.Mutation.UpdateOpportunity == nil {
 			break
@@ -790,6 +875,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateShift(childComplexity, args["shift"].(UpdateShiftInput)), true
+	case "Mutation.updateStaff":
+		if e.complexity.Mutation.UpdateStaff == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateStaff_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateStaff(childComplexity, args["staff"].(UpdateStaffInput)), true
 	case "Mutation.updateVenue":
 		if e.complexity.Mutation.UpdateVenue == nil {
 			break
@@ -935,6 +1031,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.OpportunitiesForEvent(childComplexity, args["eventId"].(string)), true
+	case "Query.staff":
+		if e.complexity.Query.Staff == nil {
+			break
+		}
+
+		return e.complexity.Query.Staff(childComplexity), true
 	case "Query.venues":
 		if e.complexity.Query.Venues == nil {
 			break
@@ -1050,6 +1152,43 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Shift.StartDateTime(childComplexity), true
+
+	case "Staff.email":
+		if e.complexity.Staff.Email == nil {
+			break
+		}
+
+		return e.complexity.Staff.Email(childComplexity), true
+	case "Staff.firstName":
+		if e.complexity.Staff.FirstName == nil {
+			break
+		}
+
+		return e.complexity.Staff.FirstName(childComplexity), true
+	case "Staff.id":
+		if e.complexity.Staff.ID == nil {
+			break
+		}
+
+		return e.complexity.Staff.ID(childComplexity), true
+	case "Staff.lastName":
+		if e.complexity.Staff.LastName == nil {
+			break
+		}
+
+		return e.complexity.Staff.LastName(childComplexity), true
+	case "Staff.phone":
+		if e.complexity.Staff.Phone == nil {
+			break
+		}
+
+		return e.complexity.Staff.Phone(childComplexity), true
+	case "Staff.position":
+		if e.complexity.Staff.Position == nil {
+			break
+		}
+
+		return e.complexity.Staff.Position(childComplexity), true
 
 	case "Venue.address":
 		if e.complexity.Venue.Address == nil {
@@ -1274,9 +1413,11 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputNewEventDateInput,
 		ec.unmarshalInputNewEventInput,
 		ec.unmarshalInputNewFeedbackInput,
+		ec.unmarshalInputNewJobInput,
 		ec.unmarshalInputNewOpportunityInput,
 		ec.unmarshalInputNewRegionInput,
 		ec.unmarshalInputNewShiftInput,
+		ec.unmarshalInputNewStaffInput,
 		ec.unmarshalInputNewVenueInput,
 		ec.unmarshalInputNewVolunteerInput,
 		ec.unmarshalInputQuestionFeedbackInput,
@@ -1284,9 +1425,11 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputUpdateEventDateInput,
 		ec.unmarshalInputUpdateEventInput,
 		ec.unmarshalInputUpdateFeedbackInput,
+		ec.unmarshalInputUpdateJobInput,
 		ec.unmarshalInputUpdateOpportunityInput,
 		ec.unmarshalInputUpdateRegionInput,
 		ec.unmarshalInputUpdateShiftInput,
+		ec.unmarshalInputUpdateStaffInput,
 		ec.unmarshalInputUpdateVenueInput,
 		ec.unmarshalInputUpdateVolunteerInput,
 		ec.unmarshalInputVolunteerFilterInput,
@@ -1462,6 +1605,7 @@ type JobType{
   id: Int!
   code: String!
   name: String!
+  sortOrder: Int!
   isActive: Boolean!
 }
   
@@ -1534,40 +1678,43 @@ type MutationResult {
 `, BuiltIn: false},
 	{Name: "../schema.graphql", Input: `## These definitions apply to those users with admin status
 ## only. The definitions in the volunteer schema are also
-## available to admins. So the admin privilege allows the 
+## available to admins. So the admin privilege allows the
 ## definitions in the union of the 2 schema files.
 
 type Query {
   # Shared queries:
   lookupValues: LookupValues!
   volunteerProfile: VolunteerProfile!
-  filteredEvents(filter: EventFilterInput): [Event!]! 
+  filteredEvents(filter: EventFilterInput): [Event!]!
   eventById(eventId: ID!): Event!
 
   # Admin-only queries:
   venues: [Venue!]!
-  allVolunteers(filter: VolunteerFilterInput): [Volunteer!]! 
-  volunteerShifts(volunteerId: ID!, filter: ShiftTimeFilter!): [VolunteerShift!]! 
+  staff: [Staff!]!
+  allVolunteers(filter: VolunteerFilterInput): [Volunteer!]!
+  volunteerShifts(volunteerId: ID!, filter: ShiftTimeFilter!): [VolunteerShift!]!
   volunteerById(volunteerId: ID!): VolunteerProfile
   opportunitiesForEvent(eventId: ID!): [Opportunity!]!
   feedback(filter: FeedbackFilterInput): [Feedback!]!
   feedbackById(feedbackId: ID!): Feedback
-} 
+}
 
 type Mutation {
   # Shared mutations:
   giveFeedback (feedback: NewFeedbackInput!): MutationResult!
 
   # Admin-only mutations:
-  createVolunteer(newVol: NewVolunteerInput!): MutationResult!  
+  createVolunteer(newVol: NewVolunteerInput!): MutationResult!
   createVenue(newVenue: NewVenueInput!): MutationResult!
   createRegion(newRegion: NewRegionInput!): MutationResult!
   createEvent(newEvent: NewEventInput!): MutationResult!
+  createJobType(newJob: NewJobInput!): MutationResult!
   createOpportunity(newOpp: NewOpportunityInput!): MutationResult!
   createShift(newShift: AddShiftInput!): MutationResult!
   createEventDate(newDate: AddEventDateInput!): MutationResult!
+  createStaff(newStaff: NewStaffInput!): MutationResult!
 
-  assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): MutationResult!  
+  assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): MutationResult!
   cancelShift(shiftId: ID!, volunteerId: ID!): MutationResult!
 
   addVenueRegion(venueId: Int!, regionId: Int!): MutationResult!
@@ -1575,11 +1722,13 @@ type Mutation {
 
   updateVenue(venue: UpdateVenueInput!): MutationResult!
   updateRegion(region: UpdateRegionInput!): MutationResult!
-  updateVolunteer(profile: UpdateVolunteerInput!): MutationResult!  
+  updateVolunteer(profile: UpdateVolunteerInput!): MutationResult!
   updateEvent(event: UpdateEventInput!): MutationResult!
+  updateJob(job: UpdateJobInput!): MutationResult!
   updateOpportunity(opp: UpdateOpportunityInput!): MutationResult!
   updateShift(shift: UpdateShiftInput!): MutationResult!
   updateEventDate(date: UpdateEventDateInput!): MutationResult!
+  updateStaff(staff: UpdateStaffInput!): MutationResult!
 
   questionFeedback(question: QuestionFeedbackInput!): MutationResult!
   updateFeedback(feedback: UpdateFeedbackInput!): MutationResult!
@@ -1588,13 +1737,25 @@ type Mutation {
   deleteVenue(venueId: ID!): MutationResult!
   deleteRegion(regionId: Int!): MutationResult!
   deleteEvent(eventId: ID!): MutationResult!
+  deleteJob(JobId: Int!): MutationResult!
   deleteOpportunity(oppId: ID!): MutationResult!
   deleteShift(shiftId: ID!): MutationResult!
   deleteEventDate(eventDateId: ID!): MutationResult!
+  deleteStaff(staffId: ID!): MutationResult!
 
   resolveFeedback(resolution: ResolveFeedbackInput!): MutationResult!
 }
+
 #-- Outputs (for queries) --
+
+type Staff {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  position: String
+}
 
 type Volunteer {
   id: ID!
@@ -1644,6 +1805,24 @@ type FeedbackNote {
 }
 
 #-- Inputs --
+
+input NewStaffInput {
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  position: String
+}
+
+input UpdateStaffInput {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  position: String
+}
+
 input NewVolunteerInput {
   firstName: String!
   lastName: String!
@@ -1732,9 +1911,21 @@ input UpdateEventDateInput {
   ianaZone: String!
 }
 
-# A new opp MUST include at 
-# least 1 new shift.
+input NewJobInput {
+  code: String!
+  name: String!
+  sortOrder: Int!
+}
 
+input UpdateJobInput {
+  id: Int!
+  code: String!
+  name: String!
+  sortOrder: Int!
+}
+
+# A new opp MUST include at
+# least 1 new shift.
 input NewOpportunityInput {
   eventId: ID!
   jobId: Int!
@@ -1805,7 +1996,8 @@ input ResolveFeedbackInput {
   status: FeedbackStatus!
   note: String!
   githubIssueURL: String
-}`, BuiltIn: false},
+}
+`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -1883,6 +2075,17 @@ func (ec *executionContext) field_Mutation_createEvent_args(ctx context.Context,
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_createJobType_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "newJob", ec.unmarshalNNewJobInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewJobInput)
+	if err != nil {
+		return nil, err
+	}
+	args["newJob"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createOpportunity_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -1913,6 +2116,17 @@ func (ec *executionContext) field_Mutation_createShift_args(ctx context.Context,
 		return nil, err
 	}
 	args["newShift"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createStaff_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "newStaff", ec.unmarshalNNewStaffInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewStaffInput)
+	if err != nil {
+		return nil, err
+	}
+	args["newStaff"] = arg0
 	return args, nil
 }
 
@@ -1960,6 +2174,17 @@ func (ec *executionContext) field_Mutation_deleteEvent_args(ctx context.Context,
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_deleteJob_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "JobId", ec.unmarshalNInt2int)
+	if err != nil {
+		return nil, err
+	}
+	args["JobId"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_deleteOpportunity_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -1990,6 +2215,17 @@ func (ec *executionContext) field_Mutation_deleteShift_args(ctx context.Context,
 		return nil, err
 	}
 	args["shiftId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteStaff_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "staffId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["staffId"] = arg0
 	return args, nil
 }
 
@@ -2097,6 +2333,17 @@ func (ec *executionContext) field_Mutation_updateFeedback_args(ctx context.Conte
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_updateJob_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "job", ec.unmarshalNUpdateJobInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateJobInput)
+	if err != nil {
+		return nil, err
+	}
+	args["job"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_updateOpportunity_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2127,6 +2374,17 @@ func (ec *executionContext) field_Mutation_updateShift_args(ctx context.Context,
 		return nil, err
 	}
 	args["shift"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateStaff_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "staff", ec.unmarshalNUpdateStaffInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateStaffInput)
+	if err != nil {
+		return nil, err
+	}
+	args["staff"] = arg0
 	return args, nil
 }
 
@@ -3185,6 +3443,35 @@ func (ec *executionContext) fieldContext_JobType_name(_ context.Context, field g
 	return fc, nil
 }
 
+func (ec *executionContext) _JobType_sortOrder(ctx context.Context, field graphql.CollectedField, obj *JobType) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_JobType_sortOrder,
+		func(ctx context.Context) (any, error) {
+			return obj.SortOrder, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_JobType_sortOrder(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobType",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _JobType_isActive(ctx context.Context, field graphql.CollectedField, obj *JobType) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -3322,6 +3609,8 @@ func (ec *executionContext) fieldContext_LookupValues_jobTypes(_ context.Context
 				return ec.fieldContext_JobType_code(ctx, field)
 			case "name":
 				return ec.fieldContext_JobType_name(ctx, field)
+			case "sortOrder":
+				return ec.fieldContext_JobType_sortOrder(ctx, field)
 			case "isActive":
 				return ec.fieldContext_JobType_isActive(ctx, field)
 			}
@@ -3576,6 +3865,55 @@ func (ec *executionContext) fieldContext_Mutation_createEvent(ctx context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_createJobType(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_createJobType,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CreateJobType(ctx, fc.Args["newJob"].(NewJobInput))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createJobType(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createJobType_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_createOpportunity(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -3717,6 +4055,55 @@ func (ec *executionContext) fieldContext_Mutation_createEventDate(ctx context.Co
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_createEventDate_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createStaff(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_createStaff,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CreateStaff(ctx, fc.Args["newStaff"].(NewStaffInput))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createStaff(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createStaff_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -4115,6 +4502,55 @@ func (ec *executionContext) fieldContext_Mutation_updateEvent(ctx context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_updateJob(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateJob,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateJob(ctx, fc.Args["job"].(UpdateJobInput))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateJob(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateJob_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_updateOpportunity(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -4256,6 +4692,55 @@ func (ec *executionContext) fieldContext_Mutation_updateEventDate(ctx context.Co
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_updateEventDate_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateStaff(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateStaff,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateStaff(ctx, fc.Args["staff"].(UpdateStaffInput))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateStaff(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateStaff_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -4556,6 +5041,55 @@ func (ec *executionContext) fieldContext_Mutation_deleteEvent(ctx context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_deleteJob(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_deleteJob,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().DeleteJob(ctx, fc.Args["JobId"].(int))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteJob(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteJob_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_deleteOpportunity(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -4697,6 +5231,55 @@ func (ec *executionContext) fieldContext_Mutation_deleteEventDate(ctx context.Co
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_deleteEventDate_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteStaff(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_deleteStaff,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().DeleteStaff(ctx, fc.Args["staffId"].(string))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteStaff(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteStaff_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -5232,6 +5815,49 @@ func (ec *executionContext) fieldContext_Query_venues(_ context.Context, field g
 				return ec.fieldContext_Venue_region(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Venue", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_staff(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_staff,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().Staff(ctx)
+		},
+		nil,
+		ec.marshalNStaff2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐStaffᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_staff(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Staff_id(ctx, field)
+			case "firstName":
+				return ec.fieldContext_Staff_firstName(ctx, field)
+			case "lastName":
+				return ec.fieldContext_Staff_lastName(ctx, field)
+			case "email":
+				return ec.fieldContext_Staff_email(ctx, field)
+			case "phone":
+				return ec.fieldContext_Staff_phone(ctx, field)
+			case "position":
+				return ec.fieldContext_Staff_position(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Staff", field.Name)
 		},
 	}
 	return fc, nil
@@ -6085,6 +6711,180 @@ func (ec *executionContext) fieldContext_Shift_staffContactId(_ context.Context,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Staff_id(ctx context.Context, field graphql.CollectedField, obj *Staff) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Staff_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Staff_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Staff",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Staff_firstName(ctx context.Context, field graphql.CollectedField, obj *Staff) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Staff_firstName,
+		func(ctx context.Context) (any, error) {
+			return obj.FirstName, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Staff_firstName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Staff",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Staff_lastName(ctx context.Context, field graphql.CollectedField, obj *Staff) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Staff_lastName,
+		func(ctx context.Context) (any, error) {
+			return obj.LastName, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Staff_lastName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Staff",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Staff_email(ctx context.Context, field graphql.CollectedField, obj *Staff) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Staff_email,
+		func(ctx context.Context) (any, error) {
+			return obj.Email, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Staff_email(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Staff",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Staff_phone(ctx context.Context, field graphql.CollectedField, obj *Staff) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Staff_phone,
+		func(ctx context.Context) (any, error) {
+			return obj.Phone, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Staff_phone(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Staff",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Staff_position(ctx context.Context, field graphql.CollectedField, obj *Staff) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Staff_position,
+		func(ctx context.Context) (any, error) {
+			return obj.Position, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Staff_position(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Staff",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -8897,6 +9697,47 @@ func (ec *executionContext) unmarshalInputNewFeedbackInput(ctx context.Context, 
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputNewJobInput(ctx context.Context, obj any) (NewJobInput, error) {
+	var it NewJobInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"code", "name", "sortOrder"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "code":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("code"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Code = data
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "sortOrder":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sortOrder"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SortOrder = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputNewOpportunityInput(ctx context.Context, obj any) (NewOpportunityInput, error) {
 	var it NewOpportunityInput
 	asMap := map[string]any{}
@@ -9035,6 +9876,61 @@ func (ec *executionContext) unmarshalInputNewShiftInput(ctx context.Context, obj
 				return it, err
 			}
 			it.StaffContactID = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputNewStaffInput(ctx context.Context, obj any) (NewStaffInput, error) {
+	var it NewStaffInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"firstName", "lastName", "email", "phone", "position"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "firstName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("firstName"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.FirstName = data
+		case "lastName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lastName"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.LastName = data
+		case "email":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Email = data
+		case "phone":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Phone = data
+		case "position":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("position"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Position = data
 		}
 	}
 
@@ -9419,6 +10315,54 @@ func (ec *executionContext) unmarshalInputUpdateFeedbackInput(ctx context.Contex
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputUpdateJobInput(ctx context.Context, obj any) (UpdateJobInput, error) {
+	var it UpdateJobInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "code", "name", "sortOrder"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "code":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("code"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Code = data
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "sortOrder":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sortOrder"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SortOrder = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUpdateOpportunityInput(ctx context.Context, obj any) (UpdateOpportunityInput, error) {
 	var it UpdateOpportunityInput
 	asMap := map[string]any{}
@@ -9564,6 +10508,68 @@ func (ec *executionContext) unmarshalInputUpdateShiftInput(ctx context.Context, 
 				return it, err
 			}
 			it.StaffContactID = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdateStaffInput(ctx context.Context, obj any) (UpdateStaffInput, error) {
+	var it UpdateStaffInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "firstName", "lastName", "email", "phone", "position"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "firstName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("firstName"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.FirstName = data
+		case "lastName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lastName"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.LastName = data
+		case "email":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Email = data
+		case "phone":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Phone = data
+		case "position":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("position"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Position = data
 		}
 	}
 
@@ -10031,6 +11037,11 @@ func (ec *executionContext) _JobType(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "sortOrder":
+			out.Values[i] = ec._JobType_sortOrder(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "isActive":
 			out.Values[i] = ec._JobType_isActive(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -10162,6 +11173,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "createJobType":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createJobType(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "createOpportunity":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createOpportunity(ctx, field)
@@ -10179,6 +11197,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "createEventDate":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createEventDate(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createStaff":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createStaff(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -10239,6 +11264,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "updateJob":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateJob(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "updateOpportunity":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateOpportunity(ctx, field)
@@ -10256,6 +11288,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "updateEventDate":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateEventDate(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateStaff":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateStaff(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -10302,6 +11341,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "deleteJob":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteJob(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "deleteOpportunity":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteOpportunity(ctx, field)
@@ -10319,6 +11365,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "deleteEventDate":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteEventDate(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteStaff":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteStaff(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -10569,6 +11622,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_venues(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "staff":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_staff(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -10876,6 +11951,64 @@ func (ec *executionContext) _Shift(ctx context.Context, sel ast.SelectionSet, ob
 			out.Values[i] = ec._Shift_maxVolunteers(ctx, field, obj)
 		case "staffContactId":
 			out.Values[i] = ec._Shift_staffContactId(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var staffImplementors = []string{"Staff"}
+
+func (ec *executionContext) _Staff(ctx context.Context, sel ast.SelectionSet, obj *Staff) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, staffImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Staff")
+		case "id":
+			out.Values[i] = ec._Staff_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "firstName":
+			out.Values[i] = ec._Staff_firstName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "lastName":
+			out.Values[i] = ec._Staff_lastName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "email":
+			out.Values[i] = ec._Staff_email(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "phone":
+			out.Values[i] = ec._Staff_phone(ctx, field, obj)
+		case "position":
+			out.Values[i] = ec._Staff_position(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -11957,6 +13090,11 @@ func (ec *executionContext) unmarshalNNewFeedbackInput2volunteerᚑschedulerᚋg
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNNewJobInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewJobInput(ctx context.Context, v any) (NewJobInput, error) {
+	res, err := ec.unmarshalInputNewJobInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNNewOpportunityInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewOpportunityInput(ctx context.Context, v any) (NewOpportunityInput, error) {
 	res, err := ec.unmarshalInputNewOpportunityInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -11985,6 +13123,11 @@ func (ec *executionContext) unmarshalNNewShiftInput2ᚕᚖvolunteerᚑscheduler�
 func (ec *executionContext) unmarshalNNewShiftInput2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewShiftInput(ctx context.Context, v any) (*NewShiftInput, error) {
 	res, err := ec.unmarshalInputNewShiftInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNNewStaffInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewStaffInput(ctx context.Context, v any) (NewStaffInput, error) {
+	res, err := ec.unmarshalInputNewStaffInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNNewVenueInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewVenueInput(ctx context.Context, v any) (NewVenueInput, error) {
@@ -12243,6 +13386,60 @@ func (ec *executionContext) marshalNShiftTimeFilter2volunteerᚑschedulerᚋgrap
 	return v
 }
 
+func (ec *executionContext) marshalNStaff2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐStaffᚄ(ctx context.Context, sel ast.SelectionSet, v []*Staff) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNStaff2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐStaff(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNStaff2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐStaff(ctx context.Context, sel ast.SelectionSet, v *Staff) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Staff(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -12274,6 +13471,11 @@ func (ec *executionContext) unmarshalNUpdateFeedbackInput2volunteerᚑscheduler�
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNUpdateJobInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateJobInput(ctx context.Context, v any) (UpdateJobInput, error) {
+	res, err := ec.unmarshalInputUpdateJobInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNUpdateOpportunityInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateOpportunityInput(ctx context.Context, v any) (UpdateOpportunityInput, error) {
 	res, err := ec.unmarshalInputUpdateOpportunityInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -12286,6 +13488,11 @@ func (ec *executionContext) unmarshalNUpdateRegionInput2volunteerᚑschedulerᚋ
 
 func (ec *executionContext) unmarshalNUpdateShiftInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateShiftInput(ctx context.Context, v any) (UpdateShiftInput, error) {
 	res, err := ec.unmarshalInputUpdateShiftInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNUpdateStaffInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateStaffInput(ctx context.Context, v any) (UpdateStaffInput, error) {
+	res, err := ec.unmarshalInputUpdateStaffInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 

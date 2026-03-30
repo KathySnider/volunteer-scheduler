@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"volunteer-scheduler/database"
 	"volunteer-scheduler/graph/admin"
@@ -32,23 +34,35 @@ func getEnvWithDefault(key, fallback string) string {
 	}
 }
 
+// readSecret reads a Docker secret file and trims whitespace.
+// Returns an empty string without error if the file does not exist
+// (e.g. local development without Docker secrets).
+func readSecret(path string) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
+}
+
 func main() {
+	// -------------------------------------------------------------------------
 	// Database connection
+	// -------------------------------------------------------------------------
 
 	// Get the postgres password for the database.
 	secret, err := os.ReadFile("/run/secrets/secret_db_pw")
 	if err != nil {
 		log.Fatalf("Unable to read postgres pw: %v", err)
-
 	}
-	db_pw := strings.Trim(string(secret), "\n\r")
+	db_pw := strings.TrimSpace(string(secret))
 
 	// Get the url with a placeholder for the password.
 	secret, err = os.ReadFile("/run/secrets/secret_db_url")
 	if err != nil {
 		log.Fatalf("Unable to read db url: %v", err)
 	}
-	pattern := strings.Trim(string(secret), "\n\r")
+	pattern := strings.TrimSpace(string(secret))
 
 	// Replace the placeholder with the actual password in the url.
 	db_url := strings.Replace(pattern, "database_password", db_pw, -1)
@@ -60,39 +74,71 @@ func main() {
 	}
 	defer db.Close()
 
-	// Test connection
+	// Test connection.
 	if err := db.Ping(); err != nil {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
 
-	// Run migrations.
+	// -------------------------------------------------------------------------
+	// Migrations
+	// -------------------------------------------------------------------------
+
 	// In Docker the binary runs from /root/, so migrations are at /app/migrations.
 	// Locally, "file://migrations" works if you run from the project root.
-	//migrationsPath := getEnvWithDefault("MIGRATIONS_PATH", "file://migrations")
 	migrationsPath := getEnvWithDefault("MIGRATIONS_PATH", "file:///app/migrations")
 	dbName := getEnvWithDefault("DB_NAME", "volunteer-scheduler")
-	err = database.RunMigrations(db, dbName, migrationsPath)
-	if err != nil {
+	if err = database.RunMigrations(db, dbName, migrationsPath); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
-	// Create services.
-	mailer, err := services.NewMailer()
+	// -------------------------------------------------------------------------
+	// Services
+	// -------------------------------------------------------------------------
+
+	// Read the Resend API key from the Docker secret file.
+	// Returns an empty string in local dev (file absent); NewMailer handles that
+	// gracefully — Mailhog is used instead when USE_RESEND is false.
+	resendAPIKey := readSecret("/run/secrets/secret_resend_api_key")
+
+	mailer, err := services.NewMailer(resendAPIKey)
 	if err != nil {
 		log.Fatal("Failed to initialize mailer:", err)
 	}
+
 	magicLinkService := services.NewMagicLinkService(db, mailer)
 	volunteerService := services.NewVolunteerService(db, mailer)
 	shiftService := services.NewShiftService(db, mailer)
 	venueService := services.NewVenueService(db)
 	feedbackService := services.NewFeedbackService(db, mailer)
+	staffService := services.NewStaffService(db)
 
 	eventService, err := services.NewEventService(db, mailer, shiftService)
 	if err != nil {
 		log.Fatal("Failed to initialize event service:", err)
 	}
 
-	// Create the resolvers with services.
+	// -------------------------------------------------------------------------
+	// Background jobs
+	// -------------------------------------------------------------------------
+
+	// Run token cleanup once at startup, then every 24 hours.
+	go func() {
+		if err := magicLinkService.CleanupExpiredTokens(context.Background()); err != nil {
+			log.Printf("Initial token cleanup error: %v", err)
+		}
+		ticker := time.NewTicker(24 * time.Hour)
+		defer ticker.Stop()
+		for range ticker.C {
+			if err := magicLinkService.CleanupExpiredTokens(context.Background()); err != nil {
+				log.Printf("Token cleanup error: %v", err)
+			}
+		}
+	}()
+
+	// -------------------------------------------------------------------------
+	// Resolvers
+	// -------------------------------------------------------------------------
+
 	authResolver := &auth.Resolver{
 		MagicLinkService: magicLinkService,
 	}
@@ -113,9 +159,13 @@ func main() {
 		ShiftService:     shiftService,
 		VenueService:     venueService,
 		FeedbackService:  feedbackService,
+		StaffService:     staffService,
 	}
 
-	// Set up GraphQL servers with endpoints for user type.
+	// -------------------------------------------------------------------------
+	// GraphQL servers
+	// -------------------------------------------------------------------------
+
 	authSrv := handler.NewDefaultServer(authGen.NewExecutableSchema(authGen.Config{
 		Resolvers: authResolver,
 	}))
@@ -128,17 +178,24 @@ func main() {
 		Resolvers: adminResolver,
 	}))
 
-	// Add CORS middleware
+	// -------------------------------------------------------------------------
+	// HTTP routing
+	// -------------------------------------------------------------------------
+
+	// CORS middleware — allow the frontend origin.
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000"}, // Your frontend URL
+		AllowedOrigins:   []string{"http://localhost:3000"},
 		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
 	})
 
+	// GraphQL playgrounds (GET, no auth required).
 	http.Handle("/auth", playground.Handler("Auth GraphQL", "/graphql/auth"))
 	http.Handle("/admin", playground.Handler("Admin GraphQL", "/graphql/admin"))
 	http.Handle("/volunteer", playground.Handler("Volunteer GraphQL", "/graphql/volunteer"))
+
+	// GraphQL API endpoints.
 	http.Handle("/graphql/auth", c.Handler(authSrv))
 	http.Handle("/graphql/volunteer", c.Handler(middleware.RequireAuth(magicLinkService, volunteerSrv)))
 	http.Handle("/graphql/admin", c.Handler(middleware.RequireAdmin(magicLinkService, adminSrv)))

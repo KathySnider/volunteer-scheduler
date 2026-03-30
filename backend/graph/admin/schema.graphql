@@ -1,39 +1,42 @@
 ## These definitions apply to those users with admin status
 ## only. The definitions in the volunteer schema are also
-## available to admins. So the admin privilege allows the 
+## available to admins. So the admin privilege allows the
 ## definitions in the union of the 2 schema files.
 
 type Query {
   # Shared queries:
   lookupValues: LookupValues!
   volunteerProfile: VolunteerProfile!
-  filteredEvents(filter: EventFilterInput): [Event!]! 
+  filteredEvents(filter: EventFilterInput): [Event!]!
   eventById(eventId: ID!): Event!
 
   # Admin-only queries:
   venues: [Venue!]!
-  allVolunteers(filter: VolunteerFilterInput): [Volunteer!]! 
-  volunteerShifts(volunteerId: ID!, filter: ShiftTimeFilter!): [VolunteerShift!]! 
+  staff: [Staff!]!
+  allVolunteers(filter: VolunteerFilterInput): [Volunteer!]!
+  volunteerShifts(volunteerId: ID!, filter: ShiftTimeFilter!): [VolunteerShift!]!
   volunteerById(volunteerId: ID!): VolunteerProfile
   opportunitiesForEvent(eventId: ID!): [Opportunity!]!
   feedback(filter: FeedbackFilterInput): [Feedback!]!
   feedbackById(feedbackId: ID!): Feedback
-} 
+}
 
 type Mutation {
   # Shared mutations:
   giveFeedback (feedback: NewFeedbackInput!): MutationResult!
 
   # Admin-only mutations:
-  createVolunteer(newVol: NewVolunteerInput!): MutationResult!  
+  createVolunteer(newVol: NewVolunteerInput!): MutationResult!
   createVenue(newVenue: NewVenueInput!): MutationResult!
   createRegion(newRegion: NewRegionInput!): MutationResult!
   createEvent(newEvent: NewEventInput!): MutationResult!
+  createJobType(newJob: NewJobInput!): MutationResult!
   createOpportunity(newOpp: NewOpportunityInput!): MutationResult!
   createShift(newShift: AddShiftInput!): MutationResult!
   createEventDate(newDate: AddEventDateInput!): MutationResult!
+  createStaff(newStaff: NewStaffInput!): MutationResult!
 
-  assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): MutationResult!  
+  assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): MutationResult!
   cancelShift(shiftId: ID!, volunteerId: ID!): MutationResult!
 
   addVenueRegion(venueId: Int!, regionId: Int!): MutationResult!
@@ -41,11 +44,13 @@ type Mutation {
 
   updateVenue(venue: UpdateVenueInput!): MutationResult!
   updateRegion(region: UpdateRegionInput!): MutationResult!
-  updateVolunteer(profile: UpdateVolunteerInput!): MutationResult!  
+  updateVolunteer(profile: UpdateVolunteerInput!): MutationResult!
   updateEvent(event: UpdateEventInput!): MutationResult!
+  updateJob(job: UpdateJobInput!): MutationResult!
   updateOpportunity(opp: UpdateOpportunityInput!): MutationResult!
   updateShift(shift: UpdateShiftInput!): MutationResult!
   updateEventDate(date: UpdateEventDateInput!): MutationResult!
+  updateStaff(staff: UpdateStaffInput!): MutationResult!
 
   questionFeedback(question: QuestionFeedbackInput!): MutationResult!
   updateFeedback(feedback: UpdateFeedbackInput!): MutationResult!
@@ -54,13 +59,25 @@ type Mutation {
   deleteVenue(venueId: ID!): MutationResult!
   deleteRegion(regionId: Int!): MutationResult!
   deleteEvent(eventId: ID!): MutationResult!
+  deleteJob(JobId: Int!): MutationResult!
   deleteOpportunity(oppId: ID!): MutationResult!
   deleteShift(shiftId: ID!): MutationResult!
   deleteEventDate(eventDateId: ID!): MutationResult!
+  deleteStaff(staffId: ID!): MutationResult!
 
   resolveFeedback(resolution: ResolveFeedbackInput!): MutationResult!
 }
+
 #-- Outputs (for queries) --
+
+type Staff {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  position: String
+}
 
 type Volunteer {
   id: ID!
@@ -110,6 +127,24 @@ type FeedbackNote {
 }
 
 #-- Inputs --
+
+input NewStaffInput {
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  position: String
+}
+
+input UpdateStaffInput {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  position: String
+}
+
 input NewVolunteerInput {
   firstName: String!
   lastName: String!
@@ -198,9 +233,21 @@ input UpdateEventDateInput {
   ianaZone: String!
 }
 
-# A new opp MUST include at 
-# least 1 new shift.
+input NewJobInput {
+  code: String!
+  name: String!
+  sortOrder: Int!
+}
 
+input UpdateJobInput {
+  id: Int!
+  code: String!
+  name: String!
+  sortOrder: Int!
+}
+
+# A new opp MUST include at
+# least 1 new shift.
 input NewOpportunityInput {
   eventId: ID!
   jobId: Int!

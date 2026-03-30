@@ -67,6 +67,11 @@ func (r *mutationResolver) CreateEvent(ctx context.Context, newEvent generated.N
 	return toGenMutationResult(result), nil
 }
 
+// CreateJobType is the resolver for the createJobType field.
+func (r *mutationResolver) CreateJobType(ctx context.Context, newJob generated.NewJobInput) (*generated.MutationResult, error) {
+	panic(fmt.Errorf("not implemented: CreateJobType - createJobType"))
+}
+
 // CreateOpportunity is the resolver for the createOpportunity field.
 func (r *mutationResolver) CreateOpportunity(ctx context.Context, newOpp generated.NewOpportunityInput) (*generated.MutationResult, error) {
 	result, err := r.ShiftService.CreateOpportunity(ctx, toModelNewOpportunity(newOpp))
@@ -92,6 +97,11 @@ func (r *mutationResolver) CreateEventDate(ctx context.Context, newDate generate
 		return nil, err
 	}
 	return toGenMutationResult(result), nil
+}
+
+// CreateStaff is the resolver for the createStaff field.
+func (r *mutationResolver) CreateStaff(ctx context.Context, newStaff generated.NewStaffInput) (*generated.MutationResult, error) {
+	panic(fmt.Errorf("not implemented: CreateStaff - createStaff"))
 }
 
 // AssignVolunteerToShift is the resolver for the assignVolunteerToShift field.
@@ -166,6 +176,11 @@ func (r *mutationResolver) UpdateEvent(ctx context.Context, event generated.Upda
 	return toGenMutationResult(result), nil
 }
 
+// UpdateJob is the resolver for the updateJob field.
+func (r *mutationResolver) UpdateJob(ctx context.Context, job generated.UpdateJobInput) (*generated.MutationResult, error) {
+	panic(fmt.Errorf("not implemented: UpdateJob - updateJob"))
+}
+
 // UpdateOpportunity is the resolver for the updateOpportunity field.
 func (r *mutationResolver) UpdateOpportunity(ctx context.Context, opp generated.UpdateOpportunityInput) (*generated.MutationResult, error) {
 	result, err := r.ShiftService.UpdateOpportunity(ctx, toModelUpdateOpportunity(opp))
@@ -191,6 +206,11 @@ func (r *mutationResolver) UpdateEventDate(ctx context.Context, date generated.U
 		return nil, err
 	}
 	return toGenMutationResult(result), nil
+}
+
+// UpdateStaff is the resolver for the updateStaff field.
+func (r *mutationResolver) UpdateStaff(ctx context.Context, staff generated.UpdateStaffInput) (*generated.MutationResult, error) {
+	panic(fmt.Errorf("not implemented: UpdateStaff - updateStaff"))
 }
 
 // QuestionFeedback is the resolver for the questionFeedback field.
@@ -256,6 +276,11 @@ func (r *mutationResolver) DeleteEvent(ctx context.Context, eventID string) (*ge
 	return toGenMutationResult(result), nil
 }
 
+// DeleteJob is the resolver for the deleteJob field.
+func (r *mutationResolver) DeleteJob(ctx context.Context, jobID int) (*generated.MutationResult, error) {
+	panic(fmt.Errorf("not implemented: DeleteJob - deleteJob"))
+}
+
 // DeleteOpportunity is the resolver for the deleteOpportunity field.
 func (r *mutationResolver) DeleteOpportunity(ctx context.Context, oppID string) (*generated.MutationResult, error) {
 	result, err := r.ShiftService.DeleteOpportunity(ctx, oppID)
@@ -281,6 +306,11 @@ func (r *mutationResolver) DeleteEventDate(ctx context.Context, eventDateID stri
 		return nil, err
 	}
 	return toGenMutationResult(result), nil
+}
+
+// DeleteStaff is the resolver for the deleteStaff field.
+func (r *mutationResolver) DeleteStaff(ctx context.Context, staffID string) (*generated.MutationResult, error) {
+	panic(fmt.Errorf("not implemented: DeleteStaff - deleteStaff"))
 }
 
 // ResolveFeedback is the resolver for the resolveFeedback field.
@@ -347,6 +377,11 @@ func (r *queryResolver) Venues(ctx context.Context) ([]*generated.Venue, error) 
 	return toGenVenues(venues), nil
 }
 
+// Staff is the resolver for the staff field.
+func (r *queryResolver) Staff(ctx context.Context) ([]*generated.Staff, error) {
+	panic(fmt.Errorf("not implemented: Staff - staff"))
+}
+
 // AllVolunteers is the resolver for the allVolunteers field.
 func (r *queryResolver) AllVolunteers(ctx context.Context, filter *generated.VolunteerFilterInput) ([]*generated.Volunteer, error) {
 	vols, err := r.VolunteerService.FetchAllVolunteers(ctx, toModelVolunteerFilterInput(filter))
@@ -409,3 +444,15 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+/*
+	func (r *mutationResolver) CreateJob(ctx context.Context, newJob generated.NewJobInput) (*generated.MutationResult, error) {
+	panic(fmt.Errorf("not implemented: CreateJob - createJob"))
+}
+*/

@@ -35,10 +35,11 @@ type EventFilterInput struct {
 }
 
 type JobType struct {
-	ID       int    `json:"id"`
-	Code     string `json:"code"`
-	Name     string `json:"name"`
-	IsActive bool   `json:"isActive"`
+	ID        int    `json:"id"`
+	Code      string `json:"code"`
+	Name      string `json:"name"`
+	SortOrder int    `json:"sortOrder"`
+	IsActive  bool   `json:"isActive"`
 }
 
 type LookupValues struct {

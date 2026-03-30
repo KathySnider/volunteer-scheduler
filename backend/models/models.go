@@ -8,6 +8,17 @@ type LookupValues struct {
 	JobTypes     []*JobType
 }
 
+// Staff
+
+type Staff struct {
+	ID        string
+	FirstName string
+	LastName  string
+	Email     string
+	Phone     *string
+	Position  *string
+}
+
 // Volunteers
 
 // Any user can see own profile (sans ID).
@@ -70,10 +81,11 @@ type Venue struct {
 // Opportunities and Shifts
 
 type JobType struct {
-	ID       int
-	Code     string
-	Name     string
-	IsActive bool
+	ID        int
+	Code      string
+	Name      string
+	SortOrder int
+	IsActive  bool
 }
 type Opportunity struct {
 	ID                   string
@@ -189,6 +201,14 @@ type NewVolunteerInput struct {
 	Role      Role
 }
 
+type NewStaffInput struct {
+	FirstName string
+	LastName  string
+	Email     string
+	Phone     *string
+	Position  *string
+}
+
 type NewVenueInput struct {
 	Name     *string
 	Address  string
@@ -224,6 +244,12 @@ type AddEventDateInput struct {
 	StartDateTime string
 	EndDateTime   string
 	IanaZone      string
+}
+
+type NewJobInput struct {
+	Code      string
+	Name      string
+	SortOrder int
 }
 
 type NewOpportunityInput struct {
@@ -267,6 +293,15 @@ type UpdateOwnProfileInput struct {
 	ZipCode   *string
 }
 
+type UpdateStaffInput struct {
+	ID        string
+	FirstName string
+	LastName  string
+	Email     string
+	Phone     *string
+	Position  *string
+}
+
 type UpdateVolunteerInput struct {
 	ID        string
 	FirstName string
@@ -307,6 +342,13 @@ type UpdateEventDateInput struct {
 	StartDateTime string
 	EndDateTime   string
 	IanaZone      string
+}
+
+type UpdateJobInput struct {
+	ID        int
+	Code      string
+	Name      string
+	SortOrder int
 }
 
 type UpdateOpportunityInput struct {
