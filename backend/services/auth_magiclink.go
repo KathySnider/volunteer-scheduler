@@ -76,7 +76,12 @@ func (s *MagicLinkService) SendMagicLinkEmail(ctx context.Context, to, token str
 		appURL = appURL[:len(appURL)-1]
 	}
 
-	callbackURL := fmt.Sprintf("%s/auth/magic-link?token=%s", appURL, token)
+	callbackPath := os.Getenv("MAGIC_LINK_CALLBACK_PATH")
+	if callbackPath == "" {
+		callbackPath = "/auth/magic-link"
+	}
+
+	callbackURL := fmt.Sprintf("%s%s?token=%s", appURL, callbackPath, token)
 
 	subject := "Your AARP Volunteer System Magic Link"
 
@@ -369,4 +374,9 @@ AARP Volunteer System
 	}
 
 	return nil
+}
+
+func (s *MagicLinkService) Logout(ctx context.Context, token string) error {
+	_, err := s.DB.ExecContext(ctx, "DELETE FROM sessions where token = $1", token)
+	return err
 }

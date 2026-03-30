@@ -78,10 +78,11 @@ type FeedbackNote struct {
 }
 
 type JobType struct {
-	ID       int    `json:"id"`
-	Code     string `json:"code"`
-	Name     string `json:"name"`
-	IsActive bool   `json:"isActive"`
+	ID        int    `json:"id"`
+	Code      string `json:"code"`
+	Name      string `json:"name"`
+	SortOrder int    `json:"sortOrder"`
+	IsActive  bool   `json:"isActive"`
 }
 
 type LookupValues struct {
@@ -121,6 +122,12 @@ type NewFeedbackInput struct {
 	Text        string       `json:"text"`
 }
 
+type NewJobInput struct {
+	Code      string `json:"code"`
+	Name      string `json:"name"`
+	SortOrder int    `json:"sortOrder"`
+}
+
 type NewOpportunityInput struct {
 	EventID              string           `json:"eventId"`
 	JobID                int              `json:"jobId"`
@@ -140,6 +147,14 @@ type NewShiftInput struct {
 	IanaZone       string  `json:"ianaZone"`
 	MaxVolunteers  *int    `json:"maxVolunteers,omitempty"`
 	StaffContactID *string `json:"staffContactId,omitempty"`
+}
+
+type NewStaffInput struct {
+	FirstName string  `json:"firstName"`
+	LastName  string  `json:"lastName"`
+	Email     string  `json:"email"`
+	Phone     *string `json:"phone,omitempty"`
+	Position  *string `json:"position,omitempty"`
 }
 
 type NewVenueInput struct {
@@ -207,6 +222,15 @@ type Shift struct {
 	StaffContactID *string `json:"staffContactId,omitempty"`
 }
 
+type Staff struct {
+	ID        string  `json:"id"`
+	FirstName string  `json:"firstName"`
+	LastName  string  `json:"lastName"`
+	Email     string  `json:"email"`
+	Phone     *string `json:"phone,omitempty"`
+	Position  *string `json:"position,omitempty"`
+}
+
 type UpdateEventDateInput struct {
 	ID            string `json:"id"`
 	StartDateTime string `json:"startDateTime"`
@@ -230,6 +254,13 @@ type UpdateFeedbackInput struct {
 	GithubIssueURL *string        `json:"githubIssueURL,omitempty"`
 }
 
+type UpdateJobInput struct {
+	ID        int    `json:"id"`
+	Code      string `json:"code"`
+	Name      string `json:"name"`
+	SortOrder int    `json:"sortOrder"`
+}
+
 type UpdateOpportunityInput struct {
 	ID                   string  `json:"id"`
 	JobID                int     `json:"jobId"`
@@ -250,6 +281,15 @@ type UpdateShiftInput struct {
 	IanaZone       string  `json:"ianaZone"`
 	MaxVolunteers  *int    `json:"maxVolunteers,omitempty"`
 	StaffContactID *string `json:"staffContactId,omitempty"`
+}
+
+type UpdateStaffInput struct {
+	ID        string  `json:"id"`
+	FirstName string  `json:"firstName"`
+	LastName  string  `json:"lastName"`
+	Email     string  `json:"email"`
+	Phone     *string `json:"phone,omitempty"`
+	Position  *string `json:"position,omitempty"`
 }
 
 type UpdateVenueInput struct {

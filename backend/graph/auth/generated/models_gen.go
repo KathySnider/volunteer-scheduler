@@ -9,6 +9,10 @@ type AuthResult struct {
 	SessionToken *string `json:"sessionToken,omitempty"`
 }
 
+type LogoutResult struct {
+	Success bool `json:"success"`
+}
+
 type MagicLinkResult struct {
 	Success bool    `json:"success"`
 	Message string  `json:"message"`

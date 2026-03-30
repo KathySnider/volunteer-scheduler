@@ -86,6 +86,20 @@ func (r *mutationResolver) RequestAccount(ctx context.Context, email string, fir
 	}, nil
 }
 
+// Logout is the resolver for the logout field.
+func (r *mutationResolver) Logout(ctx context.Context, token string) (*generated.LogoutResult, error) {
+	err := r.MagicLinkService.Logout(ctx, token)
+	if err != nil {
+		return &generated.LogoutResult{
+			Success: false,
+		}, err
+	}
+
+	return &generated.LogoutResult{
+		Success: true,
+	}, nil
+}
+
 // AuthHealthCheck is the resolver for the _authHealthCheck field.
 func (r *queryResolver) AuthHealthCheck(ctx context.Context) (*bool, error) {
 	panic(fmt.Errorf("not implemented: AuthHealthCheck - _authHealthCheck"))

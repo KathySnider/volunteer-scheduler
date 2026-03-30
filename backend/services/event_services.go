@@ -102,7 +102,7 @@ func (s *EventService) FetchFilteredEvents(ctx context.Context, filter *models.E
 	// potentially meet all of the user's criteria. If there are
 	// no filters, the call to pass 1 returns all of the events.
 
-	eventsMap, err := FetchFilteredPassOne(ctx, filter, s.DB)
+	eventsMap, err := fetchFilteredPassOne(ctx, filter, s.DB)
 	if err != nil {
 		return nil, fmt.Errorf("error querying events: %w", err)
 	}
@@ -121,7 +121,7 @@ func (s *EventService) FetchFilteredEvents(ctx context.Context, filter *models.E
 			eventIDs = append(eventIDs, id)
 		}
 
-		eventsWithShifts, err := FetchFilteredPassTwo(ctx, filter, eventIDs, s.DB)
+		eventsWithShifts, err := fetchFilteredPassTwo(ctx, filter, eventIDs, s.DB)
 		if err != nil {
 			return nil, fmt.Errorf("error querying events: %w", err)
 		}
@@ -749,7 +749,6 @@ func (s *EventService) DeleteEvent(ctx context.Context, eventId string) (*models
 	}
 
 	// Finally, delete the event (which will cascade to the opportunities, shifts, and volunteer_shifts).
-	// TODO: Delete the entry.
 	_, err = s.DB.ExecContext(ctx, "DELETE FROM events WHERE event_id = $1", eventInt)
 	if err != nil {
 		return &models.MutationResult{

@@ -62,10 +62,11 @@ type ComplexityRoot struct {
 	}
 
 	JobType struct {
-		Code     func(childComplexity int) int
-		ID       func(childComplexity int) int
-		IsActive func(childComplexity int) int
-		Name     func(childComplexity int) int
+		Code      func(childComplexity int) int
+		ID        func(childComplexity int) int
+		IsActive  func(childComplexity int) int
+		Name      func(childComplexity int) int
+		SortOrder func(childComplexity int) int
 	}
 
 	LookupValues struct {
@@ -282,6 +283,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.JobType.Name(childComplexity), true
+	case "JobType.sortOrder":
+		if e.complexity.JobType.SortOrder == nil {
+			break
+		}
+
+		return e.complexity.JobType.SortOrder(childComplexity), true
 
 	case "LookupValues.jobTypes":
 		if e.complexity.LookupValues.JobTypes == nil {
@@ -877,6 +884,7 @@ type JobType{
   id: Int!
   code: String!
   name: String!
+  sortOrder: Int!
   isActive: Boolean!
 }
   
@@ -1551,6 +1559,35 @@ func (ec *executionContext) fieldContext_JobType_name(_ context.Context, field g
 	return fc, nil
 }
 
+func (ec *executionContext) _JobType_sortOrder(ctx context.Context, field graphql.CollectedField, obj *JobType) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_JobType_sortOrder,
+		func(ctx context.Context) (any, error) {
+			return obj.SortOrder, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_JobType_sortOrder(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobType",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _JobType_isActive(ctx context.Context, field graphql.CollectedField, obj *JobType) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1688,6 +1725,8 @@ func (ec *executionContext) fieldContext_LookupValues_jobTypes(_ context.Context
 				return ec.fieldContext_JobType_code(ctx, field)
 			case "name":
 				return ec.fieldContext_JobType_name(ctx, field)
+			case "sortOrder":
+				return ec.fieldContext_JobType_sortOrder(ctx, field)
 			case "isActive":
 				return ec.fieldContext_JobType_isActive(ctx, field)
 			}
@@ -5451,6 +5490,11 @@ func (ec *executionContext) _JobType(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "name":
 			out.Values[i] = ec._JobType_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "sortOrder":
+			out.Values[i] = ec._JobType_sortOrder(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

@@ -27,9 +27,11 @@ func (s *ShiftService) FetchActiveJobs(ctx context.Context) ([]*models.JobType, 
         SELECT 
 			job_type_id,
             code,
-            name
+            name,
+			sort_order
         FROM job_types
 		WHERE is_active = true
+		ORDER BY sort_order
     `
 	rows, err := s.DB.QueryContext(ctx, query)
 	if err != nil {
@@ -44,6 +46,7 @@ func (s *ShiftService) FetchActiveJobs(ctx context.Context) ([]*models.JobType, 
 			&job.ID,
 			&job.Code,
 			&job.Name,
+			&job.SortOrder,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning job types: %w", err)
@@ -261,6 +264,36 @@ func (s *ShiftService) FetchVolunteerShifts(ctx context.Context, volId string, f
 
 // Mutations: Create opportunities and shifts.
 
+func (s *ShiftService) CreateJobType(ctx context.Context, newJob models.NewJobInput) (*models.MutationResult, error) {
+
+	query := `
+		INSERT INTO job_types (
+			code,
+			name,
+			sort_order)
+		VALUES ($1, $2, $3)
+		RETURNING job_type_id
+	`
+
+	var JobId int
+	err := s.DB.QueryRowContext(ctx, query, newJob.Code, newJob.Name, newJob.SortOrder).Scan(&JobId)
+
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to create new Job."),
+			ID:      nil,
+		}, err
+	}
+
+	return &models.MutationResult{
+		Success: true,
+		Message: ptrString("Job successfully created."),
+		ID:      ptrString(strconv.Itoa(JobId)),
+	}, nil
+
+}
+
 func (s *ShiftService) CreateOpportunity(ctx context.Context, opp models.NewOpportunityInput) (*models.MutationResult, error) {
 	var oppInt int
 
@@ -289,7 +322,7 @@ func (s *ShiftService) CreateOpportunity(ctx context.Context, opp models.NewOppo
 
 	if err == nil {
 		// Opportunity was created. Add shifts.
-		err = AddNewOpportunityShifts(ctx, opp.Shifts, oppInt, tx)
+		err = addNewOpportunityShifts(ctx, opp.Shifts, oppInt, tx)
 
 		if err != nil {
 			err = fmt.Errorf("error adding shifts to opportunity: %w", err)
@@ -380,6 +413,34 @@ func (s *ShiftService) CreateShift(ctx context.Context, shift models.AddShiftInp
 
 // Mutations: Updates and assignments.
 
+func (s *ShiftService) UpdateJobType(ctx context.Context, job models.UpdateJobInput) (*models.MutationResult, error) {
+	jobStr := strconv.Itoa(job.ID)
+
+	update := `
+		UPDATE job_types 
+		SET 
+			code = $1,
+			name = $2,
+			sort_order = $3
+		WHERE jobion_id = $4
+	`
+	_, err := s.DB.ExecContext(ctx, update, job.Code, job.Name, job.SortOrder, job.ID)
+
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to update job type."),
+			ID:      &jobStr,
+		}, err
+	}
+
+	return &models.MutationResult{
+		Success: true,
+		Message: ptrString("Job type successfully updated."),
+		ID:      &jobStr,
+	}, nil
+
+}
 func (s *ShiftService) UpdateOpportunity(ctx context.Context, opp models.UpdateOpportunityInput) (*models.MutationResult, error) {
 
 	oppInt, err := strconv.Atoi(opp.ID)
@@ -471,10 +532,9 @@ func (s *ShiftService) AssignVolunteerToShift(ctx context.Context, shiftId strin
 	return assignVolToShift(ctx, s.DB, s.mailer, shiftId, volInt)
 }
 
-// Mutations: Deletions and cancellation of assignments.
+// Mutations: Deletions and cancellations of assignments.
 
 // Deleting an opportunity will delete all shifts associated with it.
-
 func (s *ShiftService) DeleteOpportunity(ctx context.Context, oppId string) (*models.MutationResult, error) {
 	oppInt, err := strconv.Atoi(oppId)
 	if err == nil {
@@ -498,9 +558,36 @@ func (s *ShiftService) DeleteOpportunity(ctx context.Context, oppId string) (*mo
 func (s *ShiftService) DeleteShift(ctx context.Context, shiftId string) (*models.MutationResult, error) {
 
 	shiftInt, err := strconv.Atoi(shiftId)
-	if err == nil {
-		_, err = s.DB.ExecContext(ctx, "DELETE FROM shifts WHERE shift_id = $1", shiftInt)
+	if err != nil {
+		return nil, fmt.Errorf("invalid shiftId, %s: %w", shiftId, err)
 	}
+
+	// An opportunity must have at least one shift. Do not delete
+	// the shift if this is the last one. First, we need the
+	// opportunity_id:
+	var oppInt int
+	err = s.DB.QueryRowContext(ctx, "SELECT shift_id, opportunity_id FROM shifts WHERE shift_id = $1", shiftInt).Scan(&shiftInt, &oppInt)
+	if err != nil {
+		return nil, fmt.Errorf("unable to find shift with id, %d, in the DB: %w", shiftInt, err)
+	}
+	// Now, see how many shifts are associated with the opp.
+	query := `SELECT
+		opportunity_id,
+		COUNT(*) numShifts
+		FROM shifts
+		WHERE opportunity_id = $1
+		GROUP BY opportunity_id
+		RETURNING numShifts
+	 `
+	var numShifts int
+	err = s.DB.QueryRowContext(ctx, query, oppInt).Scan(&numShifts)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get shifts for opportunity with id %d: %w", oppInt, err)
+	}
+	if numShifts < 2 {
+		return nil, fmt.Errorf("cannot delete the last shift associated with opportunity %d", oppInt)
+	}
+	_, err = s.DB.ExecContext(ctx, "DELETE FROM shifts WHERE shift_id = $1", shiftInt)
 
 	if err != nil {
 		return &models.MutationResult{

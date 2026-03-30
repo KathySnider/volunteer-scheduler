@@ -93,6 +93,22 @@ func toGenJobType(m *models.JobType) *generated.JobType {
 	}
 }
 
+func toGenStaff(m *models.Staff) *generated.Staff {
+	if m == nil {
+		return nil
+	}
+
+	return &generated.Staff{
+		ID:        m.ID,
+		FirstName: m.FirstName,
+		LastName:  m.LastName,
+		Email:     m.Email,
+		Phone:     m.Phone,
+		Position:  m.Position,
+	}
+
+}
+
 func toGenVenue(m *models.Venue) *generated.Venue {
 	if m == nil {
 		return nil
@@ -474,6 +490,13 @@ func toModelAddEventDate(g generated.AddEventDateInput) models.AddEventDateInput
 	}
 }
 
+func toModelNewJobInput(g generated.NewJobInput) models.NewJobInput {
+	return models.NewJobInput{
+		Code: g.Code,
+		Name: g.Name,
+	}
+}
+
 func toModelNewOpportunities(gs []generated.NewOpportunityInput) []models.NewOpportunityInput {
 	result := make([]models.NewOpportunityInput, len(gs))
 
@@ -579,6 +602,14 @@ func toModelUpdateEventDateInput(g generated.UpdateEventDateInput) models.Update
 		StartDateTime: g.StartDateTime,
 		EndDateTime:   g.EndDateTime,
 		IanaZone:      g.IanaZone,
+	}
+}
+
+func toModelUpdatejobInput(g generated.UpdateJobInput) models.UpdateJobInput {
+	return models.UpdateJobInput{
+		ID:   g.ID,
+		Code: g.Code,
+		Name: g.Name,
 	}
 }
 

@@ -73,6 +73,7 @@ type JobType{
   id: Int!
   code: String!
   name: String!
+  sortOrder: Int!
   isActive: Boolean!
 }
   
