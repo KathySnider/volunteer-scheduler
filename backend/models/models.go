@@ -246,7 +246,7 @@ type AddEventDateInput struct {
 	IanaZone      string
 }
 
-type NewJobInput struct {
+type NewJobTypeInput struct {
 	Code      string
 	Name      string
 	SortOrder int
@@ -344,7 +344,7 @@ type UpdateEventDateInput struct {
 	IanaZone      string
 }
 
-type UpdateJobInput struct {
+type UpdateJobTypeInput struct {
 	ID        int
 	Code      string
 	Name      string

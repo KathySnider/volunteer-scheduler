@@ -320,6 +320,72 @@ func seedOpportunity(t *testing.T, eventID, jobTypeID int, isVirtual bool) int {
 	return id
 }
 
+// getServiceTypeID looks up the service_type_id for a seeded service-type code.
+func getServiceTypeID(t *testing.T, code string) int {
+	t.Helper()
+	var id int
+	err := testDB.QueryRow("SELECT service_type_id FROM service_types WHERE code = $1", code).Scan(&id)
+	if err != nil {
+		t.Fatalf("getServiceTypeID(%q): %v", code, err)
+	}
+	return id
+}
+
+// uniqueCode returns a short unique lowercase string suitable for use as a DB
+// code column value (e.g. job_types.code, regions.code).
+func uniqueCode(t *testing.T, prefix string) string {
+	t.Helper()
+	return fmt.Sprintf("%s%d", prefix, time.Now().UnixNano())
+}
+
+// makeAdminToken creates an ADMINISTRATOR volunteer and session and returns
+// the session token. All seeded rows are removed via t.Cleanup.
+func makeAdminToken(t *testing.T) string {
+	t.Helper()
+	email := uniqueEmail(t)
+	id := seedVolunteer(t, email, "Admin", "Test", "ADMINISTRATOR")
+	return seedSession(t, email, id, "ADMINISTRATOR", "adm-"+email)
+}
+
+// mutationResult matches the MutationResult GraphQL type used by all CRUD
+// mutations in the admin schema.
+type mutationResult struct {
+	Success bool    `json:"success"`
+	Message *string `json:"message"`
+	ID      *string `json:"id"`
+}
+
+// rowExists returns true when the given COUNT(*) query returns a positive number.
+// Use it to assert whether a row is present or absent after a mutation.
+func rowExists(t *testing.T, query string, args ...any) bool {
+	t.Helper()
+	var count int
+	if err := testDB.QueryRow(query, args...).Scan(&count); err != nil {
+		t.Fatalf("rowExists: %v", err)
+	}
+	return count > 0
+}
+
+// seedJobType inserts a job type with a placeholder sort_order and returns
+// its job_type_id. Use uniqueCode(t, "prefix") for the code argument to
+// avoid UNIQUE constraint collisions across test runs.
+func seedJobType(t *testing.T, code, name string) int {
+	t.Helper()
+	var id int
+	err := testDB.QueryRow(`
+		INSERT INTO job_types (code, name, sort_order)
+		VALUES ($1, $2, 0)
+		RETURNING job_type_id
+	`, code, name).Scan(&id)
+	if err != nil {
+		t.Fatalf("seedJobType: %v", err)
+	}
+	t.Cleanup(func() {
+		testDB.Exec("DELETE FROM job_types WHERE job_type_id = $1", id)
+	})
+	return id
+}
+
 // seedShift inserts a shift and returns its shift_id. startUTC and endUTC
 // must be RFC3339 strings (e.g. "2026-04-15T09:00:00Z").
 func seedShift(t *testing.T, opportunityID int, startUTC, endUTC string, maxVolunteers int) int {

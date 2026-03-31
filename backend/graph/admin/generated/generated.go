@@ -103,7 +103,7 @@ type ComplexityRoot struct {
 		CancelShift            func(childComplexity int, shiftID string, volunteerID string) int
 		CreateEvent            func(childComplexity int, newEvent NewEventInput) int
 		CreateEventDate        func(childComplexity int, newDate AddEventDateInput) int
-		CreateJobType          func(childComplexity int, newJob NewJobInput) int
+		CreateJobType          func(childComplexity int, newJob NewJobTypeInput) int
 		CreateOpportunity      func(childComplexity int, newOpp NewOpportunityInput) int
 		CreateRegion           func(childComplexity int, newRegion NewRegionInput) int
 		CreateShift            func(childComplexity int, newShift AddShiftInput) int
@@ -112,7 +112,7 @@ type ComplexityRoot struct {
 		CreateVolunteer        func(childComplexity int, newVol NewVolunteerInput) int
 		DeleteEvent            func(childComplexity int, eventID string) int
 		DeleteEventDate        func(childComplexity int, eventDateID string) int
-		DeleteJob              func(childComplexity int, jobID int) int
+		DeleteJobType          func(childComplexity int, jobID int) int
 		DeleteOpportunity      func(childComplexity int, oppID string) int
 		DeleteRegion           func(childComplexity int, regionID int) int
 		DeleteShift            func(childComplexity int, shiftID string) int
@@ -126,7 +126,7 @@ type ComplexityRoot struct {
 		UpdateEvent            func(childComplexity int, event UpdateEventInput) int
 		UpdateEventDate        func(childComplexity int, date UpdateEventDateInput) int
 		UpdateFeedback         func(childComplexity int, feedback UpdateFeedbackInput) int
-		UpdateJob              func(childComplexity int, job UpdateJobInput) int
+		UpdateJobType          func(childComplexity int, job UpdateJobTypeInput) int
 		UpdateOpportunity      func(childComplexity int, opp UpdateOpportunityInput) int
 		UpdateRegion           func(childComplexity int, region UpdateRegionInput) int
 		UpdateShift            func(childComplexity int, shift UpdateShiftInput) int
@@ -248,7 +248,7 @@ type MutationResolver interface {
 	CreateVenue(ctx context.Context, newVenue NewVenueInput) (*MutationResult, error)
 	CreateRegion(ctx context.Context, newRegion NewRegionInput) (*MutationResult, error)
 	CreateEvent(ctx context.Context, newEvent NewEventInput) (*MutationResult, error)
-	CreateJobType(ctx context.Context, newJob NewJobInput) (*MutationResult, error)
+	CreateJobType(ctx context.Context, newJob NewJobTypeInput) (*MutationResult, error)
 	CreateOpportunity(ctx context.Context, newOpp NewOpportunityInput) (*MutationResult, error)
 	CreateShift(ctx context.Context, newShift AddShiftInput) (*MutationResult, error)
 	CreateEventDate(ctx context.Context, newDate AddEventDateInput) (*MutationResult, error)
@@ -261,7 +261,7 @@ type MutationResolver interface {
 	UpdateRegion(ctx context.Context, region UpdateRegionInput) (*MutationResult, error)
 	UpdateVolunteer(ctx context.Context, profile UpdateVolunteerInput) (*MutationResult, error)
 	UpdateEvent(ctx context.Context, event UpdateEventInput) (*MutationResult, error)
-	UpdateJob(ctx context.Context, job UpdateJobInput) (*MutationResult, error)
+	UpdateJobType(ctx context.Context, job UpdateJobTypeInput) (*MutationResult, error)
 	UpdateOpportunity(ctx context.Context, opp UpdateOpportunityInput) (*MutationResult, error)
 	UpdateShift(ctx context.Context, shift UpdateShiftInput) (*MutationResult, error)
 	UpdateEventDate(ctx context.Context, date UpdateEventDateInput) (*MutationResult, error)
@@ -272,7 +272,7 @@ type MutationResolver interface {
 	DeleteVenue(ctx context.Context, venueID string) (*MutationResult, error)
 	DeleteRegion(ctx context.Context, regionID int) (*MutationResult, error)
 	DeleteEvent(ctx context.Context, eventID string) (*MutationResult, error)
-	DeleteJob(ctx context.Context, jobID int) (*MutationResult, error)
+	DeleteJobType(ctx context.Context, jobID int) (*MutationResult, error)
 	DeleteOpportunity(ctx context.Context, oppID string) (*MutationResult, error)
 	DeleteShift(ctx context.Context, shiftID string) (*MutationResult, error)
 	DeleteEventDate(ctx context.Context, eventDateID string) (*MutationResult, error)
@@ -588,7 +588,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateJobType(childComplexity, args["newJob"].(NewJobInput)), true
+		return e.complexity.Mutation.CreateJobType(childComplexity, args["newJob"].(NewJobTypeInput)), true
 	case "Mutation.createOpportunity":
 		if e.complexity.Mutation.CreateOpportunity == nil {
 			break
@@ -677,17 +677,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteEventDate(childComplexity, args["eventDateId"].(string)), true
-	case "Mutation.deleteJob":
-		if e.complexity.Mutation.DeleteJob == nil {
+	case "Mutation.deleteJobType":
+		if e.complexity.Mutation.DeleteJobType == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_deleteJob_args(ctx, rawArgs)
+		args, err := ec.field_Mutation_deleteJobType_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.DeleteJob(childComplexity, args["JobId"].(int)), true
+		return e.complexity.Mutation.DeleteJobType(childComplexity, args["JobId"].(int)), true
 	case "Mutation.deleteOpportunity":
 		if e.complexity.Mutation.DeleteOpportunity == nil {
 			break
@@ -831,17 +831,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateFeedback(childComplexity, args["feedback"].(UpdateFeedbackInput)), true
-	case "Mutation.updateJob":
-		if e.complexity.Mutation.UpdateJob == nil {
+	case "Mutation.updateJobType":
+		if e.complexity.Mutation.UpdateJobType == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_updateJob_args(ctx, rawArgs)
+		args, err := ec.field_Mutation_updateJobType_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateJob(childComplexity, args["job"].(UpdateJobInput)), true
+		return e.complexity.Mutation.UpdateJobType(childComplexity, args["job"].(UpdateJobTypeInput)), true
 	case "Mutation.updateOpportunity":
 		if e.complexity.Mutation.UpdateOpportunity == nil {
 			break
@@ -1413,7 +1413,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputNewEventDateInput,
 		ec.unmarshalInputNewEventInput,
 		ec.unmarshalInputNewFeedbackInput,
-		ec.unmarshalInputNewJobInput,
+		ec.unmarshalInputNewJobTypeInput,
 		ec.unmarshalInputNewOpportunityInput,
 		ec.unmarshalInputNewRegionInput,
 		ec.unmarshalInputNewShiftInput,
@@ -1425,7 +1425,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputUpdateEventDateInput,
 		ec.unmarshalInputUpdateEventInput,
 		ec.unmarshalInputUpdateFeedbackInput,
-		ec.unmarshalInputUpdateJobInput,
+		ec.unmarshalInputUpdateJobTypeInput,
 		ec.unmarshalInputUpdateOpportunityInput,
 		ec.unmarshalInputUpdateRegionInput,
 		ec.unmarshalInputUpdateShiftInput,
@@ -1708,7 +1708,7 @@ type Mutation {
   createVenue(newVenue: NewVenueInput!): MutationResult!
   createRegion(newRegion: NewRegionInput!): MutationResult!
   createEvent(newEvent: NewEventInput!): MutationResult!
-  createJobType(newJob: NewJobInput!): MutationResult!
+  createJobType(newJob: NewJobTypeInput!): MutationResult!
   createOpportunity(newOpp: NewOpportunityInput!): MutationResult!
   createShift(newShift: AddShiftInput!): MutationResult!
   createEventDate(newDate: AddEventDateInput!): MutationResult!
@@ -1724,7 +1724,7 @@ type Mutation {
   updateRegion(region: UpdateRegionInput!): MutationResult!
   updateVolunteer(profile: UpdateVolunteerInput!): MutationResult!
   updateEvent(event: UpdateEventInput!): MutationResult!
-  updateJob(job: UpdateJobInput!): MutationResult!
+  updateJobType(job: UpdateJobTypeInput!): MutationResult!
   updateOpportunity(opp: UpdateOpportunityInput!): MutationResult!
   updateShift(shift: UpdateShiftInput!): MutationResult!
   updateEventDate(date: UpdateEventDateInput!): MutationResult!
@@ -1737,7 +1737,7 @@ type Mutation {
   deleteVenue(venueId: ID!): MutationResult!
   deleteRegion(regionId: Int!): MutationResult!
   deleteEvent(eventId: ID!): MutationResult!
-  deleteJob(JobId: Int!): MutationResult!
+  deleteJobType(JobId: Int!): MutationResult!
   deleteOpportunity(oppId: ID!): MutationResult!
   deleteShift(shiftId: ID!): MutationResult!
   deleteEventDate(eventDateId: ID!): MutationResult!
@@ -1911,13 +1911,13 @@ input UpdateEventDateInput {
   ianaZone: String!
 }
 
-input NewJobInput {
+input NewJobTypeInput {
   code: String!
   name: String!
   sortOrder: Int!
 }
 
-input UpdateJobInput {
+input UpdateJobTypeInput {
   id: Int!
   code: String!
   name: String!
@@ -2078,7 +2078,7 @@ func (ec *executionContext) field_Mutation_createEvent_args(ctx context.Context,
 func (ec *executionContext) field_Mutation_createJobType_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "newJob", ec.unmarshalNNewJobInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewJobInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "newJob", ec.unmarshalNNewJobTypeInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewJobTypeInput)
 	if err != nil {
 		return nil, err
 	}
@@ -2174,7 +2174,7 @@ func (ec *executionContext) field_Mutation_deleteEvent_args(ctx context.Context,
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_deleteJob_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+func (ec *executionContext) field_Mutation_deleteJobType_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "JobId", ec.unmarshalNInt2int)
@@ -2333,10 +2333,10 @@ func (ec *executionContext) field_Mutation_updateFeedback_args(ctx context.Conte
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_updateJob_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+func (ec *executionContext) field_Mutation_updateJobType_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "job", ec.unmarshalNUpdateJobInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateJobInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "job", ec.unmarshalNUpdateJobTypeInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateJobTypeInput)
 	if err != nil {
 		return nil, err
 	}
@@ -3873,7 +3873,7 @@ func (ec *executionContext) _Mutation_createJobType(ctx context.Context, field g
 		ec.fieldContext_Mutation_createJobType,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateJobType(ctx, fc.Args["newJob"].(NewJobInput))
+			return ec.resolvers.Mutation().CreateJobType(ctx, fc.Args["newJob"].(NewJobTypeInput))
 		},
 		nil,
 		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
@@ -4502,15 +4502,15 @@ func (ec *executionContext) fieldContext_Mutation_updateEvent(ctx context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_updateJob(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_updateJobType(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Mutation_updateJob,
+		ec.fieldContext_Mutation_updateJobType,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateJob(ctx, fc.Args["job"].(UpdateJobInput))
+			return ec.resolvers.Mutation().UpdateJobType(ctx, fc.Args["job"].(UpdateJobTypeInput))
 		},
 		nil,
 		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
@@ -4519,7 +4519,7 @@ func (ec *executionContext) _Mutation_updateJob(ctx context.Context, field graph
 	)
 }
 
-func (ec *executionContext) fieldContext_Mutation_updateJob(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_updateJobType(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -4544,7 +4544,7 @@ func (ec *executionContext) fieldContext_Mutation_updateJob(ctx context.Context,
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_updateJob_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_updateJobType_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -5041,15 +5041,15 @@ func (ec *executionContext) fieldContext_Mutation_deleteEvent(ctx context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_deleteJob(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_deleteJobType(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Mutation_deleteJob,
+		ec.fieldContext_Mutation_deleteJobType,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().DeleteJob(ctx, fc.Args["JobId"].(int))
+			return ec.resolvers.Mutation().DeleteJobType(ctx, fc.Args["JobId"].(int))
 		},
 		nil,
 		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
@@ -5058,7 +5058,7 @@ func (ec *executionContext) _Mutation_deleteJob(ctx context.Context, field graph
 	)
 }
 
-func (ec *executionContext) fieldContext_Mutation_deleteJob(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_deleteJobType(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -5083,7 +5083,7 @@ func (ec *executionContext) fieldContext_Mutation_deleteJob(ctx context.Context,
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_deleteJob_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_deleteJobType_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -9697,8 +9697,8 @@ func (ec *executionContext) unmarshalInputNewFeedbackInput(ctx context.Context, 
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputNewJobInput(ctx context.Context, obj any) (NewJobInput, error) {
-	var it NewJobInput
+func (ec *executionContext) unmarshalInputNewJobTypeInput(ctx context.Context, obj any) (NewJobTypeInput, error) {
+	var it NewJobTypeInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -10315,8 +10315,8 @@ func (ec *executionContext) unmarshalInputUpdateFeedbackInput(ctx context.Contex
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUpdateJobInput(ctx context.Context, obj any) (UpdateJobInput, error) {
-	var it UpdateJobInput
+func (ec *executionContext) unmarshalInputUpdateJobTypeInput(ctx context.Context, obj any) (UpdateJobTypeInput, error) {
+	var it UpdateJobTypeInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -11264,9 +11264,9 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "updateJob":
+		case "updateJobType":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_updateJob(ctx, field)
+				return ec._Mutation_updateJobType(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -11341,9 +11341,9 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "deleteJob":
+		case "deleteJobType":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_deleteJob(ctx, field)
+				return ec._Mutation_deleteJobType(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -13090,8 +13090,8 @@ func (ec *executionContext) unmarshalNNewFeedbackInput2volunteerᚑschedulerᚋg
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNNewJobInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewJobInput(ctx context.Context, v any) (NewJobInput, error) {
-	res, err := ec.unmarshalInputNewJobInput(ctx, v)
+func (ec *executionContext) unmarshalNNewJobTypeInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewJobTypeInput(ctx context.Context, v any) (NewJobTypeInput, error) {
+	res, err := ec.unmarshalInputNewJobTypeInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -13471,8 +13471,8 @@ func (ec *executionContext) unmarshalNUpdateFeedbackInput2volunteerᚑscheduler�
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNUpdateJobInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateJobInput(ctx context.Context, v any) (UpdateJobInput, error) {
-	res, err := ec.unmarshalInputUpdateJobInput(ctx, v)
+func (ec *executionContext) unmarshalNUpdateJobTypeInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateJobTypeInput(ctx context.Context, v any) (UpdateJobTypeInput, error) {
+	res, err := ec.unmarshalInputUpdateJobTypeInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
