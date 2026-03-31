@@ -30,7 +30,7 @@ type Mutation {
   createVenue(newVenue: NewVenueInput!): MutationResult!
   createRegion(newRegion: NewRegionInput!): MutationResult!
   createEvent(newEvent: NewEventInput!): MutationResult!
-  createJobType(newJob: NewJobInput!): MutationResult!
+  createJobType(newJob: NewJobTypeInput!): MutationResult!
   createOpportunity(newOpp: NewOpportunityInput!): MutationResult!
   createShift(newShift: AddShiftInput!): MutationResult!
   createEventDate(newDate: AddEventDateInput!): MutationResult!
@@ -46,7 +46,7 @@ type Mutation {
   updateRegion(region: UpdateRegionInput!): MutationResult!
   updateVolunteer(profile: UpdateVolunteerInput!): MutationResult!
   updateEvent(event: UpdateEventInput!): MutationResult!
-  updateJob(job: UpdateJobInput!): MutationResult!
+  updateJobType(job: UpdateJobTypeInput!): MutationResult!
   updateOpportunity(opp: UpdateOpportunityInput!): MutationResult!
   updateShift(shift: UpdateShiftInput!): MutationResult!
   updateEventDate(date: UpdateEventDateInput!): MutationResult!
@@ -59,7 +59,7 @@ type Mutation {
   deleteVenue(venueId: ID!): MutationResult!
   deleteRegion(regionId: Int!): MutationResult!
   deleteEvent(eventId: ID!): MutationResult!
-  deleteJob(JobId: Int!): MutationResult!
+  deleteJobType(JobId: Int!): MutationResult!
   deleteOpportunity(oppId: ID!): MutationResult!
   deleteShift(shiftId: ID!): MutationResult!
   deleteEventDate(eventDateId: ID!): MutationResult!
@@ -233,13 +233,13 @@ input UpdateEventDateInput {
   ianaZone: String!
 }
 
-input NewJobInput {
+input NewJobTypeInput {
   code: String!
   name: String!
   sortOrder: Int!
 }
 
-input UpdateJobInput {
+input UpdateJobTypeInput {
   id: Int!
   code: String!
   name: String!

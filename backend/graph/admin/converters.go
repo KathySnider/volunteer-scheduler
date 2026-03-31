@@ -93,6 +93,14 @@ func toGenJobType(m *models.JobType) *generated.JobType {
 	}
 }
 
+func toGenAllStaff(ms []*models.Staff) []*generated.Staff {
+	result := make([]*generated.Staff, len(ms))
+	for i, m := range ms {
+		result[i] = toGenStaff(m)
+	}
+	return result
+
+}
 func toGenStaff(m *models.Staff) *generated.Staff {
 	if m == nil {
 		return nil
@@ -415,7 +423,15 @@ func toModelFeedbackFilterInput(g *generated.FeedbackFilterInput) *models.Feedba
 }
 
 // New elements from the API to the services.
-
+func toModelNewStaffInput(g generated.NewStaffInput) models.NewStaffInput {
+	return models.NewStaffInput{
+		FirstName: g.FirstName,
+		LastName:  g.LastName,
+		Email:     g.Email,
+		Phone:     g.Phone,
+		Position:  g.Position,
+	}
+}
 func toModelNewVolunteerInput(g generated.NewVolunteerInput) models.NewVolunteerInput {
 
 	return models.NewVolunteerInput{
@@ -490,8 +506,8 @@ func toModelAddEventDate(g generated.AddEventDateInput) models.AddEventDateInput
 	}
 }
 
-func toModelNewJobInput(g generated.NewJobInput) models.NewJobInput {
-	return models.NewJobInput{
+func toModelNewJobTypeInput(g generated.NewJobTypeInput) models.NewJobTypeInput {
+	return models.NewJobTypeInput{
 		Code: g.Code,
 		Name: g.Name,
 	}
@@ -552,6 +568,16 @@ func toModelAddShiftInput(g generated.AddShiftInput) models.AddShiftInput {
 
 // Updates from the API to the services.
 
+func toModelUpdateStaffInput(g generated.UpdateStaffInput) models.UpdateStaffInput {
+	return models.UpdateStaffInput{
+		ID:        g.ID,
+		FirstName: g.FirstName,
+		LastName:  g.LastName,
+		Email:     g.Email,
+		Phone:     g.Phone,
+		Position:  g.Position,
+	}
+}
 func toModelUpdateVolunteerInput(g generated.UpdateVolunteerInput) models.UpdateVolunteerInput {
 	return models.UpdateVolunteerInput{
 		ID:        g.ID,
@@ -605,8 +631,8 @@ func toModelUpdateEventDateInput(g generated.UpdateEventDateInput) models.Update
 	}
 }
 
-func toModelUpdatejobInput(g generated.UpdateJobInput) models.UpdateJobInput {
-	return models.UpdateJobInput{
+func toModelUpdateJobTypeInput(g generated.UpdateJobTypeInput) models.UpdateJobTypeInput {
+	return models.UpdateJobTypeInput{
 		ID:   g.ID,
 		Code: g.Code,
 		Name: g.Name,

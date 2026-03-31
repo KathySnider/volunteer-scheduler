@@ -122,7 +122,7 @@ type NewFeedbackInput struct {
 	Text        string       `json:"text"`
 }
 
-type NewJobInput struct {
+type NewJobTypeInput struct {
 	Code      string `json:"code"`
 	Name      string `json:"name"`
 	SortOrder int    `json:"sortOrder"`
@@ -254,7 +254,7 @@ type UpdateFeedbackInput struct {
 	GithubIssueURL *string        `json:"githubIssueURL,omitempty"`
 }
 
-type UpdateJobInput struct {
+type UpdateJobTypeInput struct {
 	ID        int    `json:"id"`
 	Code      string `json:"code"`
 	Name      string `json:"name"`
