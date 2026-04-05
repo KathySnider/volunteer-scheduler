@@ -9,6 +9,12 @@ import (
 	"strconv"
 )
 
+type AttachmentDownload struct {
+	Filename string `json:"filename"`
+	MimeType string `json:"mimeType"`
+	Data     string `json:"data"`
+}
+
 type Event struct {
 	ID           string       `json:"id"`
 	Name         string       `json:"name"`
@@ -32,6 +38,14 @@ type EventFilterInput struct {
 	ShiftStartDateTime *string    `json:"shiftStartDateTime,omitempty"`
 	ShiftEndDateTime   *string    `json:"shiftEndDateTime,omitempty"`
 	IanaZone           *string    `json:"ianaZone,omitempty"`
+}
+
+type FeedbackAttachment struct {
+	ID        string `json:"id"`
+	Filename  string `json:"filename"`
+	MimeType  string `json:"mimeType"`
+	FileSize  int    `json:"fileSize"`
+	CreatedAt string `json:"createdAt"`
 }
 
 type JobType struct {

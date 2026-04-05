@@ -23,7 +23,7 @@ func (s *VenueService) FetchVenues(ctx context.Context) ([]*models.Venue, error)
 
 	query := `
         SELECT 
-			venue_id,
+			venues.venue_id,
             venue_name,
             street_address,
             city,
@@ -32,7 +32,7 @@ func (s *VenueService) FetchVenues(ctx context.Context) ([]*models.Venue, error)
 			timezone,
 			vr.region_id
         FROM venues
-		LEFT JOIN venue_regions vr ON venue_id = vr.venue_id
+		LEFT JOIN venue_regions vr ON vr.venue_id = venues.venue_id
     `
 
 	rows, err := s.DB.QueryContext(ctx, query)
@@ -45,7 +45,8 @@ func (s *VenueService) FetchVenues(ctx context.Context) ([]*models.Venue, error)
 
 	for rows.Next() {
 		var venue models.Venue
-		var venueInt, regionInt int
+		var venueInt int
+		var regionId sql.NullInt32
 		var name, zip sql.NullString
 
 		err := rows.Scan(
@@ -56,7 +57,7 @@ func (s *VenueService) FetchVenues(ctx context.Context) ([]*models.Venue, error)
 			&venue.State,
 			&zip,
 			&venue.Timezone,
-			&regionInt,
+			&regionId,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning venue: %w", err)
@@ -69,6 +70,12 @@ func (s *VenueService) FetchVenues(ctx context.Context) ([]*models.Venue, error)
 		venue.ZipCode = &zip.String
 
 		// Duplicate rows will exist when a venue is in multiple regions.
+		var regionInt int
+		if regionId.Valid {
+			regionInt = int(regionId.Int32)
+		} else {
+			return nil, fmt.Errorf("venue has no region")
+		}
 		_, exists := venuesMap[venueInt]
 		if exists {
 			venuesMap[venueInt].Region = append(venuesMap[venueInt].Region, regionInt)

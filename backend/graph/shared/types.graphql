@@ -1,5 +1,8 @@
 ## Types common to all of the schemas.
 
+#-- Scalers --
+
+scalar Upload
 
 #-- ENUMS --
 enum Role {
@@ -135,7 +138,19 @@ type EventDate {
   endDateTime: String!
 }
 
+type FeedbackAttachment {
+  id: ID!
+  filename: String!
+  mimeType: String!
+  fileSize: Int!
+  createdAt: String!
+}
 
+type AttachmentDownload {
+  filename: String!
+  mimeType: String!
+  data: String!
+}
 
 #-- Results --
 type MutationResult {

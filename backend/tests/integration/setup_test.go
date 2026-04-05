@@ -94,6 +94,7 @@ func TestMain(m *testing.M) {
 	shiftService := services.NewShiftService(db, mailer)
 	venueService := services.NewVenueService(db)
 	feedbackService := services.NewFeedbackService(db, mailer)
+	staffService := services.NewStaffService(db)
 
 	eventService, err := services.NewEventService(db, mailer, shiftService)
 	if err != nil {
@@ -123,6 +124,7 @@ func TestMain(m *testing.M) {
 		ShiftService:     shiftService,
 		VenueService:     venueService,
 		FeedbackService:  feedbackService,
+		StaffService:     staffService,
 	}
 
 	// -------------------------------------------------------------------------

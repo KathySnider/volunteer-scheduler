@@ -24,6 +24,17 @@ func toGenMutationResult(m *models.MutationResult) *generated.MutationResult {
 	}
 }
 
+func toGenAttachmentDownload(m *models.AttachmentDownload) *generated.AttachmentDownload {
+	if m == nil {
+		return nil
+	}
+	return &generated.AttachmentDownload{
+		Filename: m.Filename,
+		MimeType: m.MimeType,
+		Data:     m.Data,
+	}
+}
+
 func toGenLookupValues(m models.LookupValues) generated.LookupValues {
 	return generated.LookupValues{
 		Regions:      toGenRegions(m.Regions),
@@ -91,30 +102,6 @@ func toGenJobType(m *models.JobType) *generated.JobType {
 		Name:     m.Name,
 		IsActive: m.IsActive,
 	}
-}
-
-func toGenAllStaff(ms []*models.Staff) []*generated.Staff {
-	result := make([]*generated.Staff, len(ms))
-	for i, m := range ms {
-		result[i] = toGenStaff(m)
-	}
-	return result
-
-}
-func toGenStaff(m *models.Staff) *generated.Staff {
-	if m == nil {
-		return nil
-	}
-
-	return &generated.Staff{
-		ID:        m.ID,
-		FirstName: m.FirstName,
-		LastName:  m.LastName,
-		Email:     m.Email,
-		Phone:     m.Phone,
-		Position:  m.Position,
-	}
-
 }
 
 func toGenVenue(m *models.Venue) *generated.Venue {
@@ -253,6 +240,27 @@ func toModelNewFeedbackInput(g generated.NewFeedbackInput) models.NewFeedbackInp
 	}
 }
 
+func toGenFeedbackAttachments(ms []*models.FeedbackAttachment) []*generated.FeedbackAttachment {
+	attachments := make([]*generated.FeedbackAttachment, len(ms))
+	for i, m := range ms {
+		attachments[i] = toGenFeedbackAttachment(m)
+	}
+	return attachments
+}
+
+func toGenFeedbackAttachment(m *models.FeedbackAttachment) *generated.FeedbackAttachment {
+	if m == nil {
+		return nil
+	}
+	return &generated.FeedbackAttachment{
+		ID:        m.ID,
+		Filename:  m.Filename,
+		MimeType:  m.MimeType,
+		FileSize:  m.FileSize,
+		CreatedAt: m.CreatedAt,
+	}
+}
+
 // END OF DUPLICATE CODE
 
 // Everything below this is unique to admins only.
@@ -270,6 +278,27 @@ func toGenVenues(ms []*models.Venue) []*generated.Venue {
 	return result
 }
 
+func toGenAllStaff(ms []*models.Staff) []*generated.Staff {
+	result := make([]*generated.Staff, len(ms))
+	for i, m := range ms {
+		result[i] = toGenStaff(m)
+	}
+	return result
+}
+
+func toGenStaff(m *models.Staff) *generated.Staff {
+	if m == nil {
+		return nil
+	}
+	return &generated.Staff{
+		ID:        m.ID,
+		FirstName: m.FirstName,
+		LastName:  m.LastName,
+		Email:     m.Email,
+		Phone:     m.Phone,
+		Position:  m.Position,
+	}
+}
 func toGenVolunteers(ms []*models.Volunteer) []*generated.Volunteer {
 	result := make([]*generated.Volunteer, len(ms))
 	for i, m := range ms {
@@ -362,6 +391,7 @@ func toGenFeedback(m *models.Feedback) *generated.Feedback {
 		CreatedAt:      m.CreatedAt,
 		LastUpdatedAt:  m.LastUpdatedAt,
 		ResolvedAt:     m.ResolvedAt,
+		Attachments:    toGenFeedbackAttachments(m.Attachments),
 	}
 }
 
@@ -383,7 +413,6 @@ func toGenFeedbackNote(m *models.FeedbackNote) *generated.FeedbackNote {
 		Note:      m.Note,
 		CreatedAt: m.CreatedAt,
 	}
-
 }
 
 // Convert generated types to models.

@@ -142,6 +142,11 @@ func (s *FeedbackService) FetchFeedback(ctx context.Context, filter *models.Feed
 			}
 			fb.Notes = append(fb.Notes, &fn)
 		}
+
+		fb.Attachments, err = s.fetchAttachmentsForFeedback(ctx, fbInt)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching attachments for feedback with id %d: %w", fbInt, err)
+		}
 	}
 
 	// turn map into a slice
@@ -175,7 +180,7 @@ func (s *FeedbackService) FetchFeedbackById(ctx context.Context, feedbackId stri
 			f.resolved_at
 			from feedback f
 			LEFT JOIN volunteers fc ON fc.volunteer_id = f.volunteer_id
-		WHERE f.feedback_id == $1
+		WHERE f.feedback_id = $1
     `
 	row := s.DB.QueryRowContext(ctx, query, fbInt)
 
@@ -227,11 +232,11 @@ func (s *FeedbackService) FetchFeedbackById(ctx context.Context, feedbackId stri
 			fn.created_at
 			from feedback_notes fn
 			LEFT JOIN volunteers nc ON nc.volunteer_id = fn.volunteer_id
-		WHERE fn.feedback_id == $1
+		WHERE fn.feedback_id = $1
 		ORDER BY fn.created_at
      `
 
-	rows, err := s.DB.QueryContext(ctx, query)
+	rows, err := s.DB.QueryContext(ctx, query, fbInt)
 	if err != nil {
 		return nil, fmt.Errorf("error querying feedback: %w", err)
 	}
@@ -253,6 +258,11 @@ func (s *FeedbackService) FetchFeedbackById(ctx context.Context, feedbackId stri
 		note.Creator = ncFname + " " + ncLname
 
 		feedback.Notes = append(feedback.Notes, &note)
+
+	}
+	feedback.Attachments, err = s.fetchAttachmentsForFeedback(ctx, fbInt)
+	if err != nil {
+		return nil, fmt.Errorf("error getting attachments: %w", err)
 	}
 
 	return &feedback, nil
@@ -308,7 +318,7 @@ func (s *FeedbackService) QuestionFeedback(ctx context.Context, adminId int, que
 	query := `
 		SELECT 
 			fc.email, 
-			f.subject,
+			f.subject
 		FROM feedback f
 		LEFT JOIN volunteers fc ON fc.volunteer_id = f.volunteer_id
 		WHERE f.feedback_id = $1
@@ -339,7 +349,7 @@ func (s *FeedbackService) QuestionFeedback(ctx context.Context, adminId int, que
 	}
 
 	// Add admin's note to the feedback.
-	err = AddNoteToFeedback(ctx, s.DB, fbInt, adminId, question.Note)
+	err = addNoteToFeedback(ctx, s.DB, fbInt, adminId, question.Note)
 	if err != nil {
 		return &models.MutationResult{
 			Success: false,
@@ -366,7 +376,7 @@ func (s *FeedbackService) UpdateFeedback(ctx context.Context, adminId int, updat
 			ID:      &update.ID,
 		}, err
 	}
-	err = AddNoteToFeedback(ctx, s.DB, fbInt, adminId, update.Note)
+	err = addNoteToFeedback(ctx, s.DB, fbInt, adminId, update.Note)
 	if err != nil {
 		return &models.MutationResult{
 			Success: false,
@@ -376,7 +386,8 @@ func (s *FeedbackService) UpdateFeedback(ctx context.Context, adminId int, updat
 	}
 
 	if update.GithubIssueURL == nil {
-		_, err = s.DB.ExecContext(ctx, "UPDATE feedback SET status = $1 WHERE feedback_id = $2, last_updated_at = NOW()", update.Status, fbInt)
+
+		_, err = s.DB.ExecContext(ctx, "UPDATE feedback SET status = $1, last_updated_at = NOW() WHERE feedback_id = $2", update.Status, fbInt)
 		if err != nil {
 			return &models.MutationResult{
 				Success: false,
@@ -385,6 +396,7 @@ func (s *FeedbackService) UpdateFeedback(ctx context.Context, adminId int, updat
 			}, err
 		}
 	} else {
+
 		_, err = s.DB.ExecContext(ctx, "UPDATE feedback SET status = $1, github_issue_url = $2, last_updated_at = NOW() WHERE feedback_id = $3", update.Status, update.GithubIssueURL, fbInt)
 		if err != nil {
 			return &models.MutationResult{
@@ -413,7 +425,7 @@ func (s *FeedbackService) ResolveFeedback(ctx context.Context, adminId int, reso
 		}, err
 	}
 
-	err = AddNoteToFeedback(ctx, s.DB, fbInt, adminId, resolution.Note)
+	err = addNoteToFeedback(ctx, s.DB, fbInt, adminId, resolution.Note)
 	if err != nil {
 		return &models.MutationResult{
 			Success: false,
@@ -423,7 +435,7 @@ func (s *FeedbackService) ResolveFeedback(ctx context.Context, adminId int, reso
 	}
 
 	if resolution.GithubIssueURL == nil {
-		_, err = s.DB.ExecContext(ctx, "UPDATE feedback SET status = $1 WHERE feedback_id = $2, resolved_at = NOW()", resolution.Status, fbInt)
+		_, err = s.DB.ExecContext(ctx, "UPDATE feedback SET status = $1, resolved_at = NOW() WHERE feedback_id = $2", resolution.Status, fbInt)
 		if err != nil {
 			return &models.MutationResult{
 				Success: false,

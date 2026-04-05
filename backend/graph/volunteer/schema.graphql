@@ -9,6 +9,7 @@ type Query {
   eventById(eventId: ID!): Event!
   shiftsForEvent(eventId: ID!): [ShiftView!]!  
   ownShifts(filter: ShiftTimeFilter!): [VolunteerShift!]! 
+  attachment(attachmentId: ID!): AttachmentDownload
 }
 
 type Mutation {
@@ -16,6 +17,7 @@ type Mutation {
   assignSelfToShift(shiftId: ID!): MutationResult!  
   cancelOwnShift(shiftId: ID!): MutationResult!
   giveFeedback (feedback: NewFeedbackInput!): MutationResult!
+  attachFileToFeedback(feedbackId: ID!, file: Upload!): MutationResult!
 }
 
 type ShiftView {

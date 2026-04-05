@@ -20,6 +20,7 @@ import (
 	"volunteer-scheduler/services"
 
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
 	_ "github.com/lib/pq"
 	"github.com/rs/cors"
@@ -173,10 +174,18 @@ func main() {
 	volunteerSrv := handler.NewDefaultServer(volGen.NewExecutableSchema(volGen.Config{
 		Resolvers: volunteerResolver,
 	}))
+	volunteerSrv.AddTransport(transport.MultipartForm{
+		MaxMemory:     32 << 20, // 32 MB RAM buffer per request
+		MaxUploadSize: 10 << 20, // 10 MB hard limit (service adds the 5 MB app limit)
+	})
 
 	adminSrv := handler.NewDefaultServer(adminGen.NewExecutableSchema(adminGen.Config{
 		Resolvers: adminResolver,
 	}))
+	adminSrv.AddTransport(transport.MultipartForm{
+		MaxMemory:     32 << 20, // 32 MB RAM buffer per request
+		MaxUploadSize: 10 << 20, // 10 MB hard limit (service adds the 5 MB app limit)
+	})
 
 	// -------------------------------------------------------------------------
 	// HTTP routing

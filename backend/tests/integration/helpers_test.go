@@ -404,3 +404,49 @@ func seedShift(t *testing.T, opportunityID int, startUTC, endUTC string, maxVolu
 	})
 	return id
 }
+
+// makeVolunteer creates a VOLUNTEER role volunteer and session and returns
+// (sessionToken, volunteerID). All seeded rows are removed via t.Cleanup.
+func makeVolunteer(t *testing.T) (string, int) {
+	t.Helper()
+	email := uniqueEmail(t)
+	id := seedVolunteer(t, email, "Vol", "Test", "VOLUNTEER")
+	token := seedSession(t, email, id, "VOLUNTEER", "vol-"+email)
+	return token, id
+}
+
+// seedStaff inserts a staff member and returns the staff_id.
+func seedStaff(t *testing.T, firstName, lastName, email string) int {
+	t.Helper()
+	var id int
+	err := testDB.QueryRow(`
+		INSERT INTO staff (first_name, last_name, email)
+		VALUES ($1, $2, $3)
+		RETURNING staff_id
+	`, firstName, lastName, email).Scan(&id)
+	if err != nil {
+		t.Fatalf("seedStaff: %v", err)
+	}
+	t.Cleanup(func() {
+		testDB.Exec("DELETE FROM staff WHERE staff_id = $1", id)
+	})
+	return id
+}
+
+// seedVolunteerShift inserts a row into volunteer_shifts assigning volID to
+// shiftID. The insert is idempotent (ON CONFLICT DO NOTHING). A Cleanup is
+// registered to remove the row when the test ends.
+func seedVolunteerShift(t *testing.T, shiftID, volID int) {
+	t.Helper()
+	_, err := testDB.Exec(`
+		INSERT INTO volunteer_shifts (volunteer_id, shift_id, assigned_at)
+		VALUES ($1, $2, NOW())
+		ON CONFLICT (volunteer_id, shift_id) DO NOTHING
+	`, volID, shiftID)
+	if err != nil {
+		t.Fatalf("seedVolunteerShift: %v", err)
+	}
+	t.Cleanup(func() {
+		testDB.Exec("DELETE FROM volunteer_shifts WHERE volunteer_id = $1 AND shift_id = $2", volID, shiftID)
+	})
+}
