@@ -626,14 +626,14 @@ func addNewOpportunityShift(ctx context.Context, shift *models.NewShiftInput, op
 	return nil
 }
 
-func AddNoteToFeedback(ctx context.Context, DB *sql.DB, feedbackId int, adminId int, note string) error {
+func addNoteToFeedback(ctx context.Context, DB *sql.DB, feedbackId int, adminId int, note string) error {
 
 	insert := `
 		INSERT INTO feedback_notes (
 			feedback_id,
 			volunteer_id, 
 			note,
-			createdAt)
+			created_at)
 		VALUES ($1, $2, $3, NOW())
 		RETURNING note_id
 	`

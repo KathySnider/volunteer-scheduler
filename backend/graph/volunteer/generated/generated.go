@@ -45,6 +45,12 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	AttachmentDownload struct {
+		Data     func(childComplexity int) int
+		Filename func(childComplexity int) int
+		MimeType func(childComplexity int) int
+	}
+
 	Event struct {
 		Description  func(childComplexity int) int
 		EventDates   func(childComplexity int) int
@@ -59,6 +65,14 @@ type ComplexityRoot struct {
 		EndDateTime   func(childComplexity int) int
 		ID            func(childComplexity int) int
 		StartDateTime func(childComplexity int) int
+	}
+
+	FeedbackAttachment struct {
+		CreatedAt func(childComplexity int) int
+		FileSize  func(childComplexity int) int
+		Filename  func(childComplexity int) int
+		ID        func(childComplexity int) int
+		MimeType  func(childComplexity int) int
 	}
 
 	JobType struct {
@@ -76,10 +90,11 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AssignSelfToShift func(childComplexity int, shiftID string) int
-		CancelOwnShift    func(childComplexity int, shiftID string) int
-		GiveFeedback      func(childComplexity int, feedback NewFeedbackInput) int
-		UpdateOwnProfile  func(childComplexity int, profile UpdateOwnProfileInput) int
+		AssignSelfToShift    func(childComplexity int, shiftID string) int
+		AttachFileToFeedback func(childComplexity int, feedbackID string, file graphql.Upload) int
+		CancelOwnShift       func(childComplexity int, shiftID string) int
+		GiveFeedback         func(childComplexity int, feedback NewFeedbackInput) int
+		UpdateOwnProfile     func(childComplexity int, profile UpdateOwnProfileInput) int
 	}
 
 	MutationResult struct {
@@ -89,6 +104,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
+		Attachment       func(childComplexity int, attachmentID string) int
 		EventByID        func(childComplexity int, eventID string) int
 		FilteredEvents   func(childComplexity int, filter *EventFilterInput) int
 		LookupValues     func(childComplexity int) int
@@ -168,6 +184,7 @@ type MutationResolver interface {
 	AssignSelfToShift(ctx context.Context, shiftID string) (*MutationResult, error)
 	CancelOwnShift(ctx context.Context, shiftID string) (*MutationResult, error)
 	GiveFeedback(ctx context.Context, feedback NewFeedbackInput) (*MutationResult, error)
+	AttachFileToFeedback(ctx context.Context, feedbackID string, file graphql.Upload) (*MutationResult, error)
 }
 type QueryResolver interface {
 	LookupValues(ctx context.Context) (*LookupValues, error)
@@ -176,6 +193,7 @@ type QueryResolver interface {
 	EventByID(ctx context.Context, eventID string) (*Event, error)
 	ShiftsForEvent(ctx context.Context, eventID string) ([]*ShiftView, error)
 	OwnShifts(ctx context.Context, filter ShiftTimeFilter) ([]*VolunteerShift, error)
+	Attachment(ctx context.Context, attachmentID string) (*AttachmentDownload, error)
 }
 
 type executableSchema struct {
@@ -196,6 +214,25 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 	ec := executionContext{nil, e, 0, 0, nil}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "AttachmentDownload.data":
+		if e.complexity.AttachmentDownload.Data == nil {
+			break
+		}
+
+		return e.complexity.AttachmentDownload.Data(childComplexity), true
+	case "AttachmentDownload.filename":
+		if e.complexity.AttachmentDownload.Filename == nil {
+			break
+		}
+
+		return e.complexity.AttachmentDownload.Filename(childComplexity), true
+	case "AttachmentDownload.mimeType":
+		if e.complexity.AttachmentDownload.MimeType == nil {
+			break
+		}
+
+		return e.complexity.AttachmentDownload.MimeType(childComplexity), true
 
 	case "Event.description":
 		if e.complexity.Event.Description == nil {
@@ -259,6 +296,37 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.EventDate.StartDateTime(childComplexity), true
 
+	case "FeedbackAttachment.createdAt":
+		if e.complexity.FeedbackAttachment.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.FeedbackAttachment.CreatedAt(childComplexity), true
+	case "FeedbackAttachment.fileSize":
+		if e.complexity.FeedbackAttachment.FileSize == nil {
+			break
+		}
+
+		return e.complexity.FeedbackAttachment.FileSize(childComplexity), true
+	case "FeedbackAttachment.filename":
+		if e.complexity.FeedbackAttachment.Filename == nil {
+			break
+		}
+
+		return e.complexity.FeedbackAttachment.Filename(childComplexity), true
+	case "FeedbackAttachment.id":
+		if e.complexity.FeedbackAttachment.ID == nil {
+			break
+		}
+
+		return e.complexity.FeedbackAttachment.ID(childComplexity), true
+	case "FeedbackAttachment.mimeType":
+		if e.complexity.FeedbackAttachment.MimeType == nil {
+			break
+		}
+
+		return e.complexity.FeedbackAttachment.MimeType(childComplexity), true
+
 	case "JobType.code":
 		if e.complexity.JobType.Code == nil {
 			break
@@ -320,6 +388,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.AssignSelfToShift(childComplexity, args["shiftId"].(string)), true
+	case "Mutation.attachFileToFeedback":
+		if e.complexity.Mutation.AttachFileToFeedback == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_attachFileToFeedback_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AttachFileToFeedback(childComplexity, args["feedbackId"].(string), args["file"].(graphql.Upload)), true
 	case "Mutation.cancelOwnShift":
 		if e.complexity.Mutation.CancelOwnShift == nil {
 			break
@@ -373,6 +452,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.MutationResult.Success(childComplexity), true
 
+	case "Query.attachment":
+		if e.complexity.Query.Attachment == nil {
+			break
+		}
+
+		args, err := ec.field_Query_attachment_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Attachment(childComplexity, args["attachmentId"].(string)), true
 	case "Query.eventById":
 		if e.complexity.Query.EventByID == nil {
 			break
@@ -811,6 +901,9 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 var sources = []*ast.Source{
 	{Name: "../../shared/types.graphql", Input: `## Types common to all of the schemas.
 
+#-- Scalers --
+
+scalar Upload
 
 #-- ENUMS --
 enum Role {
@@ -946,7 +1039,19 @@ type EventDate {
   endDateTime: String!
 }
 
+type FeedbackAttachment {
+  id: ID!
+  filename: String!
+  mimeType: String!
+  fileSize: Int!
+  createdAt: String!
+}
 
+type AttachmentDownload {
+  filename: String!
+  mimeType: String!
+  data: String!
+}
 
 #-- Results --
 type MutationResult {
@@ -966,6 +1071,7 @@ type Query {
   eventById(eventId: ID!): Event!
   shiftsForEvent(eventId: ID!): [ShiftView!]!  
   ownShifts(filter: ShiftTimeFilter!): [VolunteerShift!]! 
+  attachment(attachmentId: ID!): AttachmentDownload
 }
 
 type Mutation {
@@ -973,6 +1079,7 @@ type Mutation {
   assignSelfToShift(shiftId: ID!): MutationResult!  
   cancelOwnShift(shiftId: ID!): MutationResult!
   giveFeedback (feedback: NewFeedbackInput!): MutationResult!
+  attachFileToFeedback(feedbackId: ID!, file: Upload!): MutationResult!
 }
 
 type ShiftView {
@@ -1013,6 +1120,22 @@ func (ec *executionContext) field_Mutation_assignSelfToShift_args(ctx context.Co
 		return nil, err
 	}
 	args["shiftId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_attachFileToFeedback_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "feedbackId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["feedbackId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "file", ec.unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload)
+	if err != nil {
+		return nil, err
+	}
+	args["file"] = arg1
 	return args, nil
 }
 
@@ -1057,6 +1180,17 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		return nil, err
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_attachment_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "attachmentId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["attachmentId"] = arg0
 	return args, nil
 }
 
@@ -1155,6 +1289,93 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _AttachmentDownload_filename(ctx context.Context, field graphql.CollectedField, obj *AttachmentDownload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AttachmentDownload_filename,
+		func(ctx context.Context) (any, error) {
+			return obj.Filename, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AttachmentDownload_filename(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AttachmentDownload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AttachmentDownload_mimeType(ctx context.Context, field graphql.CollectedField, obj *AttachmentDownload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AttachmentDownload_mimeType,
+		func(ctx context.Context) (any, error) {
+			return obj.MimeType, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AttachmentDownload_mimeType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AttachmentDownload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AttachmentDownload_data(ctx context.Context, field graphql.CollectedField, obj *AttachmentDownload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AttachmentDownload_data,
+		func(ctx context.Context) (any, error) {
+			return obj.Data, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AttachmentDownload_data(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AttachmentDownload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
 
 func (ec *executionContext) _Event_id(ctx context.Context, field graphql.CollectedField, obj *Event) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
@@ -1462,6 +1683,151 @@ func (ec *executionContext) _EventDate_endDateTime(ctx context.Context, field gr
 func (ec *executionContext) fieldContext_EventDate_endDateTime(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "EventDate",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FeedbackAttachment_id(ctx context.Context, field graphql.CollectedField, obj *FeedbackAttachment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FeedbackAttachment_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FeedbackAttachment_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FeedbackAttachment",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FeedbackAttachment_filename(ctx context.Context, field graphql.CollectedField, obj *FeedbackAttachment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FeedbackAttachment_filename,
+		func(ctx context.Context) (any, error) {
+			return obj.Filename, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FeedbackAttachment_filename(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FeedbackAttachment",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FeedbackAttachment_mimeType(ctx context.Context, field graphql.CollectedField, obj *FeedbackAttachment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FeedbackAttachment_mimeType,
+		func(ctx context.Context) (any, error) {
+			return obj.MimeType, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FeedbackAttachment_mimeType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FeedbackAttachment",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FeedbackAttachment_fileSize(ctx context.Context, field graphql.CollectedField, obj *FeedbackAttachment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FeedbackAttachment_fileSize,
+		func(ctx context.Context) (any, error) {
+			return obj.FileSize, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FeedbackAttachment_fileSize(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FeedbackAttachment",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FeedbackAttachment_createdAt(ctx context.Context, field graphql.CollectedField, obj *FeedbackAttachment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FeedbackAttachment_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FeedbackAttachment_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FeedbackAttachment",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -1930,6 +2296,55 @@ func (ec *executionContext) fieldContext_Mutation_giveFeedback(ctx context.Conte
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_attachFileToFeedback(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_attachFileToFeedback,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().AttachFileToFeedback(ctx, fc.Args["feedbackId"].(string), fc.Args["file"].(graphql.Upload))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_attachFileToFeedback(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_attachFileToFeedback_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _MutationResult_success(ctx context.Context, field graphql.CollectedField, obj *MutationResult) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2331,6 +2746,55 @@ func (ec *executionContext) fieldContext_Query_ownShifts(ctx context.Context, fi
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_ownShifts_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_attachment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_attachment,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().Attachment(ctx, fc.Args["attachmentId"].(string))
+		},
+		nil,
+		ec.marshalOAttachmentDownload2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐAttachmentDownload,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_attachment(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "filename":
+				return ec.fieldContext_AttachmentDownload_filename(ctx, field)
+			case "mimeType":
+				return ec.fieldContext_AttachmentDownload_mimeType(ctx, field)
+			case "data":
+				return ec.fieldContext_AttachmentDownload_data(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AttachmentDownload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_attachment_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -5358,6 +5822,55 @@ func (ec *executionContext) unmarshalInputUpdateOwnProfileInput(ctx context.Cont
 
 // region    **************************** object.gotpl ****************************
 
+var attachmentDownloadImplementors = []string{"AttachmentDownload"}
+
+func (ec *executionContext) _AttachmentDownload(ctx context.Context, sel ast.SelectionSet, obj *AttachmentDownload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, attachmentDownloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AttachmentDownload")
+		case "filename":
+			out.Values[i] = ec._AttachmentDownload_filename(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "mimeType":
+			out.Values[i] = ec._AttachmentDownload_mimeType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "data":
+			out.Values[i] = ec._AttachmentDownload_data(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var eventImplementors = []string{"Event"}
 
 func (ec *executionContext) _Event(ctx context.Context, sel ast.SelectionSet, obj *Event) graphql.Marshaler {
@@ -5441,6 +5954,65 @@ func (ec *executionContext) _EventDate(ctx context.Context, sel ast.SelectionSet
 			}
 		case "endDateTime":
 			out.Values[i] = ec._EventDate_endDateTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var feedbackAttachmentImplementors = []string{"FeedbackAttachment"}
+
+func (ec *executionContext) _FeedbackAttachment(ctx context.Context, sel ast.SelectionSet, obj *FeedbackAttachment) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, feedbackAttachmentImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FeedbackAttachment")
+		case "id":
+			out.Values[i] = ec._FeedbackAttachment_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "filename":
+			out.Values[i] = ec._FeedbackAttachment_filename(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "mimeType":
+			out.Values[i] = ec._FeedbackAttachment_mimeType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "fileSize":
+			out.Values[i] = ec._FeedbackAttachment_fileSize(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._FeedbackAttachment_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -5618,6 +6190,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "giveFeedback":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_giveFeedback(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "attachFileToFeedback":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_attachFileToFeedback(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -5830,6 +6409,25 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "attachment":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_attachment(ctx, field)
 				return res
 			}
 
@@ -7130,6 +7728,22 @@ func (ec *executionContext) unmarshalNUpdateOwnProfileInput2volunteerᚑschedule
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, v any) (graphql.Upload, error) {
+	res, err := graphql.UnmarshalUpload(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, sel ast.SelectionSet, v graphql.Upload) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalUpload(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) marshalNVolunteerMutationResult2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerMutationResult(ctx context.Context, sel ast.SelectionSet, v VolunteerMutationResult) graphql.Marshaler {
 	return ec._VolunteerMutationResult(ctx, sel, &v)
 }
@@ -7463,6 +8077,13 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalOAttachmentDownload2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐAttachmentDownload(ctx context.Context, sel ast.SelectionSet, v *AttachmentDownload) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._AttachmentDownload(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v any) (bool, error) {

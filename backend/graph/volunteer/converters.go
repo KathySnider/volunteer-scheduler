@@ -24,6 +24,17 @@ func toGenMutationResult(m *models.MutationResult) *generated.MutationResult {
 	}
 }
 
+func toGenAttachmentDownload(m *models.AttachmentDownload) *generated.AttachmentDownload {
+	if m == nil {
+		return nil
+	}
+	return &generated.AttachmentDownload{
+		Filename: m.Filename,
+		MimeType: m.MimeType,
+		Data:     m.Data,
+	}
+}
+
 func toGenLookupValues(m models.LookupValues) generated.LookupValues {
 	return generated.LookupValues{
 		Regions:      toGenRegions(m.Regions),
@@ -226,6 +237,27 @@ func toModelNewFeedbackInput(g generated.NewFeedbackInput) models.NewFeedbackInp
 		Subject:     g.Subject,
 		AppPageName: g.AppPageName,
 		Text:        g.Text,
+	}
+}
+
+func toGenFeedbackAttachments(ms []*models.FeedbackAttachment) []*generated.FeedbackAttachment {
+	attachments := make([]*generated.FeedbackAttachment, len(ms))
+	for i, m := range ms {
+		attachments[i] = toGenFeedbackAttachment(m)
+	}
+	return attachments
+}
+
+func toGenFeedbackAttachment(m *models.FeedbackAttachment) *generated.FeedbackAttachment {
+	if m == nil {
+		return nil
+	}
+	return &generated.FeedbackAttachment{
+		ID:        m.ID,
+		Filename:  m.Filename,
+		MimeType:  m.MimeType,
+		FileSize:  m.FileSize,
+		CreatedAt: m.CreatedAt,
 	}
 }
 

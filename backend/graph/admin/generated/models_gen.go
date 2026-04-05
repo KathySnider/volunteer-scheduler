@@ -25,6 +25,12 @@ type AddShiftInput struct {
 	StaffContactID *string `json:"staffContactId,omitempty"`
 }
 
+type AttachmentDownload struct {
+	Filename string `json:"filename"`
+	MimeType string `json:"mimeType"`
+	Data     string `json:"data"`
+}
+
 type Event struct {
 	ID           string       `json:"id"`
 	Name         string       `json:"name"`
@@ -51,18 +57,27 @@ type EventFilterInput struct {
 }
 
 type Feedback struct {
-	ID             string          `json:"id"`
-	VolunteerName  string          `json:"volunteerName"`
-	Type           FeedbackType    `json:"type"`
-	Status         FeedbackStatus  `json:"status"`
-	Subject        string          `json:"subject"`
-	AppPageName    string          `json:"appPageName"`
-	Text           string          `json:"text"`
-	Notes          []*FeedbackNote `json:"notes"`
-	GithubIssueURL *string         `json:"githubIssueURL,omitempty"`
-	CreatedAt      string          `json:"createdAt"`
-	LastUpdatedAt  *string         `json:"lastUpdatedAt,omitempty"`
-	ResolvedAt     *string         `json:"resolvedAt,omitempty"`
+	ID             string                `json:"id"`
+	VolunteerName  string                `json:"volunteerName"`
+	Type           FeedbackType          `json:"type"`
+	Status         FeedbackStatus        `json:"status"`
+	Subject        string                `json:"subject"`
+	AppPageName    string                `json:"appPageName"`
+	Text           string                `json:"text"`
+	Notes          []*FeedbackNote       `json:"notes"`
+	GithubIssueURL *string               `json:"githubIssueURL,omitempty"`
+	CreatedAt      string                `json:"createdAt"`
+	LastUpdatedAt  *string               `json:"lastUpdatedAt,omitempty"`
+	ResolvedAt     *string               `json:"resolvedAt,omitempty"`
+	Attachments    []*FeedbackAttachment `json:"attachments"`
+}
+
+type FeedbackAttachment struct {
+	ID        string `json:"id"`
+	Filename  string `json:"filename"`
+	MimeType  string `json:"mimeType"`
+	FileSize  int    `json:"fileSize"`
+	CreatedAt string `json:"createdAt"`
 }
 
 type FeedbackFilterInput struct {

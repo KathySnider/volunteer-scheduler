@@ -9,6 +9,7 @@ type Query {
   volunteerProfile: VolunteerProfile!
   filteredEvents(filter: EventFilterInput): [Event!]!
   eventById(eventId: ID!): Event!
+  attachment(attachmentId: ID!): AttachmentDownload
 
   # Admin-only queries:
   venues: [Venue!]!
@@ -24,6 +25,7 @@ type Query {
 type Mutation {
   # Shared mutations:
   giveFeedback (feedback: NewFeedbackInput!): MutationResult!
+  attachFileToFeedback(feedbackId: ID!, file: Upload!): MutationResult!
 
   # Admin-only mutations:
   createVolunteer(newVol: NewVolunteerInput!): MutationResult!
@@ -117,7 +119,8 @@ type Feedback {
   githubIssueURL: String
   createdAt: String!
   lastUpdatedAt: String
-  resolvedAt: String
+  resolvedAt: String  
+  attachments: [FeedbackAttachment!]!   
 }
 type FeedbackNote {
   id: ID!

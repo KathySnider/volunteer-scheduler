@@ -8,8 +8,12 @@ package volunteer
 import (
 	"context"
 	"fmt"
+	"io"
+	"strconv"
 	"volunteer-scheduler/graph/volunteer/generated"
 	"volunteer-scheduler/middleware"
+
+	"github.com/99designs/gqlgen/graphql"
 )
 
 // UpdateOwnProfile is the resolver for the updateOwnProfile field.
@@ -70,6 +74,26 @@ func (r *mutationResolver) GiveFeedback(ctx context.Context, feedback generated.
 		return nil, err
 	}
 
+	return toGenMutationResult(result), nil
+}
+
+// AttachFileToFeedback is the resolver for the attachFileToFeedback field.
+func (r *mutationResolver) AttachFileToFeedback(ctx context.Context, feedbackID string, file graphql.Upload) (*generated.MutationResult, error) {
+	fbInt, err := strconv.Atoi(feedbackID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid feedback id %s: %w", feedbackID, err)
+	}
+	data, err := io.ReadAll(file.File)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read upload: %w", err)
+	}
+
+	result, err := r.FeedbackService.AttachFileToFeedback(
+		ctx, fbInt, file.Filename, file.ContentType, data,
+	)
+	if err != nil {
+		return nil, err
+	}
 	return toGenMutationResult(result), nil
 }
 
@@ -137,6 +161,23 @@ func (r *queryResolver) OwnShifts(ctx context.Context, filter generated.ShiftTim
 	}
 
 	return toGenVolunteerShifts(shifts), nil
+}
+
+// Attachment is the resolver for the attachment field.
+func (r *queryResolver) Attachment(ctx context.Context, attachmentID string) (*generated.AttachmentDownload, error) {
+	aInt, err := strconv.Atoi(attachmentID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid attachmentId")
+	}
+	dl, err := r.FeedbackService.FetchAttachment(ctx, aInt)
+	if err != nil {
+		return nil, err
+	}
+	return &generated.AttachmentDownload{
+		Filename: dl.Filename,
+		MimeType: dl.MimeType,
+		Data:     dl.Data,
+	}, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.
