@@ -178,13 +178,33 @@ func toGenEvent(m *models.Event) *generated.Event {
 	}
 
 	return &generated.Event{
-		ID:           m.ID,
-		Name:         m.Name,
-		Description:  m.Description,
-		EventType:    generated.EventType(m.EventType),
-		Venue:        toGenVenue(m.Venue),
-		EventDates:   toGenEventDates(m.EventDates),
-		ServiceTypes: m.ServiceTypes,
+		ID:             m.ID,
+		Name:           m.Name,
+		Description:    m.Description,
+		EventType:      generated.EventType(m.EventType),
+		Venue:          toGenVenue(m.Venue),
+		EventDates:     toGenEventDates(m.EventDates),
+		ServiceTypes:   m.ServiceTypes,
+		ShiftSummaries: toGenEventShiftSummaries(m.ShiftSummaries),
+	}
+}
+
+func toGenEventShiftSummaries(ms []*models.EventShiftSummary) []*generated.EventShiftSummary {
+	result := make([]*generated.EventShiftSummary, len(ms))
+	for i, m := range ms {
+		result[i] = toGenEventShiftSummary(m)
+	}
+	return result
+}
+
+func toGenEventShiftSummary(m *models.EventShiftSummary) *generated.EventShiftSummary {
+	if m == nil {
+		return nil
+	}
+	return &generated.EventShiftSummary{
+		JobName:            m.JobName,
+		AssignedVolunteers: m.AssignedVolunteers,
+		MaxVolunteers:      m.MaxVolunteers,
 	}
 }
 

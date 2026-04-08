@@ -56,14 +56,22 @@ export function getAuthToken() {
   return localStorage.getItem("authToken");
 }
 
-/** Persist the session token to localStorage. */
-export function setAuthToken(token, email) {
+/** Persist the session token, email, and role to localStorage. */
+export function setAuthToken(token, email, role) {
   localStorage.setItem("authToken", token);
   if (email) localStorage.setItem("authEmail", email);
+  if (role) localStorage.setItem("authRole", role);
 }
 
-/** Clear session data from localStorage. */
+/** Read the volunteer's role from localStorage (client-side only). */
+export function getAuthRole() {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("authRole");
+}
+
+/** Clear all session data from localStorage. */
 export function clearAuthToken() {
   localStorage.removeItem("authToken");
   localStorage.removeItem("authEmail");
+  localStorage.removeItem("authRole");
 }
