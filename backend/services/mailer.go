@@ -49,6 +49,108 @@ const tdValue = `style="padding: 6px 0;"`
 const tdValueAlt = `style="padding: 6px 0; background-color: #f0f0f0;"`
 
 // ============================================================================
+// New Account Request
+// ============================================================================
+
+const newAccountRequestHTMLTmpl = emailHeader + `
+            <p>A new volunteer account request has been submitted:</p>
+            ` + tableOpen + `
+                <tr>
+                    <td ` + tdLabel + `>Name</td>
+                    <td ` + tdValue + `>{{.FirstName}} {{.LastName}}</td>
+                </tr>
+                <tr>
+                    <td ` + tdLabel + `>Email</td>
+                    <td ` + tdValueAlt + `>{{.Email}}</td>
+                </tr>
+            ` + tableClose + `
+            <p>To approve this request, log in to the AARP Volunteer System and create an account for this volunteer.</p>
+            <p>If you do not recognize this person or do not wish to approve their request, no action is needed.</p>
+` + emailFooter
+
+const newAccountRequestTextTmpl = `A new volunteer account request has been submitted:
+
+Name:  {{.FirstName}} {{.LastName}}
+Email: {{.Email}}
+
+To approve this request, log in to the AARP Volunteer System and create an account for this volunteer.
+
+If you do not recognize this person or do not wish to approve their request, no action is needed.
+
+Thank you,
+AARP Volunteer System`
+
+type newAccountRequestData struct {
+	FirstName string
+	LastName  string
+	Email     string
+}
+
+// ============================================================================
+// Request to reactivate an existing inactive account.
+// ============================================================================
+
+const activateAccountRequestHTMLTmpl = emailHeader + `
+            <p>An account access request has been submitted for an email address that belongs to an <strong>existing inactive account</strong>.</p>
+            <p><strong>Requester (as entered in the form):</strong></p>
+            ` + tableOpen + `
+                <tr>
+                    <td ` + tdLabel + `>Name</td>
+                    <td ` + tdValue + `>{{.FirstName}} {{.LastName}}</td>
+                </tr>
+                <tr>
+                    <td ` + tdLabel + `>Email</td>
+                    <td ` + tdValueAlt + `>{{.Email}}</td>
+                </tr>
+            ` + tableClose + `
+            <p><strong>Existing inactive account:</strong></p>
+            ` + tableOpen + `
+                <tr>
+                    <td ` + tdLabel + `>Name on record</td>
+                    <td ` + tdValue + `>{{.ExistingName}}</td>
+                </tr>
+                <tr>
+                    <td ` + tdLabel + `>Volunteer ID</td>
+                    <td ` + tdValueAlt + `>{{.ExistingID}}</td>
+                </tr>
+            ` + tableClose + `
+            <p>You have two options:</p>
+            <ul>
+                <li><strong>Reactivate</strong> the existing account (volunteer ID {{.ExistingID}}) to preserve their shift history.</li>
+                <li><strong>Create a new account</strong> if you believe the email address has been reassigned to a different person.</li>
+            </ul>
+            <p>If you do not recognize this person or do not wish to approve their request, no action is needed.</p>
+` + emailFooter
+
+const activateAccountRequestTextTmpl = `An account access request has been submitted for an email address that belongs to an existing inactive account.
+
+Requester (as entered in the form):
+  Name:  {{.FirstName}} {{.LastName}}
+  Email: {{.Email}}
+
+Existing inactive account:
+  Name on record: {{.ExistingName}}
+  Volunteer ID:   {{.ExistingID}}
+
+You have two options:
+  1. Reactivate the existing account (volunteer ID {{.ExistingID}}) to preserve their shift history.
+  2. Create a new account if you believe the email address has been reassigned to a different person.
+
+If you do not recognize this person or do not wish to approve their request, no action is needed.
+
+Thank you,
+AARP Volunteer System`
+
+type activateAccountRequestData struct {
+	FirstName    string
+	LastName     string
+	Email        string
+	ExistingName string
+	ExistingID   int
+}
+
+
+// ============================================================================
 // Signup Confirmed
 // ============================================================================
 

@@ -19,4 +19,4 @@ Thumbs.db
 # Environment
 *secret*
 .env
-.env.local
+.env.local.claude/

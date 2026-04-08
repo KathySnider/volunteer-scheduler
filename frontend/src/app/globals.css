@@ -1,16 +1,92 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* =========================================================
+   Global styles — CSS custom properties and base reset.
+   Component-specific styles live in *.module.css files.
+   ========================================================= */
 
-/* Custom base styles */
-body {
-  background-color: rgb(249 250 251); /* gray-50 */
-  color: rgb(17 24 39); /* gray-900 */
+/* ----- Reset ----- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-input, 
-select, 
-textarea,
-option {
-  color: rgb(17 24 39); /* gray-900 */
+/* ----- Design tokens ----- */
+:root {
+  /* Brand colors */
+  --color-primary:       #2563eb;
+  --color-primary-dark:  #1d4ed8;
+  --color-primary-light: #eff6ff;
+
+  /* Semantic colors */
+  --color-danger:        #dc2626;
+  --color-danger-light:  #fef2f2;
+  --color-danger-border: #fca5a5;
+  --color-success:       #16a34a;
+  --color-success-light: #f0fdf4;
+  --color-warning:       #d97706;
+  --color-warning-light: #fffbeb;
+
+  /* Neutral palette */
+  --color-text:          #111827;
+  --color-text-muted:    #6b7280;
+  --color-text-subtle:   #9ca3af;
+  --color-border:        #e5e7eb;
+  --color-border-focus:  #93c5fd;
+  --color-bg:            #f7f8fc;
+  --color-surface:       #ffffff;
+  --color-surface-alt:   #f9fafb;
+
+  /* Typography */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+               'Helvetica Neue', Arial, sans-serif;
+
+  /* Shape */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 2px 6px rgba(0, 0, 0, 0.10), 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* ----- Base ----- */
+html {
+  font-size: 16px;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ----- Form elements ----- */
+input,
+button,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* ----- Links ----- */
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* ----- Accessible focus outline ----- */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
