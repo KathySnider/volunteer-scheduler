@@ -1,0 +1,103 @@
+/* =========================================================
+   Magic-link callback page styles
+   ========================================================= */
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background-color: var(--color-bg);
+}
+
+.card {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+}
+
+/* ----- Icon circle ----- */
+
+.iconWrapper {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+}
+
+.iconLoading {
+  background-color: var(--color-primary-light);
+}
+
+.iconSuccess {
+  background-color: var(--color-success-light);
+}
+
+.iconError {
+  background-color: var(--color-danger-light);
+}
+
+/* ----- Spinner ----- */
+
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid #bfdbfe;
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ----- Icon glyphs ----- */
+
+.checkmark {
+  font-size: 1.75rem;
+  color: var(--color-success);
+  line-height: 1;
+}
+
+.crossmark {
+  font-size: 1.75rem;
+  color: var(--color-danger);
+  line-height: 1;
+}
+
+/* ----- Text ----- */
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 0.5rem;
+}
+
+.message {
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  line-height: 1.65;
+  margin-bottom: 1.5rem;
+}
+
+.backLink {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-primary);
+}
+
+.backLink:hover {
+  color: var(--color-primary-dark);
+}

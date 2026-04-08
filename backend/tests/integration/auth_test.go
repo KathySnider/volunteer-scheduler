@@ -39,10 +39,11 @@ const mutLogout = `
 // requestMagicLink
 // ============================================================================
 
-// TestRequestMagicLink_Success verifies that a magic link request for any
-// email returns success (we do not reveal whether the email is registered).
+// TestRequestMagicLink_Success verifies that a magic link request for a known
+// active volunteer returns success and echoes the email address.
 func TestRequestMagicLink_Success(t *testing.T) {
 	email := uniqueEmail(t)
+	seedVolunteer(t, email, "Alice", "Test", "VOLUNTEER")
 
 	resp := gqlPost(t, "/graphql/auth", "", mutRequestMagicLink, map[string]any{
 		"email": email,
@@ -67,10 +68,60 @@ func TestRequestMagicLink_Success(t *testing.T) {
 	}
 }
 
+// TestRequestMagicLink_UnknownEmail verifies that a magic link request for an
+// email not in the database returns success=false.
+func TestRequestMagicLink_UnknownEmail(t *testing.T) {
+	email := uniqueEmail(t)
+
+	resp := gqlPost(t, "/graphql/auth", "", mutRequestMagicLink, map[string]any{
+		"email": email,
+	})
+
+	if hasGQLErrors(resp) {
+		t.Fatalf("unexpected GraphQL errors: %v", resp.Errors)
+	}
+
+	var result struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}
+	unmarshalField(t, resp, "requestMagicLink", &result)
+
+	if result.Success {
+		t.Error("expected success=false for unknown email, got true")
+	}
+}
+
+// TestRequestMagicLink_InactiveAccount verifies that a magic link request for
+// an inactive volunteer's email returns success=false.
+func TestRequestMagicLink_InactiveAccount(t *testing.T) {
+	email := uniqueEmail(t)
+	seedInactiveVolunteer(t, email, "Inactive", "Volunteer", "VOLUNTEER")
+
+	resp := gqlPost(t, "/graphql/auth", "", mutRequestMagicLink, map[string]any{
+		"email": email,
+	})
+
+	if hasGQLErrors(resp) {
+		t.Fatalf("unexpected GraphQL errors: %v", resp.Errors)
+	}
+
+	var result struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}
+	unmarshalField(t, resp, "requestMagicLink", &result)
+
+	if result.Success {
+		t.Error("expected success=false for inactive account, got true")
+	}
+}
+
 // TestRequestMagicLink_RateLimit verifies that more than 5 requests for the
 // same email within an hour are rejected.
 func TestRequestMagicLink_RateLimit(t *testing.T) {
 	email := uniqueEmail(t)
+	seedVolunteer(t, email, "Bob", "Test", "VOLUNTEER")
 	t.Cleanup(func() {
 		testDB.Exec("DELETE FROM magic_links WHERE email = $1", email)
 	})
@@ -257,6 +308,106 @@ func TestLogout_Valid(t *testing.T) {
 	// Session should no longer exist.
 	if sessionExists(t, token) {
 		t.Error("expected session to be deleted after logout, but it still exists")
+	}
+}
+
+// ============================================================================
+// requestAccount
+// ============================================================================
+
+const mutRequestAccount = `
+	mutation RequestAccount($email: String!, $firstName: String!, $lastName: String!) {
+		requestAccount(email: $email, firstName: $firstName, lastName: $lastName) {
+			success
+			message
+		}
+	}`
+
+// TestRequestAccount_NewVolunteer verifies that an account request for an
+// unknown email (no existing record) returns success=true.
+func TestRequestAccount_NewVolunteer(t *testing.T) {
+	// Seed an admin so the notification email has somewhere to go.
+	adminEmail := uniqueEmail(t)
+	seedVolunteer(t, adminEmail, "Admin", "User", "ADMINISTRATOR")
+
+	email := uniqueEmail(t)
+
+	resp := gqlPost(t, "/graphql/auth", "", mutRequestAccount, map[string]any{
+		"email":     email,
+		"firstName": "Jane",
+		"lastName":  "Doe",
+	})
+
+	if hasGQLErrors(resp) {
+		t.Fatalf("unexpected GraphQL errors: %v", resp.Errors)
+	}
+
+	var result struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}
+	unmarshalField(t, resp, "requestAccount", &result)
+
+	if !result.Success {
+		t.Errorf("expected success=true, got false; message: %s", result.Message)
+	}
+}
+
+// TestRequestAccount_InactiveVolunteer verifies that an account request for
+// an email belonging to an inactive volunteer also returns success=true.
+// The admin receives a reactivation email rather than a new-account email,
+// but from the requester's perspective the result is identical.
+func TestRequestAccount_InactiveVolunteer(t *testing.T) {
+	// Seed an admin so the notification email has somewhere to go.
+	adminEmail := uniqueEmail(t)
+	seedVolunteer(t, adminEmail, "Admin", "User", "ADMINISTRATOR")
+
+	email := uniqueEmail(t)
+	seedInactiveVolunteer(t, email, "Former", "Volunteer", "VOLUNTEER")
+
+	resp := gqlPost(t, "/graphql/auth", "", mutRequestAccount, map[string]any{
+		"email":     email,
+		"firstName": "Former",
+		"lastName":  "Volunteer",
+	})
+
+	if hasGQLErrors(resp) {
+		t.Fatalf("unexpected GraphQL errors: %v", resp.Errors)
+	}
+
+	var result struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}
+	unmarshalField(t, resp, "requestAccount", &result)
+
+	if !result.Success {
+		t.Errorf("expected success=true, got false; message: %s", result.Message)
+	}
+}
+
+// TestRequestAccount_NoAdmins verifies that an account request when no admins
+// exist still returns success=true — we don't reveal internal system state.
+func TestRequestAccount_NoAdmins(t *testing.T) {
+	email := uniqueEmail(t)
+
+	resp := gqlPost(t, "/graphql/auth", "", mutRequestAccount, map[string]any{
+		"email":     email,
+		"firstName": "No",
+		"lastName":  "Admin",
+	})
+
+	if hasGQLErrors(resp) {
+		t.Fatalf("unexpected GraphQL errors: %v", resp.Errors)
+	}
+
+	var result struct {
+		Success bool `json:"success"`
+	}
+	unmarshalField(t, resp, "requestAccount", &result)
+
+	if !result.Success {
+		t.Error("expected success=true even with no admins, got false")
 	}
 }
 

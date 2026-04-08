@@ -212,6 +212,58 @@ func sendAccountCreatedAdminNotification(ctx context.Context, DB *sql.DB, mailer
 	return nil
 }
 
+func sendNewAccountRequest(ctx context.Context, mailer *Mailer, adminEmails []string, firstName, lastName, email string) error {
+	data := newAccountRequestData{
+		FirstName: firstName,
+		LastName:  lastName,
+		Email:     email,
+	}
+
+	subject := fmt.Sprintf("New Volunteer Account Request — %s %s", firstName, lastName)
+	htmlBody, err := renderTemplate(newAccountRequestHTMLTmpl, data)
+	if err != nil {
+		return err
+	}
+	textBody, err := renderTemplate(newAccountRequestTextTmpl, data)
+	if err != nil {
+		return err
+	}
+
+	for _, adminEmail := range adminEmails {
+		if err := mailer.SendEmail(ctx, adminEmail, subject, htmlBody, textBody); err != nil {
+			log.Printf("Warning: failed to send account request notification to %s: %v", adminEmail, err)
+		}
+	}
+	return nil
+}
+
+func sendActivateAccountRequest(ctx context.Context, mailer *Mailer, adminEmails []string, firstName, lastName, email, existingName string, existingID int) error {
+	data := activateAccountRequestData{
+		FirstName:    firstName,
+		LastName:     lastName,
+		Email:        email,
+		ExistingName: existingName,
+		ExistingID:   existingID,
+	}
+
+	subject := fmt.Sprintf("Account Reactivation Request — %s %s (existing ID %d)", firstName, lastName, existingID)
+	htmlBody, err := renderTemplate(activateAccountRequestHTMLTmpl, data)
+	if err != nil {
+		return err
+	}
+	textBody, err := renderTemplate(activateAccountRequestTextTmpl, data)
+	if err != nil {
+		return err
+	}
+
+	for _, adminEmail := range adminEmails {
+		if err := mailer.SendEmail(ctx, adminEmail, subject, htmlBody, textBody); err != nil {
+			log.Printf("Warning: failed to send account reactivation notification to %s: %v", adminEmail, err)
+		}
+	}
+	return nil
+}
+
 // sendEventCancelledToVolunteer and sendEventCancelledToStaff are called from
 // DeleteEvent in event_services.go, which has already fetched and formatted
 // the shift times, so we accept pre-formatted strings here.

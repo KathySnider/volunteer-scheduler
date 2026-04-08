@@ -35,11 +35,26 @@ func (s *MagicLinkService) GenerateMagicLink(ctx context.Context, email, ipAddre
 		WHERE email = $1 AND created_at > NOW() - INTERVAL '1 hour' AND used_at IS NULL
 	`
 	var count int
-	if err := s.DB.QueryRowContext(ctx, rateLimitQuery, email).Scan(&count); err != nil {
+	err := s.DB.QueryRowContext(ctx, rateLimitQuery, email).Scan(&count)
+	if err != nil {
 		log.Printf("Error checking rate limit: %v", err)
 	}
 	if count >= 5 {
 		return "", fmt.Errorf("too many magic link requests; please try again later")
+	}
+
+	// Make sure this email is in the DB and the user is active.
+	row := s.DB.QueryRowContext(ctx, "SELECT is_active FROM volunteers WHERE email = $1", email)
+	if row == nil {
+		return "", fmt.Errorf("no volunteer account found for this email")
+	}
+	var isActive bool
+	err = row.Scan(&isActive) 
+	if err != nil {
+		return "", fmt.Errorf("no volunteer account found for this email")
+	}
+	if !isActive {
+		return "", fmt.Errorf("volunteer account found for this email is inactive")
 	}
 
 	// Generate a random token (32 bytes = 64 hex chars)
@@ -288,7 +303,9 @@ func fetchVolunteerIdAndRoleByEmail(ctx context.Context, DB *sql.DB, email strin
 
 // RequestAccount sends an account request email to all admins.
 // No DB record is created — the admin reviews the request and
-// creates the volunteer manually if approved.
+// creates or reactivates the volunteer manually if approved.
+// If the email belongs to an existing inactive volunteer, the admin
+// receives a reactivation request with the existing account details instead.
 func (s *MagicLinkService) RequestAccount(ctx context.Context, email, firstName, lastName string) error {
 
 	// Fetch all admin email addresses.
@@ -315,65 +332,21 @@ func (s *MagicLinkService) RequestAccount(ctx context.Context, email, firstName,
 		return nil
 	}
 
-	subject := fmt.Sprintf("New Volunteer Account Request — %s %s", firstName, lastName)
+	// Check whether this email belongs to an existing inactive volunteer.
+	var existingID int
+	var existingFirst, existingLast string
+	err = s.DB.QueryRowContext(ctx,
+		"SELECT volunteer_id, first_name, last_name FROM volunteers WHERE email = $1 AND is_active = false",
+		email).Scan(&existingID, &existingFirst, &existingLast)
 
-	htmlBody := fmt.Sprintf(`
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-</head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0;">
-    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background-color: #0066cc; color: white; padding: 20px; text-align: center;">
-            <h1 style="margin: 0; color: white;">AARP Volunteer System</h1>
-        </div>
-        <div style="padding: 20px; background-color: #f9f9f9;">
-            <p>A new volunteer account request has been submitted:</p>
-            <table style="width: 100%%; border-collapse: collapse; margin: 20px 0;">
-                <tr>
-                    <td style="padding: 8px; font-weight: bold; width: 120px;">Name:</td>
-                    <td style="padding: 8px;">%s %s</td>
-                </tr>
-                <tr style="background-color: #f0f0f0;">
-                    <td style="padding: 8px; font-weight: bold;">Email:</td>
-                    <td style="padding: 8px;">%s</td>
-                </tr>
-            </table>
-            <p>To approve this request, log in to the AARP Volunteer System and create an account for this volunteer.</p>
-            <p>If you do not recognize this person or do not wish to approve their request, no action is needed.</p>
-            <p>Thank you,<br>AARP Volunteer System</p>
-        </div>
-        <div style="font-size: 12px; color: #666; text-align: center; padding: 20px;">
-            <p>&copy; 2026 AARP. All rights reserved.</p>
-        </div>
-    </div>
-</body>
-</html>
-    `, firstName, lastName, email)
-
-	textBody := fmt.Sprintf(`
-A new volunteer account request has been submitted:
-
-Name:  %s %s
-Email: %s
-
-To approve this request, log in to the AARP Volunteer System and create an account for this volunteer.
-
-If you do not recognize this person or do not wish to approve their request, no action is needed.
-
-Thank you,
-AARP Volunteer System
-    `, firstName, lastName, email)
-
-	// Email each admin. Log failures but continue so all admins are notified.
-	for _, adminEmail := range adminEmails {
-		if err := s.mailer.SendEmail(ctx, adminEmail, subject, htmlBody, textBody); err != nil {
-			log.Printf("Warning: failed to send account request notification to %s: %v", adminEmail, err)
-		}
+	if err == nil {
+		// Inactive account found — send a reactivation request.
+		existingName := existingFirst + " " + existingLast
+		return sendActivateAccountRequest(ctx, s.mailer, adminEmails, firstName, lastName, email, existingName, existingID)
 	}
 
-	return nil
+	// No inactive account — send a standard new account request.
+	return sendNewAccountRequest(ctx, s.mailer, adminEmails, firstName, lastName, email)
 }
 
 func (s *MagicLinkService) Logout(ctx context.Context, token string) error {

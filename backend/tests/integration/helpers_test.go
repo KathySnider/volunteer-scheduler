@@ -86,7 +86,7 @@ func unmarshalField(t *testing.T, r gqlResponse, field string, dest any) {
 // DB seed helpers
 // ============================================================================
 
-// seedVolunteer inserts a volunteer directly into the DB and returns the ID.
+// seedVolunteer inserts an active volunteer directly into the DB and returns the ID.
 func seedVolunteer(t *testing.T, email, firstName, lastName, role string) int {
 	t.Helper()
 	var id int
@@ -97,6 +97,25 @@ func seedVolunteer(t *testing.T, email, firstName, lastName, role string) int {
 	`, email, firstName, lastName, role).Scan(&id)
 	if err != nil {
 		t.Fatalf("seedVolunteer: %v", err)
+	}
+	t.Cleanup(func() {
+		testDB.Exec("DELETE FROM volunteers WHERE volunteer_id = $1", id)
+	})
+	return id
+}
+
+// seedInactiveVolunteer inserts an inactive volunteer directly into the DB and
+// returns the ID. Used to test flows where is_active = FALSE.
+func seedInactiveVolunteer(t *testing.T, email, firstName, lastName, role string) int {
+	t.Helper()
+	var id int
+	err := testDB.QueryRow(`
+		INSERT INTO volunteers (email, first_name, last_name, role, is_active)
+		VALUES ($1, $2, $3, $4, FALSE)
+		RETURNING volunteer_id
+	`, email, firstName, lastName, role).Scan(&id)
+	if err != nil {
+		t.Fatalf("seedInactiveVolunteer: %v", err)
 	}
 	t.Cleanup(func() {
 		testDB.Exec("DELETE FROM volunteers WHERE volunteer_id = $1", id)
