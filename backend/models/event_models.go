@@ -15,13 +15,22 @@ type ServiceType struct {
 }
 
 type Event struct {
-	ID           string
-	Name         string
-	Description  *string
-	EventType    EventType
-	Venue        *Venue
-	ServiceTypes []string
-	EventDates   []*EventDate
+	ID              string
+	Name            string
+	Description     *string
+	EventType       EventType
+	Venue           *Venue
+	ServiceTypes    []string
+	EventDates      []*EventDate
+	ShiftSummaries  []*EventShiftSummary
+}
+
+// EventShiftSummary holds the per-opportunity volunteer counts
+// needed to render the event listing cards.
+type EventShiftSummary struct {
+	JobName            string
+	AssignedVolunteers int
+	MaxVolunteers      int
 }
 
 type EventDate struct {

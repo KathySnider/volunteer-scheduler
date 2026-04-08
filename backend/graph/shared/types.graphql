@@ -129,7 +129,15 @@ type Event {
   eventType: EventType!
   venue: Venue
   serviceTypes: [String!]
-  eventDates: [EventDate!]!  
+  eventDates: [EventDate!]!
+  shiftSummaries: [EventShiftSummary!]!
+}
+
+# Per-opportunity volunteer counts for the event listing cards.
+type EventShiftSummary {
+  jobName: String!
+  assignedVolunteers: Int!
+  maxVolunteers: Int!
 }
 
 type EventDate {

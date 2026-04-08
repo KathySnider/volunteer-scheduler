@@ -186,6 +186,12 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 		}
 		e.EventDates = dates
 
+		summaries, err := FetchEventShiftSummaries(ctx, db, eventInt)
+		if err != nil {
+			return nil, fmt.Errorf("error getting event's shift summaries: %w", err)
+		}
+		e.ShiftSummaries = summaries
+
 		// Have we already processed this event?
 		_, exists := eventsMap[eventInt]
 		if exists {
@@ -202,6 +208,41 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 	}
 
 	return eventsMap, nil
+}
+
+// FetchEventShiftSummaries returns per-opportunity volunteer counts for a single event.
+// Each row represents one opportunity (job type) and aggregates across all of its shifts.
+func FetchEventShiftSummaries(ctx context.Context, db *sql.DB, eventID int) ([]*models.EventShiftSummary, error) {
+	query := `
+		SELECT
+			jt.name,
+			COALESCE(SUM(
+				(SELECT COUNT(*) FROM volunteer_shifts vs WHERE vs.shift_id = s.shift_id AND vs.cancelled_at IS NULL)
+			), 0) AS assigned,
+			COALESCE(SUM(s.max_volunteers), 0) AS max_vol
+		FROM opportunities opp
+		JOIN job_types jt ON jt.job_type_id = opp.job_type_id
+		LEFT JOIN shifts s ON s.opportunity_id = opp.opportunity_id
+		WHERE opp.event_id = $1
+		GROUP BY opp.opportunity_id, jt.name
+		ORDER BY jt.name
+	`
+
+	rows, err := db.QueryContext(ctx, query, eventID)
+	if err != nil {
+		return nil, fmt.Errorf("error querying shift summaries: %w", err)
+	}
+	defer rows.Close()
+
+	summaries := make([]*models.EventShiftSummary, 0)
+	for rows.Next() {
+		var s models.EventShiftSummary
+		if err := rows.Scan(&s.JobName, &s.AssignedVolunteers, &s.MaxVolunteers); err != nil {
+			return nil, fmt.Errorf("error scanning shift summary: %w", err)
+		}
+		summaries = append(summaries, &s)
+	}
+	return summaries, nil
 }
 
 // The events from pass 1 have at least one shift on one job that matched the filter criteria.

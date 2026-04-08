@@ -8,6 +8,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"log"
 	"volunteer-scheduler/graph/auth/generated"
 )
 
@@ -26,10 +27,11 @@ func (r *mutationResolver) RequestMagicLink(ctx context.Context, email string) (
 	}
 
 	if err := r.MagicLinkService.SendMagicLinkEmail(ctx, email, token); err != nil {
-		err = fmt.Errorf("error sending magic ling: %w", err)
+		err = fmt.Errorf("error sending magic link: %w", err)
+		log.Printf("[auth] %v", err)
 		return &generated.MagicLinkResult{
 			Success: false,
-			Message: "Failed to send magic link email.",
+			Message: err.Error(),
 			Email:   &email,
 		}, nil
 	}

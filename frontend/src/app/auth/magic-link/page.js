@@ -3,10 +3,10 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { authGql, setAuthToken } from "../../lib/api";
+import { authGql, volunteerGql, setAuthToken } from "../../lib/api";
 import styles from "./magic-link.module.css";
 
-/* ----- GraphQL mutation ----- */
+/* ----- GraphQL operations ----- */
 
 const CONSUME_MAGIC_LINK = `
   mutation ConsumeMagicLink($token: String!) {
@@ -15,6 +15,14 @@ const CONSUME_MAGIC_LINK = `
       message
       email
       sessionToken
+    }
+  }
+`;
+
+const VOLUNTEER_PROFILE = `
+  query {
+    volunteerProfile {
+      role
     }
   }
 `;
@@ -42,21 +50,31 @@ function MagicLinkContent() {
   const consumeToken = async (token) => {
     try {
       const result = await authGql(CONSUME_MAGIC_LINK, { token });
-      const {
-        success,
-        message,
-        sessionToken,
-        email,
-      } = result.data.consumeMagicLink;
+      const { success, message, sessionToken, email } =
+        result.data.consumeMagicLink;
 
-      if (success && sessionToken) {
-        setAuthToken(sessionToken, email);
-        setStatus("success");
-        setTimeout(() => router.push("/"), 2000);
-      } else {
+      if (!success || !sessionToken) {
         setStatus("error");
         setErrorMsg(message || "Authentication failed.");
+        return;
       }
+
+      // Fetch the volunteer's role so the app can route correctly.
+      let role = null;
+      try {
+        const profileResult = await volunteerGql(
+          VOLUNTEER_PROFILE,
+          null,
+          sessionToken
+        );
+        role = profileResult.data?.volunteerProfile?.role ?? null;
+      } catch {
+        // Non-fatal — proceed without role; the events page will still load.
+      }
+
+      setAuthToken(sessionToken, email, role);
+      setStatus("success");
+      setTimeout(() => router.push("/events"), 2000);
     } catch {
       setStatus("error");
       setErrorMsg("Unable to reach the server. Please try again.");
