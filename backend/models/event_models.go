@@ -8,10 +8,9 @@ package models
 // (venue, dates, etc.)
 
 type ServiceType struct {
-	ID       int
-	Code     string
-	Name     string
-	IsActive bool
+	ID   int
+	Code string
+	Name string
 }
 
 type Event struct {

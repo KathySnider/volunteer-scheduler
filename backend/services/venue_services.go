@@ -70,18 +70,13 @@ func (s *VenueService) FetchVenues(ctx context.Context) ([]*models.Venue, error)
 		venue.ZipCode = &zip.String
 
 		// Duplicate rows will exist when a venue is in multiple regions.
-		var regionInt int
-		if regionId.Valid {
-			regionInt = int(regionId.Int32)
-		} else {
-			return nil, fmt.Errorf("venue has no region")
-		}
 		_, exists := venuesMap[venueInt]
-		if exists {
-			venuesMap[venueInt].Region = append(venuesMap[venueInt].Region, regionInt)
-		} else {
-			venue.Region = append(venue.Region, regionInt)
+		if !exists {
 			venuesMap[venueInt] = &venue
+		}
+		if regionId.Valid {
+			regionInt := int(regionId.Int32)
+			venuesMap[venueInt].Region = append(venuesMap[venueInt].Region, regionInt)
 		}
 	}
 

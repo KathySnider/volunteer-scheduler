@@ -1,0 +1,348 @@
+/* =========================================================
+   Event Detail page styles
+   ========================================================= */
+
+/* ----- Page shell ----- */
+
+.page {
+  min-height: 100vh;
+  background: var(--color-bg);
+  font-family: var(--font-sans);
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 2rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.backLink:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
+.userArea {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Sign out + gear icon styles live in components/UserMenu.module.css */
+
+/* ----- Content column ----- */
+
+.content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+/* ----- Loading / error states ----- */
+
+.stateBox {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--color-text-muted);
+}
+
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.errorBox {
+  background: var(--color-danger-light);
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-md);
+  color: var(--color-danger);
+  padding: 0.875rem 1.25rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.successBanner {
+  background: var(--color-success-light);
+  border: 1px solid #86efac;
+  border-radius: var(--radius-md);
+  color: var(--color-success);
+  padding: 0.875rem 1.25rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+/* ----- Event info card ----- */
+
+.eventCard {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 1.75rem 2rem;
+  margin-bottom: 2rem;
+}
+
+.eventName {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 1rem;
+  line-height: 1.25;
+}
+
+.metaList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.metaItem {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.925rem;
+  color: var(--color-text);
+}
+
+.metaIcon {
+  font-style: normal;
+  flex-shrink: 0;
+}
+
+.metaMuted {
+  color: var(--color-text-muted);
+}
+
+/* ----- Format badges ----- */
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  margin-top: 0.25rem;
+}
+
+.badgeVirtual {
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+.badgeInPerson {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.badgeHybrid {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+/* ----- Description ----- */
+
+.descriptionHeading {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.description {
+  font-size: 0.95rem;
+  color: var(--color-text);
+  line-height: 1.65;
+}
+
+/* ----- Opportunities section ----- */
+
+.sectionHeading {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 1rem;
+}
+
+/* ----- Job group ----- */
+
+.jobGroup {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.jobGroupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1.25rem;
+  background: var(--color-surface-alt);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.jobName {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.jobCount {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.jobCountValue {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.countOpen {
+  color: var(--color-warning);
+}
+
+.countFull {
+  color: var(--color-success);
+}
+
+/* ----- Shift rows ----- */
+
+.shiftRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+  gap: 1rem;
+}
+
+.shiftRow:last-child {
+  border-bottom: none;
+}
+
+.shiftTime {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.shiftDate {
+  font-weight: 600;
+  margin-bottom: 0.125rem;
+}
+
+.shiftTimeRange {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.shiftSpots {
+  text-align: right;
+  min-width: 80px;
+}
+
+.spotsLabel {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.spotsValue {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.shiftAction {
+  min-width: 120px;
+  text-align: right;
+}
+
+/* ----- Action buttons ----- */
+
+.btnSignUp {
+  padding: 0.5rem 1.125rem;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.btnSignUp:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.btnSignUp:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btnCancel {
+  padding: 0.5rem 1.125rem;
+  background: transparent;
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.btnCancel:hover:not(:disabled) {
+  background: var(--color-danger-light);
+}
+
+.btnCancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btnFull {
+  padding: 0.5rem 1.125rem;
+  background: var(--color-surface-alt);
+  color: var(--color-text-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: not-allowed;
+  white-space: nowrap;
+}

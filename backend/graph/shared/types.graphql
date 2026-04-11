@@ -69,7 +69,6 @@ type ServiceType{
   id: Int!
   code: String!
   name: String!
-  isActive: Boolean!
 }
   
 type JobType{
