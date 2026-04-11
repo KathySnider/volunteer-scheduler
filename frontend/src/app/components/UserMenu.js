@@ -24,6 +24,7 @@ import styles from "./UserMenu.module.css";
 // { label: "Manage Events", href: "/admin/events" },
 const ADMIN_ITEMS = [
   { label: "Manage Events", href: "/admin/events" },
+  { label: "Manage Venues", href: "/admin/venues" },
 ];
 
 export default function UserMenu({ name, isAdmin, onSignOut }) {
