@@ -108,6 +108,7 @@ func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter mod
 		LEFT JOIN venues v ON e.venue_id = v.venue_id
 		LEFT JOIN venue_regions vr on v.venue_id = vr.venue_id
 		WHERE sv.volunteer_id = $1
+		AND sv.cancelled_at IS NULL
     `
 	switch filter {
 	case "UPCOMING":

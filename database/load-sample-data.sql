@@ -7,7 +7,24 @@
 --
 -- Lookup tables (job_types, service_types, regions) are seeded by the
 -- migrations themselves and are NOT re-inserted here.
+-- These upserts below are a safety net in case migrations ran incompletely.
 -- ============================================================================
+
+-- Safety-net: re-seed service_types (ON CONFLICT = no-op if already there)
+INSERT INTO service_types (code, name) VALUES
+    ('outreach',        'Outreach'),
+    ('advocacy',        'Advocacy'),
+    ('speakers_bureau', 'Speakers Bureau'),
+    ('office_support',  'Office Support'),
+    ('other',           'Other')
+ON CONFLICT (code) DO NOTHING;
+
+-- Safety-net: re-seed regions
+INSERT INTO regions (code, name) VALUES
+    ('seattle',      'Seattle Metro'),
+    ('spokane',      'Spokane'),
+    ('southwest_wa', 'Southwest WA')
+ON CONFLICT (code) DO NOTHING;
 
 
 -- ============================================================================
@@ -91,7 +108,7 @@ INSERT INTO staff (first_name, last_name, email, phone, position) VALUES
 --   event_is_virtual=TRUE,  venue_id IS NOT NULL   → HYBRID
 -- ============================================================================
 
--- Seattle Metro — IN_PERSON
+-- Seattle Metro - IN_PERSON
 INSERT INTO events (event_name, description, event_is_virtual, venue_id) VALUES
     ('Medicare Q&A Workshop',
      'Help seniors navigate Medicare enrollment and plan options. Volunteers assist with one-on-one sessions.',
@@ -99,7 +116,7 @@ INSERT INTO events (event_name, description, event_is_virtual, venue_id) VALUES
      (SELECT venue_id FROM venues WHERE city = 'Seattle'));
 
 INSERT INTO events (event_name, description, event_is_virtual, venue_id) VALUES
-    ('Tax Aide Preparation — Spring Session',
+    ('Tax Aide Preparation - Spring Session',
      'Free tax preparation assistance for low-to-moderate income seniors. Training provided.',
      FALSE,
      (SELECT venue_id FROM venues WHERE city = 'Bellevue'));
@@ -119,7 +136,7 @@ INSERT INTO events (event_name, description, event_is_virtual, venue_id) VALUES
      TRUE,
      (SELECT venue_id FROM venues WHERE city = 'Tacoma'));
 
--- Spokane — IN_PERSON
+-- Spokane - IN_PERSON
 INSERT INTO events (event_name, description, event_is_virtual, venue_id) VALUES
     ('Spokane Senior Health Fair',
      'Community health fair with blood pressure checks, medication reviews, and wellness resources.',
@@ -132,7 +149,7 @@ INSERT INTO events (event_name, description, event_is_virtual, venue_id) VALUES
      FALSE,
      (SELECT venue_id FROM venues WHERE city = 'Spokane Valley'));
 
--- Southwest WA — IN_PERSON
+-- Southwest WA - IN_PERSON
 INSERT INTO events (event_name, description, event_is_virtual, venue_id) VALUES
     ('Social Security Benefits Workshop',
      'Informational session on maximizing Social Security benefits. Volunteers greet and assist attendees.',
@@ -159,7 +176,7 @@ WHERE e.event_name = 'Medicare Q&A Workshop'
 INSERT INTO event_service_types (event_id, service_type_id)
 SELECT e.event_id, st.service_type_id
 FROM events e, service_types st
-WHERE e.event_name = 'Tax Aide Preparation — Spring Session'
+WHERE e.event_name = 'Tax Aide Preparation - Spring Session'
   AND st.code = 'office_support';
 
 INSERT INTO event_service_types (event_id, service_type_id)
@@ -209,7 +226,7 @@ FROM events WHERE event_name = 'Medicare Q&A Workshop';
 
 INSERT INTO event_dates (event_id, start_date_time, end_date_time)
 SELECT event_id, '2026-05-17 10:00:00', '2026-05-17 16:00:00'
-FROM events WHERE event_name = 'Tax Aide Preparation — Spring Session';
+FROM events WHERE event_name = 'Tax Aide Preparation - Spring Session';
 
 INSERT INTO event_dates (event_id, start_date_time, end_date_time)
 SELECT event_id, '2026-04-30 13:00:00', '2026-04-30 15:00:00'
@@ -244,7 +261,7 @@ FROM events WHERE event_name = 'Caregiver Support Forum';
 --   event_support, advocacy, speaker, volunteer_lead, attendee_only, other
 -- ============================================================================
 
--- Medicare Q&A Workshop — event_support
+-- Medicare Q&A Workshop - event_support
 INSERT INTO opportunities (event_id, job_type_id, opportunity_is_virtual, pre_event_instructions)
 SELECT e.event_id, jt.job_type_id, FALSE,
     'Please arrive 30 minutes early for briefing. Wear your AARP volunteer badge.'
@@ -266,7 +283,7 @@ FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
 WHERE e.event_name = 'Medicare Q&A Workshop';
 
--- Medicare Q&A Workshop — advocacy (second opportunity at same event)
+-- Medicare Q&A Workshop - advocacy (second opportunity at same event)
 INSERT INTO opportunities (event_id, job_type_id, opportunity_is_virtual, pre_event_instructions)
 SELECT e.event_id, jt.job_type_id, FALSE,
     'Advocates circulate the room and answer policy questions. Talking points will be emailed beforehand.'
@@ -282,12 +299,12 @@ JOIN events e ON o.event_id = e.event_id
 WHERE e.event_name = 'Medicare Q&A Workshop'
   AND o.job_type_id = (SELECT job_type_id FROM job_types WHERE code = 'advocacy');
 
--- Tax Aide — event_support
+-- Tax Aide - event_support
 INSERT INTO opportunities (event_id, job_type_id, opportunity_is_virtual, pre_event_instructions)
 SELECT e.event_id, jt.job_type_id, FALSE,
     'IRS certification required before volunteering. Contact coordinator for training dates.'
 FROM events e, job_types jt
-WHERE e.event_name = 'Tax Aide Preparation — Spring Session'
+WHERE e.event_name = 'Tax Aide Preparation - Spring Session'
   AND jt.code = 'event_support';
 
 INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
@@ -295,16 +312,16 @@ SELECT o.opportunity_id, '2026-05-17 09:30:00', '2026-05-17 13:00:00', 6,
     (SELECT staff_id FROM staff WHERE last_name = 'Sullivan')
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
-WHERE e.event_name = 'Tax Aide Preparation — Spring Session';
+WHERE e.event_name = 'Tax Aide Preparation - Spring Session';
 
 INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
 SELECT o.opportunity_id, '2026-05-17 13:00:00', '2026-05-17 16:30:00', 6,
     (SELECT staff_id FROM staff WHERE last_name = 'Sullivan')
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
-WHERE e.event_name = 'Tax Aide Preparation — Spring Session';
+WHERE e.event_name = 'Tax Aide Preparation - Spring Session';
 
--- Virtual Fraud Prevention — speaker
+-- Virtual Fraud Prevention - speaker
 INSERT INTO opportunities (event_id, job_type_id, opportunity_is_virtual, pre_event_instructions)
 SELECT e.event_id, jt.job_type_id, TRUE,
     'Zoom link will be emailed 24 hours before the event. Test your audio/video beforehand.'
@@ -318,7 +335,7 @@ FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
 WHERE e.event_name = 'Virtual Fraud Prevention Seminar';
 
--- Hybrid Benefits Counseling — event_support (in-person)
+-- Hybrid Benefits Counseling - event_support (in-person)
 INSERT INTO opportunities (event_id, job_type_id, opportunity_is_virtual, pre_event_instructions)
 SELECT e.event_id, jt.job_type_id, FALSE,
     'Manage in-person check-in table. Comfortable walking shoes recommended.'
@@ -334,7 +351,7 @@ JOIN events e ON o.event_id = e.event_id
 WHERE e.event_name = 'Hybrid Benefits Counseling Day'
   AND o.opportunity_is_virtual = FALSE;
 
--- Hybrid Benefits Counseling — volunteer_lead (virtual waiting room)
+-- Hybrid Benefits Counseling - volunteer_lead (virtual waiting room)
 INSERT INTO opportunities (event_id, job_type_id, opportunity_is_virtual, pre_event_instructions)
 SELECT e.event_id, jt.job_type_id, TRUE,
     'Monitor the Zoom waiting room and admit participants at their scheduled times.'
@@ -350,7 +367,7 @@ JOIN events e ON o.event_id = e.event_id
 WHERE e.event_name = 'Hybrid Benefits Counseling Day'
   AND o.opportunity_is_virtual = TRUE;
 
--- Spokane Senior Health Fair — event_support
+-- Spokane Senior Health Fair - event_support
 INSERT INTO opportunities (event_id, job_type_id, opportunity_is_virtual, pre_event_instructions)
 SELECT e.event_id, jt.job_type_id, FALSE,
     'Wear comfortable shoes. Setup begins at 8:00 AM.'
@@ -372,7 +389,7 @@ FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
 WHERE e.event_name = 'Spokane Senior Health Fair';
 
--- Driver Safety Course — volunteer_lead
+-- Driver Safety Course - volunteer_lead
 INSERT INTO opportunities (event_id, job_type_id, opportunity_is_virtual, pre_event_instructions)
 SELECT e.event_id, jt.job_type_id, FALSE,
     'Lead volunteers coordinate check-in and distribute course materials.'
@@ -387,7 +404,7 @@ FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
 WHERE e.event_name = 'Driver Safety Course';
 
--- Social Security Workshop — event_support
+-- Social Security Workshop - event_support
 INSERT INTO opportunities (event_id, job_type_id, opportunity_is_virtual, pre_event_instructions)
 SELECT e.event_id, jt.job_type_id, FALSE,
     'Greet attendees and help them find seating. Light refreshments provided.'
@@ -402,7 +419,7 @@ FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
 WHERE e.event_name = 'Social Security Benefits Workshop';
 
--- Caregiver Forum — event_support
+-- Caregiver Forum - event_support
 INSERT INTO opportunities (event_id, job_type_id, opportunity_is_virtual, pre_event_instructions)
 SELECT e.event_id, jt.job_type_id, FALSE,
     'Help set up resource tables and guide attendees to breakout sessions.'

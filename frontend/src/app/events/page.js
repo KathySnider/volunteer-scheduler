@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import {
   getAuthToken,
   getAuthRole,
+  getAuthName,
   clearAuthToken,
   volunteerGql,
   adminGql,
 } from "../lib/api";
+import UserMenu from "../components/UserMenu";
 import styles from "./events.module.css";
 
 /* ----- GraphQL operations ----- */
@@ -198,7 +200,8 @@ export default function EventsPage() {
   const router = useRouter();
   const [token, setToken] = useState(null);
   const [gql, setGql] = useState(null); // volunteerGql or adminGql bound to token
-  const [userEmail, setUserEmail] = useState("");
+  const [userName, setUserName] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [ianaZone, setIanaZone] = useState("UTC");
 
   // Lookup data
@@ -209,7 +212,9 @@ export default function EventsPage() {
   const [selectedRegion, setSelectedRegion] = useState("");
   const [selectedJobType, setSelectedJobType] = useState("");
   const [selectedFormat, setSelectedFormat] = useState("");
-  const [startDate, setStartDate] = useState("");
+  const [startDate, setStartDate] = useState(
+    () => new Date().toISOString().slice(0, 10)   // default: today
+  );
   const [endDate, setEndDate] = useState("");
 
   // Results state
@@ -233,14 +238,13 @@ export default function EventsPage() {
 
     setToken(t);
     setGql(() => boundGql);
-    setUserEmail(
-      typeof window !== "undefined"
-        ? localStorage.getItem("authEmail") ?? ""
-        : ""
-    );
+    setUserName(getAuthName() ?? "");
+    setIsAdmin(role === "ADMINISTRATOR");
     setIanaZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
 
-    // Fetch lookup values
+    // Fetch lookup values, then auto-search with today as the start date.
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const todayStr = new Date().toISOString().slice(0, 10);
     boundGql(LOOKUP_VALUES, null)
       .then((res) => {
         const lv = res.data?.lookupValues;
@@ -251,26 +255,34 @@ export default function EventsPage() {
       })
       .catch(() => {
         // Non-fatal; filters will just be empty.
+      })
+      .finally(() => {
+        // Auto-search with default filters (today onwards, nothing else selected).
+        doSearch(boundGql, "", "", "", todayStr, "", tz);
       });
   }, [router]);
 
-  /* Search */
-  const handleSearch = useCallback(async () => {
-    if (!gql) return;
+  /**
+   * Core search executor. Takes the gql function and all filter values as
+   * explicit arguments so it can be called safely from the initial load
+   * (before state settles) and from handleReset (after state is reset).
+   * State setters are stable React references so no deps are needed.
+   */
+  const doSearch = useCallback(async (boundGql, region, jobType, format, start, end, zone) => {
     setLoading(true);
     setSearchError("");
     setHasSearched(true);
 
     const filter = {};
-    if (selectedRegion) filter.regions = [parseInt(selectedRegion, 10)];
-    if (selectedJobType) filter.jobs = [parseInt(selectedJobType, 10)];
-    if (selectedFormat) filter.eventType = selectedFormat;
-    if (startDate) filter.shiftStartDateTime = formatDateForBackend(startDate, "00:00");
-    if (endDate) filter.shiftEndDateTime = formatDateForBackend(endDate, "23:59");
-    filter.ianaZone = ianaZone;
+    if (region)  filter.regions  = [parseInt(region, 10)];
+    if (jobType) filter.jobs     = [parseInt(jobType, 10)];
+    if (format)  filter.eventType = format;
+    if (start)   filter.shiftStartDateTime = formatDateForBackend(start, "00:00");
+    if (end)     filter.shiftEndDateTime   = formatDateForBackend(end,   "23:59");
+    filter.ianaZone = zone;
 
     try {
-      const res = await gql(FILTERED_EVENTS, { filter });
+      const res = await boundGql(FILTERED_EVENTS, { filter });
       if (res.errors) {
         setSearchError(res.errors[0]?.message ?? "Error loading events.");
         setEvents([]);
@@ -283,18 +295,25 @@ export default function EventsPage() {
     } finally {
       setLoading(false);
     }
-  }, [gql, selectedRegion, selectedJobType, selectedFormat, startDate, endDate, ianaZone]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleReset = () => {
+  /* Search button — passes current state values explicitly */
+  const handleSearch = useCallback(() => {
+    if (!gql) return;
+    doSearch(gql, selectedRegion, selectedJobType, selectedFormat, startDate, endDate, ianaZone);
+  }, [gql, doSearch, selectedRegion, selectedJobType, selectedFormat, startDate, endDate, ianaZone]);
+
+  /* Reset — restores defaults and re-runs search immediately */
+  const TODAY = new Date().toISOString().slice(0, 10);
+  const handleReset = useCallback(() => {
     setSelectedRegion("");
     setSelectedJobType("");
     setSelectedFormat("");
-    setStartDate("");
+    setStartDate(TODAY);
     setEndDate("");
-    setEvents([]);
-    setHasSearched(false);
     setSearchError("");
-  };
+    if (gql) doSearch(gql, "", "", "", TODAY, "", ianaZone);
+  }, [gql, doSearch, ianaZone, TODAY]);
 
   const handleSignOut = () => {
     clearAuthToken();
@@ -309,6 +328,13 @@ export default function EventsPage() {
 
   return (
     <div className={styles.page}>
+      {/* ---- Top bar ---- */}
+      <div className={styles.topBar}>
+        <div className={styles.appTitle}>AARP Volunteer Events</div>
+        <UserMenu name={userName} isAdmin={isAdmin} onSignOut={handleSignOut} />
+      </div>
+
+      <div className={styles.body}>
       {/* ---- Left sidebar ---- */}
       <aside className={styles.sidebar}>
         <div className={styles.sidebarTitle}>Find Events</div>
@@ -405,13 +431,6 @@ export default function EventsPage() {
         <button className={styles.resetButton} onClick={handleReset}>
           Reset
         </button>
-
-        <div className={styles.sidebarFooter}>
-          {userEmail && <div className={styles.userEmail}>{userEmail}</div>}
-          <button className={styles.signOutButton} onClick={handleSignOut}>
-            Sign out
-          </button>
-        </div>
       </aside>
 
       {/* ---- Main content ---- */}
@@ -454,6 +473,7 @@ export default function EventsPage() {
           </div>
         )}
       </main>
+      </div>{/* end .body */}
     </div>
   );
 }

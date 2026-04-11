@@ -22,6 +22,8 @@ const CONSUME_MAGIC_LINK = `
 const VOLUNTEER_PROFILE = `
   query {
     volunteerProfile {
+      firstName
+      lastName
       role
     }
   }
@@ -59,20 +61,25 @@ function MagicLinkContent() {
         return;
       }
 
-      // Fetch the volunteer's role so the app can route correctly.
+      // Fetch the volunteer's profile so we have the role and display name.
       let role = null;
+      let name = null;
       try {
         const profileResult = await volunteerGql(
           VOLUNTEER_PROFILE,
           null,
           sessionToken
         );
-        role = profileResult.data?.volunteerProfile?.role ?? null;
+        const profile = profileResult.data?.volunteerProfile;
+        role = profile?.role ?? null;
+        if (profile?.firstName || profile?.lastName) {
+          name = `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim();
+        }
       } catch {
-        // Non-fatal — proceed without role; the events page will still load.
+        // Non-fatal — proceed without profile; the events page will still load.
       }
 
-      setAuthToken(sessionToken, email, role);
+      setAuthToken(sessionToken, email, role, name);
       setStatus("success");
       setTimeout(() => router.push("/events"), 2000);
     } catch {

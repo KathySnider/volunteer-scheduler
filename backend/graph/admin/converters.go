@@ -84,10 +84,9 @@ func toGenServiceType(m *models.ServiceType) *generated.ServiceType {
 		return nil
 	}
 	return &generated.ServiceType{
-		ID:       m.ID,
-		Code:     m.Code,
-		Name:     m.Name,
-		IsActive: m.IsActive,
+		ID:   m.ID,
+		Code: m.Code,
+		Name: m.Name,
 	}
 }
 
