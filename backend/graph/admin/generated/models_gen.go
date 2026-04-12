@@ -32,13 +32,14 @@ type AttachmentDownload struct {
 }
 
 type Event struct {
-	ID           string       `json:"id"`
-	Name         string       `json:"name"`
-	Description  *string      `json:"description,omitempty"`
-	EventType    EventType    `json:"eventType"`
-	Venue        *Venue       `json:"venue,omitempty"`
-	ServiceTypes []string     `json:"serviceTypes,omitempty"`
-	EventDates   []*EventDate `json:"eventDates"`
+	ID             string               `json:"id"`
+	Name           string               `json:"name"`
+	Description    *string              `json:"description,omitempty"`
+	EventType      EventType            `json:"eventType"`
+	Venue          *Venue               `json:"venue,omitempty"`
+	ServiceTypes   []string             `json:"serviceTypes,omitempty"`
+	EventDates     []*EventDate         `json:"eventDates"`
+	ShiftSummaries []*EventShiftSummary `json:"shiftSummaries"`
 }
 
 type EventDate struct {
@@ -54,6 +55,12 @@ type EventFilterInput struct {
 	ShiftStartDateTime *string    `json:"shiftStartDateTime,omitempty"`
 	ShiftEndDateTime   *string    `json:"shiftEndDateTime,omitempty"`
 	IanaZone           *string    `json:"ianaZone,omitempty"`
+}
+
+type EventShiftSummary struct {
+	JobName            string `json:"jobName"`
+	AssignedVolunteers int    `json:"assignedVolunteers"`
+	MaxVolunteers      int    `json:"maxVolunteers"`
 }
 
 type Feedback struct {
@@ -223,10 +230,9 @@ type ResolveFeedbackInput struct {
 }
 
 type ServiceType struct {
-	ID       int    `json:"id"`
-	Code     string `json:"code"`
-	Name     string `json:"name"`
-	IsActive bool   `json:"isActive"`
+	ID   int    `json:"id"`
+	Code string `json:"code"`
+	Name string `json:"name"`
 }
 
 type Shift struct {

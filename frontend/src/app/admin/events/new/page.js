@@ -102,6 +102,27 @@ function joinDT(d, t) {
   return `${d}T${t || "00:00"}`;
 }
 
+function to12Hour(hhmm) {
+  if (!hhmm || !hhmm.includes(":")) return { display: hhmm, period: "AM" };
+  let [h, m] = hhmm.split(":");
+  h = parseInt(h, 10) || 0;
+  const period = h >= 12 ? "PM" : "AM";
+  const h12    = h % 12 || 12;
+  return { display: `${h12}:${m}`, period };
+}
+
+function to24Hour(display, period) {
+  const norm = normalizeTime(display);
+  let [h, m] = norm.split(":").map(Number);
+  if (period === "AM") {
+    if (h === 12) h = 0;
+  } else {
+    if (h !== 12) h += 12;
+    if (h >= 24) h = 12;
+  }
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 function venueDisplayName(v) {
   return v.name ? `${v.name} — ${v.city}, ${v.state}` : `${v.address}, ${v.city}, ${v.state}`;
 }
@@ -713,12 +734,28 @@ export default function AddEventPage() {
                     </div>
                     <div className={styles.dateRowField}>
                       <label className={styles.dateRowLabel}>Start Time</label>
-                      <input
-                        type="text" placeholder="HH:MM" onFocus={(e) => e.target.select()}
-                        className={`${styles.input} ${errors.dates?.[i] ? styles.error : ""}`}
-                        value={splitDT(d.start).t}
-                        onChange={(e) => updateDate(d.id, "start", joinDT(splitDT(d.start).d, e.target.value))}
-                      />
+                      <div className={styles.timeRow}>
+                        <input
+                          type="text" placeholder="h:MM" onFocus={(e) => e.target.select()}
+                          className={`${styles.input} ${errors.dates?.[i] ? styles.error : ""}`}
+                          value={to12Hour(splitDT(d.start).t).display}
+                          onChange={(e) => {
+                            const period = to12Hour(splitDT(d.start).t).period;
+                            updateDate(d.id, "start", joinDT(splitDT(d.start).d, to24Hour(e.target.value, period)));
+                          }}
+                        />
+                        <select
+                          className={styles.ampmSelect}
+                          value={to12Hour(splitDT(d.start).t).period}
+                          onChange={(e) => {
+                            const disp = to12Hour(splitDT(d.start).t).display;
+                            updateDate(d.id, "start", joinDT(splitDT(d.start).d, to24Hour(disp, e.target.value)));
+                          }}
+                        >
+                          <option>AM</option>
+                          <option>PM</option>
+                        </select>
+                      </div>
                     </div>
                     <div className={styles.dateRowField}>
                       <label className={styles.dateRowLabel}>End Date</label>
@@ -731,12 +768,28 @@ export default function AddEventPage() {
                     </div>
                     <div className={styles.dateRowField}>
                       <label className={styles.dateRowLabel}>End Time</label>
-                      <input
-                        type="text" placeholder="HH:MM" onFocus={(e) => e.target.select()}
-                        className={`${styles.input} ${errors.dates?.[i] ? styles.error : ""}`}
-                        value={splitDT(d.end).t}
-                        onChange={(e) => updateDate(d.id, "end", joinDT(splitDT(d.end).d, e.target.value))}
-                      />
+                      <div className={styles.timeRow}>
+                        <input
+                          type="text" placeholder="h:MM" onFocus={(e) => e.target.select()}
+                          className={`${styles.input} ${errors.dates?.[i] ? styles.error : ""}`}
+                          value={to12Hour(splitDT(d.end).t).display}
+                          onChange={(e) => {
+                            const period = to12Hour(splitDT(d.end).t).period;
+                            updateDate(d.id, "end", joinDT(splitDT(d.end).d, to24Hour(e.target.value, period)));
+                          }}
+                        />
+                        <select
+                          className={styles.ampmSelect}
+                          value={to12Hour(splitDT(d.end).t).period}
+                          onChange={(e) => {
+                            const disp = to12Hour(splitDT(d.end).t).display;
+                            updateDate(d.id, "end", joinDT(splitDT(d.end).d, to24Hour(disp, e.target.value)));
+                          }}
+                        >
+                          <option>AM</option>
+                          <option>PM</option>
+                        </select>
+                      </div>
                     </div>
                     <button
                       className={styles.removeDateBtn}
