@@ -52,19 +52,26 @@ type ComplexityRoot struct {
 	}
 
 	Event struct {
-		Description  func(childComplexity int) int
-		EventDates   func(childComplexity int) int
-		EventType    func(childComplexity int) int
-		ID           func(childComplexity int) int
-		Name         func(childComplexity int) int
-		ServiceTypes func(childComplexity int) int
-		Venue        func(childComplexity int) int
+		Description    func(childComplexity int) int
+		EventDates     func(childComplexity int) int
+		EventType      func(childComplexity int) int
+		ID             func(childComplexity int) int
+		Name           func(childComplexity int) int
+		ServiceTypes   func(childComplexity int) int
+		ShiftSummaries func(childComplexity int) int
+		Venue          func(childComplexity int) int
 	}
 
 	EventDate struct {
 		EndDateTime   func(childComplexity int) int
 		ID            func(childComplexity int) int
 		StartDateTime func(childComplexity int) int
+	}
+
+	EventShiftSummary struct {
+		AssignedVolunteers func(childComplexity int) int
+		JobName            func(childComplexity int) int
+		MaxVolunteers      func(childComplexity int) int
 	}
 
 	Feedback struct {
@@ -189,10 +196,9 @@ type ComplexityRoot struct {
 	}
 
 	ServiceType struct {
-		Code     func(childComplexity int) int
-		ID       func(childComplexity int) int
-		IsActive func(childComplexity int) int
-		Name     func(childComplexity int) int
+		Code func(childComplexity int) int
+		ID   func(childComplexity int) int
+		Name func(childComplexity int) int
 	}
 
 	Shift struct {
@@ -387,6 +393,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Event.ServiceTypes(childComplexity), true
+	case "Event.shiftSummaries":
+		if e.complexity.Event.ShiftSummaries == nil {
+			break
+		}
+
+		return e.complexity.Event.ShiftSummaries(childComplexity), true
 	case "Event.venue":
 		if e.complexity.Event.Venue == nil {
 			break
@@ -412,6 +424,25 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.EventDate.StartDateTime(childComplexity), true
+
+	case "EventShiftSummary.assignedVolunteers":
+		if e.complexity.EventShiftSummary.AssignedVolunteers == nil {
+			break
+		}
+
+		return e.complexity.EventShiftSummary.AssignedVolunteers(childComplexity), true
+	case "EventShiftSummary.jobName":
+		if e.complexity.EventShiftSummary.JobName == nil {
+			break
+		}
+
+		return e.complexity.EventShiftSummary.JobName(childComplexity), true
+	case "EventShiftSummary.maxVolunteers":
+		if e.complexity.EventShiftSummary.MaxVolunteers == nil {
+			break
+		}
+
+		return e.complexity.EventShiftSummary.MaxVolunteers(childComplexity), true
 
 	case "Feedback.appPageName":
 		if e.complexity.Feedback.AppPageName == nil {
@@ -1206,12 +1237,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ServiceType.ID(childComplexity), true
-	case "ServiceType.isActive":
-		if e.complexity.ServiceType.IsActive == nil {
-			break
-		}
-
-		return e.complexity.ServiceType.IsActive(childComplexity), true
 	case "ServiceType.name":
 		if e.complexity.ServiceType.Name == nil {
 			break
@@ -1698,7 +1723,6 @@ type ServiceType{
   id: Int!
   code: String!
   name: String!
-  isActive: Boolean!
 }
   
 type JobType{
@@ -1758,7 +1782,15 @@ type Event {
   eventType: EventType!
   venue: Venue
   serviceTypes: [String!]
-  eventDates: [EventDate!]!  
+  eventDates: [EventDate!]!
+  shiftSummaries: [EventShiftSummary!]!
+}
+
+# Per-opportunity volunteer counts for the event listing cards.
+type EventShiftSummary {
+  jobName: String!
+  assignedVolunteers: Int!
+  maxVolunteers: Int!
 }
 
 type EventDate {
@@ -3024,6 +3056,43 @@ func (ec *executionContext) fieldContext_Event_eventDates(_ context.Context, fie
 	return fc, nil
 }
 
+func (ec *executionContext) _Event_shiftSummaries(ctx context.Context, field graphql.CollectedField, obj *Event) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Event_shiftSummaries,
+		func(ctx context.Context) (any, error) {
+			return obj.ShiftSummaries, nil
+		},
+		nil,
+		ec.marshalNEventShiftSummary2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventShiftSummaryᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Event_shiftSummaries(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Event",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "jobName":
+				return ec.fieldContext_EventShiftSummary_jobName(ctx, field)
+			case "assignedVolunteers":
+				return ec.fieldContext_EventShiftSummary_assignedVolunteers(ctx, field)
+			case "maxVolunteers":
+				return ec.fieldContext_EventShiftSummary_maxVolunteers(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EventShiftSummary", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _EventDate_id(ctx context.Context, field graphql.CollectedField, obj *EventDate) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -3106,6 +3175,93 @@ func (ec *executionContext) fieldContext_EventDate_endDateTime(_ context.Context
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EventShiftSummary_jobName(ctx context.Context, field graphql.CollectedField, obj *EventShiftSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EventShiftSummary_jobName,
+		func(ctx context.Context) (any, error) {
+			return obj.JobName, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EventShiftSummary_jobName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EventShiftSummary",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EventShiftSummary_assignedVolunteers(ctx context.Context, field graphql.CollectedField, obj *EventShiftSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EventShiftSummary_assignedVolunteers,
+		func(ctx context.Context) (any, error) {
+			return obj.AssignedVolunteers, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EventShiftSummary_assignedVolunteers(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EventShiftSummary",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EventShiftSummary_maxVolunteers(ctx context.Context, field graphql.CollectedField, obj *EventShiftSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EventShiftSummary_maxVolunteers,
+		func(ctx context.Context) (any, error) {
+			return obj.MaxVolunteers, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EventShiftSummary_maxVolunteers(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EventShiftSummary",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3985,8 +4141,6 @@ func (ec *executionContext) fieldContext_LookupValues_serviceTypes(_ context.Con
 				return ec.fieldContext_ServiceType_code(ctx, field)
 			case "name":
 				return ec.fieldContext_ServiceType_name(ctx, field)
-			case "isActive":
-				return ec.fieldContext_ServiceType_isActive(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ServiceType", field.Name)
 		},
@@ -6162,6 +6316,8 @@ func (ec *executionContext) fieldContext_Query_filteredEvents(ctx context.Contex
 				return ec.fieldContext_Event_serviceTypes(ctx, field)
 			case "eventDates":
 				return ec.fieldContext_Event_eventDates(ctx, field)
+			case "shiftSummaries":
+				return ec.fieldContext_Event_shiftSummaries(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Event", field.Name)
 		},
@@ -6219,6 +6375,8 @@ func (ec *executionContext) fieldContext_Query_eventById(ctx context.Context, fi
 				return ec.fieldContext_Event_serviceTypes(ctx, field)
 			case "eventDates":
 				return ec.fieldContext_Event_eventDates(ctx, field)
+			case "shiftSummaries":
+				return ec.fieldContext_Event_shiftSummaries(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Event", field.Name)
 		},
@@ -7054,35 +7212,6 @@ func (ec *executionContext) fieldContext_ServiceType_name(_ context.Context, fie
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ServiceType_isActive(ctx context.Context, field graphql.CollectedField, obj *ServiceType) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ServiceType_isActive,
-		func(ctx context.Context) (any, error) {
-			return obj.IsActive, nil
-		},
-		nil,
-		ec.marshalNBoolean2bool,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_ServiceType_isActive(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ServiceType",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -11366,6 +11495,11 @@ func (ec *executionContext) _Event(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "shiftSummaries":
+			out.Values[i] = ec._Event_shiftSummaries(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -11412,6 +11546,55 @@ func (ec *executionContext) _EventDate(ctx context.Context, sel ast.SelectionSet
 			}
 		case "endDateTime":
 			out.Values[i] = ec._EventDate_endDateTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var eventShiftSummaryImplementors = []string{"EventShiftSummary"}
+
+func (ec *executionContext) _EventShiftSummary(ctx context.Context, sel ast.SelectionSet, obj *EventShiftSummary) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, eventShiftSummaryImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EventShiftSummary")
+		case "jobName":
+			out.Values[i] = ec._EventShiftSummary_jobName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "assignedVolunteers":
+			out.Values[i] = ec._EventShiftSummary_assignedVolunteers(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "maxVolunteers":
+			out.Values[i] = ec._EventShiftSummary_maxVolunteers(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -12549,11 +12732,6 @@ func (ec *executionContext) _ServiceType(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "isActive":
-			out.Values[i] = ec._ServiceType_isActive(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -13432,6 +13610,60 @@ func (ec *executionContext) marshalNEventDate2ᚖvolunteerᚑschedulerᚋgraph�
 		return graphql.Null
 	}
 	return ec._EventDate(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNEventShiftSummary2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventShiftSummaryᚄ(ctx context.Context, sel ast.SelectionSet, v []*EventShiftSummary) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNEventShiftSummary2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventShiftSummary(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNEventShiftSummary2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventShiftSummary(ctx context.Context, sel ast.SelectionSet, v *EventShiftSummary) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._EventShiftSummary(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNEventType2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventType(ctx context.Context, v any) (EventType, error) {

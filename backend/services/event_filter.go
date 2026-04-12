@@ -20,7 +20,12 @@ import (
 // get the events they want to see. We currently filter on region, event type (virtual,
 // in-person, or hybrid), jobs, and dates.
 // We use a 2-pass strategy. This function handles the first pass.
-func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, db *sql.DB) (map[int]*models.Event, error) {
+// fetchFilteredPassOne returns both a map of events (keyed by event_id) and a
+// slice of event IDs in the order they came back from the DB (ORDER BY earliest
+// event date ASC). The caller must use the ordered slice to build the final
+// result — ranging over the map directly would randomise the order because Go
+// maps have no guaranteed iteration order.
+func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, db *sql.DB) (map[int]*models.Event, []int, error) {
 	query := `
         SELECT DISTINCT
             e.event_id,
@@ -92,7 +97,7 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 		if filter.ShiftStartDate != nil {
 			startUTC, err := DateTimeToUTC(*filter.ShiftStartDate, *filter.IanaZone)
 			if err != nil {
-				return nil, fmt.Errorf("error converting date to UTC using %s %s: %w", *filter.ShiftStartDate, *filter.IanaZone, err)
+				return nil, nil, fmt.Errorf("error converting date to UTC using %s %s: %w", *filter.ShiftStartDate, *filter.IanaZone, err)
 			}
 
 			query += fmt.Sprintf(" AND s_filter.shift_start >= $%d", argCount)
@@ -102,7 +107,7 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 		if filter.ShiftEndDate != nil {
 			endUTC, err := DateTimeToUTC(*filter.ShiftEndDate, *filter.IanaZone)
 			if err != nil {
-				return nil, fmt.Errorf("error converting date to UTC using %s %s: %w", *filter.ShiftEndDate, *filter.IanaZone, err)
+				return nil, nil, fmt.Errorf("error converting date to UTC using %s %s: %w", *filter.ShiftEndDate, *filter.IanaZone, err)
 			}
 			query += fmt.Sprintf(" AND s_filter.shift_start <= $%d", argCount)
 			args = append(args, endUTC)
@@ -115,13 +120,16 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 
 	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("error querying in pass 1: %w", err)
+		return nil, nil, fmt.Errorf("error querying in pass 1: %w", err)
 	}
 	defer rows.Close()
 
 	// Each row represents an event that *might* meet the
 	// criteria. Turn each row into an event.
 	eventsMap := make(map[int]*models.Event)
+	// orderedIDs preserves the ORDER BY from the SQL query so the caller
+	// can reassemble the slice in the correct order after map operations.
+	orderedIDs := make([]int, 0)
 
 	for rows.Next() {
 		var e models.Event
@@ -148,7 +156,7 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 			&firstDate,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("error scanning event: %w", err)
+			return nil, nil, fmt.Errorf("error scanning event: %w", err)
 		}
 
 		e.ID = strconv.Itoa(eventInt)
@@ -173,7 +181,7 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 
 		stPtrs, err := FetchEventServiceTypes(ctx, db, eventInt)
 		if err != nil {
-			return nil, fmt.Errorf("error getting event's service types: %w", err)
+			return nil, nil, fmt.Errorf("error getting event's service types: %w", err)
 		}
 		e.ServiceTypes = make([]string, len(stPtrs))
 		for i := 0; i < len(stPtrs); i++ {
@@ -182,13 +190,13 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 
 		dates, err := FetchEventDates(ctx, db, eventInt)
 		if err != nil {
-			return nil, fmt.Errorf("error getting event's dates: %w", err)
+			return nil, nil, fmt.Errorf("error getting event's dates: %w", err)
 		}
 		e.EventDates = dates
 
 		summaries, err := FetchEventShiftSummaries(ctx, db, eventInt)
 		if err != nil {
-			return nil, fmt.Errorf("error getting event's shift summaries: %w", err)
+			return nil, nil, fmt.Errorf("error getting event's shift summaries: %w", err)
 		}
 		e.ShiftSummaries = summaries
 
@@ -204,10 +212,12 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 				e.Venue.Region = append(e.Venue.Region, int(regionInt.Int32))
 			}
 			eventsMap[eventInt] = &e
+			// Record this ID the first time we see it to preserve the DB's ORDER BY.
+			orderedIDs = append(orderedIDs, eventInt)
 		}
 	}
 
-	return eventsMap, nil
+	return eventsMap, orderedIDs, nil
 }
 
 // FetchEventShiftSummaries returns per-opportunity volunteer counts for a single event.

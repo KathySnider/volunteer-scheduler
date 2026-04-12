@@ -102,7 +102,10 @@ func (s *EventService) FetchFilteredEvents(ctx context.Context, filter *models.E
 	// potentially meet all of the user's criteria. If there are
 	// no filters, the call to pass 1 returns all of the events.
 
-	eventsMap, err := fetchFilteredPassOne(ctx, filter, s.DB)
+	// orderedIDs carries the ORDER BY from the SQL query (earliest event date ASC).
+	// We must use it when building the final slice — ranging over eventsMap directly
+	// would randomise the order because Go maps have no guaranteed iteration order.
+	eventsMap, orderedIDs, err := fetchFilteredPassOne(ctx, filter, s.DB)
 	if err != nil {
 		return nil, fmt.Errorf("error querying events: %w", err)
 	}
@@ -116,12 +119,7 @@ func (s *EventService) FetchFilteredEvents(ctx context.Context, filter *models.E
 		// Now, for each of the selected events, determine which
 		// have shifts that also meet the criteria. Pass 2 just
 		// wants the list of ids.
-		eventIDs := []int{}
-		for id := range eventsMap {
-			eventIDs = append(eventIDs, id)
-		}
-
-		eventsWithShifts, err := fetchFilteredPassTwo(ctx, filter, eventIDs, s.DB)
+		eventsWithShifts, err := fetchFilteredPassTwo(ctx, filter, orderedIDs, s.DB)
 		if err != nil {
 			return nil, fmt.Errorf("error querying events: %w", err)
 		}
@@ -134,10 +132,13 @@ func (s *EventService) FetchFilteredEvents(ctx context.Context, filter *models.E
 		}
 	}
 
-	// Convert map to slice
+	// Build the result slice in the order the DB returned the events.
+	// Skipping any IDs that were removed by pass two.
 	events := make([]*models.Event, 0, len(eventsMap))
-	for _, event := range eventsMap {
-		events = append(events, event)
+	for _, id := range orderedIDs {
+		if event, ok := eventsMap[id]; ok {
+			events = append(events, event)
+		}
 	}
 	return events, nil
 }

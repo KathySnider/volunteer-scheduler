@@ -31,6 +31,24 @@
   color: var(--color-text);
 }
 
+.topBarRight {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.myShiftsLink {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.myShiftsLink:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
 /* ----- Body: sidebar + main side by side below top bar ----- */
 
 .body {

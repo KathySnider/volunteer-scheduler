@@ -331,7 +331,10 @@ export default function EventsPage() {
       {/* ---- Top bar ---- */}
       <div className={styles.topBar}>
         <div className={styles.appTitle}>AARP Volunteer Events</div>
-        <UserMenu name={userName} isAdmin={isAdmin} onSignOut={handleSignOut} />
+        <div className={styles.topBarRight}>
+          <a href="/my-shifts" className={styles.myShiftsLink}>My Shifts</a>
+          <UserMenu name={userName} isAdmin={isAdmin} onSignOut={handleSignOut} />
+        </div>
       </div>
 
       <div className={styles.body}>

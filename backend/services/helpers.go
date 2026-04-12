@@ -161,6 +161,7 @@ func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter mod
 		}
 
 		volShift.ShiftId = strconv.Itoa(shiftInt)
+		volShift.EventId = strconv.Itoa(eventInt)
 		if cancelledAt.Valid {
 			volShift.CancelledAt = &cancelledAt.String
 		} else {
@@ -460,7 +461,8 @@ func assignVolToShift(ctx context.Context, DB *sql.DB, mailer *Mailer, shiftId s
 	insert := `
 		INSERT INTO volunteer_shifts (volunteer_id, shift_id, assigned_at)
 		VALUES ($1, $2, NOW())
-		ON CONFLICT (volunteer_id, shift_id) DO NOTHING
+		ON CONFLICT (volunteer_id, shift_id) DO UPDATE
+			SET cancelled_at = NULL, assigned_at = NOW()
 	`
 	_, err = DB.ExecContext(ctx, insert, volId, shiftInt)
 	if err != nil {

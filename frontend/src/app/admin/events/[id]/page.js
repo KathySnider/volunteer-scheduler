@@ -37,6 +37,22 @@ const ADMIN_EVENT_DETAIL = `
   }
 `;
 
+const ALL_VOLUNTEERS_FOR_ROSTER = `
+  query {
+    allVolunteers {
+      id firstName lastName
+    }
+  }
+`;
+
+const VOLUNTEER_SHIFTS_FOR_ROSTER = `
+  query VolShifts($volunteerId: ID!, $filter: ShiftTimeFilter!) {
+    volunteerShifts(volunteerId: $volunteerId, filter: $filter) {
+      shiftId eventId
+    }
+  }
+`;
+
 const UPDATE_EVENT      = `mutation UpdateEvent($event: UpdateEventInput!) { updateEvent(event: $event) { success message } }`;
 const DELETE_EVENT      = `mutation DeleteEvent($eventId: ID!) { deleteEvent(eventId: $eventId) { success message } }`;
 const CREATE_EVENT_DATE = `mutation CreateEventDate($newDate: AddEventDateInput!) { createEventDate(newDate: $newDate) { success message id } }`;
@@ -92,6 +108,35 @@ function splitDT(dtLocal) {
 function joinDT(d, t) {
   if (!d) return "";
   return `${d}T${t || "00:00"}`;
+}
+
+/**
+ * Given a 24-hour "HH:MM" string, return the 12-hour display ("h:MM") and
+ * the period ("AM" or "PM"). Used to pre-fill the time box + toggle.
+ */
+function to12Hour(hhmm) {
+  if (!hhmm || !hhmm.includes(":")) return { display: hhmm, period: "AM" };
+  let [h, m] = hhmm.split(":");
+  h = parseInt(h, 10) || 0;
+  const period = h >= 12 ? "PM" : "AM";
+  const h12    = h % 12 || 12;
+  return { display: `${h12}:${m}`, period };
+}
+
+/**
+ * Convert a user-typed 12-hour time + AM/PM period back to 24-hour "HH:MM".
+ * e.g. ("3:00", "PM") → "15:00", ("12:00", "AM") → "00:00"
+ */
+function to24Hour(display, period) {
+  const norm = normalizeTime(display);           // → "HH:MM" (treats input as 24h)
+  let [h, m] = norm.split(":").map(Number);
+  if (period === "AM") {
+    if (h === 12) h = 0;
+  } else {
+    if (h !== 12) h += 12;
+    if (h >= 24) h = 12;
+  }
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
 /** Convert UTC ISO string to datetime-local value in a given IANA timezone. */
@@ -177,13 +222,28 @@ function ShiftFormFields({ form, setForm, staff }) {
       </div>
       <div className={styles.field}>
         <label className={styles.label}>Start Time <span className={styles.required}>*</span></label>
-        <input
-          type="text" placeholder="HH:MM"
-          className={styles.input}
-          value={startParts.t}
-          onFocus={(e) => e.target.select()}
-          onChange={(e) => setForm((p) => ({ ...p, start: joinDT(splitDT(p.start).d, e.target.value) }))}
-        />
+        <div className={styles.timeRow}>
+          <input
+            type="text" placeholder="h:MM"
+            className={styles.input}
+            value={to12Hour(startParts.t).display}
+            onFocus={(e) => e.target.select()}
+            onChange={(e) => {
+              const period = to12Hour(startParts.t).period;
+              setForm((p) => ({ ...p, start: joinDT(splitDT(p.start).d, to24Hour(e.target.value, period)) }));
+            }}
+          />
+          <select
+            className={styles.ampmSelect}
+            value={to12Hour(startParts.t).period}
+            onChange={(e) => {
+              setForm((p) => ({ ...p, start: joinDT(splitDT(p.start).d, to24Hour(to12Hour(startParts.t).display, e.target.value)) }));
+            }}
+          >
+            <option>AM</option>
+            <option>PM</option>
+          </select>
+        </div>
       </div>
       <div className={styles.field}>
         <label className={styles.label}>End Date <span className={styles.required}>*</span></label>
@@ -196,13 +256,28 @@ function ShiftFormFields({ form, setForm, staff }) {
       </div>
       <div className={styles.field}>
         <label className={styles.label}>End Time <span className={styles.required}>*</span></label>
-        <input
-          type="text" placeholder="HH:MM"
-          className={styles.input}
-          value={endParts.t}
-          onFocus={(e) => e.target.select()}
-          onChange={(e) => setForm((p) => ({ ...p, end: joinDT(splitDT(p.end).d, e.target.value) }))}
-        />
+        <div className={styles.timeRow}>
+          <input
+            type="text" placeholder="h:MM"
+            className={styles.input}
+            value={to12Hour(endParts.t).display}
+            onFocus={(e) => e.target.select()}
+            onChange={(e) => {
+              const period = to12Hour(endParts.t).period;
+              setForm((p) => ({ ...p, end: joinDT(splitDT(p.end).d, to24Hour(e.target.value, period)) }));
+            }}
+          />
+          <select
+            className={styles.ampmSelect}
+            value={to12Hour(endParts.t).period}
+            onChange={(e) => {
+              setForm((p) => ({ ...p, end: joinDT(splitDT(p.end).d, to24Hour(to12Hour(endParts.t).display, e.target.value)) }));
+            }}
+          >
+            <option>AM</option>
+            <option>PM</option>
+          </select>
+        </div>
       </div>
       <div className={styles.field}>
         <label className={styles.label}>Max Volunteers</label>
@@ -284,6 +359,42 @@ export default function AdminEventDetailPage() {
   const [editingShiftId, setEditingShiftId]     = useState(null);
   const [editShiftForm, setEditShiftForm]       = useState(EMPTY_SHIFT_FORM);
 
+  /* --- Volunteer roster (shiftId → [{id, firstName, lastName}]) --- */
+  const [rosterMap, setRosterMap]         = useState(null); // null = not yet loaded
+  const [rosterLoading, setRosterLoading] = useState(false);
+
+  /* ---- Roster load ---- */
+  const loadRoster = useCallback((bound, eid) => {
+    setRosterLoading(true);
+    setRosterMap(null);
+    bound(ALL_VOLUNTEERS_FOR_ROSTER, null)
+      .then(async (res) => {
+        const vols = res.data?.allVolunteers ?? [];
+        // Fetch shifts for every volunteer in parallel, then build shiftId → vol[] map.
+        const entries = await Promise.all(
+          vols.map((v) =>
+            bound(VOLUNTEER_SHIFTS_FOR_ROSTER, { volunteerId: v.id, filter: "ALL" })
+              .then((r) => {
+                const shifts = r.data?.volunteerShifts ?? [];
+                return { vol: v, shifts };
+              })
+              .catch(() => ({ vol: v, shifts: [] }))
+          )
+        );
+        const map = {};
+        for (const { vol, shifts } of entries) {
+          for (const s of shifts) {
+            if (String(s.eventId) !== String(eid)) continue;
+            if (!map[s.shiftId]) map[s.shiftId] = [];
+            map[s.shiftId].push(vol);
+          }
+        }
+        setRosterMap(map);
+      })
+      .catch(() => setRosterMap({}))
+      .finally(() => setRosterLoading(false));
+  }, []);
+
   /* ---- Auth + data load ---- */
   const loadPage = useCallback((bound, eid) => {
     setLoading(true);
@@ -310,7 +421,8 @@ export default function AdminEventDetailPage() {
     setGql(() => bound);
     setUserName(getAuthName() ?? "");
     loadPage(bound, eventId);
-  }, [router, eventId, loadPage]);
+    loadRoster(bound, eventId);
+  }, [router, eventId, loadPage, loadRoster]);
 
   /* ---- Helpers ---- */
   const tz           = eventIanaZone(event);
@@ -1044,6 +1156,69 @@ export default function AdminEventDetailPage() {
             );
           })}
         </div>
+
+        {/* ---- Volunteer Roster section ---- */}
+        <div className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <div className={styles.sectionTitle}>Volunteer Roster</div>
+          </div>
+
+          {rosterLoading && (
+            <div className={styles.shiftList}>
+              <em className={styles.emptyMsg}>Loading roster…</em>
+            </div>
+          )}
+
+          {!rosterLoading && rosterMap !== null && opps.length === 0 && (
+            <div className={styles.shiftList}>
+              <em className={styles.emptyMsg}>No opportunities or shifts for this event.</em>
+            </div>
+          )}
+
+          {!rosterLoading && rosterMap !== null && opps.map((opp) => {
+            const jobName = jobMap[String(opp.jobId)] ?? `Job #${opp.jobId}`;
+            return (
+              <div key={opp.id} className={styles.oppCard}>
+                <div className={styles.oppHeader}>
+                  <div>
+                    <div className={styles.oppTitle}>{jobName}</div>
+                    <div className={styles.oppMeta}>
+                      {opp.isVirtual ? "Virtual" : "In Person"}
+                    </div>
+                  </div>
+                </div>
+                <div className={styles.shiftList}>
+                  {opp.shifts.length === 0 && (
+                    <div className={styles.emptyMsg}>No shifts.</div>
+                  )}
+                  {opp.shifts.map((shift) => {
+                    const signups = rosterMap[shift.id] ?? [];
+                    return (
+                      <div key={shift.id} className={styles.shiftRow}>
+                        <div style={{ flex: 1 }}>
+                          <div className={styles.shiftInfo}>
+                            {formatDisplay(shift.startDateTime, tz)}
+                            <span style={{ fontWeight: 400, color: "var(--color-text-muted)" }}>
+                              {" "}— {formatDisplay(shift.endDateTime, tz)}
+                            </span>
+                          </div>
+                          {signups.length === 0 ? (
+                            <div className={styles.shiftSub}>No volunteers signed up</div>
+                          ) : (
+                            <div className={styles.shiftSub}>
+                              {signups.map((v) => `${v.firstName} ${v.lastName}`).join(", ")}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
       </div>
     </div>
   );
