@@ -1,30 +1,41 @@
 # Volunteer Scheduler
 
-# Under Construction - Lots of changes to the backend, but the frontend *is* coming!
-A full-stack web prototype for managing organizational events, volunteer opportunities, and shift assignments. Built with Next.js (React) frontend and Go GraphQL backend.
+A full-stack web application for managing organizational events, volunteer opportunities, and shift assignments. Built with Next.js (React) frontend and Go/GraphQL backend.
 
 ## Overview
 
-This application will allow organizations to:
+This application allows organizations to:
 - Create and manage events with which volunteers can help.
-- Define volunteer opportunities with specific roles (and required qualifications, if any).
-- Schedule shifts for each opportunity.
+- Define volunteer opportunities with specific jobs.
+- Schedule multiple shifts for each opportunity, with maximum slots available.
 - Allow volunteers to signup for opportunities and choose their shifts.
-- Track volunteer assignments.
+- Track and show volunteer assignments.
 
-This is a prototype to see how the volunteers like the signup features. Currently, data  (events, volunteer information, etc.) have to be entered thru psql. 
-Administration features coming soon.
+This application is still under construction. Currently, volunteers can:
+- See events and filter on dates, job types, etc.
+- See available jobs and shifts for an event.
+- Sign up for a shift.
+- See their own shift assignments.
+- Cancel a shift.
 
-### Events Listing Page
+
+Admins can:
+- Do everything volunteers can do, including sign up for shifts.
+- Add/edit/delete events and volunteer jobs and shifts.
+- Add/edit/delete venues.
+
+More administration features coming all the time.
+
+#### Events Listing Page
 - Filter events by:
-  - City (multi-select)
+  - Region (multi-select)
   - Event type (Virtual, In-Person, Hybrid)
-  - Volunteer roles needed
+  - Volunteer jobs needed
   - Date range (default is today forward)
 - View filtered events with key information.
-- Navigate to an event's details using the "More Info" button.
+- Navigate to an event's details using the "View Details" button.
 
-### Event Detail Page
+#### Event Detail Page
 - View complete event information.
 - See all volunteer opportunities and shifts for the event.
 - View currently assigned volunteers.
@@ -34,19 +45,18 @@ Administration features coming soon.
 
 ## Architecture
 
-### Frontend (in `vol_sched_app/`)
-- **Framework**: Next.js
-- **Styling**: Tailwind CSS
+### Frontend
+- **Framework**: Javascript
 - **Icons**: Lucide React
 - **API Client**: GraphQL queries to backend
 
-### Backend (in `vol_sched_api/`)
+### Backend
 - **Language**: Go
 - **API**: GraphQL (using gqlgen)
 - **Database**: PostgreSQL
 - **ORM**: Standard library `database/sql`
 
-### Database (in 'database/')
+### Database (in 'backend/database/')
 - **Type**: PostgreSQL
 - **Migrations**: golang-migrate
 - **Schema**: Fully normalized (3NF)
@@ -80,32 +90,31 @@ places, the server gets the password from one file, gets the url from
 another file and replaces the string `database_password` with the actual 
 password.
 
-So, you will need 2 secrets files:
+Once in production, the application will need a resend key. 
+
+So, you will need 3 secrets files:
+ - secret_resend_api_key.txt (for now this can be empty).
  - secret_postgres_pw.txt contains **only** the password for your database.
  - secret_db_url.txt contains **only** the url:
 
 ```bash
-<<<<<<< HEAD
-postgres://postgres:database_password@db:5432/volunteer-scheduler?sslmode=disable"
-=======
 postgres://postgres:database_password@db:5432/volunteer-scheduler?sslmode=disable
->>>>>>> main
 ```
 
-Docker will look for these 2 files (with these names) in the root (volunteer-scheduler)
+Docker will look for these 3 files (with these names) in the root (volunteer-scheduler)
 directory. To change the names or locations, edit the docker-compose.yml files in
 volunteer-scheduler and in volunteer-scheduler/database.
 Note: that the server **expects** the string `database_password`.
 
-No environment variables are required for local development of the frontend. The frontend 
-is configured to connect to `http://localhost:8080/query` by default. For production, you 
-may want to set:
+There are several environment variables that will be needed. Once you have checked out the files, copy env.example to .env in volunteer-scheduler. Make any local edits needed for development. 
+
+In production, you will need to add the PUBLIC_API_URL:
 
 ```env
 PUBLIC_API_URL=https://your-api-domain.com/query
 ```
 
-### 3. There are 2 options. Before doing either, make sure you are in the proper directory:
+### 3. For this step, here are 2 options. Before doing either, make sure you are in the root directory:
 
 ```bash
 cd volunteer-scheduler
@@ -125,10 +134,12 @@ docker-compose up -d
 
 The web application will be available at `http://localhost:3000`
 
-The GraphQL API will be available to try out at:
- -  **API Endpoint**: `http://localhost:8080/query`
- -  **GraphQL Playground**: `http://localhost:8080/graphql`
+The Mailhog applicaiton will be available at `http://localhost:8025`
 
+The GraphQL API will be available to try out at these 3 endpoints:
+ - `http://localhost:8080/graphql/auth`
+ - `http://localhost:8080/graphql/admin`
+ - `http://localhost:8080/graphql/volunteer`
 
 
 ### 3 - Option B. Start Each Component
@@ -148,25 +159,26 @@ Note: The first time you do this, the tables are empty. There is sample data, a
 script, and more information in the database folder.
 
 
-#### 3.B.2 Set up and run the server (vol_sched_api)
+#### 3.B.2 Set up and run the server 
 
 ```bash
-cd vol_sched_api
+cd backend
 docker build -t volunteer-api .
 docker run -d volunteer-api
 ```
 
 Docker will install dependencies, generate the volunteer-api with gqlgen, and run the server.
 
+The GraphQL API will be available to try out at these 3 endpoints:
+ - `http://localhost:8080/graphql/auth`
+ - `http://localhost:8080/graphql/admin`
+ - `http://localhost:8080/graphql/volunteer`
 
-The GraphQL API will be available to try out at:
- -  **API Endpoint**: http://localhost:8080/query
- -  **GraphQL Playground**: http://localhost:8080/graphql
 
 #### 3.B.3 Set up the frontend
 
 ```bash
-cd vol_sched_app
+cd fromtend
 docker build -t volunteer-frontend .
 docker run -d -p 3000:3000 -e PUBLIC_API_URL="http://your-api:8080/query" volunteer-frontend
 ```
@@ -176,6 +188,8 @@ The web application will be available at `http://localhost:3000`
 
 
 ### Stopping Services
+
+From the root directory:
 
 ```bash
 docker-compose down
@@ -190,7 +204,7 @@ docker-compose down -v
 
 ### GraphQL API
 - Query events with flexible filtering.
-- Query volunteers by qualifications.
+- Query volunteers.
 - Mutations for assigning volunteers to shifts.
 - Fully typed schema with enums for roles and qualifications.
 
