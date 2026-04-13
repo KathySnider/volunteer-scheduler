@@ -127,6 +127,45 @@ function venueDisplayName(v) {
   return v.name ? `${v.name} — ${v.city}, ${v.state}` : `${v.address}, ${v.city}, ${v.state}`;
 }
 
+/* ----- TimeInput ----- */
+/**
+ * Free-form time input that lets the user type naturally.
+ * Stores raw text locally while focused; on blur it normalizes
+ * the value (via to24Hour) and commits it to the parent.
+ * Syncs display when value24 changes from outside (e.g. AM/PM toggle).
+ */
+function TimeInput({ value24, period, onCommit, className }) {
+  const [raw, setRaw] = useState(() => to12Hour(value24).display);
+  const focusedRef = useRef(false);
+
+  useEffect(() => {
+    if (!focusedRef.current) {
+      setRaw(to12Hour(value24).display);
+    }
+  }, [value24]);
+
+  return (
+    <input
+      type="text"
+      placeholder="h:MM"
+      className={className}
+      value={raw}
+      onFocus={(e) => {
+        focusedRef.current = true;
+        setRaw(to12Hour(value24).display);
+        e.target.select();
+      }}
+      onChange={(e) => setRaw(e.target.value)}
+      onBlur={() => {
+        focusedRef.current = false;
+        const converted = to24Hour(raw, period);
+        onCommit(converted);
+        setRaw(to12Hour(converted).display);
+      }}
+    />
+  );
+}
+
 /* ----- VenueSelector sub-component ----- */
 
 function VenueSelector({ venues, regions, selectedVenue, onSelect, onClear, gql }) {
@@ -398,7 +437,11 @@ function VenueSelector({ venues, regions, selectedVenue, onSelect, onClear, gql 
 
 /* ----- Page ----- */
 
-const EMPTY_DATE = () => ({ id: Date.now(), start: "", end: "" });
+const EMPTY_DATE = () => ({
+  id: Date.now(),
+  startDate: "", startTime: "00:00",
+  endDate:   "", endTime:   "00:00",
+});
 
 export default function AddEventPage() {
   const router = useRouter();
@@ -499,9 +542,11 @@ export default function AddEventPage() {
       errs.venue = "Please select or add a venue.";
     }
     const dateErrs = eventDates.map((d) => {
-      if (!d.start) return "Start date/time is required.";
-      if (!d.end)   return "End date/time is required.";
-      if (d.start >= d.end) return "End must be after start.";
+      if (!d.startDate) return "Start date is required.";
+      if (!d.endDate)   return "End date is required.";
+      const startDT = `${d.startDate}T${d.startTime}`;
+      const endDT   = `${d.endDate}T${d.endTime}`;
+      if (startDT >= endDT) return "End must be after start.";
       return null;
     });
     if (dateErrs.some(Boolean)) errs.dates = dateErrs;
@@ -524,8 +569,8 @@ export default function AddEventPage() {
       venueId:      selectedVenue?.id ?? null,
       serviceTypes: selectedServiceTypes.map(Number),
       eventDates:   eventDates.map((d) => ({
-        startDateTime: toBackendDateTime(d.start),
-        endDateTime:   toBackendDateTime(d.end),
+        startDateTime: `${d.startDate} ${normalizeTime(d.startTime)}:00`,
+        endDateTime:   `${d.endDate} ${normalizeTime(d.endTime)}:00`,
         ianaZone,
       })),
     };
@@ -724,32 +769,30 @@ export default function AddEventPage() {
                       <input
                         type="date"
                         className={`${styles.input} ${errors.dates?.[i] ? styles.error : ""}`}
-                        value={splitDT(d.start).d}
-                        onChange={(e) => {
-                          updateDate(d.id, "start", joinDT(e.target.value, splitDT(d.start).t));
-                          // Default end date to start date if end not yet set
-                          if (!splitDT(d.end).d) updateDate(d.id, "end", joinDT(e.target.value, splitDT(d.end).t));
+                        value={d.startDate}
+                        onChange={(e) => updateDate(d.id, "startDate", e.target.value)}
+                        onBlur={(e) => {
+                          const newDate = e.target.value;
+                          if (newDate && (!d.endDate || d.endDate < newDate)) {
+                            updateDate(d.id, "endDate", newDate);
+                          }
                         }}
                       />
                     </div>
                     <div className={styles.dateRowField}>
                       <label className={styles.dateRowLabel}>Start Time</label>
                       <div className={styles.timeRow}>
-                        <input
-                          type="text" placeholder="h:MM" onFocus={(e) => e.target.select()}
+                        <TimeInput
+                          value24={d.startTime}
+                          period={to12Hour(d.startTime).period}
                           className={`${styles.input} ${errors.dates?.[i] ? styles.error : ""}`}
-                          value={to12Hour(splitDT(d.start).t).display}
-                          onChange={(e) => {
-                            const period = to12Hour(splitDT(d.start).t).period;
-                            updateDate(d.id, "start", joinDT(splitDT(d.start).d, to24Hour(e.target.value, period)));
-                          }}
+                          onCommit={(t24) => updateDate(d.id, "startTime", t24)}
                         />
                         <select
                           className={styles.ampmSelect}
-                          value={to12Hour(splitDT(d.start).t).period}
+                          value={to12Hour(d.startTime).period}
                           onChange={(e) => {
-                            const disp = to12Hour(splitDT(d.start).t).display;
-                            updateDate(d.id, "start", joinDT(splitDT(d.start).d, to24Hour(disp, e.target.value)));
+                            updateDate(d.id, "startTime", to24Hour(to12Hour(d.startTime).display, e.target.value));
                           }}
                         >
                           <option>AM</option>
@@ -762,28 +805,24 @@ export default function AddEventPage() {
                       <input
                         type="date"
                         className={`${styles.input} ${errors.dates?.[i] ? styles.error : ""}`}
-                        value={splitDT(d.end).d}
-                        onChange={(e) => updateDate(d.id, "end", joinDT(e.target.value, splitDT(d.end).t))}
+                        value={d.endDate}
+                        onChange={(e) => updateDate(d.id, "endDate", e.target.value)}
                       />
                     </div>
                     <div className={styles.dateRowField}>
                       <label className={styles.dateRowLabel}>End Time</label>
                       <div className={styles.timeRow}>
-                        <input
-                          type="text" placeholder="h:MM" onFocus={(e) => e.target.select()}
+                        <TimeInput
+                          value24={d.endTime}
+                          period={to12Hour(d.endTime).period}
                           className={`${styles.input} ${errors.dates?.[i] ? styles.error : ""}`}
-                          value={to12Hour(splitDT(d.end).t).display}
-                          onChange={(e) => {
-                            const period = to12Hour(splitDT(d.end).t).period;
-                            updateDate(d.id, "end", joinDT(splitDT(d.end).d, to24Hour(e.target.value, period)));
-                          }}
+                          onCommit={(t24) => updateDate(d.id, "endTime", t24)}
                         />
                         <select
                           className={styles.ampmSelect}
-                          value={to12Hour(splitDT(d.end).t).period}
+                          value={to12Hour(d.endTime).period}
                           onChange={(e) => {
-                            const disp = to12Hour(splitDT(d.end).t).display;
-                            updateDate(d.id, "end", joinDT(splitDT(d.end).d, to24Hour(disp, e.target.value)));
+                            updateDate(d.id, "endTime", to24Hour(to12Hour(d.endTime).display, e.target.value));
                           }}
                         >
                           <option>AM</option>

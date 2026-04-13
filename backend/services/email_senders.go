@@ -65,7 +65,7 @@ func sendAssignmentConfirmation(ctx context.Context, DB *sql.DB, mailer *Mailer,
 		return fmt.Errorf("non-virtual shift has no venue address")
 	}
 
-	fmtStart, fmtEnd, err := formatStartEnd(ctx, shiftStart, shiftEnd, timezone)
+	fmtStart, fmtEnd, err := formatStartEnd(shiftStart, shiftEnd, timezone)
 	if err != nil {
 		return fmt.Errorf("error formatting shift times: %w", err)
 	}
@@ -128,7 +128,7 @@ func sendCancellationConfirmation(ctx context.Context, DB *sql.DB, mailer *Maile
 		return fmt.Errorf("error scanning shift information: %w", err)
 	}
 
-	fmtStart, fmtEnd, err := formatStartEnd(ctx, shiftStart, shiftEnd, timezone)
+	fmtStart, fmtEnd, err := formatStartEnd(shiftStart, shiftEnd, timezone)
 	if err != nil {
 		return fmt.Errorf("error formatting shift times: %w", err)
 	}

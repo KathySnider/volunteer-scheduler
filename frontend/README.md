@@ -1,39 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Volunteer Scheduler — Frontend
 
-## Getting Started
+Next.js (App Router) frontend for the Volunteer Scheduler application.
 
-Note: The Dockerfile in this directory uses "npm ci" to install dependencies. 
-If you have trouble when building this component, your package-lock.json and package.json files might not be in sync. 
+## Stack
 
-First, run the development server:
+- **Framework**: Next.js (App Router)
+- **Components**: React with hooks (`useState`, `useEffect`, `useCallback`, `useRef`)
+- **Styling**: CSS Modules (one `.module.css` file per page/component)
+- **API**: GraphQL via plain `fetch` — no external GraphQL client library
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Structure
+
+```
+src/app/
+  page.js                        # Root redirect → /events
+  layout.js                      # Root layout
+  globals.css                    # CSS custom properties (design tokens)
+  lib/
+    api.js                       # GraphQL fetch helpers + localStorage auth
+  components/
+    UserMenu.js / .module.css    # Top-bar user name + admin gear menu
+  auth/
+    magic-link/page.js           # Magic-link callback (stores token + role)
+  login/page.js                  # Login / request magic link
+  events/
+    page.js / events.module.css  # Events listing with filters
+    [id]/
+      page.js / event-detail.module.css   # Volunteer event detail + sign-up
+  my-shifts/
+    page.js / my-shifts.module.css        # Volunteer's own shift history
+  admin/
+    events/
+      page.js / admin-events.module.css   # Manage events list
+      new/page.js / add-event.module.css  # Add event form
+      [id]/page.js / admin-event-detail.module.css  # Edit event + roster
+    venues/
+      page.js / admin-venues.module.css   # Manage venues
+    volunteers/
+      page.js / admin-volunteers.module.css  # Manage volunteers
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Auth
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+Authentication uses magic links (passwordless email). After login:
+- A JWT token is stored in `localStorage` as `authToken`.
+- The user's role (`VOLUNTEER` or `ADMINISTRATOR`) is stored as `authRole`.
+- The display name is stored as `authName`.
+- All GraphQL calls include the token in the `Authorization: Bearer` header.
+- Admins use the `/graphql/admin` endpoint; volunteers use `/graphql/volunteer`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Running with Docker
 
-## Learn More
+From the project root:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+docker-compose up --build -d
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The app is available at http://localhost:3000.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Running Locally (without Docker)
 
-## Deploy on Vercel
+```bash
+npm install
+npm run dev
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Requires `NEXT_PUBLIC_API_URL` (or equivalent) pointing at the running backend.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Key Patterns
+
+- **Module-level sub-components**: Form field components (`ShiftFormFields`, `VenueFormFields`, etc.) are defined at module scope — never inside a page component — to prevent React from remounting them on every render and stealing input focus.
+- **Separate date/time fields**: Date and time are kept as separate state fields so changing one never resets the other.
+- **`TimeInput` component**: Free-form time text input that stores raw typed text locally and only normalizes + commits the value on blur, allowing natural typing.

@@ -349,7 +349,7 @@ func AddNewEventDates(ctx context.Context, dates []*models.NewEventDateInput, ev
 	return nil
 }
 
-func formatStartEnd(ctx context.Context, start string, end string, timezone sql.NullString) (*string, *string, error) {
+func formatStartEnd(start string, end string, timezone sql.NullString) (*string, *string, error) {
 	var fmtStart, fmtEnd *string
 	var err error
 
