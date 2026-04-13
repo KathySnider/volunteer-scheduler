@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
   getAuthToken,
@@ -182,12 +182,53 @@ function eventIanaZone(event) {
     || Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
+/* ----- TimeInput ----- */
+/**
+ * Free-form time input that lets the user type naturally.
+ * Stores raw text locally while focused; on blur it normalizes
+ * the value (via to24Hour) and commits it to the parent.
+ * Syncs display when value24 changes from outside (e.g. AM/PM toggle).
+ */
+function TimeInput({ value24, period, onCommit, className }) {
+  const [raw, setRaw] = useState(() => to12Hour(value24).display);
+  const focusedRef = useRef(false);
+
+  useEffect(() => {
+    if (!focusedRef.current) {
+      setRaw(to12Hour(value24).display);
+    }
+  }, [value24]);
+
+  return (
+    <input
+      type="text"
+      placeholder="h:MM"
+      className={className}
+      value={raw}
+      onFocus={(e) => {
+        focusedRef.current = true;
+        setRaw(to12Hour(value24).display);
+        e.target.select();
+      }}
+      onChange={(e) => setRaw(e.target.value)}
+      onBlur={() => {
+        focusedRef.current = false;
+        const converted = to24Hour(raw, period);
+        onCommit(converted);
+        setRaw(to12Hour(converted).display);
+      }}
+    />
+  );
+}
+
 /* =========================================================
    Page
    ========================================================= */
 
 const EMPTY_SHIFT_FORM = {
-  start: "", end: "", ianaZone: "", maxVolunteers: "", staffContactId: "",
+  startDate: "", startTime: "00:00",
+  endDate:   "", endTime:   "00:00",
+  ianaZone: "", maxVolunteers: "", staffContactId: "",
 };
 
 /* =========================================================
@@ -201,8 +242,6 @@ const EMPTY_SHIFT_FORM = {
    ========================================================= */
 
 function ShiftFormFields({ form, setForm, staff }) {
-  const startParts = splitDT(form.start);
-  const endParts   = splitDT(form.end);
   return (
     <div className={styles.grid2}>
       <div className={styles.field}>
@@ -210,34 +249,31 @@ function ShiftFormFields({ form, setForm, staff }) {
         <input
           type="date"
           className={styles.input}
-          value={startParts.d}
-          onChange={(e) => setForm((p) => {
-            const newStart = joinDT(e.target.value, splitDT(p.start).t);
-            // Default end date to start date if end date not yet set
-            const endD = splitDT(p.end).d;
-            const newEnd = endD ? p.end : joinDT(e.target.value, splitDT(p.end).t);
-            return { ...p, start: newStart, end: newEnd };
-          })}
+          value={form.startDate}
+          onChange={(e) => setForm((p) => ({ ...p, startDate: e.target.value }))}
+          onBlur={(e) => {
+            const newDate = e.target.value;
+            if (newDate) {
+              setForm((p) => (!p.endDate || p.endDate < newDate) ? { ...p, endDate: newDate } : p);
+            }
+          }}
         />
       </div>
       <div className={styles.field}>
         <label className={styles.label}>Start Time <span className={styles.required}>*</span></label>
         <div className={styles.timeRow}>
-          <input
-            type="text" placeholder="h:MM"
+          <TimeInput
+            value24={form.startTime}
+            period={to12Hour(form.startTime).period}
             className={styles.input}
-            value={to12Hour(startParts.t).display}
-            onFocus={(e) => e.target.select()}
-            onChange={(e) => {
-              const period = to12Hour(startParts.t).period;
-              setForm((p) => ({ ...p, start: joinDT(splitDT(p.start).d, to24Hour(e.target.value, period)) }));
-            }}
+            onCommit={(t24) => setForm((p) => ({ ...p, startTime: t24 }))}
           />
           <select
             className={styles.ampmSelect}
-            value={to12Hour(startParts.t).period}
+            value={to12Hour(form.startTime).period}
             onChange={(e) => {
-              setForm((p) => ({ ...p, start: joinDT(splitDT(p.start).d, to24Hour(to12Hour(startParts.t).display, e.target.value)) }));
+              const newPeriod = e.target.value;
+              setForm((p) => ({ ...p, startTime: to24Hour(to12Hour(p.startTime).display, newPeriod) }));
             }}
           >
             <option>AM</option>
@@ -250,28 +286,25 @@ function ShiftFormFields({ form, setForm, staff }) {
         <input
           type="date"
           className={styles.input}
-          value={endParts.d}
-          onChange={(e) => setForm((p) => ({ ...p, end: joinDT(e.target.value, splitDT(p.end).t) }))}
+          value={form.endDate}
+          onChange={(e) => setForm((p) => ({ ...p, endDate: e.target.value }))}
         />
       </div>
       <div className={styles.field}>
         <label className={styles.label}>End Time <span className={styles.required}>*</span></label>
         <div className={styles.timeRow}>
-          <input
-            type="text" placeholder="h:MM"
+          <TimeInput
+            value24={form.endTime}
+            period={to12Hour(form.endTime).period}
             className={styles.input}
-            value={to12Hour(endParts.t).display}
-            onFocus={(e) => e.target.select()}
-            onChange={(e) => {
-              const period = to12Hour(endParts.t).period;
-              setForm((p) => ({ ...p, end: joinDT(splitDT(p.end).d, to24Hour(e.target.value, period)) }));
-            }}
+            onCommit={(t24) => setForm((p) => ({ ...p, endTime: t24 }))}
           />
           <select
             className={styles.ampmSelect}
-            value={to12Hour(endParts.t).period}
+            value={to12Hour(form.endTime).period}
             onChange={(e) => {
-              setForm((p) => ({ ...p, end: joinDT(splitDT(p.end).d, to24Hour(to12Hour(endParts.t).display, e.target.value)) }));
+              const newPeriod = e.target.value;
+              setForm((p) => ({ ...p, endTime: to24Hour(to12Hour(p.endTime).display, newPeriod) }));
             }}
           >
             <option>AM</option>
@@ -364,7 +397,9 @@ export default function AdminEventDetailPage() {
   const [rosterLoading, setRosterLoading] = useState(false);
 
   /* ---- Roster load ---- */
-  const loadRoster = useCallback((bound, eid) => {
+  // Takes a Set of shift ID strings so we can filter by known shift IDs
+  // instead of relying on the volunteerShifts.eventId field.
+  const loadRoster = useCallback((bound, shiftIdSet) => {
     setRosterLoading(true);
     setRosterMap(null);
     bound(ALL_VOLUNTEERS_FOR_ROSTER, null)
@@ -384,7 +419,7 @@ export default function AdminEventDetailPage() {
         const map = {};
         for (const { vol, shifts } of entries) {
           for (const s of shifts) {
-            if (String(s.eventId) !== String(eid)) continue;
+            if (!shiftIdSet.has(String(s.shiftId))) continue;
             if (!map[s.shiftId]) map[s.shiftId] = [];
             map[s.shiftId].push(vol);
           }
@@ -396,21 +431,28 @@ export default function AdminEventDetailPage() {
   }, []);
 
   /* ---- Auth + data load ---- */
-  const loadPage = useCallback((bound, eid) => {
+  const loadPage = useCallback((bound, eid, refreshRoster = false) => {
     setLoading(true);
     bound(ADMIN_EVENT_DETAIL, { eventId: eid })
       .then((res) => {
         if (res.errors) { setPageError(res.errors[0]?.message ?? "Error loading data."); return; }
+        const loadedOpps = res.data?.opportunitiesForEvent ?? [];
         setEvent(res.data?.eventById ?? null);
-        setOpps(res.data?.opportunitiesForEvent ?? []);
+        setOpps(loadedOpps);
         setJobTypes(res.data?.lookupValues?.jobTypes ?? []);
         setSvcTypes(res.data?.lookupValues?.serviceTypes ?? []);
         setVenues(res.data?.venues ?? []);
         setStaff(res.data?.staff ?? []);
+        if (refreshRoster) {
+          const shiftIdSet = new Set(
+            loadedOpps.flatMap((o) => o.shifts.map((s) => String(s.id)))
+          );
+          loadRoster(bound, shiftIdSet);
+        }
       })
       .catch(() => setPageError("Unable to reach the server."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [loadRoster]);
 
   useEffect(() => {
     const t = getAuthToken();
@@ -420,9 +462,8 @@ export default function AdminEventDetailPage() {
     const bound = (q, v) => adminGql(q, v, t);
     setGql(() => bound);
     setUserName(getAuthName() ?? "");
-    loadPage(bound, eventId);
-    loadRoster(bound, eventId);
-  }, [router, eventId, loadPage, loadRoster]);
+    loadPage(bound, eventId, true);
+  }, [router, eventId, loadPage]);
 
   /* ---- Helpers ---- */
   const tz           = eventIanaZone(event);
@@ -447,7 +488,7 @@ export default function AdminEventDetailPage() {
       }
       showMsg("success", successMsg);
       if (onSuccess) onSuccess(result);
-      loadPage(gql, eventId);
+      loadPage(gql, eventId, true);
       return result;
     } catch {
       showMsg("error", "Unable to reach the server.");
@@ -549,7 +590,8 @@ export default function AdminEventDetailPage() {
       jobId: jobTypes[0]?.id ? String(jobTypes[0].id) : "",
       isVirtual: event?.eventType === "VIRTUAL",
       preEventInstructions: "",
-      shiftStart: "", shiftEnd: "",
+      shiftStartDate: "", shiftStartTime: "00:00",
+      shiftEndDate:   "", shiftEndTime:   "00:00",
       shiftMaxVols: "", shiftStaffId: "",
     });
     setAddingOpp(true);
@@ -558,8 +600,8 @@ export default function AdminEventDetailPage() {
 
   const handleSaveOpp = async () => {
     if (!oppForm.jobId) { showMsg("error", "Please select a job type."); return; }
-    if (!oppForm.shiftStart || !oppForm.shiftEnd) {
-      showMsg("error", "First shift start and end are required.");
+    if (!oppForm.shiftStartDate || !oppForm.shiftEndDate) {
+      showMsg("error", "First shift start and end dates are required.");
       return;
     }
     await mutate(
@@ -570,8 +612,8 @@ export default function AdminEventDetailPage() {
         isVirtual: oppForm.isVirtual,
         preEventInstructions: oppForm.preEventInstructions.trim() || null,
         shifts: [{
-          startDateTime: toBackendDateTime(oppForm.shiftStart),
-          endDateTime:   toBackendDateTime(oppForm.shiftEnd),
+          startDateTime: `${oppForm.shiftStartDate} ${normalizeTime(oppForm.shiftStartTime)}:00`,
+          endDateTime:   `${oppForm.shiftEndDate} ${normalizeTime(oppForm.shiftEndTime)}:00`,
           ianaZone: tz,
           maxVolunteers: oppForm.shiftMaxVols ? parseInt(oppForm.shiftMaxVols, 10) : null,
           staffContactId: oppForm.shiftStaffId || null,
@@ -620,16 +662,16 @@ export default function AdminEventDetailPage() {
   };
 
   const handleSaveAddShift = async () => {
-    if (!addShiftForm.start || !addShiftForm.end) {
-      showMsg("error", "Shift start and end are required.");
+    if (!addShiftForm.startDate || !addShiftForm.endDate) {
+      showMsg("error", "Shift start and end dates are required.");
       return;
     }
     await mutate(
       CREATE_SHIFT,
       { newShift: {
         opportunityId: addingShiftOppId,
-        startDateTime: toBackendDateTime(addShiftForm.start),
-        endDateTime:   toBackendDateTime(addShiftForm.end),
+        startDateTime: `${addShiftForm.startDate} ${normalizeTime(addShiftForm.startTime)}:00`,
+        endDateTime:   `${addShiftForm.endDate} ${normalizeTime(addShiftForm.endTime)}:00`,
         ianaZone: tz,
         maxVolunteers: addShiftForm.maxVolunteers ? parseInt(addShiftForm.maxVolunteers, 10) : null,
         staffContactId: addShiftForm.staffContactId || null,
@@ -641,9 +683,13 @@ export default function AdminEventDetailPage() {
 
   const openEditShift = (shift) => {
     setEditingShiftId(shift.id);
+    const startLocal = toDatetimeLocal(shift.startDateTime, tz);
+    const endLocal   = toDatetimeLocal(shift.endDateTime,   tz);
     setEditShiftForm({
-      start:          toDatetimeLocal(shift.startDateTime, tz),
-      end:            toDatetimeLocal(shift.endDateTime,   tz),
+      startDate:      splitDT(startLocal).d,
+      startTime:      splitDT(startLocal).t || "00:00",
+      endDate:        splitDT(endLocal).d,
+      endTime:        splitDT(endLocal).t   || "00:00",
       ianaZone:       tz,
       maxVolunteers:  shift.maxVolunteers != null ? String(shift.maxVolunteers) : "",
       staffContactId: shift.staffContactId ?? "",
@@ -656,8 +702,8 @@ export default function AdminEventDetailPage() {
       UPDATE_SHIFT,
       { shift: {
         id: editingShiftId,
-        startDateTime: toBackendDateTime(editShiftForm.start),
-        endDateTime:   toBackendDateTime(editShiftForm.end),
+        startDateTime: `${editShiftForm.startDate} ${normalizeTime(editShiftForm.startTime)}:00`,
+        endDateTime:   `${editShiftForm.endDate} ${normalizeTime(editShiftForm.endTime)}:00`,
         ianaZone: tz,
         maxVolunteers: editShiftForm.maxVolunteers ? parseInt(editShiftForm.maxVolunteers, 10) : null,
         staffContactId: editShiftForm.staffContactId || null,
@@ -995,12 +1041,24 @@ export default function AdminEventDetailPage() {
               <div className={styles.shiftDivider}>First Shift (required)</div>
               <ShiftFormFields
                 staff={staff}
-                form={{ start: oppForm.shiftStart, end: oppForm.shiftEnd, maxVolunteers: oppForm.shiftMaxVols, staffContactId: oppForm.shiftStaffId }}
+                form={{
+                  startDate: oppForm.shiftStartDate, startTime: oppForm.shiftStartTime,
+                  endDate:   oppForm.shiftEndDate,   endTime:   oppForm.shiftEndTime,
+                  maxVolunteers: oppForm.shiftMaxVols, staffContactId: oppForm.shiftStaffId,
+                }}
                 setForm={(updater) => setOppForm((p) => {
-                  const updated = typeof updater === "function"
-                    ? updater({ start: p.shiftStart, end: p.shiftEnd, maxVolunteers: p.shiftMaxVols, staffContactId: p.shiftStaffId })
-                    : updater;
-                  return { ...p, shiftStart: updated.start, shiftEnd: updated.end, shiftMaxVols: updated.maxVolunteers, shiftStaffId: updated.staffContactId };
+                  const prev = {
+                    startDate: p.shiftStartDate, startTime: p.shiftStartTime,
+                    endDate:   p.shiftEndDate,   endTime:   p.shiftEndTime,
+                    maxVolunteers: p.shiftMaxVols, staffContactId: p.shiftStaffId,
+                  };
+                  const updated = typeof updater === "function" ? updater(prev) : updater;
+                  return {
+                    ...p,
+                    shiftStartDate: updated.startDate, shiftStartTime: updated.startTime,
+                    shiftEndDate:   updated.endDate,   shiftEndTime:   updated.endTime,
+                    shiftMaxVols: updated.maxVolunteers, shiftStaffId: updated.staffContactId,
+                  };
                 })}
               />
 
