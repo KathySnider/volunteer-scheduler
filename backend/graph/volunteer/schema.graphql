@@ -9,6 +9,7 @@ type Query {
   eventById(eventId: ID!): Event!
   shiftsForEvent(eventId: ID!): [ShiftView!]!  
   ownShifts(filter: ShiftTimeFilter!): [VolunteerShift!]! 
+  ownFeedback: [VolunteerFeedback!]!
   attachment(attachmentId: ID!): AttachmentDownload
 }
 
@@ -28,6 +29,26 @@ type ShiftView {
   isVirtual: Boolean!
   maxVolunteers: Int
   assignedVolunteers: Int!
+}
+
+type VolunteerFeedbackNote {
+   id: ID!
+  createdAt: String!
+  noteType: FeedbackNoteType!
+  note: String!
+ 
+}
+type VolunteerFeedback {
+  id: ID!
+  type: FeedbackType!
+  status: FeedbackStatus!
+  subject: String!
+  appPageName: String!
+  text: String!
+  githubIssueURL: String
+  createdAt: String!
+  notes: [VolunteerFeedbackNote!]!
+  attachments: [FeedbackAttachment!]!   
 }
 
 input UpdateOwnProfileInput {

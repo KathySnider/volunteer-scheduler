@@ -9,6 +9,7 @@ type FeedbackNote struct {
 	ID        string
 	Creator   string
 	CreatedAt string
+	NoteType  FeedbackNoteType
 	Note      string
 }
 
@@ -33,6 +34,26 @@ type Feedback struct {
 	CreatedAt      string
 	LastUpdatedAt  *string
 	ResolvedAt     *string
+	Attachments    []*FeedbackAttachment
+}
+
+type VolunteerFeedbackNote struct {
+	ID        string
+	CreatedAt string
+	NoteType  FeedbackNoteType
+	Note      string
+}
+
+type VolunteerFeedback struct {
+	ID             string
+	Type           FeedbackType
+	Status         FeedbackStatus
+	Subject        string
+	AppPageName    string
+	Text           string
+	GithubIssueURL *string
+	CreatedAt      string
+	Notes          []*VolunteerFeedbackNote
 	Attachments    []*FeedbackAttachment
 }
 
@@ -98,4 +119,13 @@ const (
 	FeedbackStatusQuestion FeedbackStatus = "QUESTION_SENT"
 	FeedbackStatusGithub   FeedbackStatus = "RESOLVED_GITHUB"
 	FeedbackStatusRejected FeedbackStatus = "RESOLVED_REJECTED"
+)
+
+type FeedbackNoteType string
+
+const (
+	FeedbackNoteTypeAdminNote       FeedbackNoteType = "ADMIN_NOTE"
+	FeedbackNoteTypeQuestion        FeedbackNoteType = "QUESTION"
+	FeedbackNoteTypeVolunteerReply  FeedbackNoteType = "VOLUNTEER_REPLY"
+	FeedbackNoteTypeEmailToVoluneer FeedbackNoteType = "EMAIL_TO_VOLUNTEER"
 )

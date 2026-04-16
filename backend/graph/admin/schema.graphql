@@ -107,6 +107,14 @@ type Shift {
   staffContactId: ID
 }
 
+type FeedbackNote {
+  id: ID!
+  creator: String!
+  createdAt: String!
+  noteType: FeedbackNoteType!
+  note: String!
+}
+
 type Feedback {
   id: ID!
   volunteerName: String!
@@ -121,12 +129,6 @@ type Feedback {
   lastUpdatedAt: String
   resolvedAt: String  
   attachments: [FeedbackAttachment!]!   
-}
-type FeedbackNote {
-  id: ID!
-  creator: String!
-  createdAt: String!
-  note: String!
 }
 
 #-- Inputs --

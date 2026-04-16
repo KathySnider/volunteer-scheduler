@@ -1,0 +1,311 @@
+/* =========================================================
+   Feedback detail page styles
+   ========================================================= */
+
+/* ----- Page shell ----- */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--color-bg);
+}
+
+/* ----- Top bar ----- */
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 2rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.topBarLeft {
+  flex: 1;
+}
+
+.topBarTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.topBarRight {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.backLink {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.backLink:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
+/* ----- Main content ----- */
+
+.main {
+  max-width: 760px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+/* ----- Main feedback card ----- */
+
+.card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 1.75rem 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.cardBadges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.cardDate {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cardSubject {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.cardMeta {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1rem;
+}
+
+.cardMetaValue {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.cardText {
+  font-size: 0.9375rem;
+  color: var(--color-text);
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.githubLink {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.githubAnchor {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.githubAnchor:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
+/* ----- Badges ----- */
+
+.badge {
+  display: inline-block;
+  padding: 0.1875rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1.5px solid transparent;
+}
+
+.typeBug {
+  background-color: var(--color-danger-light);
+  color: var(--color-danger);
+  border-color: #fca5a5;
+}
+
+.typeEnhancement {
+  background-color: #faf5ff;
+  color: #7e22ce;
+  border-color: #e9d5ff;
+}
+
+.typeGeneral {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  border-color: #bfdbfe;
+}
+
+.statusOpen {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  border-color: #bfdbfe;
+}
+
+.statusQuestion {
+  background-color: var(--color-warning-light);
+  color: var(--color-warning);
+  border-color: #fcd34d;
+}
+
+.statusResolved {
+  background-color: var(--color-success-light);
+  color: var(--color-success);
+  border-color: #bbf7d0;
+}
+
+.statusRejected {
+  background-color: #f9fafb;
+  color: #6b7280;
+  border-color: #d1d5db;
+}
+
+/* ----- Question-sent notice ----- */
+
+.questionNotice {
+  background-color: var(--color-warning-light);
+  border: 1px solid #fcd34d;
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  font-size: 0.9375rem;
+  color: #92400e;
+  margin-bottom: 1.5rem;
+}
+
+/* ----- Notes section ----- */
+
+.notesSection {
+  margin-top: 0.5rem;
+}
+
+.notesTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 1rem;
+}
+
+.notesList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+/* ----- Note items ----- */
+
+.noteItem {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem 1rem 1.5rem;
+  border: 1px solid var(--color-border);
+  border-left-width: 4px;
+}
+
+.noteQuestion {
+  border-left-color: var(--color-warning);
+}
+
+.noteReply {
+  border-left-color: var(--color-success);
+}
+
+.noteEmail {
+  border-left-color: #94a3b8;
+}
+
+.noteLabel {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.375rem;
+}
+
+.noteQuestion .noteLabel {
+  color: var(--color-warning);
+}
+
+.noteReply .noteLabel {
+  color: var(--color-success);
+}
+
+.noteEmail .noteLabel {
+  color: #64748b;
+}
+
+.noteText {
+  font-size: 0.9375rem;
+  color: var(--color-text);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  margin-bottom: 0.5rem;
+}
+
+.noteDate {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+/* ----- Loading / error states ----- */
+
+.stateBox {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--color-text-muted);
+}
+
+.spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.errorBox {
+  background-color: var(--color-danger-light);
+  border: 1px solid #fca5a5;
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  color: var(--color-danger);
+  font-size: 0.9375rem;
+  margin-bottom: 1.5rem;
+}

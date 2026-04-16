@@ -93,10 +93,11 @@ type FeedbackFilterInput struct {
 }
 
 type FeedbackNote struct {
-	ID        string `json:"id"`
-	Creator   string `json:"creator"`
-	CreatedAt string `json:"createdAt"`
-	Note      string `json:"note"`
+	ID        string           `json:"id"`
+	Creator   string           `json:"creator"`
+	CreatedAt string           `json:"createdAt"`
+	NoteType  FeedbackNoteType `json:"noteType"`
+	Note      string           `json:"note"`
 }
 
 type JobType struct {
@@ -437,6 +438,65 @@ func (e *EventType) UnmarshalJSON(b []byte) error {
 }
 
 func (e EventType) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type FeedbackNoteType string
+
+const (
+	FeedbackNoteTypeAdminNote        FeedbackNoteType = "ADMIN_NOTE"
+	FeedbackNoteTypeQuestion         FeedbackNoteType = "QUESTION"
+	FeedbackNoteTypeVolunteerReply   FeedbackNoteType = "VOLUNTEER_REPLY"
+	FeedbackNoteTypeEmailToVolunteer FeedbackNoteType = "EMAIL_TO_VOLUNTEER"
+)
+
+var AllFeedbackNoteType = []FeedbackNoteType{
+	FeedbackNoteTypeAdminNote,
+	FeedbackNoteTypeQuestion,
+	FeedbackNoteTypeVolunteerReply,
+	FeedbackNoteTypeEmailToVolunteer,
+}
+
+func (e FeedbackNoteType) IsValid() bool {
+	switch e {
+	case FeedbackNoteTypeAdminNote, FeedbackNoteTypeQuestion, FeedbackNoteTypeVolunteerReply, FeedbackNoteTypeEmailToVolunteer:
+		return true
+	}
+	return false
+}
+
+func (e FeedbackNoteType) String() string {
+	return string(e)
+}
+
+func (e *FeedbackNoteType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = FeedbackNoteType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid FeedbackNoteType", str)
+	}
+	return nil
+}
+
+func (e FeedbackNoteType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *FeedbackNoteType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e FeedbackNoteType) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

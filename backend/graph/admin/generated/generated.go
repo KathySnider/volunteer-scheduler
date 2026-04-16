@@ -103,6 +103,7 @@ type ComplexityRoot struct {
 		Creator   func(childComplexity int) int
 		ID        func(childComplexity int) int
 		Note      func(childComplexity int) int
+		NoteType  func(childComplexity int) int
 	}
 
 	JobType struct {
@@ -578,6 +579,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.FeedbackNote.Note(childComplexity), true
+	case "FeedbackNote.noteType":
+		if e.complexity.FeedbackNote.NoteType == nil {
+			break
+		}
+
+		return e.complexity.FeedbackNote.NoteType(childComplexity), true
 
 	case "JobType.code":
 		if e.complexity.JobType.Code == nil {
@@ -1683,6 +1690,13 @@ enum FeedbackStatus {
   RESOLVED_REJECTED
 }
 
+enum FeedbackNoteType {
+  ADMIN_NOTE
+  QUESTION
+  VOLUNTEER_REPLY
+  EMAIL_TO_VOLUNTEER
+}
+
 enum ShiftTimeFilter {
   UPCOMING
   PAST
@@ -1813,6 +1827,7 @@ type AttachmentDownload {
   data: String!
 }
 
+
 #-- Results --
 type MutationResult {
   success: Boolean!
@@ -1929,6 +1944,14 @@ type Shift {
   staffContactId: ID
 }
 
+type FeedbackNote {
+  id: ID!
+  creator: String!
+  createdAt: String!
+  noteType: FeedbackNoteType!
+  note: String!
+}
+
 type Feedback {
   id: ID!
   volunteerName: String!
@@ -1943,12 +1966,6 @@ type Feedback {
   lastUpdatedAt: String
   resolvedAt: String  
   attachments: [FeedbackAttachment!]!   
-}
-type FeedbackNote {
-  id: ID!
-  creator: String!
-  createdAt: String!
-  note: String!
 }
 
 #-- Inputs --
@@ -3500,6 +3517,8 @@ func (ec *executionContext) fieldContext_Feedback_notes(_ context.Context, field
 				return ec.fieldContext_FeedbackNote_creator(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_FeedbackNote_createdAt(ctx, field)
+			case "noteType":
+				return ec.fieldContext_FeedbackNote_noteType(ctx, field)
 			case "note":
 				return ec.fieldContext_FeedbackNote_note(ctx, field)
 			}
@@ -3893,6 +3912,35 @@ func (ec *executionContext) fieldContext_FeedbackNote_createdAt(_ context.Contex
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FeedbackNote_noteType(ctx context.Context, field graphql.CollectedField, obj *FeedbackNote) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FeedbackNote_noteType,
+		func(ctx context.Context) (any, error) {
+			return obj.NoteType, nil
+		},
+		nil,
+		ec.marshalNFeedbackNoteType2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackNoteType,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FeedbackNote_noteType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FeedbackNote",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type FeedbackNoteType does not have child fields")
 		},
 	}
 	return fc, nil
@@ -11796,6 +11844,11 @@ func (ec *executionContext) _FeedbackNote(ctx context.Context, sel ast.Selection
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "noteType":
+			out.Values[i] = ec._FeedbackNote_noteType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "note":
 			out.Values[i] = ec._FeedbackNote_note(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -13836,6 +13889,16 @@ func (ec *executionContext) marshalNFeedbackNote2ᚖvolunteerᚑschedulerᚋgrap
 		return graphql.Null
 	}
 	return ec._FeedbackNote(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNFeedbackNoteType2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackNoteType(ctx context.Context, v any) (FeedbackNoteType, error) {
+	var res FeedbackNoteType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFeedbackNoteType2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackNoteType(ctx context.Context, sel ast.SelectionSet, v FeedbackNoteType) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNFeedbackStatus2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackStatus(ctx context.Context, v any) (FeedbackStatus, error) {

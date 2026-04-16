@@ -29,6 +29,13 @@ enum FeedbackStatus {
   RESOLVED_REJECTED
 }
 
+enum FeedbackNoteType {
+  ADMIN_NOTE
+  QUESTION
+  VOLUNTEER_REPLY
+  EMAIL_TO_VOLUNTEER
+}
+
 enum ShiftTimeFilter {
   UPCOMING
   PAST
@@ -158,6 +165,7 @@ type AttachmentDownload {
   mimeType: String!
   data: String!
 }
+
 
 #-- Results --
 type MutationResult {

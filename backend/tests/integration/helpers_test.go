@@ -434,6 +434,16 @@ func makeVolunteer(t *testing.T) (string, int) {
 	return token, id
 }
 
+// makeAdmin creates an ADMINISTRATOR volunteer and session, returning
+// (sessionToken, volunteerID). Mirrors makeVolunteer for admin use cases.
+func makeAdmin(t *testing.T) (string, int) {
+	t.Helper()
+	email := uniqueEmail(t)
+	id := seedVolunteer(t, email, "Admin", "Test", "ADMINISTRATOR")
+	token := seedSession(t, email, id, "ADMINISTRATOR", "adm-"+email)
+	return token, id
+}
+
 // seedStaff inserts a staff member and returns the staff_id.
 func seedStaff(t *testing.T, firstName, lastName, email string) int {
 	t.Helper()

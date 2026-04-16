@@ -38,7 +38,7 @@ func (s *EventService) FetchLookups(ctx context.Context) (*models.LookupValues, 
 
 	// Get regions.
 	lookup.Regions = make([]*models.Region, 0)
-	rows, err := s.DB.QueryContext(ctx, "Select region_id, code, name, is_active from regions")
+	rows, err := s.DB.QueryContext(ctx, "Select region_id, code, name, is_active from regions WHERE is_active = true")
 	if err != nil {
 		return nil, fmt.Errorf("error querying regions: %w", err)
 	}
