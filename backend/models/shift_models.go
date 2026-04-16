@@ -96,13 +96,3 @@ type UpdateOpportunityInput struct {
 	IsVirtual            bool
 	PreEventInstructions *string
 }
-
-// Enums
-
-type ShiftsTimeFilter string
-
-const (
-	ShiftsFilterUpcoming ShiftsTimeFilter = "UPCOMING"
-	ShiftsFilterPast     ShiftsTimeFilter = "PAST"
-	ShiftsFilterAll      ShiftsTimeFilter = "ALL"
-)

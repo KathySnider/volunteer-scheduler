@@ -14,14 +14,14 @@ type ServiceType struct {
 }
 
 type Event struct {
-	ID              string
-	Name            string
-	Description     *string
-	EventType       EventType
-	Venue           *Venue
-	ServiceTypes    []string
-	EventDates      []*EventDate
-	ShiftSummaries  []*EventShiftSummary
+	ID             string
+	Name           string
+	Description    *string
+	EventType      EventType
+	Venue          *Venue
+	ServiceTypes   []string
+	EventDates     []*EventDate
+	ShiftSummaries []*EventShiftSummary
 }
 
 // EventShiftSummary holds the per-opportunity volunteer counts
@@ -42,12 +42,10 @@ type EventDate struct {
 // Input types for queries (e.g., filters).
 
 type EventFilterInput struct {
-	Regions        []int
-	EventType      *EventType
-	Jobs           []int
-	ShiftStartDate *string
-	ShiftEndDate   *string
-	IanaZone       *string
+	Cities    []string
+	EventType *EventType
+	Jobs      []int
+	TimeFrame *ShiftsTimeFilter
 }
 
 //  Input types for new rows.
@@ -99,4 +97,12 @@ const (
 	EventTypeVirtual  EventType = "VIRTUAL"
 	EventTypeInPerson EventType = "IN_PERSON"
 	EventTypeHybrid   EventType = "HYBRID"
+)
+
+type ShiftsTimeFilter string
+
+const (
+	ShiftsFilterUpcoming ShiftsTimeFilter = "UPCOMING"
+	ShiftsFilterPast     ShiftsTimeFilter = "PAST"
+	ShiftsFilterAll      ShiftsTimeFilter = "ALL"
 )

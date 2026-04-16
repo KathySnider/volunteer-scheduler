@@ -30,7 +30,7 @@ func NewEventService(db *sql.DB, mailer *Mailer, shiftService *ShiftService) (*E
 
 // Queries.
 // FetchLookups
-// Retrieve regions, service types, job types,... anything
+// Retrieve cities, service types, job types,... anything
 // that uses a lookup table.
 func (s *EventService) FetchLookups(ctx context.Context) (*models.LookupValues, error) {
 
@@ -75,7 +75,7 @@ func (s *EventService) FetchLookups(ctx context.Context) (*models.LookupValues, 
 
 	// Get JobTypes.
 	lookup.JobTypes = make([]*models.JobType, 0)
-	rows, err = s.DB.QueryContext(ctx, "Select job_type_id, code, name, is_active from job_types")
+	rows, err = s.DB.QueryContext(ctx, "Select job_type_id, code, name, is_active from job_types WHERE is_active = true")
 	if err != nil {
 		return nil, fmt.Errorf("error querying job types: %w", err)
 	}
@@ -90,6 +90,24 @@ func (s *EventService) FetchLookups(ctx context.Context) (*models.LookupValues, 
 		lookup.JobTypes = append(lookup.JobTypes, &jt)
 	}
 	rows.Close()
+
+	// Get cities from venues.
+
+	lookup.Cities = make([]string, 0)
+	rows, err = s.DB.QueryContext(ctx, "SELECT DISTINCT city FROM venues ORDER BY city")
+	if err != nil {
+		rows.Close()
+		return nil, fmt.Errorf("error querying cities from venues: %w", err)
+	}
+	for rows.Next() {
+		var city string
+		err = rows.Scan(&city)
+		if err != nil {
+			rows.Close()
+			return nil, fmt.Errorf("error scanning city: %w", err)
+		}
+		lookup.Cities = append(lookup.Cities, city)
+	}
 
 	return &lookup, nil
 }

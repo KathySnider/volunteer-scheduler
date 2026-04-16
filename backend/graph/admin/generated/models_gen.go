@@ -49,12 +49,10 @@ type EventDate struct {
 }
 
 type EventFilterInput struct {
-	Regions            []int      `json:"regions,omitempty"`
-	EventType          *EventType `json:"eventType,omitempty"`
-	Jobs               []int      `json:"jobs,omitempty"`
-	ShiftStartDateTime *string    `json:"shiftStartDateTime,omitempty"`
-	ShiftEndDateTime   *string    `json:"shiftEndDateTime,omitempty"`
-	IanaZone           *string    `json:"ianaZone,omitempty"`
+	Cities    []string         `json:"cities,omitempty"`
+	EventType *EventType       `json:"eventType,omitempty"`
+	Jobs      []int            `json:"jobs,omitempty"`
+	TimeFrame *ShiftTimeFilter `json:"timeFrame,omitempty"`
 }
 
 type EventShiftSummary struct {
@@ -112,6 +110,7 @@ type LookupValues struct {
 	Regions      []*Region      `json:"regions"`
 	ServiceTypes []*ServiceType `json:"serviceTypes"`
 	JobTypes     []*JobType     `json:"jobTypes"`
+	Cities       []string       `json:"cities"`
 }
 
 type Mutation struct {

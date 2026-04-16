@@ -48,12 +48,10 @@ enum ShiftTimeFilter {
 ## a user can filter the results. If you want to add
 ## more ways to filter, this is the place.
 input EventFilterInput {
-  regions: [Int!]
+  cities: [String!]
   eventType: EventType
   jobs: [Int!]
-  shiftStartDateTime: String
-  shiftEndDateTime: String
-  ianaZone: String
+  timeFrame: ShiftTimeFilter
 }
 
 input NewFeedbackInput {
@@ -90,6 +88,7 @@ type LookupValues{
   regions: [Region!]!
   serviceTypes: [ServiceType!]!
   jobTypes: [JobType!]!
+  cities: [String!]!
 }
 
 type VolunteerProfile {

@@ -17,8 +17,8 @@ import (
 
 // ** Filtering Events **
 // Figuring out all of the event filtering stuff is messy, but worth it. The users can
-// get the events they want to see. We currently filter on region, event type (virtual,
-// in-person, or hybrid), jobs, and dates.
+// get the events they want to see. We currently filter on cities, event types (virtual,
+// in-person, or hybrid), jobs, and timeframe (past, upcoming, all).
 // We use a 2-pass strategy. This function handles the first pass.
 // fetchFilteredPassOne returns both a map of events (keyed by event_id) and a
 // slice of event IDs in the order they came back from the DB (ORDER BY earliest
@@ -39,11 +39,9 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
             v.state,
             v.zip_code,
 			v.timezone,
-			vr.region_id,
 			earliest.first_date
         FROM events e
         LEFT JOIN venues v ON e.venue_id = v.venue_id
-		LEFT JOIN venue_regions vr ON v.venue_id = vr.venue_id
         LEFT JOIN opportunities opp ON e.event_id = opp.event_id
 		LEFT JOIN job_types jt ON jt.job_type_id = opp.job_type_id
 	    LEFT JOIN shifts s_filter ON opp.opportunity_id = s_filter.opportunity_id 
@@ -59,15 +57,15 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 	argCount := 1
 
 	if filter != nil {
-		// Filter by regions.
-		if len(filter.Regions) > 0 {
+		// Filter by cities.
+		if len(filter.Cities) > 0 {
 			placeholders := []string{}
-			for _, region := range filter.Regions {
+			for _, city := range filter.Cities {
 				placeholders = append(placeholders, fmt.Sprintf("$%d", argCount))
-				args = append(args, region)
+				args = append(args, city)
 				argCount++
 			}
-			query += fmt.Sprintf(" AND vr.region_id IN (%s)", strings.Join(placeholders, ","))
+			query += fmt.Sprintf(" AND v.city IN (%s)", strings.Join(placeholders, ","))
 		}
 
 		// Filter by event type.
@@ -93,25 +91,16 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 			query += fmt.Sprintf(" AND opp.job_type_id IN (%s)", strings.Join(placeholders, ","))
 		}
 
-		// Filter by Dates.
-		if filter.ShiftStartDate != nil {
-			startUTC, err := DateTimeToUTC(*filter.ShiftStartDate, *filter.IanaZone)
-			if err != nil {
-				return nil, nil, fmt.Errorf("error converting date to UTC using %s %s: %w", *filter.ShiftStartDate, *filter.IanaZone, err)
+		// Filter by TimeFrame.
+		if filter.TimeFrame != nil {
+			switch *filter.TimeFrame {
+			case "UPCOMING":
+				query += " AND s_filter.shift_start >= NOW()"
+			case "PAST":
+				query += " AND s_filter.shift_start < NOW()"
+			case "ALL":
+				// NO filter needed
 			}
-
-			query += fmt.Sprintf(" AND s_filter.shift_start >= $%d", argCount)
-			args = append(args, startUTC)
-			argCount++
-		}
-		if filter.ShiftEndDate != nil {
-			endUTC, err := DateTimeToUTC(*filter.ShiftEndDate, *filter.IanaZone)
-			if err != nil {
-				return nil, nil, fmt.Errorf("error converting date to UTC using %s %s: %w", *filter.ShiftEndDate, *filter.IanaZone, err)
-			}
-			query += fmt.Sprintf(" AND s_filter.shift_start <= $%d", argCount)
-			args = append(args, endUTC)
-			argCount++
 		}
 	}
 
@@ -136,7 +125,6 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 		var eventInt int
 		var venueInt sql.NullInt64
 		var isVirtual bool
-		var regionInt sql.NullInt32
 		var firstDate *time.Time
 		var eventDesc, venueName, streetAddress, city, state, zip, timezone sql.NullString
 
@@ -152,7 +140,6 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 			&state,
 			&zip,
 			&timezone,
-			&regionInt,
 			&firstDate,
 		)
 		if err != nil {
@@ -202,15 +189,7 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 
 		// Have we already processed this event?
 		_, exists := eventsMap[eventInt]
-		if exists {
-			// Duplicate rows can exist when the venue is in multiple regions.
-			if (eventsMap[eventInt].Venue != nil) && (regionInt.Valid) {
-				eventsMap[eventInt].Venue.Region = append(eventsMap[eventInt].Venue.Region, int(regionInt.Int32))
-			}
-		} else {
-			if (e.Venue != nil) && (regionInt.Valid) {
-				e.Venue.Region = append(e.Venue.Region, int(regionInt.Int32))
-			}
+		if !exists {
 			eventsMap[eventInt] = &e
 			// Record this ID the first time we see it to preserve the DB's ORDER BY.
 			orderedIDs = append(orderedIDs, eventInt)
@@ -277,24 +256,16 @@ func fetchFilteredPassTwo(ctx context.Context, filter *models.EventFilterInput, 
 	argNum := 2
 
 	if filter != nil {
-		// Filter shifts by dates.
-		if filter.ShiftStartDate != nil {
-			startUTC, err := DateTimeToUTC(*filter.ShiftStartDate, *filter.IanaZone)
-			if err != nil {
-				return nil, fmt.Errorf("error converting date to UTC using %s %s: %w", *filter.ShiftStartDate, *filter.IanaZone, err)
+		// Filter by TimeFrame.
+		if filter.TimeFrame != nil {
+			switch *filter.TimeFrame {
+			case "UPCOMING":
+				shiftsQuery += " AND s.shift_start >= NOW()"
+			case "PAST":
+				shiftsQuery += " AND s.shift_start < NOW()"
+			case "ALL":
+				// NO filter needed
 			}
-			shiftsQuery += fmt.Sprintf(" AND s.shift_start >= $%d", argNum)
-			shiftArgs = append(shiftArgs, startUTC)
-			argNum++
-		}
-		if filter.ShiftEndDate != nil {
-			endUTC, err := DateTimeToUTC(*filter.ShiftEndDate, *filter.IanaZone)
-			if err != nil {
-				return nil, fmt.Errorf("error converting date to UTC using %s %s: %w", *filter.ShiftEndDate, *filter.IanaZone, err)
-			}
-			shiftsQuery += fmt.Sprintf(" AND s.shift_end <= $%d", argNum)
-			shiftArgs = append(shiftArgs, endUTC)
-			argNum++
 		}
 
 		// Filter by job.
