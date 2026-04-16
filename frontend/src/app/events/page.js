@@ -11,6 +11,7 @@ import {
   adminGql,
 } from "../lib/api";
 import UserMenu from "../components/UserMenu";
+import FeedbackButton from "../components/FeedbackButton";
 import styles from "./events.module.css";
 
 /* ----- GraphQL operations ----- */
@@ -333,6 +334,7 @@ export default function EventsPage() {
         <div className={styles.appTitle}>AARP Volunteer Events</div>
         <div className={styles.topBarRight}>
           <a href="/my-shifts" className={styles.myShiftsLink}>My Shifts</a>
+          <a href="/my-feedback" className={styles.myShiftsLink}>My Feedback</a>
           <UserMenu name={userName} isAdmin={isAdmin} onSignOut={handleSignOut} />
         </div>
       </div>
@@ -477,6 +479,7 @@ export default function EventsPage() {
         )}
       </main>
       </div>{/* end .body */}
+      <FeedbackButton />
     </div>
   );
 }

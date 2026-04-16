@@ -384,6 +384,27 @@ func toGenShift(m *models.Shift) *generated.Shift {
 	}
 }
 
+func toGenFeedbackNotes(ms []*models.FeedbackNote) []*generated.FeedbackNote {
+	notes := make([]*generated.FeedbackNote, len(ms))
+	for i, m := range ms {
+		notes[i] = toGenFeedbackNote(m)
+	}
+	return notes
+}
+
+func toGenFeedbackNote(m *models.FeedbackNote) *generated.FeedbackNote {
+	if m == nil {
+		return nil
+	}
+	return &generated.FeedbackNote{
+		ID:        m.ID,
+		Creator:   m.Creator,
+		Note:      m.Note,
+		NoteType:  generated.FeedbackNoteType(m.NoteType),
+		CreatedAt: m.CreatedAt,
+	}
+}
+
 func toGenFeedbacks(ms []*models.Feedback) []*generated.Feedback {
 	result := make([]*generated.Feedback, len(ms))
 	for i, m := range ms {
@@ -411,26 +432,6 @@ func toGenFeedback(m *models.Feedback) *generated.Feedback {
 		LastUpdatedAt:  m.LastUpdatedAt,
 		ResolvedAt:     m.ResolvedAt,
 		Attachments:    toGenFeedbackAttachments(m.Attachments),
-	}
-}
-
-func toGenFeedbackNotes(ms []*models.FeedbackNote) []*generated.FeedbackNote {
-	notes := make([]*generated.FeedbackNote, len(ms))
-	for i, m := range ms {
-		notes[i] = toGenFeedbackNote(m)
-	}
-	return notes
-}
-
-func toGenFeedbackNote(m *models.FeedbackNote) *generated.FeedbackNote {
-	if m == nil {
-		return nil
-	}
-	return &generated.FeedbackNote{
-		ID:        m.ID,
-		Creator:   m.Creator,
-		Note:      m.Note,
-		CreatedAt: m.CreatedAt,
 	}
 }
 

@@ -163,6 +163,20 @@ func (r *queryResolver) OwnShifts(ctx context.Context, filter generated.ShiftTim
 	return toGenVolunteerShifts(shifts), nil
 }
 
+// OwnFeedback is the resolver for the ownFeedback field.
+func (r *queryResolver) OwnFeedback(ctx context.Context) ([]*generated.VolunteerFeedback, error) {
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	fb, err := r.FeedbackService.FetchOwnFeedback(ctx, volId)
+	if err != nil {
+		return nil, err
+	}
+	return toGenVolunteerFeedbacks(fb), nil
+}
+
 // Attachment is the resolver for the attachment field.
 func (r *queryResolver) Attachment(ctx context.Context, attachmentID string) (*generated.AttachmentDownload, error) {
 	aInt, err := strconv.Atoi(attachmentID)

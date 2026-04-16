@@ -5,6 +5,25 @@ import (
 	"testing"
 )
 
+// seedFeedbackNote inserts a note directly into feedback_notes and returns
+// the note_id. Cleanup removes the row after the test.
+func seedFeedbackNote(t *testing.T, feedbackID, volID int, noteType, text string) int {
+	t.Helper()
+	var id int
+	err := testDB.QueryRow(`
+		INSERT INTO feedback_notes (feedback_id, volunteer_id, note, note_type, created_at)
+		VALUES ($1, $2, $3, $4, NOW())
+		RETURNING note_id
+	`, feedbackID, volID, text, noteType).Scan(&id)
+	if err != nil {
+		t.Fatalf("seedFeedbackNote: %v", err)
+	}
+	t.Cleanup(func() {
+		testDB.Exec("DELETE FROM feedback_notes WHERE note_id = $1", id)
+	})
+	return id
+}
+
 // All feedback service functions are correct. Tests below cover the full
 // surface area except feedbackById, which can be added once the resolvers
 // and schema wiring are in place.
@@ -14,6 +33,13 @@ import (
 // ============================================================================
 
 const (
+	qryOwnFeedback = `query {
+		ownFeedback {
+			id subject status type text
+			notes { note noteType createdAt }
+		}
+	}`
+
 	mutGiveFeedback = `mutation GiveFeedback($input: NewFeedbackInput!) {
 		giveFeedback(feedback: $input) { success message id }
 	}`
@@ -235,5 +261,161 @@ func TestQuestionFeedback(t *testing.T) {
 		if !rowExists(t, "SELECT COUNT(*) FROM feedback_notes WHERE feedback_id = $1", feedbackID) {
 			t.Error("expected a note in feedback_notes after questionFeedback")
 		}
+	}
+}
+
+// ============================================================================
+// Tests — ownFeedback visibility rules
+// ============================================================================
+
+// volunteerFeedbackNote mirrors the GQL ownFeedback notes sub-selection.
+type volunteerFeedbackNote struct {
+	Note      string `json:"note"`
+	NoteType  string `json:"noteType"`
+	CreatedAt string `json:"createdAt"`
+}
+
+// volunteerFeedbackItem mirrors the GQL ownFeedback item selection.
+type volunteerFeedbackItem struct {
+	ID      string                  `json:"id"`
+	Subject string                  `json:"subject"`
+	Status  string                  `json:"status"`
+	Notes   []volunteerFeedbackNote `json:"notes"`
+}
+
+// TestOwnFeedback_ReturnsOnlyOwnFeedback verifies that a volunteer only sees
+// their own submissions, not those belonging to other volunteers.
+func TestOwnFeedback_ReturnsOnlyOwnFeedback(t *testing.T) {
+	token, volID := makeVolunteer(t)
+	_, otherVolID := makeVolunteer(t)
+
+	myFeedbackID := seedFeedback(t, volID)
+	_ = seedFeedback(t, otherVolID) // should not appear in results
+
+	resp := gqlPost(t, "/graphql/volunteer", token, qryOwnFeedback, nil)
+	if hasGQLErrors(resp) {
+		t.Fatalf("unexpected GQL errors: %v", resp.Errors)
+	}
+
+	var items []volunteerFeedbackItem
+	unmarshalField(t, resp, "ownFeedback", &items)
+
+	if len(items) != 1 {
+		t.Fatalf("expected 1 feedback item, got %d", len(items))
+	}
+	if items[0].ID != strconv.Itoa(myFeedbackID) {
+		t.Errorf("expected feedback id %d, got %s", myFeedbackID, items[0].ID)
+	}
+}
+
+// TestOwnFeedback_NoNotes verifies that feedback with no notes at all is still
+// returned (catches the LEFT JOIN / NULL note_type filtering bug).
+func TestOwnFeedback_NoNotes(t *testing.T) {
+	token, volID := makeVolunteer(t)
+	feedbackID := seedFeedback(t, volID)
+
+	resp := gqlPost(t, "/graphql/volunteer", token, qryOwnFeedback, nil)
+	if hasGQLErrors(resp) {
+		t.Fatalf("unexpected GQL errors: %v", resp.Errors)
+	}
+
+	var items []volunteerFeedbackItem
+	unmarshalField(t, resp, "ownFeedback", &items)
+
+	if len(items) != 1 {
+		t.Fatalf("expected 1 feedback item even with no notes, got %d (feedbackID=%d)", len(items), feedbackID)
+	}
+	if len(items[0].Notes) != 0 {
+		t.Errorf("expected 0 notes, got %d", len(items[0].Notes))
+	}
+}
+
+// TestOwnFeedback_VisibleNoteTypes verifies that QUESTION, VOLUNTEER_REPLY,
+// and EMAIL_TO_VOLUNTEER notes are all returned to the volunteer.
+func TestOwnFeedback_VisibleNoteTypes(t *testing.T) {
+	token, volID := makeVolunteer(t)
+	_, adminID := makeAdmin(t)
+	feedbackID := seedFeedback(t, volID)
+
+	seedFeedbackNote(t, feedbackID, adminID, "QUESTION", "Can you reproduce this?")
+	seedFeedbackNote(t, feedbackID, volID, "VOLUNTEER_REPLY", "Yes, every time.")
+	seedFeedbackNote(t, feedbackID, adminID, "EMAIL_TO_VOLUNTEER", "Thanks, closing as resolved.")
+
+	resp := gqlPost(t, "/graphql/volunteer", token, qryOwnFeedback, nil)
+	if hasGQLErrors(resp) {
+		t.Fatalf("unexpected GQL errors: %v", resp.Errors)
+	}
+
+	var items []volunteerFeedbackItem
+	unmarshalField(t, resp, "ownFeedback", &items)
+
+	if len(items) != 1 {
+		t.Fatalf("expected 1 feedback item, got %d", len(items))
+	}
+	if len(items[0].Notes) != 3 {
+		t.Errorf("expected 3 visible notes (QUESTION + VOLUNTEER_REPLY + EMAIL_TO_VOLUNTEER), got %d", len(items[0].Notes))
+	}
+}
+
+// TestOwnFeedback_AdminNoteHidden verifies that ADMIN_NOTE entries are never
+// returned to the volunteer — the core privacy requirement.
+func TestOwnFeedback_AdminNoteHidden(t *testing.T) {
+	token, volID := makeVolunteer(t)
+	_, adminID := makeAdmin(t)
+	feedbackID := seedFeedback(t, volID)
+
+	seedFeedbackNote(t, feedbackID, adminID, "ADMIN_NOTE", "Internal: low priority, defer to next sprint.")
+	seedFeedbackNote(t, feedbackID, adminID, "QUESTION", "Can you give us more detail?")
+
+	resp := gqlPost(t, "/graphql/volunteer", token, qryOwnFeedback, nil)
+	if hasGQLErrors(resp) {
+		t.Fatalf("unexpected GQL errors: %v", resp.Errors)
+	}
+
+	var items []volunteerFeedbackItem
+	unmarshalField(t, resp, "ownFeedback", &items)
+
+	if len(items) != 1 {
+		t.Fatalf("expected 1 feedback item, got %d", len(items))
+	}
+	notes := items[0].Notes
+	if len(notes) != 1 {
+		t.Fatalf("expected 1 visible note (QUESTION only), got %d", len(notes))
+	}
+	if notes[0].NoteType != "QUESTION" {
+		t.Errorf("expected visible note to be QUESTION, got %s", notes[0].NoteType)
+	}
+	for _, n := range notes {
+		if n.NoteType == "ADMIN_NOTE" {
+			t.Error("ADMIN_NOTE must never be returned to volunteer")
+		}
+	}
+}
+
+// TestOwnFeedback_MultipleNotesAccumulate verifies that all visible notes for
+// a single feedback item are returned (catches the map pointer accumulation bug).
+func TestOwnFeedback_MultipleNotesAccumulate(t *testing.T) {
+	token, volID := makeVolunteer(t)
+	_, adminID := makeAdmin(t)
+	feedbackID := seedFeedback(t, volID)
+
+	seedFeedbackNote(t, feedbackID, adminID, "QUESTION", "Question 1")
+	seedFeedbackNote(t, feedbackID, volID, "VOLUNTEER_REPLY", "Reply 1")
+	seedFeedbackNote(t, feedbackID, adminID, "QUESTION", "Question 2")
+	seedFeedbackNote(t, feedbackID, volID, "VOLUNTEER_REPLY", "Reply 2")
+
+	resp := gqlPost(t, "/graphql/volunteer", token, qryOwnFeedback, nil)
+	if hasGQLErrors(resp) {
+		t.Fatalf("unexpected GQL errors: %v", resp.Errors)
+	}
+
+	var items []volunteerFeedbackItem
+	unmarshalField(t, resp, "ownFeedback", &items)
+
+	if len(items) != 1 {
+		t.Fatalf("expected 1 feedback item, got %d", len(items))
+	}
+	if len(items[0].Notes) != 4 {
+		t.Errorf("expected 4 notes, got %d — possible note accumulation bug", len(items[0].Notes))
 	}
 }

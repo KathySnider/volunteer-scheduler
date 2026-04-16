@@ -26,6 +26,10 @@ const ADMIN_ITEMS = [
   { label: "Manage Events", href: "/admin/events" },
   { label: "Manage Venues", href: "/admin/venues" },
   { label: "Manage Volunteers", href: "/admin/volunteers" },
+  { label: "Manage Staff", href: "/admin/staff" },
+  { label: "Manage Regions", href: "/admin/regions" },
+  { label: "Manage Job Types", href: "/admin/job-types" },
+  { label: "Manage Feedback", href: "/admin/feedback" },
 ];
 
 export default function UserMenu({ name, isAdmin, onSignOut }) {
@@ -82,6 +86,8 @@ export default function UserMenu({ name, isAdmin, onSignOut }) {
           )}
         </div>
       )}
+
+      <a href="/profile" className={styles.profileLink}>My Profile</a>
 
       <button className={styles.signOutButton} onClick={onSignOut}>
         Sign out

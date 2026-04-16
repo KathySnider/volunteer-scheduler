@@ -11,6 +11,7 @@ import {
   adminGql,
 } from "../../lib/api";
 import UserMenu from "../../components/UserMenu";
+import FeedbackButton from "../../components/FeedbackButton";
 import styles from "./event-detail.module.css";
 
 /* ----- GraphQL operations ----- */
@@ -460,6 +461,7 @@ export default function EventDetailPage() {
           </>
         )}
       </div>
+      <FeedbackButton />
     </div>
   );
 }

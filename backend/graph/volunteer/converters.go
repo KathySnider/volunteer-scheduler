@@ -305,6 +305,51 @@ func toGenShiftView(m *models.ShiftView) *generated.ShiftView {
 	}
 }
 
+func toGenVolunteerFeedbackNotes(ms []*models.VolunteerFeedbackNote) []*generated.VolunteerFeedbackNote {
+	notes := make([]*generated.VolunteerFeedbackNote, len(ms))
+	for i, m := range ms {
+		notes[i] = toGenVolunteerFeedbackNote(m)
+	}
+	return notes
+}
+
+func toGenVolunteerFeedbackNote(m *models.VolunteerFeedbackNote) *generated.VolunteerFeedbackNote {
+	if m == nil {
+		return nil
+	}
+	return &generated.VolunteerFeedbackNote{
+		ID:        m.ID,
+		Note:      m.Note,
+		NoteType:  generated.FeedbackNoteType(m.NoteType),
+		CreatedAt: m.CreatedAt,
+	}
+}
+
+func toGenVolunteerFeedbacks(ms []*models.VolunteerFeedback) []*generated.VolunteerFeedback {
+	result := make([]*generated.VolunteerFeedback, len(ms))
+	for i, m := range ms {
+		result[i] = toGenVolunteerFeedback(m)
+	}
+	return result
+}
+
+func toGenVolunteerFeedback(m *models.VolunteerFeedback) *generated.VolunteerFeedback {
+	if m == nil {
+		return nil
+	}
+	return &generated.VolunteerFeedback{
+		ID:             m.ID,
+		Type:           generated.FeedbackType(m.Type),
+		Status:         generated.FeedbackStatus(m.Status),
+		Subject:        m.Subject,
+		AppPageName:    m.AppPageName,
+		Text:           m.Text,
+		Notes:          toGenVolunteerFeedbackNotes(m.Notes),
+		GithubIssueURL: m.GithubIssueURL,
+		Attachments:    toGenFeedbackAttachments(m.Attachments),
+	}
+}
+
 // Convert generated types to models
 func toModelUpdateOwnProfileInput(g *generated.UpdateOwnProfileInput) *models.UpdateOwnProfileInput {
 	if g == nil {

@@ -26,6 +26,108 @@ func NewFeedbackService(db *sql.DB, mailer *Mailer) *FeedbackService {
 
 // Queries.
 
+func (s *FeedbackService) FetchOwnFeedback(ctx context.Context, volId int) ([]*models.VolunteerFeedback, error) {
+	query := `
+        SELECT
+            f.feedback_id,
+			f.feedback_type,
+			f.status,
+			f.subject,
+			f.app_page_name,
+			f.text,
+			fn.note,
+			fn.note_type,
+			f.github_issue_url,
+			f.created_at,
+			fn.created_at
+			from feedback f
+			LEFT JOIN feedback_notes fn ON fn.feedback_id = f.feedback_id
+		WHERE f.volunteer_id = $1 AND (fn.note_type IS NULL OR fn.note_type != 'ADMIN_NOTE')
+		ORDER BY f.created_at, fn.created_at
+    `
+
+	rows, err := s.DB.QueryContext(ctx, query, volId)
+	if err != nil {
+		return nil, fmt.Errorf("error querying feedback: %w", err)
+	}
+	defer rows.Close()
+
+	feedbackMap := make(map[int]*models.VolunteerFeedback)
+
+	// orderedFB preserves the ORDER BY from the SQL query so the caller
+	// can reassemble the slice in the correct order after map operations.
+	orderedFB := make([]int, 0)
+
+	for rows.Next() {
+		var fb models.VolunteerFeedback
+		var fbInt int
+		var fbType, fbStatus string
+		var note, noteType, noteCreatedAt, url sql.NullString
+
+		err := rows.Scan(
+			&fbInt,
+			&fbType,
+			&fbStatus,
+			&fb.Subject,
+			&fb.AppPageName,
+			&fb.Text,
+			&note,
+			&noteType,
+			&url,
+			&fb.CreatedAt,
+			&noteCreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning feedback: %w", err)
+		}
+
+		// There will be multiple rows for the same ID when there are multiple notes.
+		_, exists := feedbackMap[fbInt]
+		if !exists {
+			// Finish filling out the fields in the NEW entry
+			// and add it to the map.
+			fb.ID = strconv.Itoa(fbInt)
+			fb.Type = models.FeedbackType(fbType)
+			fb.Status = models.FeedbackStatus(fbStatus)
+			if url.Valid {
+				fb.GithubIssueURL = &url.String
+			}
+			feedbackMap[fbInt] = &fb
+
+			// Since this is the first time we've seen this id, we want to record it
+			// to preserve the sort order.
+			orderedFB = append(orderedFB, fbInt)
+		}
+
+		// Use the pointer from the map directly so that notes accumulate on
+		// the heap-allocated struct, not on a throwaway value copy.
+		fbPtr := feedbackMap[fbInt]
+
+		if note.Valid {
+			// If there is a note, the fields from feedback_notes must also be
+			// valid, because they are NOT NULL. We don't need to check each one.
+			fbPtr.Notes = append(fbPtr.Notes, &models.VolunteerFeedbackNote{
+				Note:      note.String,
+				NoteType:  models.FeedbackNoteType(noteType.String),
+				CreatedAt: noteCreatedAt.String,
+			})
+		}
+
+		fbPtr.Attachments, err = s.fetchAttachmentsForFeedback(ctx, fbInt)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching attachments for feedback with id %d: %w", fbInt, err)
+		}
+	}
+
+	// Build the feedback slice in the order the DB returned the feedback.
+	feedback := make([]*models.VolunteerFeedback, 0, len(feedbackMap))
+	for _, id := range orderedFB {
+		feedback = append(feedback, feedbackMap[id])
+	}
+
+	return feedback, nil
+}
+
 func (s *FeedbackService) FetchFeedback(ctx context.Context, filter *models.FeedbackFilterInput) ([]*models.Feedback, error) {
 
 	// In the JOINS below, am using fc as the feedback creator and nc as the
@@ -75,6 +177,10 @@ func (s *FeedbackService) FetchFeedback(ctx context.Context, filter *models.Feed
 
 	feedbackMap := make(map[int]*models.Feedback)
 
+	// orderedFB preserves the ORDER BY from the SQL query so the caller
+	// can reassemble the slice in the correct order after map operations.
+	orderedFB := make([]int, 0)
+
 	for rows.Next() {
 		var fb models.Feedback
 		var fbInt int
@@ -123,36 +229,36 @@ func (s *FeedbackService) FetchFeedback(ctx context.Context, filter *models.Feed
 				fb.ResolvedAt = &resolvedAt.String
 			}
 			feedbackMap[fbInt] = &fb
+
+			// Since this is the first time we've seen this id, we want to record it
+			// to preserve the sort order.
+			orderedFB = append(orderedFB, fbInt)
 		}
 
-		fb = *feedbackMap[fbInt]
+		// Use the pointer from the map directly so that notes accumulate on
+		// the heap-allocated struct, not on a throwaway value copy.
+		fbPtr := feedbackMap[fbInt]
 
-		// Now, fb points to the entry in the map; add note.
 		if note.Valid {
 			// If there is a note, the fields from feedback_notes must also be
 			// valid, because they are NOT NULL.
-			var fn models.FeedbackNote
-
-			fn.Note = note.String
-			fn.Creator = ncFname.String + " " + ncLname.String
-			fn.CreatedAt = noteCreatedAt.String
-
-			if fb.Notes == nil {
-				fb.Notes = make([]*models.FeedbackNote, 0, 10) // If there are more than 10 notes (unlikely), the slice will increase by 10 slots.
-			}
-			fb.Notes = append(fb.Notes, &fn)
+			fbPtr.Notes = append(fbPtr.Notes, &models.FeedbackNote{
+				Note:      note.String,
+				Creator:   ncFname.String + " " + ncLname.String,
+				CreatedAt: noteCreatedAt.String,
+			})
 		}
 
-		fb.Attachments, err = s.fetchAttachmentsForFeedback(ctx, fbInt)
+		fbPtr.Attachments, err = s.fetchAttachmentsForFeedback(ctx, fbInt)
 		if err != nil {
 			return nil, fmt.Errorf("error fetching attachments for feedback with id %d: %w", fbInt, err)
 		}
 	}
 
-	// turn map into a slice
+	// Build the feedback slice in the order the DB returned the feedback.
 	feedback := make([]*models.Feedback, 0, len(feedbackMap))
-	for _, fb := range feedbackMap {
-		feedback = append(feedback, fb)
+	for _, id := range orderedFB {
+		feedback = append(feedback, feedbackMap[id])
 	}
 
 	return feedback, nil
@@ -220,7 +326,7 @@ func (s *FeedbackService) FetchFeedbackById(ctx context.Context, feedbackId stri
 	if resolvedAt.Valid {
 		feedback.ResolvedAt = &resolvedAt.String
 	}
-	feedback.Notes = make([]*models.FeedbackNote, 0, 10) // If there are more than 10 notes (unlikely), the slice will increase by 10 slots.
+	feedback.Notes = make([]*models.FeedbackNote, 0, 5) // If there are more than 5 notes (unlikely), the slice will increase by 5 slots.
 
 	// Get all of the notes created for this feedback, along
 	// with the creator of each note and the time it was created.
@@ -342,18 +448,38 @@ func (s *FeedbackService) QuestionFeedback(ctx context.Context, adminId int, que
 	err = s.Mailer.SendEmail(ctx, email, subject, "", question.EmailText)
 	if err != nil {
 		return &models.MutationResult{
-			Success: true,
+			Success: false,
 			Message: ptrString("Failed to send email to volunteer."),
 			ID:      &question.ID,
 		}, err
 	}
 
-	// Add admin's note to the feedback.
-	err = addNoteToFeedback(ctx, s.DB, fbInt, adminId, question.Note)
+	// Store the email text as a QUESTION note — visible to the volunteer.
+	err = addNoteToFeedback(ctx, s.DB, fbInt, adminId, question.EmailText, "QUESTION")
 	if err != nil {
 		return &models.MutationResult{
 			Success: false,
-			Message: ptrString("Sent question. Failed to add note to feedback."),
+			Message: ptrString("Sent email. Failed to add question note to feedback."),
+			ID:      &question.ID,
+		}, err
+	}
+
+	// Store the internal admin note (not visible to volunteer).
+	err = addNoteToFeedback(ctx, s.DB, fbInt, adminId, question.Note, "ADMIN_NOTE")
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Sent email. Failed to add internal note to feedback."),
+			ID:      &question.ID,
+		}, err
+	}
+
+	// Update the feedback status to QUESTION_SENT.
+	_, err = s.DB.ExecContext(ctx, "UPDATE feedback SET status = 'QUESTION_SENT', last_updated_at = NOW() WHERE feedback_id = $1", fbInt)
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Sent question. Failed to update feedback status."),
 			ID:      &question.ID,
 		}, err
 	}
@@ -376,7 +502,7 @@ func (s *FeedbackService) UpdateFeedback(ctx context.Context, adminId int, updat
 			ID:      &update.ID,
 		}, err
 	}
-	err = addNoteToFeedback(ctx, s.DB, fbInt, adminId, update.Note)
+	err = addNoteToFeedback(ctx, s.DB, fbInt, adminId, update.Note, "ADMIN_NOTE")
 	if err != nil {
 		return &models.MutationResult{
 			Success: false,
@@ -425,7 +551,7 @@ func (s *FeedbackService) ResolveFeedback(ctx context.Context, adminId int, reso
 		}, err
 	}
 
-	err = addNoteToFeedback(ctx, s.DB, fbInt, adminId, resolution.Note)
+	err = addNoteToFeedback(ctx, s.DB, fbInt, adminId, resolution.Note, "ADMIN_NOTE")
 	if err != nil {
 		return &models.MutationResult{
 			Success: false,

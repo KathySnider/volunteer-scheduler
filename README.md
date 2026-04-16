@@ -267,8 +267,45 @@ cd backend
 go test ./tests/integration/...
 ```
 
-### Frontend
-(Coming)
+### Frontend (E2E — Playwright)
+
+E2E tests run against the full docker-compose stack using Playwright and Chromium.
+
+**One-time setup:**
+```bash
+cd frontend
+npm run test:e2e:install   # installs Chromium
+```
+
+**Configuration** — create `frontend/.env` with:
+```
+E2E_ADMIN_EMAIL=your-admin@example.com
+```
+Set this to the email of an existing `ADMINISTRATOR` account in the database.
+
+**Run all tests:**
+```bash
+cd frontend
+npm run test:e2e
+```
+
+**Other commands:**
+```bash
+npm run test:e2e:ui       # interactive Playwright UI (great for debugging)
+npm run test:e2e:report   # open the last HTML report
+```
+
+**Test suites:**
+
+| Suite | What it covers |
+|---|---|
+| `auth.spec.ts` | Magic-link login, role routing, unknown email, invalid token |
+| `shift-signup.spec.ts` | Sign up for a shift, cancel, full shift, access control |
+| `feedback.spec.ts` | Submit feedback, admin Q&A workflow, note visibility |
+| `admin-event.spec.ts` | Admin creates events, form validation, access control |
+| `profile.spec.ts` | View and edit volunteer profile |
+
+See `frontend/tests/e2e/README.md` for more details.
 
 
 ## Deployment

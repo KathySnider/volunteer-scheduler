@@ -629,20 +629,21 @@ func addNewOpportunityShift(ctx context.Context, shift *models.NewShiftInput, op
 	return nil
 }
 
-func addNoteToFeedback(ctx context.Context, DB *sql.DB, feedbackId int, adminId int, note string) error {
+func addNoteToFeedback(ctx context.Context, DB *sql.DB, feedbackId int, adminId int, note string, noteType string) error {
 
 	insert := `
 		INSERT INTO feedback_notes (
 			feedback_id,
-			volunteer_id, 
+			volunteer_id,
 			note,
+			note_type,
 			created_at)
-		VALUES ($1, $2, $3, NOW())
+		VALUES ($1, $2, $3, $4, NOW())
 		RETURNING note_id
 	`
 
 	var noteInt int
-	err := DB.QueryRowContext(ctx, insert, feedbackId, adminId, note).Scan(&noteInt)
+	err := DB.QueryRowContext(ctx, insert, feedbackId, adminId, note, noteType).Scan(&noteInt)
 	if err != nil {
 		return fmt.Errorf("error adding feedback note to DB: %w", err)
 	}

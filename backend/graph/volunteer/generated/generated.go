@@ -115,6 +115,7 @@ type ComplexityRoot struct {
 		EventByID        func(childComplexity int, eventID string) int
 		FilteredEvents   func(childComplexity int, filter *EventFilterInput) int
 		LookupValues     func(childComplexity int) int
+		OwnFeedback      func(childComplexity int) int
 		OwnShifts        func(childComplexity int, filter ShiftTimeFilter) int
 		ShiftsForEvent   func(childComplexity int, eventID string) int
 		VolunteerProfile func(childComplexity int) int
@@ -152,6 +153,26 @@ type ComplexityRoot struct {
 		State    func(childComplexity int) int
 		Timezone func(childComplexity int) int
 		ZipCode  func(childComplexity int) int
+	}
+
+	VolunteerFeedback struct {
+		AppPageName    func(childComplexity int) int
+		Attachments    func(childComplexity int) int
+		CreatedAt      func(childComplexity int) int
+		GithubIssueURL func(childComplexity int) int
+		ID             func(childComplexity int) int
+		Notes          func(childComplexity int) int
+		Status         func(childComplexity int) int
+		Subject        func(childComplexity int) int
+		Text           func(childComplexity int) int
+		Type           func(childComplexity int) int
+	}
+
+	VolunteerFeedbackNote struct {
+		CreatedAt func(childComplexity int) int
+		ID        func(childComplexity int) int
+		Note      func(childComplexity int) int
+		NoteType  func(childComplexity int) int
 	}
 
 	VolunteerMutationResult struct {
@@ -199,6 +220,7 @@ type QueryResolver interface {
 	EventByID(ctx context.Context, eventID string) (*Event, error)
 	ShiftsForEvent(ctx context.Context, eventID string) ([]*ShiftView, error)
 	OwnShifts(ctx context.Context, filter ShiftTimeFilter) ([]*VolunteerShift, error)
+	OwnFeedback(ctx context.Context) ([]*VolunteerFeedback, error)
 	Attachment(ctx context.Context, attachmentID string) (*AttachmentDownload, error)
 }
 
@@ -522,6 +544,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.LookupValues(childComplexity), true
+	case "Query.ownFeedback":
+		if e.complexity.Query.OwnFeedback == nil {
+			break
+		}
+
+		return e.complexity.Query.OwnFeedback(childComplexity), true
 	case "Query.ownShifts":
 		if e.complexity.Query.OwnShifts == nil {
 			break
@@ -686,6 +714,92 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Venue.ZipCode(childComplexity), true
+
+	case "VolunteerFeedback.appPageName":
+		if e.complexity.VolunteerFeedback.AppPageName == nil {
+			break
+		}
+
+		return e.complexity.VolunteerFeedback.AppPageName(childComplexity), true
+	case "VolunteerFeedback.attachments":
+		if e.complexity.VolunteerFeedback.Attachments == nil {
+			break
+		}
+
+		return e.complexity.VolunteerFeedback.Attachments(childComplexity), true
+	case "VolunteerFeedback.createdAt":
+		if e.complexity.VolunteerFeedback.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.VolunteerFeedback.CreatedAt(childComplexity), true
+	case "VolunteerFeedback.githubIssueURL":
+		if e.complexity.VolunteerFeedback.GithubIssueURL == nil {
+			break
+		}
+
+		return e.complexity.VolunteerFeedback.GithubIssueURL(childComplexity), true
+	case "VolunteerFeedback.id":
+		if e.complexity.VolunteerFeedback.ID == nil {
+			break
+		}
+
+		return e.complexity.VolunteerFeedback.ID(childComplexity), true
+	case "VolunteerFeedback.notes":
+		if e.complexity.VolunteerFeedback.Notes == nil {
+			break
+		}
+
+		return e.complexity.VolunteerFeedback.Notes(childComplexity), true
+	case "VolunteerFeedback.status":
+		if e.complexity.VolunteerFeedback.Status == nil {
+			break
+		}
+
+		return e.complexity.VolunteerFeedback.Status(childComplexity), true
+	case "VolunteerFeedback.subject":
+		if e.complexity.VolunteerFeedback.Subject == nil {
+			break
+		}
+
+		return e.complexity.VolunteerFeedback.Subject(childComplexity), true
+	case "VolunteerFeedback.text":
+		if e.complexity.VolunteerFeedback.Text == nil {
+			break
+		}
+
+		return e.complexity.VolunteerFeedback.Text(childComplexity), true
+	case "VolunteerFeedback.type":
+		if e.complexity.VolunteerFeedback.Type == nil {
+			break
+		}
+
+		return e.complexity.VolunteerFeedback.Type(childComplexity), true
+
+	case "VolunteerFeedbackNote.createdAt":
+		if e.complexity.VolunteerFeedbackNote.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.VolunteerFeedbackNote.CreatedAt(childComplexity), true
+	case "VolunteerFeedbackNote.id":
+		if e.complexity.VolunteerFeedbackNote.ID == nil {
+			break
+		}
+
+		return e.complexity.VolunteerFeedbackNote.ID(childComplexity), true
+	case "VolunteerFeedbackNote.note":
+		if e.complexity.VolunteerFeedbackNote.Note == nil {
+			break
+		}
+
+		return e.complexity.VolunteerFeedbackNote.Note(childComplexity), true
+	case "VolunteerFeedbackNote.noteType":
+		if e.complexity.VolunteerFeedbackNote.NoteType == nil {
+			break
+		}
+
+		return e.complexity.VolunteerFeedbackNote.NoteType(childComplexity), true
 
 	case "VolunteerMutationResult.message":
 		if e.complexity.VolunteerMutationResult.Message == nil {
@@ -955,6 +1069,13 @@ enum FeedbackStatus {
   RESOLVED_REJECTED
 }
 
+enum FeedbackNoteType {
+  ADMIN_NOTE
+  QUESTION
+  VOLUNTEER_REPLY
+  EMAIL_TO_VOLUNTEER
+}
+
 enum ShiftTimeFilter {
   UPCOMING
   PAST
@@ -1085,6 +1206,7 @@ type AttachmentDownload {
   data: String!
 }
 
+
 #-- Results --
 type MutationResult {
   success: Boolean!
@@ -1103,6 +1225,7 @@ type Query {
   eventById(eventId: ID!): Event!
   shiftsForEvent(eventId: ID!): [ShiftView!]!  
   ownShifts(filter: ShiftTimeFilter!): [VolunteerShift!]! 
+  ownFeedback: [VolunteerFeedback!]!
   attachment(attachmentId: ID!): AttachmentDownload
 }
 
@@ -1122,6 +1245,26 @@ type ShiftView {
   isVirtual: Boolean!
   maxVolunteers: Int
   assignedVolunteers: Int!
+}
+
+type VolunteerFeedbackNote {
+   id: ID!
+  createdAt: String!
+  noteType: FeedbackNoteType!
+  note: String!
+ 
+}
+type VolunteerFeedback {
+  id: ID!
+  type: FeedbackType!
+  status: FeedbackStatus!
+  subject: String!
+  appPageName: String!
+  text: String!
+  githubIssueURL: String
+  createdAt: String!
+  notes: [VolunteerFeedbackNote!]!
+  attachments: [FeedbackAttachment!]!   
 }
 
 input UpdateOwnProfileInput {
@@ -2910,6 +3053,57 @@ func (ec *executionContext) fieldContext_Query_ownShifts(ctx context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_ownFeedback(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_ownFeedback,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().OwnFeedback(ctx)
+		},
+		nil,
+		ec.marshalNVolunteerFeedback2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerFeedbackᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_ownFeedback(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_VolunteerFeedback_id(ctx, field)
+			case "type":
+				return ec.fieldContext_VolunteerFeedback_type(ctx, field)
+			case "status":
+				return ec.fieldContext_VolunteerFeedback_status(ctx, field)
+			case "subject":
+				return ec.fieldContext_VolunteerFeedback_subject(ctx, field)
+			case "appPageName":
+				return ec.fieldContext_VolunteerFeedback_appPageName(ctx, field)
+			case "text":
+				return ec.fieldContext_VolunteerFeedback_text(ctx, field)
+			case "githubIssueURL":
+				return ec.fieldContext_VolunteerFeedback_githubIssueURL(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_VolunteerFeedback_createdAt(ctx, field)
+			case "notes":
+				return ec.fieldContext_VolunteerFeedback_notes(ctx, field)
+			case "attachments":
+				return ec.fieldContext_VolunteerFeedback_attachments(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type VolunteerFeedback", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_attachment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -3700,6 +3894,434 @@ func (ec *executionContext) fieldContext_Venue_region(_ context.Context, field g
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerFeedback_id(ctx context.Context, field graphql.CollectedField, obj *VolunteerFeedback) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerFeedback_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerFeedback_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerFeedback",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerFeedback_type(ctx context.Context, field graphql.CollectedField, obj *VolunteerFeedback) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerFeedback_type,
+		func(ctx context.Context) (any, error) {
+			return obj.Type, nil
+		},
+		nil,
+		ec.marshalNFeedbackType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFeedbackType,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerFeedback_type(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerFeedback",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type FeedbackType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerFeedback_status(ctx context.Context, field graphql.CollectedField, obj *VolunteerFeedback) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerFeedback_status,
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		ec.marshalNFeedbackStatus2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFeedbackStatus,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerFeedback_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerFeedback",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type FeedbackStatus does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerFeedback_subject(ctx context.Context, field graphql.CollectedField, obj *VolunteerFeedback) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerFeedback_subject,
+		func(ctx context.Context) (any, error) {
+			return obj.Subject, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerFeedback_subject(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerFeedback",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerFeedback_appPageName(ctx context.Context, field graphql.CollectedField, obj *VolunteerFeedback) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerFeedback_appPageName,
+		func(ctx context.Context) (any, error) {
+			return obj.AppPageName, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerFeedback_appPageName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerFeedback",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerFeedback_text(ctx context.Context, field graphql.CollectedField, obj *VolunteerFeedback) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerFeedback_text,
+		func(ctx context.Context) (any, error) {
+			return obj.Text, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerFeedback_text(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerFeedback",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerFeedback_githubIssueURL(ctx context.Context, field graphql.CollectedField, obj *VolunteerFeedback) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerFeedback_githubIssueURL,
+		func(ctx context.Context) (any, error) {
+			return obj.GithubIssueURL, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerFeedback_githubIssueURL(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerFeedback",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerFeedback_createdAt(ctx context.Context, field graphql.CollectedField, obj *VolunteerFeedback) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerFeedback_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerFeedback_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerFeedback",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerFeedback_notes(ctx context.Context, field graphql.CollectedField, obj *VolunteerFeedback) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerFeedback_notes,
+		func(ctx context.Context) (any, error) {
+			return obj.Notes, nil
+		},
+		nil,
+		ec.marshalNVolunteerFeedbackNote2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerFeedbackNoteᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerFeedback_notes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerFeedback",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_VolunteerFeedbackNote_id(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_VolunteerFeedbackNote_createdAt(ctx, field)
+			case "noteType":
+				return ec.fieldContext_VolunteerFeedbackNote_noteType(ctx, field)
+			case "note":
+				return ec.fieldContext_VolunteerFeedbackNote_note(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type VolunteerFeedbackNote", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerFeedback_attachments(ctx context.Context, field graphql.CollectedField, obj *VolunteerFeedback) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerFeedback_attachments,
+		func(ctx context.Context) (any, error) {
+			return obj.Attachments, nil
+		},
+		nil,
+		ec.marshalNFeedbackAttachment2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFeedbackAttachmentᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerFeedback_attachments(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerFeedback",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FeedbackAttachment_id(ctx, field)
+			case "filename":
+				return ec.fieldContext_FeedbackAttachment_filename(ctx, field)
+			case "mimeType":
+				return ec.fieldContext_FeedbackAttachment_mimeType(ctx, field)
+			case "fileSize":
+				return ec.fieldContext_FeedbackAttachment_fileSize(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_FeedbackAttachment_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FeedbackAttachment", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerFeedbackNote_id(ctx context.Context, field graphql.CollectedField, obj *VolunteerFeedbackNote) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerFeedbackNote_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerFeedbackNote_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerFeedbackNote",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerFeedbackNote_createdAt(ctx context.Context, field graphql.CollectedField, obj *VolunteerFeedbackNote) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerFeedbackNote_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerFeedbackNote_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerFeedbackNote",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerFeedbackNote_noteType(ctx context.Context, field graphql.CollectedField, obj *VolunteerFeedbackNote) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerFeedbackNote_noteType,
+		func(ctx context.Context) (any, error) {
+			return obj.NoteType, nil
+		},
+		nil,
+		ec.marshalNFeedbackNoteType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFeedbackNoteType,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerFeedbackNote_noteType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerFeedbackNote",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type FeedbackNoteType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerFeedbackNote_note(ctx context.Context, field graphql.CollectedField, obj *VolunteerFeedbackNote) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerFeedbackNote_note,
+		func(ctx context.Context) (any, error) {
+			return obj.Note, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerFeedbackNote_note(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerFeedbackNote",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -6601,6 +7223,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "ownFeedback":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_ownFeedback(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "attachment":
 			field := field
 
@@ -6862,6 +7506,141 @@ func (ec *executionContext) _Venue(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "region":
 			out.Values[i] = ec._Venue_region(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var volunteerFeedbackImplementors = []string{"VolunteerFeedback"}
+
+func (ec *executionContext) _VolunteerFeedback(ctx context.Context, sel ast.SelectionSet, obj *VolunteerFeedback) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, volunteerFeedbackImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("VolunteerFeedback")
+		case "id":
+			out.Values[i] = ec._VolunteerFeedback_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "type":
+			out.Values[i] = ec._VolunteerFeedback_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._VolunteerFeedback_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "subject":
+			out.Values[i] = ec._VolunteerFeedback_subject(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "appPageName":
+			out.Values[i] = ec._VolunteerFeedback_appPageName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "text":
+			out.Values[i] = ec._VolunteerFeedback_text(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "githubIssueURL":
+			out.Values[i] = ec._VolunteerFeedback_githubIssueURL(ctx, field, obj)
+		case "createdAt":
+			out.Values[i] = ec._VolunteerFeedback_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "notes":
+			out.Values[i] = ec._VolunteerFeedback_notes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "attachments":
+			out.Values[i] = ec._VolunteerFeedback_attachments(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var volunteerFeedbackNoteImplementors = []string{"VolunteerFeedbackNote"}
+
+func (ec *executionContext) _VolunteerFeedbackNote(ctx context.Context, sel ast.SelectionSet, obj *VolunteerFeedbackNote) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, volunteerFeedbackNoteImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("VolunteerFeedbackNote")
+		case "id":
+			out.Values[i] = ec._VolunteerFeedbackNote_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._VolunteerFeedbackNote_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "noteType":
+			out.Values[i] = ec._VolunteerFeedbackNote_noteType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "note":
+			out.Values[i] = ec._VolunteerFeedbackNote_note(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -7598,6 +8377,80 @@ func (ec *executionContext) marshalNEventType2volunteerᚑschedulerᚋgraphᚋvo
 	return v
 }
 
+func (ec *executionContext) marshalNFeedbackAttachment2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFeedbackAttachmentᚄ(ctx context.Context, sel ast.SelectionSet, v []*FeedbackAttachment) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNFeedbackAttachment2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFeedbackAttachment(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNFeedbackAttachment2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFeedbackAttachment(ctx context.Context, sel ast.SelectionSet, v *FeedbackAttachment) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FeedbackAttachment(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNFeedbackNoteType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFeedbackNoteType(ctx context.Context, v any) (FeedbackNoteType, error) {
+	var res FeedbackNoteType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFeedbackNoteType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFeedbackNoteType(ctx context.Context, sel ast.SelectionSet, v FeedbackNoteType) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNFeedbackStatus2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFeedbackStatus(ctx context.Context, v any) (FeedbackStatus, error) {
+	var res FeedbackStatus
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFeedbackStatus2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFeedbackStatus(ctx context.Context, sel ast.SelectionSet, v FeedbackStatus) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) unmarshalNFeedbackType2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFeedbackType(ctx context.Context, v any) (FeedbackType, error) {
 	var res FeedbackType
 	err := res.UnmarshalGQL(v)
@@ -7974,6 +8827,114 @@ func (ec *executionContext) marshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋg
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNVolunteerFeedback2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerFeedbackᚄ(ctx context.Context, sel ast.SelectionSet, v []*VolunteerFeedback) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNVolunteerFeedback2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerFeedback(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNVolunteerFeedback2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerFeedback(ctx context.Context, sel ast.SelectionSet, v *VolunteerFeedback) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._VolunteerFeedback(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNVolunteerFeedbackNote2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerFeedbackNoteᚄ(ctx context.Context, sel ast.SelectionSet, v []*VolunteerFeedbackNote) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNVolunteerFeedbackNote2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerFeedbackNote(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNVolunteerFeedbackNote2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerFeedbackNote(ctx context.Context, sel ast.SelectionSet, v *VolunteerFeedbackNote) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._VolunteerFeedbackNote(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNVolunteerMutationResult2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐVolunteerMutationResult(ctx context.Context, sel ast.SelectionSet, v VolunteerMutationResult) graphql.Marshaler {
