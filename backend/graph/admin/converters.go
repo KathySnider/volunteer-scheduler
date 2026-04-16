@@ -40,6 +40,7 @@ func toGenLookupValues(m models.LookupValues) generated.LookupValues {
 		Regions:      toGenRegions(m.Regions),
 		ServiceTypes: toGenServiceTypes(m.ServiceTypes),
 		JobTypes:     toGenJobTypes(m.JobTypes),
+		Cities:       m.Cities,
 	}
 }
 
@@ -240,13 +241,16 @@ func toModelEventFilterInput(g *generated.EventFilterInput) *models.EventFilterI
 		et := models.EventType(*g.EventType)
 		eventType = &et
 	}
+	var timeframe *models.ShiftsTimeFilter
+	if g.TimeFrame != nil {
+		tf := models.ShiftsTimeFilter(*g.TimeFrame)
+		timeframe = &tf
+	}
 	return &models.EventFilterInput{
-		Regions:        g.Regions,
-		EventType:      eventType,
-		Jobs:           g.Jobs,
-		ShiftStartDate: g.ShiftStartDateTime,
-		ShiftEndDate:   g.ShiftEndDateTime,
-		IanaZone:       g.IanaZone,
+		Cities:    g.Cities,
+		EventType: eventType,
+		Jobs:      g.Jobs,
+		TimeFrame: timeframe,
 	}
 }
 

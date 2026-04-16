@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   getAuthToken,
@@ -14,15 +14,16 @@ import UserMenu from "../components/UserMenu";
 import FeedbackButton from "../components/FeedbackButton";
 import styles from "./events.module.css";
 
+/* ----- Constants ----- */
+
+const CITY_STORAGE_KEY = "evtCityFilter";
+
 /* ----- GraphQL operations ----- */
 
 const LOOKUP_VALUES = `
   query {
     lookupValues {
-      regions {
-        id
-        name
-      }
+      cities
       jobTypes {
         id
         name
@@ -56,16 +57,6 @@ const FILTERED_EVENTS = `
 `;
 
 /* ----- Helpers ----- */
-
-/**
- * Format a date string ("2026-04-15") + time into the "YYYY-MM-DD HH:MM:SS"
- * format that the backend's DateTimeToUTC expects.
- * Returns null when dateStr is empty.
- */
-function formatDateForBackend(dateStr, time) {
-  if (!dateStr) return null;
-  return `${dateStr} ${time}:00`;
-}
 
 /** Format a UTC ISO date string for display in the user's local timezone. */
 function formatLocalDateTime(isoString) {
@@ -118,6 +109,85 @@ function FormatBadge({ eventType }) {
     <span className={`${styles.badge} ${FORMAT_BADGE_CLASS[eventType] ?? ""}`}>
       {FORMAT_LABELS[eventType] ?? eventType}
     </span>
+  );
+}
+
+/* ----- Multi-select dropdown ----- */
+// items: array of { value, label }
+// selected: array of values (same type as item.value)
+// onToggle(value): toggle one item
+// onSelectAll / onClearAll: optional, shown as action buttons above the list
+
+function MultiSelectDropdown({
+  buttonLabel,
+  items,
+  selected,
+  onToggle,
+  onSelectAll,
+  onClearAll,
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  // Close when clicking outside the dropdown
+  useEffect(() => {
+    if (!open) return;
+    function handler(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div className={styles.multiSelect} ref={containerRef}>
+      <button
+        type="button"
+        className={`${styles.multiSelectBtn} ${open ? styles.multiSelectBtnOpen : ""}`}
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+      >
+        {buttonLabel}
+        <span className={styles.chevron} aria-hidden="true">▾</span>
+      </button>
+
+      {open && (
+        <div className={styles.checkboxPanel} role="listbox">
+          {(onSelectAll || onClearAll) && (
+            <div className={styles.panelActions}>
+              {onSelectAll && (
+                <button type="button" className={styles.panelActionBtn} onClick={onSelectAll}>
+                  Select All
+                </button>
+              )}
+              {onClearAll && (
+                <button type="button" className={styles.panelActionBtn} onClick={onClearAll}>
+                  Clear All
+                </button>
+              )}
+            </div>
+          )}
+          <div className={styles.checkboxList}>
+            {items.map((item) => {
+              const checked = selected.includes(item.value);
+              return (
+                <label key={item.value} className={styles.checkboxItem}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => onToggle(item.value)}
+                  />
+                  {item.label}
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -200,31 +270,28 @@ function EventCard({ event, onView }) {
 export default function EventsPage() {
   const router = useRouter();
   const [token, setToken] = useState(null);
-  const [gql, setGql] = useState(null); // volunteerGql or adminGql bound to token
+  const [gql, setGql] = useState(null);
   const [userName, setUserName] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
-  const [ianaZone, setIanaZone] = useState("UTC");
 
   // Lookup data
-  const [regions, setRegions] = useState([]);
+  const [allCities, setAllCities] = useState([]);
   const [jobTypes, setJobTypes] = useState([]);
+  const [lookupsReady, setLookupsReady] = useState(false);
 
   // Filter state
-  const [selectedRegion, setSelectedRegion] = useState("");
-  const [selectedJobType, setSelectedJobType] = useState("");
+  // Empty array = no filter (show all); non-empty = filter to those values.
+  const [selectedCities, setSelectedCities] = useState([]);
+  const [selectedJobs, setSelectedJobs] = useState([]);
   const [selectedFormat, setSelectedFormat] = useState("");
-  const [startDate, setStartDate] = useState(
-    () => new Date().toISOString().slice(0, 10)   // default: today
-  );
-  const [endDate, setEndDate] = useState("");
+  const [selectedTimeFrame, setSelectedTimeFrame] = useState("UPCOMING");
 
-  // Results state
+  // Results
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
-  const [hasSearched, setHasSearched] = useState(false);
 
-  /* Auth check and initialisation */
+  /* ----- Auth check ----- */
   useEffect(() => {
     const t = getAuthToken();
     if (!t) {
@@ -241,80 +308,114 @@ export default function EventsPage() {
     setGql(() => boundGql);
     setUserName(getAuthName() ?? "");
     setIsAdmin(role === "ADMINISTRATOR");
-    setIanaZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  }, [router]);
 
-    // Fetch lookup values, then auto-search with today as the start date.
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const todayStr = new Date().toISOString().slice(0, 10);
-    boundGql(LOOKUP_VALUES, null)
+  /* ----- Fetch lookups once gql is available ----- */
+  useEffect(() => {
+    if (!gql) return;
+
+    gql(LOOKUP_VALUES, null)
       .then((res) => {
         const lv = res.data?.lookupValues;
         if (lv) {
-          setRegions(lv.regions);
-          setJobTypes(lv.jobTypes);
+          // Deduplicate and sort cities alphabetically.
+          const unique = [...new Set(lv.cities ?? [])].sort();
+          setAllCities(unique);
+          setJobTypes(lv.jobTypes ?? []);
+
+          // Restore saved city selection from sessionStorage.
+          try {
+            const saved = sessionStorage.getItem(CITY_STORAGE_KEY);
+            if (saved) {
+              const parsed = JSON.parse(saved);
+              // Only keep cities that are still in the current list.
+              const valid = parsed.filter((c) => unique.includes(c));
+              if (valid.length > 0) setSelectedCities(valid);
+            }
+          } catch {
+            // sessionStorage unavailable — ignore.
+          }
+        }
+        // Mark ready inside .then() so all state updates batch together.
+        setLookupsReady(true);
+      })
+      .catch(() => {
+        // Non-fatal: filters will be empty but search can still run.
+        setLookupsReady(true);
+      });
+  }, [gql]);
+
+  /* ----- Persist city selection to sessionStorage ----- */
+  useEffect(() => {
+    if (!lookupsReady) return;
+    try {
+      sessionStorage.setItem(CITY_STORAGE_KEY, JSON.stringify(selectedCities));
+    } catch {
+      // ignore
+    }
+  }, [selectedCities, lookupsReady]);
+
+  /* ----- Auto-search whenever filter state or readiness changes ----- */
+  useEffect(() => {
+    if (!gql || !lookupsReady) return;
+
+    let cancelled = false;
+    setLoading(true);
+    setSearchError("");
+
+    const filter = {};
+    if (selectedCities.length > 0) filter.cities = selectedCities;
+    if (selectedJobs.length > 0)   filter.jobs = selectedJobs;
+    if (selectedFormat)            filter.eventType = selectedFormat;
+    filter.timeFrame = selectedTimeFrame || "ALL";
+
+    gql(FILTERED_EVENTS, { filter })
+      .then((res) => {
+        if (cancelled) return;
+        if (res.errors) {
+          setSearchError(res.errors[0]?.message ?? "Error loading events.");
+          setEvents([]);
+        } else {
+          setEvents(res.data?.filteredEvents ?? []);
         }
       })
       .catch(() => {
-        // Non-fatal; filters will just be empty.
+        if (!cancelled) {
+          setSearchError("Unable to reach the server. Please try again.");
+          setEvents([]);
+        }
       })
       .finally(() => {
-        // Auto-search with default filters (today onwards, nothing else selected).
-        doSearch(boundGql, "", "", "", todayStr, "", tz);
+        if (!cancelled) setLoading(false);
       });
-  }, [router]);
 
-  /**
-   * Core search executor. Takes the gql function and all filter values as
-   * explicit arguments so it can be called safely from the initial load
-   * (before state settles) and from handleReset (after state is reset).
-   * State setters are stable React references so no deps are needed.
-   */
-  const doSearch = useCallback(async (boundGql, region, jobType, format, start, end, zone) => {
-    setLoading(true);
-    setSearchError("");
-    setHasSearched(true);
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gql, lookupsReady, selectedCities, selectedJobs, selectedFormat, selectedTimeFrame]);
 
-    const filter = {};
-    if (region)  filter.regions  = [parseInt(region, 10)];
-    if (jobType) filter.jobs     = [parseInt(jobType, 10)];
-    if (format)  filter.eventType = format;
-    if (start)   filter.shiftStartDateTime = formatDateForBackend(start, "00:00");
-    if (end)     filter.shiftEndDateTime   = formatDateForBackend(end,   "23:59");
-    filter.ianaZone = zone;
+  /* ----- Filter callbacks ----- */
 
-    try {
-      const res = await boundGql(FILTERED_EVENTS, { filter });
-      if (res.errors) {
-        setSearchError(res.errors[0]?.message ?? "Error loading events.");
-        setEvents([]);
-      } else {
-        setEvents(res.data?.filteredEvents ?? []);
-      }
-    } catch {
-      setSearchError("Unable to reach the server. Please try again.");
-      setEvents([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  function toggleCity(city) {
+    setSelectedCities((prev) =>
+      prev.includes(city) ? prev.filter((c) => c !== city) : [...prev, city]
+    );
+  }
 
-  /* Search button — passes current state values explicitly */
-  const handleSearch = useCallback(() => {
-    if (!gql) return;
-    doSearch(gql, selectedRegion, selectedJobType, selectedFormat, startDate, endDate, ianaZone);
-  }, [gql, doSearch, selectedRegion, selectedJobType, selectedFormat, startDate, endDate, ianaZone]);
+  function toggleJob(jobId) {
+    setSelectedJobs((prev) =>
+      prev.includes(jobId) ? prev.filter((j) => j !== jobId) : [...prev, jobId]
+    );
+  }
 
-  /* Reset — restores defaults and re-runs search immediately */
-  const TODAY = new Date().toISOString().slice(0, 10);
-  const handleReset = useCallback(() => {
-    setSelectedRegion("");
-    setSelectedJobType("");
+  function handleReset() {
+    setSelectedCities([]);
+    setSelectedJobs([]);
     setSelectedFormat("");
-    setStartDate(TODAY);
-    setEndDate("");
-    setSearchError("");
-    if (gql) doSearch(gql, "", "", "", TODAY, "", ianaZone);
-  }, [gql, doSearch, ianaZone, TODAY]);
+    setSelectedTimeFrame("UPCOMING");
+    // sessionStorage will be cleared by the persist effect above.
+  }
 
   const handleSignOut = () => {
     clearAuthToken();
@@ -327,124 +428,130 @@ export default function EventsPage() {
 
   if (!token) return null;
 
+  /* ----- Derived labels for multi-select buttons ----- */
+  const cityBtnLabel =
+    selectedCities.length === 0
+      ? "All Cities"
+      : selectedCities.length === 1
+      ? selectedCities[0]
+      : `Cities: ${selectedCities.length}`;
+
+  const jobBtnLabel =
+    selectedJobs.length === 0
+      ? "All Jobs"
+      : selectedJobs.length === 1
+      ? (jobTypes.find((j) => j.id === selectedJobs[0])?.name ?? "1 job")
+      : `Jobs: ${selectedJobs.length}`;
+
+  const cityItems = allCities.map((c) => ({ value: c, label: c }));
+  const jobItems  = jobTypes.map((j)  => ({ value: j.id, label: j.name }));
+
+  const hasActiveFilters =
+    selectedCities.length > 0 ||
+    selectedJobs.length > 0 ||
+    selectedFormat !== "" ||
+    selectedTimeFrame !== "UPCOMING";
+
   return (
     <div className={styles.page}>
+
       {/* ---- Top bar ---- */}
       <div className={styles.topBar}>
         <div className={styles.appTitle}>AARP Volunteer Events</div>
         <div className={styles.topBarRight}>
-          <a href="/my-shifts" className={styles.myShiftsLink}>My Shifts</a>
-          <a href="/my-feedback" className={styles.myShiftsLink}>My Feedback</a>
+          <a href="/my-shifts" className={styles.topBarLink}>My Shifts</a>
+          <a href="/my-feedback" className={styles.topBarLink}>My Feedback</a>
           <UserMenu name={userName} isAdmin={isAdmin} onSignOut={handleSignOut} />
         </div>
       </div>
 
-      <div className={styles.body}>
-      {/* ---- Left sidebar ---- */}
-      <aside className={styles.sidebar}>
-        <div className={styles.sidebarTitle}>Find Events</div>
+      {/* ---- Filter bar ---- */}
+      <div className={styles.filterBar}>
+        <div className={styles.filterCard}>
+        <div className={styles.filterBarInner}>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor="regionFilter">
-            Region
-          </label>
-          <select
-            id="regionFilter"
-            className={styles.filterSelect}
-            value={selectedRegion}
-            onChange={(e) => setSelectedRegion(e.target.value)}
-          >
-            <option value="">All regions</option>
-            {regions.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </select>
+          {/* Cities multi-select */}
+          <div className={styles.filterGroup}>
+            <span className={styles.filterLabel}>City</span>
+            <MultiSelectDropdown
+              buttonLabel={cityBtnLabel}
+              items={cityItems}
+              selected={selectedCities}
+              onToggle={toggleCity}
+              onSelectAll={() => setSelectedCities([...allCities])}
+              onClearAll={() => setSelectedCities([])}
+            />
+          </div>
+
+          {/* Jobs multi-select */}
+          <div className={styles.filterGroup}>
+            <span className={styles.filterLabel}>Job</span>
+            <MultiSelectDropdown
+              buttonLabel={jobBtnLabel}
+              items={jobItems}
+              selected={selectedJobs}
+              onToggle={toggleJob}
+            />
+          </div>
+
+          {/* Event type */}
+          <div className={styles.filterGroup}>
+            <label className={styles.filterLabel} htmlFor="formatFilter">
+              Format
+            </label>
+            <select
+              id="formatFilter"
+              className={styles.filterSelect}
+              value={selectedFormat}
+              onChange={(e) => setSelectedFormat(e.target.value)}
+            >
+              <option value="">All formats</option>
+              <option value="VIRTUAL">Virtual</option>
+              <option value="IN_PERSON">In Person</option>
+              <option value="HYBRID">Hybrid</option>
+            </select>
+          </div>
+
+          {/* Timeframe */}
+          <div className={styles.filterGroup}>
+            <label className={styles.filterLabel} htmlFor="timeFrameFilter">
+              Timeframe
+            </label>
+            <select
+              id="timeFrameFilter"
+              className={styles.filterSelect}
+              value={selectedTimeFrame}
+              onChange={(e) => setSelectedTimeFrame(e.target.value)}
+            >
+              <option value="UPCOMING">Upcoming</option>
+              <option value="PAST">Past</option>
+              <option value="ALL">All</option>
+            </select>
+          </div>
+
+          {/* Reset */}
+          {hasActiveFilters && (
+            <button
+              type="button"
+              className={styles.resetButton}
+              onClick={handleReset}
+            >
+              Reset filters
+            </button>
+          )}
         </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor="jobTypeFilter">
-            Job Type
-          </label>
-          <select
-            id="jobTypeFilter"
-            className={styles.filterSelect}
-            value={selectedJobType}
-            onChange={(e) => setSelectedJobType(e.target.value)}
-          >
-            <option value="">All job types</option>
-            {jobTypes.map((j) => (
-              <option key={j.id} value={j.id}>
-                {j.name}
-              </option>
-            ))}
-          </select>
         </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor="formatFilter">
-            Format
-          </label>
-          <select
-            id="formatFilter"
-            className={styles.filterSelect}
-            value={selectedFormat}
-            onChange={(e) => setSelectedFormat(e.target.value)}
-          >
-            <option value="">All formats</option>
-            <option value="VIRTUAL">Virtual</option>
-            <option value="IN_PERSON">In Person</option>
-            <option value="HYBRID">Hybrid</option>
-          </select>
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor="startDate">
-            From Date
-          </label>
-          <input
-            id="startDate"
-            type="date"
-            className={styles.filterDate}
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor="endDate">
-            To Date
-          </label>
-          <input
-            id="endDate"
-            type="date"
-            className={styles.filterDate}
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
-        </div>
-
-        <button
-          className={styles.searchButton}
-          onClick={handleSearch}
-          disabled={loading}
-        >
-          {loading ? "Searching\u2026" : "Search"}
-        </button>
-
-        <button className={styles.resetButton} onClick={handleReset}>
-          Reset
-        </button>
-      </aside>
+      </div>
 
       {/* ---- Main content ---- */}
       <main className={styles.main}>
         <div className={styles.mainHeader}>
-          <h1 className={styles.mainTitle}>Volunteer Events</h1>
-          <p className={styles.mainSubtitle}>
-            Use the filters to find events that need volunteers.
-          </p>
+          <h1 className={styles.mainTitle}>
+            Volunteer Events
+            {!loading && events.length > 0 && (
+              <span className={styles.eventCount}>({events.length})</span>
+            )}
+          </h1>
         </div>
 
         {searchError && <div className={styles.errorBox}>{searchError}</div>}
@@ -456,17 +563,10 @@ export default function EventsPage() {
           </div>
         )}
 
-        {!loading && hasSearched && events.length === 0 && !searchError && (
+        {!loading && !searchError && events.length === 0 && (
           <div className={styles.stateBox}>
             <div className={styles.stateTitle}>No events found</div>
             <p>Try adjusting your filters.</p>
-          </div>
-        )}
-
-        {!loading && !hasSearched && (
-          <div className={styles.stateBox}>
-            <div className={styles.stateTitle}>Ready to search</div>
-            <p>Select filters and click Search to see available events.</p>
           </div>
         )}
 
@@ -478,7 +578,7 @@ export default function EventsPage() {
           </div>
         )}
       </main>
-      </div>{/* end .body */}
+
       <FeedbackButton />
     </div>
   );

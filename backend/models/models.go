@@ -6,6 +6,7 @@ type LookupValues struct {
 	Regions      []*Region
 	ServiceTypes []*ServiceType
 	JobTypes     []*JobType
+	Cities       []string
 }
 
 // Result types (API-wide).

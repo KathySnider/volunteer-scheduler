@@ -91,6 +91,7 @@ type ComplexityRoot struct {
 	}
 
 	LookupValues struct {
+		Cities       func(childComplexity int) int
 		JobTypes     func(childComplexity int) int
 		Regions      func(childComplexity int) int
 		ServiceTypes func(childComplexity int) int
@@ -411,6 +412,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.JobType.SortOrder(childComplexity), true
 
+	case "LookupValues.cities":
+		if e.complexity.LookupValues.Cities == nil {
+			break
+		}
+
+		return e.complexity.LookupValues.Cities(childComplexity), true
 	case "LookupValues.jobTypes":
 		if e.complexity.LookupValues.JobTypes == nil {
 			break
@@ -1088,12 +1095,10 @@ enum ShiftTimeFilter {
 ## a user can filter the results. If you want to add
 ## more ways to filter, this is the place.
 input EventFilterInput {
-  regions: [Int!]
+  cities: [String!]
   eventType: EventType
   jobs: [Int!]
-  shiftStartDateTime: String
-  shiftEndDateTime: String
-  ianaZone: String
+  timeFrame: ShiftTimeFilter
 }
 
 input NewFeedbackInput {
@@ -1130,6 +1135,7 @@ type LookupValues{
   regions: [Region!]!
   serviceTypes: [ServiceType!]!
   jobTypes: [JobType!]!
+  cities: [String!]!
 }
 
 type VolunteerProfile {
@@ -2399,6 +2405,35 @@ func (ec *executionContext) fieldContext_LookupValues_jobTypes(_ context.Context
 	return fc, nil
 }
 
+func (ec *executionContext) _LookupValues_cities(ctx context.Context, field graphql.CollectedField, obj *LookupValues) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_LookupValues_cities,
+		func(ctx context.Context) (any, error) {
+			return obj.Cities, nil
+		},
+		nil,
+		ec.marshalNString2ᚕstringᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_LookupValues_cities(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LookupValues",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_updateOwnProfile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2759,6 +2794,8 @@ func (ec *executionContext) fieldContext_Query_lookupValues(_ context.Context, f
 				return ec.fieldContext_LookupValues_serviceTypes(ctx, field)
 			case "jobTypes":
 				return ec.fieldContext_LookupValues_jobTypes(ctx, field)
+			case "cities":
+				return ec.fieldContext_LookupValues_cities(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type LookupValues", field.Name)
 		},
@@ -6407,20 +6444,20 @@ func (ec *executionContext) unmarshalInputEventFilterInput(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"regions", "eventType", "jobs", "shiftStartDateTime", "shiftEndDateTime", "ianaZone"}
+	fieldsInOrder := [...]string{"cities", "eventType", "jobs", "timeFrame"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "regions":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("regions"))
-			data, err := ec.unmarshalOInt2ᚕintᚄ(ctx, v)
+		case "cities":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cities"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.Regions = data
+			it.Cities = data
 		case "eventType":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("eventType"))
 			data, err := ec.unmarshalOEventType2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventType(ctx, v)
@@ -6435,27 +6472,13 @@ func (ec *executionContext) unmarshalInputEventFilterInput(ctx context.Context, 
 				return it, err
 			}
 			it.Jobs = data
-		case "shiftStartDateTime":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("shiftStartDateTime"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+		case "timeFrame":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("timeFrame"))
+			data, err := ec.unmarshalOShiftTimeFilter2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐShiftTimeFilter(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.ShiftStartDateTime = data
-		case "shiftEndDateTime":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("shiftEndDateTime"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ShiftEndDateTime = data
-		case "ianaZone":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ianaZone"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.IanaZone = data
+			it.TimeFrame = data
 		}
 	}
 
@@ -6926,6 +6949,11 @@ func (ec *executionContext) _LookupValues(ctx context.Context, sel ast.Selection
 			}
 		case "jobTypes":
 			out.Values[i] = ec._LookupValues_jobTypes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "cities":
+			out.Values[i] = ec._LookupValues_cities(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -8808,6 +8836,36 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
+func (ec *executionContext) unmarshalNString2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalNUpdateOwnProfileInput2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐUpdateOwnProfileInput(ctx context.Context, v any) (UpdateOwnProfileInput, error) {
 	res, err := ec.unmarshalInputUpdateOwnProfileInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -9403,6 +9461,22 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	_ = ctx
 	res := graphql.MarshalInt(*v)
 	return res
+}
+
+func (ec *executionContext) unmarshalOShiftTimeFilter2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐShiftTimeFilter(ctx context.Context, v any) (*ShiftTimeFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(ShiftTimeFilter)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOShiftTimeFilter2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐShiftTimeFilter(ctx context.Context, sel ast.SelectionSet, v *ShiftTimeFilter) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
