@@ -38,6 +38,12 @@ const UPDATE_VOLUNTEER = `
   }
 `;
 
+const CREATE_VOLUNTEER = `
+  mutation CreateVolunteer($v: NewVolunteerInput!) {
+    createVolunteer(newVol: $v) { success message }
+  }
+`;
+
 const DELETE_VOLUNTEER = `
   mutation DeleteVolunteer($volunteerId: ID!) {
     deleteVolunteer(volunteerId: $volunteerId) { success message }
@@ -155,6 +161,10 @@ export default function AdminVolunteersPage() {
   /* Search filter */
   const [search, setSearch] = useState("");
 
+  /* Create state */
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState(EMPTY_FORM);
+
   /* Edit state */
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm]   = useState(EMPTY_FORM);
@@ -213,6 +223,27 @@ export default function AdminVolunteersPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  /* ----- Create ----- */
+  const handleCreate = async () => {
+    if (!createForm.firstName.trim() || !createForm.lastName.trim() || !createForm.email.trim()) {
+      showMsg("error", "First name, last name, and email are required.");
+      return;
+    }
+    await mutate(
+      CREATE_VOLUNTEER,
+      { v: {
+        firstName: createForm.firstName.trim(),
+        lastName:  createForm.lastName.trim(),
+        email:     createForm.email.trim(),
+        phone:     createForm.phone.trim() || null,
+        zipCode:   createForm.zipCode.trim() || null,
+        role:      createForm.role,
+      }},
+      "Volunteer created.",
+      () => { setShowCreate(false); setCreateForm(EMPTY_FORM); },
+    );
   };
 
   /* ----- Edit ----- */
@@ -318,7 +349,29 @@ export default function AdminVolunteersPage() {
       <div className={styles.content}>
         <div className={styles.pageHeader}>
           <h1 className={styles.pageTitle}>Manage Volunteers</h1>
+          <button
+            className={styles.btnPrimary}
+            onClick={() => { setShowCreate((v) => !v); setEditingId(null); setActionMsg(null); }}
+          >
+            {showCreate ? "Cancel" : "+ New Volunteer"}
+          </button>
         </div>
+
+        {/* Create form */}
+        {showCreate && (
+          <div className={styles.createPanel}>
+            <h2 className={styles.createPanelTitle}>New Volunteer</h2>
+            <VolunteerFormFields form={createForm} setForm={setCreateForm} />
+            <div className={styles.formActions}>
+              <button className={styles.btnPrimary} onClick={handleCreate} disabled={busy}>
+                Create Volunteer
+              </button>
+              <button className={styles.btnSecondary} onClick={() => { setShowCreate(false); setCreateForm(EMPTY_FORM); }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Banners */}
         {actionMsg?.type === "success" && <div className={styles.successBanner}>{actionMsg.text}</div>}
