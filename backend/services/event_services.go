@@ -132,20 +132,22 @@ func (s *EventService) FetchFilteredEvents(ctx context.Context, filter *models.E
 		return []*models.Event{}, nil
 	}
 
-	// Skip pass two if there is no filter.
+	// Skip pass two if there is no filter, or if there is no filter for jobs.
 	if filter != nil {
-		// Now, for each of the selected events, determine which
-		// have shifts that also meet the criteria. Pass 2 just
-		// wants the list of ids.
-		eventsWithShifts, err := fetchFilteredPassTwo(ctx, filter, orderedIDs, s.DB)
-		if err != nil {
-			return nil, fmt.Errorf("error querying events: %w", err)
-		}
+		if filter.Jobs != nil {
+			// Now, for each of the selected events, determine which
+			// have shifts that also meet the criteria. Pass 2 just
+			// wants the list of ids.
+			eventsWithShifts, err := fetchFilteredPassTwo(ctx, filter, orderedIDs, s.DB)
+			if err != nil {
+				return nil, fmt.Errorf("error querying events: %w", err)
+			}
 
-		// Get rid of events that had no shifts in pass 2.
-		for id := range eventsMap {
-			if !eventsWithShifts[id] {
-				delete(eventsMap, id)
+			// Get rid of events that had no shifts in pass 2.
+			for id := range eventsMap {
+				if !eventsWithShifts[id] {
+					delete(eventsMap, id)
+				}
 			}
 		}
 	}
@@ -617,8 +619,8 @@ func (s *EventService) DeleteEvent(ctx context.Context, eventId string) (*models
 		// either 0 or 1 venues, the eventName and venueZone s/b
 		// the same in every row. I don't bother to check for that.
 
-		var shiftId int
-		var shiftStart, shiftEnd string
+		var shiftId sql.NullInt32
+		var shiftStart, shiftEnd sql.NullString
 		var volId sql.NullInt32
 		var volEmail, volFirst, volLast sql.NullString
 		var leadId sql.NullInt32
@@ -647,21 +649,27 @@ func (s *EventService) DeleteEvent(ctx context.Context, eventId string) (*models
 			}, err
 		}
 
-		_, shiftExists := shiftMap[shiftId]
+		// If shiftId is NULL the event has no shifts yet — nothing to email.
+		if !shiftId.Valid {
+			continue
+		}
+		shiftIdInt := int(shiftId.Int32)
+
+		_, shiftExists := shiftMap[shiftIdInt]
 		if !shiftExists {
 			var ss, se *string
 			var shift ShiftSummary
 
 			// Convert the dates and times once and save them.
 			if venueZone.Valid {
-				ss, err = UTCToTimeZone(shiftStart, venueZone.String)
+				ss, err = UTCToTimeZone(shiftStart.String, venueZone.String)
 				if err == nil {
-					se, err = UTCToTimeZone(shiftEnd, venueZone.String)
+					se, err = UTCToTimeZone(shiftEnd.String, venueZone.String)
 				}
 			} else {
-				ss, err = UTCToDateTime(shiftStart)
+				ss, err = UTCToDateTime(shiftStart.String)
 				if err == nil {
-					se, err = UTCToDateTime(shiftEnd)
+					se, err = UTCToDateTime(shiftEnd.String)
 				}
 			}
 			if err != nil {
@@ -674,19 +682,19 @@ func (s *EventService) DeleteEvent(ctx context.Context, eventId string) (*models
 			shift.Start = *ss
 			shift.End = *se
 
-			shiftMap[shiftId] = &shift
+			shiftMap[shiftIdInt] = &shift
 		}
 		if volId.Valid {
 			volInt := int(volId.Int32)
 			_, volExists := volMap[volInt]
 			if volExists {
 				// Is this a new shift for this vol?
-				_, shiftExists := volMap[volInt].shiftsMap[shiftId]
+				_, shiftExists := volMap[volInt].shiftsMap[shiftIdInt]
 				if shiftExists {
 					// Due to multiple-multiple joins, and possible
 					// situations, don't worry about this.
 				} else {
-					volMap[volInt].shiftsMap[shiftId] = true
+					volMap[volInt].shiftsMap[shiftIdInt] = true
 				}
 			} else {
 				// Haven't seen this volunteer yet. Since volId is
@@ -699,7 +707,7 @@ func (s *EventService) DeleteEvent(ctx context.Context, eventId string) (*models
 				vol.email = volEmail.String
 				vol.firstName = volFirst.String
 				vol.lastName = volLast.String
-				vol.shiftsMap[shiftId] = true
+				vol.shiftsMap[shiftIdInt] = true
 				volMap[volInt] = &vol
 			}
 		}
@@ -707,11 +715,11 @@ func (s *EventService) DeleteEvent(ctx context.Context, eventId string) (*models
 			leadInt := int(leadId.Int32)
 			_, leadExists := leadMap[leadInt]
 			if leadExists {
-				_, shiftExists := leadMap[leadInt].shiftsMap[shiftId]
+				_, shiftExists := leadMap[leadInt].shiftsMap[shiftIdInt]
 				if shiftExists {
 					// Do nothing
 				} else {
-					leadMap[leadInt].shiftsMap[shiftId] = true
+					leadMap[leadInt].shiftsMap[shiftIdInt] = true
 				}
 			} else {
 				// Haven't processed this staff lead.
@@ -721,7 +729,7 @@ func (s *EventService) DeleteEvent(ctx context.Context, eventId string) (*models
 				lead.email = leadEmail.String
 				lead.firstName = leadFirst.String
 				lead.lastName = leadLast.String
-				lead.shiftsMap[shiftId] = true
+				lead.shiftsMap[shiftIdInt] = true
 				leadMap[leadInt] = &lead
 			}
 		}

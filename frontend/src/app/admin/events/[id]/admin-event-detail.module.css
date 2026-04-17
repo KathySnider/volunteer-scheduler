@@ -74,6 +74,19 @@
   font-size: 0.9rem;
 }
 
+/* ----- Incomplete event warning ----- */
+
+.incompleteBanner {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: var(--radius-md);
+  color: #92400e;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 /* ----- Sections ----- */
 
 .section {

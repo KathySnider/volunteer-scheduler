@@ -805,6 +805,18 @@ export default function AdminEventDetailPage() {
         )}
         {pageError && <div className={styles.errorBanner}>{pageError}</div>}
 
+        {/* Incomplete event warning — shown until at least one shift exists */}
+        {opps.length === 0 && !loading && (
+          <div className={styles.incompleteBanner}>
+            ⚠ This event has no volunteer opportunities yet. It will not be visible to volunteers until at least one opportunity and shift are added below.
+          </div>
+        )}
+        {opps.length > 0 && opps.every((o) => o.shifts.length === 0) && !loading && (
+          <div className={styles.incompleteBanner}>
+            ⚠ This event has opportunities but no shifts. Add at least one shift to each opportunity so volunteers can sign up.
+          </div>
+        )}
+
         {/* ---- Event details section ---- */}
         <div className={styles.section}>
           <div className={styles.sectionHeader}>

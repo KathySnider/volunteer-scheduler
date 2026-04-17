@@ -6,14 +6,54 @@
  *  - Happy path: admin creates an opportunity (job+shifts) on the event
  *  - Error: submit with missing required fields shows validation errors
  *  - Non-admin (volunteer) cannot reach admin pages — redirect to /events
+ *  - Manage Events listing page filters (cities, timeframe, format, reset, "No shifts" badge)
  */
 
 import { test, expect } from "./helpers/fixtures";
 import {
   createVenue,
   createJobType,
+  createEventWithShift,
   uniqueName,
 } from "./helpers/api";
+
+const ADMIN_URL =
+  process.env.NEXT_PUBLIC_GRAPHQL_ADMIN_URL ||
+  "http://localhost:8080/graphql/admin";
+
+/** Create a bare event (no opportunities / shifts) and return its name. */
+async function createEventOnly(
+  adminToken: string,
+  eventName: string,
+  venueId: string
+): Promise<void> {
+  await fetch(ADMIN_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${adminToken}`,
+    },
+    body: JSON.stringify({
+      query: `mutation CreateEvent($e: NewEventInput!) { createEvent(newEvent: $e) { success message } }`,
+      variables: {
+        e: {
+          name: eventName,
+          description: "Test event — no shifts",
+          eventType: "IN_PERSON",
+          venueId,
+          serviceTypes: [],
+          eventDates: [
+            {
+              startDateTime: "2027-11-01 09:00:00",
+              endDateTime:   "2027-11-01 13:00:00",
+              ianaZone: "America/New_York",
+            },
+          ],
+        },
+      },
+    }),
+  });
+}
 
 test.describe("Admin event creation — happy path", () => {
   test("admin can navigate to the new event form", async ({ adminPage }) => {
@@ -155,5 +195,279 @@ test.describe("Admin event creation — access control", () => {
     await page.goto("/admin/events");
     await page.waitForURL("**/login", { timeout: 5_000 });
     expect(page.url()).toContain("/login");
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  Manage Events listing — filter bar                                  */
+/* ------------------------------------------------------------------ */
+
+test.describe("Manage Events listing — defaults and event count", () => {
+  test("page defaults to ALL timeframe", async ({ adminPage }) => {
+    await adminPage.goto("/admin/events");
+    await expect(
+      adminPage.getByRole("heading", { name: /manage events/i })
+    ).toBeVisible({ timeout: 8_000 });
+    await expect(adminPage.locator("#adminTimeFrameFilter")).toHaveValue("ALL");
+  });
+
+  test("event count appears in the heading after load", async ({ adminPage }) => {
+    await adminPage.goto("/admin/events");
+    await expect(
+      adminPage.locator("h1").filter({ hasText: /\(\d+\)/ })
+    ).toBeVisible({ timeout: 8_000 });
+  });
+});
+
+test.describe("Manage Events listing — city filter", () => {
+  let filterCity: string;
+  let upcomingEventName: string;
+  let pastEventName: string;
+
+  test.beforeAll(async ({ adminToken }) => {
+    filterCity        = uniqueName("AdminFilterCity");
+    upcomingEventName = uniqueName("AdminUpcomingEvent");
+    pastEventName     = uniqueName("AdminPastEvent");
+
+    const jobTypeId = await createJobType(
+      adminToken,
+      uniqueName("afl"),
+      uniqueName("Admin Filter Role"),
+    );
+    const venueId = await createVenue(adminToken, {
+      name: uniqueName("AdminFilterVenue"),
+      city: filterCity,
+      state: "WA",
+    });
+
+    await createEventWithShift(adminToken, {
+      eventName: upcomingEventName,
+      venueId,
+      jobTypeId,
+      startDateTime: "2027-08-05 09:00:00",
+      endDateTime:   "2027-08-05 13:00:00",
+    });
+
+    await createEventWithShift(adminToken, {
+      eventName: pastEventName,
+      venueId,
+      jobTypeId,
+      startDateTime: "2020-04-10 09:00:00",
+      endDateTime:   "2020-04-10 13:00:00",
+    });
+  });
+
+  test("selecting a city shows only that city's events", async ({ adminPage }) => {
+    await adminPage.goto("/admin/events");
+    await expect(
+      adminPage.getByRole("heading", { name: /manage events/i })
+    ).toBeVisible({ timeout: 8_000 });
+
+    // Default is ALL — both events should appear after selecting the city.
+    await adminPage.getByRole("button", { name: "All Cities" }).click();
+    await adminPage.getByLabel(filterCity).check();
+
+    await expect(adminPage.getByText(upcomingEventName)).toBeVisible({ timeout: 5_000 });
+    await expect(adminPage.getByText(pastEventName)).toBeVisible({ timeout: 5_000 });
+  });
+
+  test("Reset filters button appears when a city is selected", async ({ adminPage }) => {
+    await adminPage.goto("/admin/events");
+    await expect(
+      adminPage.getByRole("heading", { name: /manage events/i })
+    ).toBeVisible({ timeout: 8_000 });
+
+    // Should not be visible before any filter is active.
+    await expect(adminPage.getByRole("button", { name: "Reset filters" })).not.toBeVisible();
+
+    await adminPage.getByRole("button", { name: "All Cities" }).click();
+    await adminPage.getByLabel(filterCity).check();
+
+    await expect(adminPage.getByRole("button", { name: "Reset filters" })).toBeVisible();
+  });
+
+  test("Reset filters clears city selection and restores all events", async ({ adminPage }) => {
+    await adminPage.goto("/admin/events");
+    await expect(
+      adminPage.getByRole("heading", { name: /manage events/i })
+    ).toBeVisible({ timeout: 8_000 });
+
+    await adminPage.getByRole("button", { name: "All Cities" }).click();
+    await adminPage.getByLabel(filterCity).check();
+    // Close the panel before clicking reset (avoids panel obscuring button).
+    await adminPage.keyboard.press("Escape");
+
+    await adminPage.getByRole("button", { name: "Reset filters" }).click();
+
+    // Reset button should disappear.
+    await expect(adminPage.getByRole("button", { name: "Reset filters" })).not.toBeVisible();
+    // Both events still visible (now unfiltered).
+    await expect(adminPage.getByText(upcomingEventName)).toBeVisible({ timeout: 5_000 });
+    await expect(adminPage.getByText(pastEventName)).toBeVisible({ timeout: 5_000 });
+  });
+});
+
+test.describe("Manage Events listing — timeframe filter", () => {
+  let tfCity: string;
+  let tfUpcomingName: string;
+  let tfPastName: string;
+
+  test.beforeAll(async ({ adminToken }) => {
+    tfCity         = uniqueName("AdminTFCity");
+    tfUpcomingName = uniqueName("AdminTFUpcoming");
+    tfPastName     = uniqueName("AdminTFPast");
+
+    const jobTypeId = await createJobType(
+      adminToken,
+      uniqueName("atf"),
+      uniqueName("Admin TF Role"),
+    );
+    const venueId = await createVenue(adminToken, {
+      name: uniqueName("AdminTFVenue"),
+      city: tfCity,
+      state: "OR",
+    });
+
+    await createEventWithShift(adminToken, {
+      eventName: tfUpcomingName,
+      venueId,
+      jobTypeId,
+      startDateTime: "2027-09-01 09:00:00",
+      endDateTime:   "2027-09-01 13:00:00",
+    });
+
+    await createEventWithShift(adminToken, {
+      eventName: tfPastName,
+      venueId,
+      jobTypeId,
+      startDateTime: "2020-05-15 09:00:00",
+      endDateTime:   "2020-05-15 13:00:00",
+    });
+  });
+
+  test("UPCOMING hides past events", async ({ adminPage }) => {
+    await adminPage.goto("/admin/events");
+    await expect(
+      adminPage.getByRole("heading", { name: /manage events/i })
+    ).toBeVisible({ timeout: 8_000 });
+
+    await adminPage.getByRole("button", { name: "All Cities" }).click();
+    await adminPage.getByLabel(tfCity).check();
+    await adminPage.locator("#adminTimeFrameFilter").selectOption("UPCOMING");
+
+    await expect(adminPage.getByText(tfUpcomingName)).toBeVisible({ timeout: 5_000 });
+    await expect(adminPage.getByText(tfPastName)).not.toBeVisible();
+  });
+
+  test("PAST shows past events and hides upcoming", async ({ adminPage }) => {
+    await adminPage.goto("/admin/events");
+    await expect(
+      adminPage.getByRole("heading", { name: /manage events/i })
+    ).toBeVisible({ timeout: 8_000 });
+
+    await adminPage.getByRole("button", { name: "All Cities" }).click();
+    await adminPage.getByLabel(tfCity).check();
+    await adminPage.locator("#adminTimeFrameFilter").selectOption("PAST");
+
+    await expect(adminPage.getByText(tfPastName)).toBeVisible({ timeout: 5_000 });
+    await expect(adminPage.getByText(tfUpcomingName)).not.toBeVisible();
+  });
+
+  test("ALL shows both past and upcoming events", async ({ adminPage }) => {
+    await adminPage.goto("/admin/events");
+    await expect(
+      adminPage.getByRole("heading", { name: /manage events/i })
+    ).toBeVisible({ timeout: 8_000 });
+
+    await adminPage.getByRole("button", { name: "All Cities" }).click();
+    await adminPage.getByLabel(tfCity).check();
+    // ALL is the default — explicitly select it to be explicit.
+    await adminPage.locator("#adminTimeFrameFilter").selectOption("ALL");
+
+    await expect(adminPage.getByText(tfUpcomingName)).toBeVisible({ timeout: 5_000 });
+    await expect(adminPage.getByText(tfPastName)).toBeVisible({ timeout: 5_000 });
+  });
+});
+
+test.describe("Manage Events listing — format filter", () => {
+  let fmtCity: string;
+  let inPersonName: string;
+
+  test.beforeAll(async ({ adminToken }) => {
+    fmtCity      = uniqueName("AdminFmtCity");
+    inPersonName = uniqueName("AdminInPersonEvent");
+
+    const jobTypeId = await createJobType(
+      adminToken,
+      uniqueName("afmt"),
+      uniqueName("Admin Fmt Role"),
+    );
+    const venueId = await createVenue(adminToken, {
+      name: uniqueName("AdminFmtVenue"),
+      city: fmtCity,
+      state: "CA",
+    });
+
+    await createEventWithShift(adminToken, {
+      eventName: inPersonName,
+      venueId,
+      jobTypeId,
+      startDateTime: "2027-10-01 09:00:00",
+      endDateTime:   "2027-10-01 13:00:00",
+    });
+  });
+
+  test("IN_PERSON format filter shows in-person events", async ({ adminPage }) => {
+    await adminPage.goto("/admin/events");
+    await expect(
+      adminPage.getByRole("heading", { name: /manage events/i })
+    ).toBeVisible({ timeout: 8_000 });
+
+    await adminPage.getByRole("button", { name: "All Cities" }).click();
+    await adminPage.getByLabel(fmtCity).check();
+    await adminPage.locator("#adminFormatFilter").selectOption("IN_PERSON");
+
+    await expect(adminPage.getByText(inPersonName)).toBeVisible({ timeout: 5_000 });
+  });
+
+  test("VIRTUAL format filter hides in-person events", async ({ adminPage }) => {
+    await adminPage.goto("/admin/events");
+    await expect(
+      adminPage.getByRole("heading", { name: /manage events/i })
+    ).toBeVisible({ timeout: 8_000 });
+
+    await adminPage.getByRole("button", { name: "All Cities" }).click();
+    await adminPage.getByLabel(fmtCity).check();
+    await adminPage.locator("#adminFormatFilter").selectOption("VIRTUAL");
+
+    await expect(adminPage.getByText(inPersonName)).not.toBeVisible();
+  });
+});
+
+test.describe("Manage Events listing — 'No shifts' badge", () => {
+  let noShiftsName: string;
+
+  test.beforeAll(async ({ adminToken }) => {
+    noShiftsName = uniqueName("AdminNoShiftsEvent");
+    const venueId = await createVenue(adminToken, {
+      name: uniqueName("AdminNoShiftsVenue"),
+      city: uniqueName("AdminNoShiftsCity"),
+      state: "TX",
+    });
+    await createEventOnly(adminToken, noShiftsName, venueId);
+  });
+
+  test("event with no shifts shows 'No shifts' badge in the Volunteers column", async ({
+    adminPage,
+  }) => {
+    await adminPage.goto("/admin/events");
+    await expect(
+      adminPage.getByRole("heading", { name: /manage events/i })
+    ).toBeVisible({ timeout: 8_000 });
+
+    // Find the row for our event and check for the badge.
+    const row = adminPage.locator("tr").filter({ hasText: noShiftsName });
+    await expect(row).toBeVisible({ timeout: 5_000 });
+    await expect(row.getByText("No shifts")).toBeVisible();
   });
 });

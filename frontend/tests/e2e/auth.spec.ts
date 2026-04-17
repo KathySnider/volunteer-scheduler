@@ -153,18 +153,20 @@ test.describe("Logout", () => {
       volunteerPage.getByRole("heading", { name: /volunteer events/i })
     ).toBeVisible({ timeout: 8_000 });
 
-    // Open the UserMenu and click Sign Out.
-    await volunteerPage.getByRole("button", { name: /menu|account|settings/i }).first().click();
+    // Sign Out is always visible in the UserMenu (no menu to open for volunteers).
     await volunteerPage.getByRole("button", { name: /sign out/i }).click();
 
     // Should land on /login.
     await volunteerPage.waitForURL("**/login", { timeout: 5_000 });
     expect(volunteerPage.url()).toContain("/login");
 
-    // localStorage is cleared — navigating to /events should redirect back to /login.
-    await volunteerPage.goto("/events");
-    await volunteerPage.waitForURL("**/login", { timeout: 5_000 });
-    expect(volunteerPage.url()).toContain("/login");
+    // localStorage should be cleared by signOut().
+    // Note: we can't re-navigate to /events here to test the redirect because
+    // the volunteerPage fixture uses addInitScript which re-seeds localStorage
+    // on every navigation. The redirect-when-unauthenticated behaviour is
+    // covered by the "unauthenticated user visiting /events" test in this file.
+    const token = await volunteerPage.evaluate(() => localStorage.getItem("authToken"));
+    expect(token).toBeNull();
   });
 });
 
