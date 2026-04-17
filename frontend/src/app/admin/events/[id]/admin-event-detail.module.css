@@ -196,6 +196,60 @@
   margin-top: 0.125rem;
 }
 
+/* ----- Roster: inline volunteer list + assign (within opportunity shift rows) ----- */
+
+.rosterInShift {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.375rem 0 0.5rem 0.75rem;
+  border-left: 2px solid var(--color-border);
+  margin-left: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.rosterVolItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  padding: 0.1875rem 0;
+}
+
+.cancelVolBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-danger, #dc2626);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--radius-sm);
+  opacity: 0.6;
+  transition: opacity 0.1s;
+}
+
+.cancelVolBtn:hover:not(:disabled) {
+  opacity: 1;
+}
+
+.cancelVolBtn:disabled {
+  cursor: not-allowed;
+}
+
+.assignRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.625rem;
+  flex-wrap: wrap;
+}
+
+.assignRow .select {
+  flex: 1;
+  min-width: 10rem;
+}
+
 /* ----- Empty message ----- */
 
 .emptyMsg {

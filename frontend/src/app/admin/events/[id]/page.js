@@ -64,6 +64,8 @@ const DELETE_OPP        = `mutation DeleteOpp($oppId: ID!) { deleteOpportunity(o
 const CREATE_SHIFT      = `mutation CreateShift($newShift: AddShiftInput!) { createShift(newShift: $newShift) { success message id } }`;
 const UPDATE_SHIFT      = `mutation UpdateShift($shift: UpdateShiftInput!) { updateShift(shift: $shift) { success message } }`;
 const DELETE_SHIFT      = `mutation DeleteShift($shiftId: ID!) { deleteShift(shiftId: $shiftId) { success message } }`;
+const ASSIGN_VOLUNTEER  = `mutation AssignVol($shiftId: ID!, $volunteerId: ID!) { assignVolunteerToShift(shiftId: $shiftId, volunteerId: $volunteerId) { success message } }`;
+const CANCEL_SHIFT_VOL  = `mutation CancelShift($shiftId: ID!, $volunteerId: ID!) { cancelShift(shiftId: $shiftId, volunteerId: $volunteerId) { success message } }`;
 
 /* =========================================================
    Helpers
@@ -396,6 +398,9 @@ export default function AdminEventDetailPage() {
   /* --- Volunteer roster (shiftId → [{id, firstName, lastName}]) --- */
   const [rosterMap, setRosterMap]         = useState(null); // null = not yet loaded
   const [rosterLoading, setRosterLoading] = useState(false);
+  const [allVolunteers, setAllVolunteers] = useState([]);   // for assign dropdown
+  const [assigningShiftId, setAssigningShiftId] = useState(null);
+  const [assignVolId, setAssignVolId]           = useState("");
 
   /* ---- Roster load ---- */
   // Takes a Set of shift ID strings so we can filter by known shift IDs
@@ -406,6 +411,7 @@ export default function AdminEventDetailPage() {
     bound(ALL_VOLUNTEERS_FOR_ROSTER, null)
       .then(async (res) => {
         const vols = res.data?.allVolunteers ?? [];
+        setAllVolunteers(vols);
         // Fetch shifts for every volunteer in parallel, then build shiftId → vol[] map.
         const entries = await Promise.all(
           vols.map((v) =>
@@ -718,6 +724,26 @@ export default function AdminEventDetailPage() {
   const handleDeleteShift = async (shift) => {
     if (!window.confirm("Delete this shift?")) return;
     await mutate(DELETE_SHIFT, { shiftId: shift.id }, "Shift deleted.");
+  };
+
+  /* --- Roster: assign / cancel --- */
+  const handleAssignVolunteer = async (shiftId) => {
+    if (!assignVolId) return;
+    await mutate(
+      ASSIGN_VOLUNTEER,
+      { shiftId, volunteerId: assignVolId },
+      "Volunteer assigned.",
+      () => { setAssigningShiftId(null); setAssignVolId(""); },
+    );
+  };
+
+  const handleCancelShiftVol = async (shiftId, volunteerId, volunteerName) => {
+    if (!window.confirm(`Remove ${volunteerName} from this shift?`)) return;
+    await mutate(
+      CANCEL_SHIFT_VOL,
+      { shiftId, volunteerId },
+      "Volunteer removed from shift.",
+    );
   };
 
   const handleSignOut = async () => { await signOut(token); router.replace("/login"); };
@@ -1149,6 +1175,12 @@ export default function AdminEventDetailPage() {
 
                   {opp.shifts.map((shift) => {
                     const isEditingThisShift = editingShiftId === shift.id;
+                    const signups    = rosterMap?.[shift.id] ?? [];
+                    const assignedIds = new Set(signups.map((v) => String(v.id)));
+                    const available  = allVolunteers.filter((v) => !assignedIds.has(String(v.id)));
+                    const isAssigning = assigningShiftId === shift.id;
+                    const spotsLeft  = shift.maxVolunteers == null || signups.length < shift.maxVolunteers;
+
                     return (
                       <div key={shift.id}>
                         <div className={styles.shiftRow}>
@@ -1158,7 +1190,11 @@ export default function AdminEventDetailPage() {
                             </div>
                             <div className={styles.shiftSub}>
                               to {formatDisplay(shift.endDateTime, tz)}
-                              {shift.maxVolunteers != null && ` · Max ${shift.maxVolunteers}`}
+                              {shift.maxVolunteers != null && (
+                                rosterMap !== null
+                                  ? ` · ${signups.length}/${shift.maxVolunteers} volunteers`
+                                  : ` · Max ${shift.maxVolunteers}`
+                              )}
                               {shift.staffContactId && staffMap[shift.staffContactId] && ` · ${staffMap[shift.staffContactId]}`}
                             </div>
                           </div>
@@ -1186,6 +1222,71 @@ export default function AdminEventDetailPage() {
                               <button className={styles.btnPrimary} onClick={handleSaveEditShift} disabled={busy}>Save</button>
                               <button className={styles.btnSecondary} onClick={() => setEditingShiftId(null)}>Cancel</button>
                             </div>
+                          </div>
+                        )}
+
+                        {/* Inline roster */}
+                        {rosterLoading && rosterMap === null && (
+                          <div className={styles.rosterInShift}>
+                            <span className={styles.emptyMsg}>Loading roster…</span>
+                          </div>
+                        )}
+                        {rosterMap !== null && (
+                          <div className={styles.rosterInShift}>
+                            {signups.length === 0 ? (
+                              <span className={styles.emptyMsg}>No volunteers assigned</span>
+                            ) : (
+                              signups.map((v) => (
+                                <div key={v.id} className={styles.rosterVolItem}>
+                                  <span>{v.firstName} {v.lastName}</span>
+                                  <button
+                                    className={styles.cancelVolBtn}
+                                    title="Remove from shift"
+                                    onClick={() => handleCancelShiftVol(shift.id, v.id, `${v.firstName} ${v.lastName}`)}
+                                    disabled={busy}
+                                  >✕</button>
+                                </div>
+                              ))
+                            )}
+                            {spotsLeft && (
+                              !isAssigning ? (
+                                <button
+                                  className={styles.btnOutline}
+                                  style={{ fontSize: "0.8rem", marginTop: "0.375rem" }}
+                                  onClick={() => { setAssigningShiftId(shift.id); setAssignVolId(""); }}
+                                >
+                                  + Assign Volunteer
+                                </button>
+                              ) : (
+                                <div className={styles.assignRow}>
+                                  <select
+                                    className={styles.select}
+                                    value={assignVolId}
+                                    onChange={(e) => setAssignVolId(e.target.value)}
+                                  >
+                                    <option value="">— select volunteer —</option>
+                                    {available.map((v) => (
+                                      <option key={v.id} value={v.id}>
+                                        {v.firstName} {v.lastName}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <button
+                                    className={styles.btnPrimary}
+                                    onClick={() => handleAssignVolunteer(shift.id)}
+                                    disabled={busy || !assignVolId}
+                                  >
+                                    Assign
+                                  </button>
+                                  <button
+                                    className={styles.btnSecondary}
+                                    onClick={() => { setAssigningShiftId(null); setAssignVolId(""); }}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              )
+                            )}
                           </div>
                         )}
                       </div>
@@ -1217,67 +1318,6 @@ export default function AdminEventDetailPage() {
           })}
         </div>
 
-        {/* ---- Volunteer Roster section ---- */}
-        <div className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <div className={styles.sectionTitle}>Volunteer Roster</div>
-          </div>
-
-          {rosterLoading && (
-            <div className={styles.shiftList}>
-              <em className={styles.emptyMsg}>Loading roster…</em>
-            </div>
-          )}
-
-          {!rosterLoading && rosterMap !== null && opps.length === 0 && (
-            <div className={styles.shiftList}>
-              <em className={styles.emptyMsg}>No opportunities or shifts for this event.</em>
-            </div>
-          )}
-
-          {!rosterLoading && rosterMap !== null && opps.map((opp) => {
-            const jobName = jobMap[String(opp.jobId)] ?? `Job #${opp.jobId}`;
-            return (
-              <div key={opp.id} className={styles.oppCard}>
-                <div className={styles.oppHeader}>
-                  <div>
-                    <div className={styles.oppTitle}>{jobName}</div>
-                    <div className={styles.oppMeta}>
-                      {opp.isVirtual ? "Virtual" : "In Person"}
-                    </div>
-                  </div>
-                </div>
-                <div className={styles.shiftList}>
-                  {opp.shifts.length === 0 && (
-                    <div className={styles.emptyMsg}>No shifts.</div>
-                  )}
-                  {opp.shifts.map((shift) => {
-                    const signups = rosterMap[shift.id] ?? [];
-                    return (
-                      <div key={shift.id} className={styles.shiftRow}>
-                        <div style={{ flex: 1 }}>
-                          <div className={styles.shiftInfo}>
-                            {formatDisplay(shift.startDateTime, tz)}
-                            <span style={{ fontWeight: 400, color: "var(--color-text-muted)" }}>
-                              {" "}— {formatDisplay(shift.endDateTime, tz)}
-                            </span>
-                          </div>
-                          {signups.length === 0 ? (
-                            <div className={styles.shiftSub}>No volunteers signed up</div>
-                          ) : (
-                            <div className={styles.shiftSub}>
-                              {signups.map((v) => `${v.firstName} ${v.lastName}`).join(", ")}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
 
       </div>
     </div>

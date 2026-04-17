@@ -255,6 +255,23 @@
   background: var(--color-success-light);
 }
 
+/* ----- Create volunteer panel ----- */
+
+.createPanel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.createPanelTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 1.25rem;
+}
+
 /* ----- Inline edit form (inside vol card) ----- */
 
 .editForm {

@@ -99,6 +99,75 @@ test.describe("Magic-link login — admin routing", () => {
   });
 });
 
+test.describe("Logout", () => {
+  const AUTH_URL =
+    process.env.NEXT_PUBLIC_GRAPHQL_AUTH_URL || "http://localhost:8080/graphql/auth";
+  const VOLUNTEER_URL =
+    process.env.NEXT_PUBLIC_GRAPHQL_VOLUNTEER_URL || "http://localhost:8080/graphql/volunteer";
+
+  test("logout mutation invalidates the server session token", async ({
+    volunteerToken,
+  }) => {
+    // Verify the token works before logout.
+    const beforeRes = await fetch(VOLUNTEER_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${volunteerToken}`,
+      },
+      body: JSON.stringify({ query: "query { lookupValues { cities } }" }),
+    });
+    expect(beforeRes.status).toBe(200);
+
+    // Call the logout mutation.
+    const logoutRes = await fetch(AUTH_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: `mutation Logout($token: String!) { logout(token: $token) { success } }`,
+        variables: { token: volunteerToken },
+      }),
+    });
+    const logoutJson = (await logoutRes.json()) as {
+      data?: { logout?: { success: boolean } };
+    };
+    expect(logoutJson.data?.logout?.success).toBe(true);
+
+    // The same token should now be rejected by the authenticated endpoint.
+    const afterRes = await fetch(VOLUNTEER_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${volunteerToken}`,
+      },
+      body: JSON.stringify({ query: "query { lookupValues { cities } }" }),
+    });
+    expect(afterRes.status).toBe(401);
+  });
+
+  test("sign-out via UI clears session and redirects to /login", async ({
+    volunteerPage,
+  }) => {
+    await volunteerPage.goto("/events");
+    await expect(
+      volunteerPage.getByRole("heading", { name: /volunteer events/i })
+    ).toBeVisible({ timeout: 8_000 });
+
+    // Open the UserMenu and click Sign Out.
+    await volunteerPage.getByRole("button", { name: /menu|account|settings/i }).first().click();
+    await volunteerPage.getByRole("button", { name: /sign out/i }).click();
+
+    // Should land on /login.
+    await volunteerPage.waitForURL("**/login", { timeout: 5_000 });
+    expect(volunteerPage.url()).toContain("/login");
+
+    // localStorage is cleared — navigating to /events should redirect back to /login.
+    await volunteerPage.goto("/events");
+    await volunteerPage.waitForURL("**/login", { timeout: 5_000 });
+    expect(volunteerPage.url()).toContain("/login");
+  });
+});
+
 test.describe("Magic-link login — error cases", () => {
   test("unknown email shows 'No account found' with request-account option", async ({
     page,
