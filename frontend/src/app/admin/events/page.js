@@ -478,7 +478,9 @@ export default function AdminEventsPage() {
                             {assigned}/{max}
                           </span>
                         ) : (
-                          <span className={styles.textMuted}>—</span>
+                          <span className={styles.badgeIncomplete} title="No shifts added yet">
+                            No shifts
+                          </span>
                         )}
                       </td>
                       <td className={styles.right}>
