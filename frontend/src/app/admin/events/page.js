@@ -6,7 +6,7 @@ import {
   getAuthToken,
   getAuthRole,
   getAuthName,
-  clearAuthToken,
+  signOut,
   adminGql,
 } from "../../lib/api";
 import UserMenu from "../../components/UserMenu";
@@ -76,6 +76,7 @@ const FORMAT_BADGE = {
 
 export default function AdminEventsPage() {
   const router = useRouter();
+  const [token, setToken] = useState(null);
   const [gql, setGql] = useState(null);
   const [userName, setUserName] = useState("");
 
@@ -102,6 +103,7 @@ export default function AdminEventsPage() {
     if (role !== "ADMINISTRATOR") { router.replace("/events"); return; }
 
     const bound = (q, v) => adminGql(q, v, t);
+    setToken(t);
     setGql(() => bound);
     setUserName(getAuthName() ?? "");
 
@@ -173,7 +175,7 @@ export default function AdminEventsPage() {
     }
   }, [gql]);
 
-  const handleSignOut = () => { clearAuthToken(); router.replace("/login"); };
+  const handleSignOut = async () => { await signOut(token); router.replace("/login"); };
 
   if (!gql) return null;
 

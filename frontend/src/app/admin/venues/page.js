@@ -6,7 +6,7 @@ import {
   getAuthToken,
   getAuthRole,
   getAuthName,
-  clearAuthToken,
+  signOut,
   adminGql,
 } from "../../lib/api";
 import UserMenu from "../../components/UserMenu";
@@ -147,6 +147,7 @@ function VenueFormFields({ form, setForm, regions }) {
 
 export default function AdminVenuesPage() {
   const router = useRouter();
+  const [token, setToken]       = useState(null);
   const [gql, setGql]           = useState(null);
   const [userName, setUserName] = useState("");
 
@@ -183,6 +184,7 @@ export default function AdminVenuesPage() {
     const role = getAuthRole();
     if (role !== "ADMINISTRATOR") { router.replace("/events"); return; }
     const bound = (q, v) => adminGql(q, v, t);
+    setToken(t);
     setGql(() => bound);
     setUserName(getAuthName() ?? "");
     loadData(bound);
@@ -299,7 +301,7 @@ export default function AdminVenuesPage() {
     );
   };
 
-  const handleSignOut = () => { clearAuthToken(); router.replace("/login"); };
+  const handleSignOut = async () => { await signOut(token); router.replace("/login"); };
 
   if (!gql) return null;
 

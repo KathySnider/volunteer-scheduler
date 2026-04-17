@@ -6,7 +6,7 @@ import {
   getAuthToken,
   getAuthRole,
   getAuthName,
-  clearAuthToken,
+  signOut,
   adminGql,
   volunteerGql,
 } from "../../lib/api";
@@ -97,6 +97,7 @@ const EMPTY_FORM = { code: "", name: "", sortOrder: "25" };
 
 export default function AdminJobTypesPage() {
   const router = useRouter();
+  const [token, setToken]             = useState(null);
   const [adminGqlFn, setAdminGqlFn]   = useState(null);
   const [volGqlFn, setVolGqlFn]       = useState(null);
   const [userName, setUserName]       = useState("");
@@ -136,6 +137,7 @@ export default function AdminJobTypesPage() {
     if (role !== "ADMINISTRATOR") { router.replace("/events"); return; }
     const adminFn = (q, v) => adminGql(q, v, t);
     const volFn   = (q, v) => volunteerGql(q, v, t);
+    setToken(t);
     setAdminGqlFn(() => adminFn);
     setVolGqlFn(() => volFn);
     setUserName(getAuthName() ?? "");
@@ -220,7 +222,7 @@ export default function AdminJobTypesPage() {
     await mutate(DELETE_JOB_TYPE, { jobId: jt.id }, "Job type deleted.");
   };
 
-  const handleSignOut = () => { clearAuthToken(); router.replace("/login"); };
+  const handleSignOut = async () => { await signOut(token); router.replace("/login"); };
 
   if (!adminGqlFn) return null;
 

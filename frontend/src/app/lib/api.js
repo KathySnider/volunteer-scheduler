@@ -83,3 +83,21 @@ export function clearAuthToken() {
   localStorage.removeItem("authRole");
   localStorage.removeItem("authName");
 }
+
+/**
+ * Sign the user out: invalidate the server session, then clear localStorage.
+ * The server call is best-effort — localStorage is always cleared regardless.
+ */
+export async function signOut(token) {
+  if (token) {
+    try {
+      await authGql(
+        `mutation Logout($token: String!) { logout(token: $token) { success } }`,
+        { token }
+      );
+    } catch {
+      // Non-fatal — clear locally even if the server call fails.
+    }
+  }
+  clearAuthToken();
+}

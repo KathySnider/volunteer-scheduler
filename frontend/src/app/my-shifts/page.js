@@ -6,7 +6,7 @@ import {
   getAuthToken,
   getAuthRole,
   getAuthName,
-  clearAuthToken,
+  signOut,
   volunteerGql,
 } from "../lib/api";
 import UserMenu from "../components/UserMenu";
@@ -94,6 +94,7 @@ function groupByEvent(shifts) {
 
 export default function MyShiftsPage() {
   const router    = useRouter();
+  const [token,   setToken]   = useState(null);
   const [gql,     setGql]     = useState(null);
   const [userName,setUserName]= useState("");
   const [isAdmin, setIsAdmin] = useState(false);
@@ -127,6 +128,7 @@ export default function MyShiftsPage() {
     const role = getAuthRole();
     // ownShifts lives on the volunteer endpoint; admin tokens are accepted there too
     const bound = (q, v) => volunteerGql(q, v, t);
+    setToken(t);
     setGql(() => bound);
     setUserName(getAuthName() ?? "");
     setIsAdmin(role === "ADMINISTRATOR");
@@ -160,7 +162,7 @@ export default function MyShiftsPage() {
     }
   }, [gql, filter, loadShifts]);
 
-  const handleSignOut = () => { clearAuthToken(); router.replace("/login"); };
+  const handleSignOut = async () => { await signOut(token); router.replace("/login"); };
 
   if (!gql) return null;
 

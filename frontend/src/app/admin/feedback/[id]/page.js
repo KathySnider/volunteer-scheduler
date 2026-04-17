@@ -6,7 +6,7 @@ import {
   getAuthToken,
   getAuthRole,
   getAuthName,
-  clearAuthToken,
+  signOut,
   adminGql,
 } from "../../../lib/api";
 import UserMenu from "../../../components/UserMenu";
@@ -408,6 +408,7 @@ export default function AdminFeedbackDetailPage() {
   const params   = useParams();
   const id       = params?.id;
 
+  const [token, setToken]       = useState(null);
   const [gql, setGql]           = useState(null);
   const [userName, setUserName] = useState("");
 
@@ -437,12 +438,13 @@ export default function AdminFeedbackDetailPage() {
     const role = getAuthRole();
     if (role !== "ADMINISTRATOR") { router.replace("/events"); return; }
     const bound = (q, v) => adminGql(q, v, t);
+    setToken(t);
     setGql(() => bound);
     setUserName(getAuthName() ?? "");
     if (id) loadData(bound, id);
   }, [router, loadData, id]);
 
-  const handleSignOut = () => { clearAuthToken(); router.replace("/login"); };
+  const handleSignOut = async () => { await signOut(token); router.replace("/login"); };
 
   const handleSuccess = (msg) => {
     setActionMsg({ type: "success", text: msg });

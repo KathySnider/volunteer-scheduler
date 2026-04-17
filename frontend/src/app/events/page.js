@@ -6,7 +6,7 @@ import {
   getAuthToken,
   getAuthRole,
   getAuthName,
-  clearAuthToken,
+  signOut,
   volunteerGql,
   adminGql,
 } from "../lib/api";
@@ -417,10 +417,7 @@ export default function EventsPage() {
     // sessionStorage will be cleared by the persist effect above.
   }
 
-  const handleSignOut = () => {
-    clearAuthToken();
-    router.replace("/login");
-  };
+  const handleSignOut = async () => { await signOut(token); router.replace("/login"); };
 
   const handleView = (eventId) => {
     router.push(`/events/${eventId}`);

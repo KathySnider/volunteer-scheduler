@@ -6,7 +6,7 @@ import {
   getAuthToken,
   getAuthRole,
   getAuthName,
-  clearAuthToken,
+  signOut,
   volunteerGql,
   adminGql,
 } from "../../lib/api";
@@ -228,6 +228,7 @@ export default function EventDetailPage() {
   const params  = useParams();
   const eventId = params?.id;
 
+  const [token,     setToken]     = useState(null);
   const [gql,       setGql]       = useState(null);
   const [volGql,    setVolGql]    = useState(null);
   const [userName,  setUserName]  = useState("");
@@ -252,6 +253,7 @@ export default function EventDetailPage() {
       : (q, v) => volunteerGql(q, v, t);
     const boundVolGql = (q, v) => volunteerGql(q, v, t);
 
+    setToken(t);
     setGql(() => boundGql);
     setVolGql(() => boundVolGql);
     setUserName(getAuthName() ?? "");
@@ -339,7 +341,7 @@ export default function EventDetailPage() {
     }
   }, [volGql, refreshShifts]);
 
-  const handleSignOut = () => { clearAuthToken(); router.replace("/login"); };
+  const handleSignOut = async () => { await signOut(token); router.replace("/login"); };
 
   /* ----- Render ----- */
   return (
