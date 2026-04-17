@@ -7,7 +7,6 @@ type Query {
   # Shared queries:
   lookupValues: LookupValues!
   volunteerProfile: VolunteerProfile!
-  filteredEvents(filter: EventFilterInput): [Event!]!
   eventById(eventId: ID!): Event!
   attachment(attachmentId: ID!): AttachmentDownload
 
@@ -16,6 +15,7 @@ type Query {
   staff: [Staff!]!
   allVolunteers(filter: VolunteerFilterInput): [Volunteer!]!
   volunteerShifts(volunteerId: ID!, filter: ShiftTimeFilter!): [VolunteerShift!]!
+  filteredEvents(filter: EventFilterInput): [Event!]!
   opportunitiesForEvent(eventId: ID!): [Opportunity!]!
   feedback(filter: FeedbackFilterInput): [Feedback!]!
   feedbackById(feedbackId: ID!): Feedback

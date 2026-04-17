@@ -5,7 +5,7 @@
 type Query {
   lookupValues: LookupValues!
   volunteerProfile: VolunteerProfile!
-  filteredEvents(filter: EventFilterInput): [Event!]! 
+  filteredEventsWithShifts(filter: EventFilterInput): [Event!]!
   eventById(eventId: ID!): Event!
   shiftsForEvent(eventId: ID!): [ShiftView!]!  
   ownShifts(filter: ShiftTimeFilter!): [VolunteerShift!]! 

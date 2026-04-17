@@ -112,14 +112,14 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Attachment       func(childComplexity int, attachmentID string) int
-		EventByID        func(childComplexity int, eventID string) int
-		FilteredEvents   func(childComplexity int, filter *EventFilterInput) int
-		LookupValues     func(childComplexity int) int
-		OwnFeedback      func(childComplexity int) int
-		OwnShifts        func(childComplexity int, filter ShiftTimeFilter) int
-		ShiftsForEvent   func(childComplexity int, eventID string) int
-		VolunteerProfile func(childComplexity int) int
+		Attachment               func(childComplexity int, attachmentID string) int
+		EventByID                func(childComplexity int, eventID string) int
+		FilteredEventsWithShifts func(childComplexity int, filter *EventFilterInput) int
+		LookupValues             func(childComplexity int) int
+		OwnFeedback              func(childComplexity int) int
+		OwnShifts                func(childComplexity int, filter ShiftTimeFilter) int
+		ShiftsForEvent           func(childComplexity int, eventID string) int
+		VolunteerProfile         func(childComplexity int) int
 	}
 
 	Region struct {
@@ -217,7 +217,7 @@ type MutationResolver interface {
 type QueryResolver interface {
 	LookupValues(ctx context.Context) (*LookupValues, error)
 	VolunteerProfile(ctx context.Context) (*VolunteerProfile, error)
-	FilteredEvents(ctx context.Context, filter *EventFilterInput) ([]*Event, error)
+	FilteredEventsWithShifts(ctx context.Context, filter *EventFilterInput) ([]*Event, error)
 	EventByID(ctx context.Context, eventID string) (*Event, error)
 	ShiftsForEvent(ctx context.Context, eventID string) ([]*ShiftView, error)
 	OwnShifts(ctx context.Context, filter ShiftTimeFilter) ([]*VolunteerShift, error)
@@ -534,17 +534,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.EventByID(childComplexity, args["eventId"].(string)), true
-	case "Query.filteredEvents":
-		if e.complexity.Query.FilteredEvents == nil {
+	case "Query.filteredEventsWithShifts":
+		if e.complexity.Query.FilteredEventsWithShifts == nil {
 			break
 		}
 
-		args, err := ec.field_Query_filteredEvents_args(ctx, rawArgs)
+		args, err := ec.field_Query_filteredEventsWithShifts_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.FilteredEvents(childComplexity, args["filter"].(*EventFilterInput)), true
+		return e.complexity.Query.FilteredEventsWithShifts(childComplexity, args["filter"].(*EventFilterInput)), true
 	case "Query.lookupValues":
 		if e.complexity.Query.LookupValues == nil {
 			break
@@ -1227,7 +1227,7 @@ type MutationResult {
 type Query {
   lookupValues: LookupValues!
   volunteerProfile: VolunteerProfile!
-  filteredEvents(filter: EventFilterInput): [Event!]! 
+  filteredEventsWithShifts(filter: EventFilterInput): [Event!]!
   eventById(eventId: ID!): Event!
   shiftsForEvent(eventId: ID!): [ShiftView!]!  
   ownShifts(filter: ShiftTimeFilter!): [VolunteerShift!]! 
@@ -1386,7 +1386,7 @@ func (ec *executionContext) field_Query_eventById_args(ctx context.Context, rawA
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_filteredEvents_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+func (ec *executionContext) field_Query_filteredEventsWithShifts_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOEventFilterInput2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventFilterInput)
@@ -2846,15 +2846,15 @@ func (ec *executionContext) fieldContext_Query_volunteerProfile(_ context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_filteredEvents(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_filteredEventsWithShifts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_filteredEvents,
+		ec.fieldContext_Query_filteredEventsWithShifts,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().FilteredEvents(ctx, fc.Args["filter"].(*EventFilterInput))
+			return ec.resolvers.Query().FilteredEventsWithShifts(ctx, fc.Args["filter"].(*EventFilterInput))
 		},
 		nil,
 		ec.marshalNEvent2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventᚄ,
@@ -2863,7 +2863,7 @@ func (ec *executionContext) _Query_filteredEvents(ctx context.Context, field gra
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_filteredEvents(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_filteredEventsWithShifts(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -2898,7 +2898,7 @@ func (ec *executionContext) fieldContext_Query_filteredEvents(ctx context.Contex
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_filteredEvents_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_filteredEventsWithShifts_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -7163,7 +7163,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "filteredEvents":
+		case "filteredEventsWithShifts":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -7172,7 +7172,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_filteredEvents(ctx, field)
+				res = ec._Query_filteredEventsWithShifts(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}

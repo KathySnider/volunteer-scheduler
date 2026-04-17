@@ -14,46 +14,9 @@ import {
   createVenue,
   createJobType,
   createEventWithShift,
+  createEventWithoutShifts,
   uniqueName,
 } from "./helpers/api";
-
-const ADMIN_URL =
-  process.env.NEXT_PUBLIC_GRAPHQL_ADMIN_URL ||
-  "http://localhost:8080/graphql/admin";
-
-/** Create a bare event (no opportunities / shifts) and return its name. */
-async function createEventOnly(
-  adminToken: string,
-  eventName: string,
-  venueId: string
-): Promise<void> {
-  await fetch(ADMIN_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${adminToken}`,
-    },
-    body: JSON.stringify({
-      query: `mutation CreateEvent($e: NewEventInput!) { createEvent(newEvent: $e) { success message } }`,
-      variables: {
-        e: {
-          name: eventName,
-          description: "Test event — no shifts",
-          eventType: "IN_PERSON",
-          venueId,
-          serviceTypes: [],
-          eventDates: [
-            {
-              startDateTime: "2027-11-01 09:00:00",
-              endDateTime:   "2027-11-01 13:00:00",
-              ianaZone: "America/New_York",
-            },
-          ],
-        },
-      },
-    }),
-  });
-}
 
 test.describe("Admin event creation — happy path", () => {
   test("admin can navigate to the new event form", async ({ adminPage }) => {
@@ -454,7 +417,7 @@ test.describe("Manage Events listing — 'No shifts' badge", () => {
       city: uniqueName("AdminNoShiftsCity"),
       state: "TX",
     });
-    await createEventOnly(adminToken, noShiftsName, venueId);
+    await createEventWithoutShifts(adminToken, { eventName: noShiftsName, venueId });
   });
 
   test("event with no shifts shows 'No shifts' badge in the Volunteers column", async ({

@@ -234,12 +234,10 @@ func FetchEventShiftSummaries(ctx context.Context, db *sql.DB, eventID int) ([]*
 	return summaries, nil
 }
 
-// The events from pass 1 have at least one shift on one job that matched the filter criteria.
-// Now, get just the shifts within each event that match.
-// While this appears to be doing the same thing we did in pass, 1 it is not: an event could
-// have an opportunity that matched the job filter, but its shift crosses the filter's end date.
-// Rare, but possible.
-func fetchFilteredPassTwo(ctx context.Context, filter *models.EventFilterInput, idList []int, DB *sql.DB) (map[int]bool, error) {
+// Now, just make sure each event has at least one shift. If there was no filter,
+// or if the filter didn't include jobs, pass one might have returned events that
+// have been created but do not yet have anything for which a volunteer can sign up.
+func fetchFilteredPassTwo(ctx context.Context, DB *sql.DB, idList []int) (map[int]bool, error) {
 
 	eventsWithShifts := make(map[int]bool, len(idList))
 
@@ -250,40 +248,10 @@ func fetchFilteredPassTwo(ctx context.Context, filter *models.EventFilterInput, 
 		FROM shifts s
 		JOIN opportunities opp ON s.opportunity_id = opp.opportunity_id
 		WHERE opp.event_id = ANY($1)
+		GROUP BY opp.event_id
 	`
 
 	shiftArgs := []interface{}{pq.Array(idList)}
-	argNum := 2
-
-	if filter != nil {
-		// Filter by TimeFrame.
-		if filter.TimeFrame != nil {
-			switch *filter.TimeFrame {
-			case "UPCOMING":
-				shiftsQuery += " AND s.shift_start >= NOW()"
-			case "PAST":
-				shiftsQuery += " AND s.shift_start < NOW()"
-			case "ALL":
-				// NO filter needed
-			}
-		}
-
-		// Filter by job.
-		if len(filter.Jobs) > 0 {
-			placeholders := []string{}
-			for _, jobId := range filter.Jobs {
-				placeholders = append(placeholders, fmt.Sprintf("$%d", argNum))
-				shiftArgs = append(shiftArgs, jobId)
-				argNum++
-			}
-
-			shiftsQuery += fmt.Sprintf(" AND opp.job_type_id IN (%s)", strings.Join(placeholders, ","))
-		}
-	}
-
-	// We really just want to find out if each event has any shift
-	// that matches the criteria.
-	shiftsQuery += " GROUP BY opp.event_id"
 
 	shiftRows, err := DB.QueryContext(ctx, shiftsQuery, shiftArgs...)
 	if err != nil {
@@ -291,10 +259,6 @@ func fetchFilteredPassTwo(ctx context.Context, filter *models.EventFilterInput, 
 	}
 	defer shiftRows.Close()
 
-	// If an event is not in the rows, it has no matching shifts.
-	// Note: the way GROUP works in this query, we should not
-	// expect have any rows with count = 0. The check is just
-	// extra safety against future changes to the query.
 	for shiftRows.Next() {
 		var eInt int
 		var count int
@@ -304,6 +268,8 @@ func fetchFilteredPassTwo(ctx context.Context, filter *models.EventFilterInput, 
 			return nil, fmt.Errorf("error scanning shift: %w", err)
 		}
 
+		// With the query as is, we don't expect rows with 0, but will check
+		// in case the query ever changes.
 		if count > 0 {
 			eventsWithShifts[eInt] = true
 		}

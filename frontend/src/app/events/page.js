@@ -34,7 +34,7 @@ const LOOKUP_VALUES = `
 
 const FILTERED_EVENTS = `
   query FilteredEvents($filter: EventFilterInput) {
-    filteredEvents(filter: $filter) {
+    filteredEventsWithShifts(filter: $filter) {
       id
       name
       description
@@ -376,7 +376,7 @@ export default function EventsPage() {
           setSearchError(res.errors[0]?.message ?? "Error loading events.");
           setEvents([]);
         } else {
-          setEvents(res.data?.filteredEvents ?? []);
+          setEvents(res.data?.filteredEventsWithShifts ?? []);
         }
       })
       .catch(() => {
