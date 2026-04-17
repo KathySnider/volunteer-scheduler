@@ -174,6 +174,42 @@ export async function createJobType(
 }
 
 /**
+ * Create a bare event (no opportunities / shifts) via the admin API.
+ * Useful for testing admin-only visibility of incomplete events.
+ */
+export async function createEventWithoutShifts(
+  adminToken: string,
+  opts: {
+    eventName: string;
+    venueId: string;
+    startDateTime?: string;
+    endDateTime?: string;
+  }
+): Promise<void> {
+  await gql(
+    ADMIN_URL,
+    `mutation CreateEvent($e: NewEventInput!) { createEvent(newEvent: $e) { success message } }`,
+    {
+      e: {
+        name: opts.eventName,
+        description: "Test event — no shifts",
+        eventType: "IN_PERSON",
+        venueId: opts.venueId,
+        serviceTypes: [],
+        eventDates: [
+          {
+            startDateTime: opts.startDateTime ?? "2027-11-01 09:00:00",
+            endDateTime:   opts.endDateTime   ?? "2027-11-01 13:00:00",
+            ianaZone: "America/New_York",
+          },
+        ],
+      },
+    },
+    adminToken
+  );
+}
+
+/**
  * Create an event with one date, one opportunity, and one shift.
  * Returns { eventId, shiftId }.
  */

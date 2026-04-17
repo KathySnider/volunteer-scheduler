@@ -112,8 +112,47 @@ func (s *EventService) FetchLookups(ctx context.Context) (*models.LookupValues, 
 	return &lookup, nil
 }
 
-// FetchFilteredEvents
-// Retrieve events based on filter criteria.
+// FetchFilteredEvents - with shifts for volunteers; no such criteria for admins.
+
+func (s *EventService) FetchFilteredEventsWithShifts(ctx context.Context, filter *models.EventFilterInput) ([]*models.Event, error) {
+
+	// Translate all of the filter stuff to a set of events that
+	// potentially meet all of the user's criteria. If there are
+	// no filters, the call to pass 1 returns all of the events.
+
+	// orderedIDs carries the ORDER BY from the SQL query (earliest event date ASC).
+	// We must use it when building the final slice — ranging over eventsMap directly
+	// would randomise the order because Go maps have no guaranteed iteration order.
+	eventsMap, orderedIDs, err := fetchFilteredPassOne(ctx, filter, s.DB)
+	if err != nil {
+		return nil, fmt.Errorf("error querying events: %w", err)
+	}
+	if len(eventsMap) == 0 {
+		// Return an empty set of events. Nothing matched.
+		return []*models.Event{}, nil
+	}
+
+	// Now, for each of the selected events, determine which
+	// have shifts. Pass 2 just wants the list of ids.
+	eventsWithShifts, err := fetchFilteredPassTwo(ctx, s.DB, orderedIDs)
+	if err != nil {
+		return nil, fmt.Errorf("error querying events: %w", err)
+	}
+
+	// Build the result slice in the order the DB returned the events.
+	// Skipping any IDs that were removed by pass two.
+	events := make([]*models.Event, 0, len(eventsMap))
+	for _, id := range orderedIDs {
+		hasShifts, _ := eventsWithShifts[id]
+		if hasShifts {
+			event, _ := eventsMap[id]
+			events = append(events, event)
+		}
+	}
+
+	return events, nil
+
+}
 func (s *EventService) FetchFilteredEvents(ctx context.Context, filter *models.EventFilterInput) ([]*models.Event, error) {
 
 	// Translate all of the filter stuff to a set of events that
@@ -132,33 +171,11 @@ func (s *EventService) FetchFilteredEvents(ctx context.Context, filter *models.E
 		return []*models.Event{}, nil
 	}
 
-	// Skip pass two if there is no filter, or if there is no filter for jobs.
-	if filter != nil {
-		if filter.Jobs != nil {
-			// Now, for each of the selected events, determine which
-			// have shifts that also meet the criteria. Pass 2 just
-			// wants the list of ids.
-			eventsWithShifts, err := fetchFilteredPassTwo(ctx, filter, orderedIDs, s.DB)
-			if err != nil {
-				return nil, fmt.Errorf("error querying events: %w", err)
-			}
-
-			// Get rid of events that had no shifts in pass 2.
-			for id := range eventsMap {
-				if !eventsWithShifts[id] {
-					delete(eventsMap, id)
-				}
-			}
-		}
-	}
-
 	// Build the result slice in the order the DB returned the events.
-	// Skipping any IDs that were removed by pass two.
 	events := make([]*models.Event, 0, len(eventsMap))
 	for _, id := range orderedIDs {
-		if event, ok := eventsMap[id]; ok {
-			events = append(events, event)
-		}
+		event, _ := eventsMap[id]
+		events = append(events, event)
 	}
 	return events, nil
 }

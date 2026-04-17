@@ -17,6 +17,7 @@ import {
   createVenue,
   createJobType,
   createEventWithShift,
+  createEventWithoutShifts,
   uniqueName,
 } from "./helpers/api";
 
@@ -294,6 +295,67 @@ test.describe("Events page — format filter", () => {
     await volunteerPage.locator("#formatFilter").selectOption("VIRTUAL");
 
     await expect(volunteerPage.getByText(inPersonEventName)).not.toBeVisible();
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  Events page — no-shifts events are hidden from volunteers          */
+/* ------------------------------------------------------------------ */
+
+test.describe("Events page — no-shifts events are hidden", () => {
+  let noShiftsCity: string;
+  let noShiftsName: string;
+  let withShiftsName: string;
+
+  test.beforeAll(async ({ adminToken }) => {
+    noShiftsCity  = uniqueName("NoShiftsCity");
+    noShiftsName  = uniqueName("VolNoShiftsEvent");
+    withShiftsName = uniqueName("VolWithShiftsEvent");
+
+    const jobTypeId = await createJobType(
+      adminToken,
+      uniqueName("nsh"),
+      uniqueName("No Shifts Role"),
+    );
+    const venueId = await createVenue(adminToken, {
+      name: uniqueName("NoShiftsVenue"),
+      city: noShiftsCity,
+      state: "NV",
+    });
+
+    // Event WITH shifts — volunteers should see this.
+    await createEventWithShift(adminToken, {
+      eventName: withShiftsName,
+      venueId,
+      jobTypeId,
+      startDateTime: "2027-12-01 09:00:00",
+      endDateTime:   "2027-12-01 13:00:00",
+    });
+
+    // Event WITHOUT shifts — volunteers should NOT see this.
+    await createEventWithoutShifts(adminToken, { eventName: noShiftsName, venueId });
+  });
+
+  test("no-shifts event does not appear on the volunteer events page", async ({
+    volunteerPage,
+  }) => {
+    await volunteerPage.goto("/events");
+    await expect(
+      volunteerPage.getByRole("heading", { name: /volunteer events/i })
+    ).toBeVisible({ timeout: 8_000 });
+
+    // Use ALL so the timeframe doesn't interfere.
+    await volunteerPage.locator("#timeFrameFilter").selectOption("ALL");
+
+    // Filter to our unique city so results are scoped.
+    await volunteerPage.getByRole("button", { name: "All Cities" }).click();
+    await volunteerPage.getByLabel(noShiftsCity).check();
+
+    // The event with shifts should be visible.
+    await expect(volunteerPage.getByText(withShiftsName)).toBeVisible({ timeout: 5_000 });
+
+    // The event without shifts should not be visible.
+    await expect(volunteerPage.getByText(noShiftsName)).not.toBeVisible();
   });
 });
 

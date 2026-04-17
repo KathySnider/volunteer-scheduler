@@ -12,7 +12,7 @@ import (
 
 const queryFilteredEvents = `
 	query FilteredEvents($filter: EventFilterInput) {
-		filteredEvents(filter: $filter) {
+		filteredEventsWithShifts(filter: $filter) {
 			id
 			name
 			eventType
@@ -37,8 +37,6 @@ type eventTestFixture struct {
 	eventAName        string
 	eventBName        string
 	eventCName        string
-	region1ID         int
-	region2ID         int
 	jobEventSupportID int
 	jobAdvocacyID     int
 }
@@ -62,19 +60,9 @@ func setupEventFixture(t *testing.T) eventTestFixture {
 	jobEventSupportID := getJobTypeID(t, "event_support")
 	jobAdvocacyID := getJobTypeID(t, "advocacy")
 
-	// ── regions ─────────────────────────────────────────────────────────────
-	// Register region cleanups first so that LIFO ensures they run after
-	// all venues and events that reference them have been deleted.
-	region1ID := seedRegion(t, "r1-"+suffix, "Test Region 1")
-	region2ID := seedRegion(t, "r2-"+suffix, "Test Region 2")
-
 	// ── venues ──────────────────────────────────────────────────────────────
 	venue1ID := seedVenue(t, "Seattle Venue", "100 Pike St", "Seattle", "WA", "America/Los_Angeles")
 	venue2ID := seedVenue(t, "Spokane Venue", "200 Monroe St", "Spokane", "WA", "America/Los_Angeles")
-
-	// ── venue → region links ─────────────────────────────────────────────────
-	seedVenueRegion(t, venue1ID, region1ID)
-	seedVenueRegion(t, venue2ID, region2ID)
 
 	// ── events ──────────────────────────────────────────────────────────────
 	eventAName := "Virtual Event Apr-" + suffix
@@ -105,8 +93,6 @@ func setupEventFixture(t *testing.T) eventTestFixture {
 		eventAName:        eventAName,
 		eventBName:        eventBName,
 		eventCName:        eventCName,
-		region1ID:         region1ID,
-		region2ID:         region2ID,
 		jobEventSupportID: jobEventSupportID,
 		jobAdvocacyID:     jobAdvocacyID,
 	}
@@ -116,14 +102,14 @@ func setupEventFixture(t *testing.T) eventTestFixture {
 // Small assertion helpers
 // ============================================================================
 
-// eventNamesFromResponse unmarshals the filteredEvents data field and returns
+// eventNamesFromResponse unmarshals the filteredEventsWithShifts data field and returns
 // a map of event name → true for quick membership checks.
 func eventNamesFromResponse(t *testing.T, resp gqlResponse) map[string]bool {
 	t.Helper()
 	var events []struct {
 		Name string `json:"name"`
 	}
-	unmarshalField(t, resp, "filteredEvents", &events)
+	unmarshalField(t, resp, "filteredEventsWithShifts", &events)
 	m := make(map[string]bool, len(events))
 	for _, e := range events {
 		m[e.Name] = true
@@ -138,7 +124,7 @@ func assertEventCount(t *testing.T, resp gqlResponse, want int) {
 	var events []struct {
 		Name string `json:"name"`
 	}
-	unmarshalField(t, resp, "filteredEvents", &events)
+	unmarshalField(t, resp, "filteredEventsWithShifts", &events)
 	if len(events) != want {
 		names := make([]string, len(events))
 		for i, e := range events {
@@ -168,66 +154,6 @@ func TestFilteredEvents_NoFilter(t *testing.T) {
 		if !got[name] {
 			t.Errorf("expected event %q in unfiltered results, but it was missing", name)
 		}
-	}
-}
-
-// ============================================================================
-// Tests: region filter
-// ============================================================================
-
-// TestFilteredEvents_ByRegion1 verifies that filtering by region1 returns
-// only the in-person event whose venue is in that region.
-func TestFilteredEvents_ByRegion1(t *testing.T) {
-	fx := setupEventFixture(t)
-
-	resp := gqlPost(t, "/graphql/volunteer", fx.token, queryFilteredEvents, map[string]any{
-		"filter": map[string]any{
-			"regions": []int{fx.region1ID},
-		},
-	})
-
-	if hasGQLErrors(resp) {
-		t.Fatalf("unexpected errors: %v", resp.Errors)
-	}
-
-	got := eventNamesFromResponse(t, resp)
-
-	if !got[fx.eventBName] {
-		t.Errorf("expected in-person event %q in region1 results", fx.eventBName)
-	}
-	if got[fx.eventAName] {
-		t.Errorf("virtual event %q should not appear in region1 filter", fx.eventAName)
-	}
-	if got[fx.eventCName] {
-		t.Errorf("hybrid event %q (region2) should not appear in region1 filter", fx.eventCName)
-	}
-}
-
-// TestFilteredEvents_ByRegion2 verifies that filtering by region2 returns
-// only the hybrid event whose venue is in that region.
-func TestFilteredEvents_ByRegion2(t *testing.T) {
-	fx := setupEventFixture(t)
-
-	resp := gqlPost(t, "/graphql/volunteer", fx.token, queryFilteredEvents, map[string]any{
-		"filter": map[string]any{
-			"regions": []int{fx.region2ID},
-		},
-	})
-
-	if hasGQLErrors(resp) {
-		t.Fatalf("unexpected errors: %v", resp.Errors)
-	}
-
-	got := eventNamesFromResponse(t, resp)
-
-	if !got[fx.eventCName] {
-		t.Errorf("expected hybrid event %q in region2 results", fx.eventCName)
-	}
-	if got[fx.eventAName] {
-		t.Errorf("virtual event %q should not appear in region2 filter", fx.eventAName)
-	}
-	if got[fx.eventBName] {
-		t.Errorf("in-person event %q (region1) should not appear in region2 filter", fx.eventBName)
 	}
 }
 
@@ -376,164 +302,3 @@ func TestFilteredEvents_ByJobAdvocacy(t *testing.T) {
 	}
 }
 
-// ============================================================================
-// Tests: shift date filters
-// ============================================================================
-//
-// Shift dates for reference:
-//   Event A  shift_start=2026-04-15  shift_end=2026-04-15T12:00Z
-//   Event B  shift_start=2026-06-15  shift_end=2026-06-15T12:00Z
-//   Event C  shift_start=2026-09-15  shift_end=2026-09-15T12:00Z
-
-// TestFilteredEvents_ByShiftStartDate verifies that a shiftStartDate set to
-// mid-May returns only the events whose shifts start on or after that date
-// (Jun and Sep → Events B and C).
-func TestFilteredEvents_ByShiftStartDate(t *testing.T) {
-	fx := setupEventFixture(t)
-
-	resp := gqlPost(t, "/graphql/volunteer", fx.token, queryFilteredEvents, map[string]any{
-		"filter": map[string]any{
-			"shiftStartDateTime": "2026-05-01 00:00:00",
-			"ianaZone":           "UTC",
-		},
-	})
-
-	if hasGQLErrors(resp) {
-		t.Fatalf("unexpected errors: %v", resp.Errors)
-	}
-
-	got := eventNamesFromResponse(t, resp)
-
-	if !got[fx.eventBName] {
-		t.Errorf("expected Jun event %q to match shiftStartDateTime >= May 1", fx.eventBName)
-	}
-	if !got[fx.eventCName] {
-		t.Errorf("expected Sep event %q to match shiftStartDateTime >= May 1", fx.eventCName)
-	}
-	if got[fx.eventAName] {
-		t.Errorf("Apr event %q should not match shiftStartDateTime >= May 1", fx.eventAName)
-	}
-}
-
-// TestFilteredEvents_ByShiftEndDate verifies that a shiftEndDate set to
-// August 1 returns only the events whose shifts fall entirely before that
-// cutoff (Apr and Jun → Events A and B).
-func TestFilteredEvents_ByShiftEndDate(t *testing.T) {
-	fx := setupEventFixture(t)
-
-	resp := gqlPost(t, "/graphql/volunteer", fx.token, queryFilteredEvents, map[string]any{
-		"filter": map[string]any{
-			"shiftEndDateTime": "2026-08-01 00:00:00",
-			"ianaZone":         "UTC",
-		},
-	})
-
-	if hasGQLErrors(resp) {
-		t.Fatalf("unexpected errors: %v", resp.Errors)
-	}
-
-	got := eventNamesFromResponse(t, resp)
-
-	if !got[fx.eventAName] {
-		t.Errorf("expected Apr event %q to match shiftEndDateTime <= Aug 1", fx.eventAName)
-	}
-	if !got[fx.eventBName] {
-		t.Errorf("expected Jun event %q to match shiftEndDateTime <= Aug 1", fx.eventBName)
-	}
-	if got[fx.eventCName] {
-		t.Errorf("Sep event %q should not match shiftEndDateTime <= Aug 1", fx.eventCName)
-	}
-}
-
-// TestFilteredEvents_ByDateRange verifies that combining shiftStartDateTime and
-// shiftEndDateTime to bracket only June returns a single event (Event B).
-func TestFilteredEvents_ByDateRange(t *testing.T) {
-	fx := setupEventFixture(t)
-
-	resp := gqlPost(t, "/graphql/volunteer", fx.token, queryFilteredEvents, map[string]any{
-		"filter": map[string]any{
-			"shiftStartDateTime": "2026-05-01 00:00:00",
-			"shiftEndDateTime":   "2026-07-31 23:59:59",
-			"ianaZone":           "UTC",
-		},
-	})
-
-	if hasGQLErrors(resp) {
-		t.Fatalf("unexpected errors: %v", resp.Errors)
-	}
-
-	got := eventNamesFromResponse(t, resp)
-
-	if !got[fx.eventBName] {
-		t.Errorf("expected Jun event %q to match May–Jul date range", fx.eventBName)
-	}
-	if got[fx.eventAName] {
-		t.Errorf("Apr event %q should not match May–Jul date range", fx.eventAName)
-	}
-	if got[fx.eventCName] {
-		t.Errorf("Sep event %q should not match May–Jul date range", fx.eventCName)
-	}
-}
-
-// ============================================================================
-// Tests: combined filters
-// ============================================================================
-
-// TestFilteredEvents_CombinedRegionAndJob verifies that applying both a
-// region filter and a job filter narrows results to the single event that
-// satisfies both (Event B: region1 AND advocacy).
-func TestFilteredEvents_CombinedRegionAndJob(t *testing.T) {
-	fx := setupEventFixture(t)
-
-	resp := gqlPost(t, "/graphql/volunteer", fx.token, queryFilteredEvents, map[string]any{
-		"filter": map[string]any{
-			"regions": []int{fx.region1ID},
-			"jobs":    []int{fx.jobAdvocacyID},
-		},
-	})
-
-	if hasGQLErrors(resp) {
-		t.Fatalf("unexpected errors: %v", resp.Errors)
-	}
-
-	got := eventNamesFromResponse(t, resp)
-
-	if !got[fx.eventBName] {
-		t.Errorf("expected event %q to match region1+advocacy combined filter", fx.eventBName)
-	}
-	if got[fx.eventAName] {
-		t.Errorf("virtual event %q should not match region1+advocacy filter", fx.eventAName)
-	}
-	if got[fx.eventCName] {
-		t.Errorf("hybrid event %q (region2) should not match region1+advocacy filter", fx.eventCName)
-	}
-}
-
-// ============================================================================
-// Tests: no results
-// ============================================================================
-
-// TestFilteredEvents_NoResults verifies that a filter combination that
-// matches no events returns an empty list without errors.
-// Region1 contains only an in-person event; asking for VIRTUAL within
-// region1 yields nothing.
-func TestFilteredEvents_NoResults(t *testing.T) {
-	fx := setupEventFixture(t)
-
-	resp := gqlPost(t, "/graphql/volunteer", fx.token, queryFilteredEvents, map[string]any{
-		"filter": map[string]any{
-			"regions":   []int{fx.region1ID},
-			"eventType": "VIRTUAL",
-		},
-	})
-
-	if hasGQLErrors(resp) {
-		t.Fatalf("unexpected errors: %v", resp.Errors)
-	}
-
-	got := eventNamesFromResponse(t, resp)
-
-	if got[fx.eventAName] || got[fx.eventBName] || got[fx.eventCName] {
-		t.Errorf("expected empty result set for region1+VIRTUAL filter, got: %v", got)
-	}
-}

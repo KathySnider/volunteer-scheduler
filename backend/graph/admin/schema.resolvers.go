@@ -398,15 +398,6 @@ func (r *queryResolver) VolunteerProfile(ctx context.Context) (*generated.Volunt
 	return toGenVolunteerProfile(profile), nil
 }
 
-// FilteredEvents is the resolver for the filteredEvents field.
-func (r *queryResolver) FilteredEvents(ctx context.Context, filter *generated.EventFilterInput) ([]*generated.Event, error) {
-	events, err := r.EventService.FetchFilteredEvents(ctx, toModelEventFilterInput(filter))
-	if err != nil {
-		return nil, err
-	}
-	return toGenEvents(events), nil
-}
-
 // EventByID is the resolver for the eventById field.
 func (r *queryResolver) EventByID(ctx context.Context, eventID string) (*generated.Event, error) {
 	event, err := r.EventService.FetchEventById(ctx, eventID)
@@ -470,13 +461,13 @@ func (r *queryResolver) VolunteerShifts(ctx context.Context, volunteerID string,
 	return toGenVolunteerShifts(shifts), nil
 }
 
-// VolunteerByID is the resolver for the volunteerById field.
-func (r *queryResolver) VolunteerByID(ctx context.Context, volunteerID string) (*generated.VolunteerProfile, error) {
-	vol, err := r.VolunteerService.FetchVolunteerProfileById(ctx, volunteerID)
+// FilteredEvents is the resolver for the filteredEvents field.
+func (r *queryResolver) FilteredEvents(ctx context.Context, filter *generated.EventFilterInput) ([]*generated.Event, error) {
+	events, err := r.EventService.FetchFilteredEvents(ctx, toModelEventFilterInput(filter))
 	if err != nil {
 		return nil, err
 	}
-	return toGenVolunteerProfile(vol), nil
+	return toGenEvents(events), nil
 }
 
 // OpportunitiesForEvent is the resolver for the opportunitiesForEvent field.
@@ -504,6 +495,15 @@ func (r *queryResolver) FeedbackByID(ctx context.Context, feedbackID string) (*g
 		return nil, err
 	}
 	return toGenFeedback(fb), nil
+}
+
+// VolunteerByID is the resolver for the volunteerById field.
+func (r *queryResolver) VolunteerByID(ctx context.Context, volunteerID string) (*generated.VolunteerProfile, error) {
+	vol, err := r.VolunteerService.FetchVolunteerProfileById(ctx, volunteerID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenVolunteerProfile(vol), nil
 }
 
 // Mutation returns generated.MutationResolver implementation.
