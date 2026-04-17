@@ -6,7 +6,7 @@ import {
   getAuthToken,
   getAuthRole,
   getAuthName,
-  clearAuthToken,
+  signOut,
   adminGql,
 } from "../../../lib/api";
 import UserMenu from "../../../components/UserMenu";
@@ -445,6 +445,7 @@ const EMPTY_DATE = () => ({
 
 export default function AddEventPage() {
   const router = useRouter();
+  const [token, setToken] = useState(null);
   const [gql, setGql] = useState(null);
   const [userName, setUserName] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
@@ -481,6 +482,7 @@ export default function AddEventPage() {
     if (role !== "ADMINISTRATOR") { router.replace("/events"); return; }
 
     const boundGql = (q, v) => adminGql(q, v, t);
+    setToken(t);
     setGql(() => boundGql);
     setUserName(getAuthName() ?? "");
     setIsAdmin(true);
@@ -604,10 +606,7 @@ export default function AddEventPage() {
     setCreatedEvent(null);
   };
 
-  const handleSignOut = () => {
-    clearAuthToken();
-    router.replace("/login");
-  };
+  const handleSignOut = async () => { await signOut(token); router.replace("/login"); };
 
   const tzOptions = timezoneOptions(browserZone.current);
 

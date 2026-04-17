@@ -6,7 +6,7 @@ import {
   getAuthToken,
   getAuthRole,
   getAuthName,
-  clearAuthToken,
+  signOut,
   volunteerGql,
   setAuthToken,
 } from "../lib/api";
@@ -132,7 +132,7 @@ export default function ProfilePage() {
     }
   };
 
-  const handleSignOut = () => { clearAuthToken(); router.replace("/login"); };
+  const handleSignOut = async () => { await signOut(token); router.replace("/login"); };
 
   if (!gql) return null;
 

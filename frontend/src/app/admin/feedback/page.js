@@ -6,7 +6,7 @@ import {
   getAuthToken,
   getAuthRole,
   getAuthName,
-  clearAuthToken,
+  signOut,
   adminGql,
 } from "../../lib/api";
 import UserMenu from "../../components/UserMenu";
@@ -80,6 +80,7 @@ function StatusBadge({ status }) {
 
 export default function AdminFeedbackPage() {
   const router = useRouter();
+  const [token, setToken]       = useState(null);
   const [gql, setGql]           = useState(null);
   const [userName, setUserName] = useState("");
 
@@ -111,12 +112,13 @@ export default function AdminFeedbackPage() {
     const role = getAuthRole();
     if (role !== "ADMINISTRATOR") { router.replace("/events"); return; }
     const bound = (q, v) => adminGql(q, v, t);
+    setToken(t);
     setGql(() => bound);
     setUserName(getAuthName() ?? "");
     loadData(bound);
   }, [router, loadData]);
 
-  const handleSignOut = () => { clearAuthToken(); router.replace("/login"); };
+  const handleSignOut = async () => { await signOut(token); router.replace("/login"); };
 
   /* ----- Client-side filtering ----- */
   const filtered = allFeedback.filter((fb) => {

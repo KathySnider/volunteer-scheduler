@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import {
   getAuthToken,
   getAuthName,
-  clearAuthToken,
+  signOut,
   volunteerGql,
 } from "../../lib/api";
 import UserMenu from "../../components/UserMenu";
@@ -127,6 +127,7 @@ function NoteItem({ note }) {
 export default function FeedbackDetailPage() {
   const router = useRouter();
   const { id } = useParams();
+  const [token, setToken] = useState(null);
   const [gql, setGql] = useState(null);
   const [userName, setUserName] = useState("");
   const [item, setItem] = useState(null);
@@ -160,15 +161,13 @@ export default function FeedbackDetailPage() {
     const t = getAuthToken();
     if (!t) { router.replace("/login"); return; }
     const bound = (q, v) => volunteerGql(q, v, t);
+    setToken(t);
     setGql(() => bound);
     setUserName(getAuthName() ?? "");
     loadData(bound);
   }, [router, loadData]);
 
-  const handleSignOut = () => {
-    clearAuthToken();
-    router.replace("/login");
-  };
+  const handleSignOut = async () => { await signOut(token); router.replace("/login"); };
 
   if (!gql) return null;
 
