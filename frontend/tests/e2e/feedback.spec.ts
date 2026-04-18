@@ -8,10 +8,11 @@
  *  - Admin resolves feedback → status shown as resolved
  *  - Error: submit with missing fields (browser validation)
  *  - Volunteer cannot see ADMIN_NOTE entries
+ *  - Attachments: file picker, size validation, submit with file, Download buttons
  */
 
 import { test, expect } from "./helpers/fixtures";
-import { submitFeedback, uniqueName } from "./helpers/api";
+import { submitFeedback, attachFileToFeedback, uniqueName } from "./helpers/api";
 
 const ADMIN_URL =
   process.env.NEXT_PUBLIC_GRAPHQL_ADMIN_URL ||
@@ -59,7 +60,7 @@ test.describe("Feedback — volunteer submits feedback", () => {
     await dialog.getByLabel(/subject/i).fill("Test feedback subject");
     await dialog.getByLabel(/description/i).fill("This is a test bug report from an E2E test.");
 
-    await dialog.getByRole("button", { name: "Submit Feedback" }).click();
+    await dialog.getByRole("button", { name: "Send Feedback" }).click();
 
     // Should show a success state
     await expect(
@@ -238,7 +239,7 @@ test.describe("Feedback — error cases", () => {
     await dialog
       .getByLabel(/description/i)
       .fill("Description without a subject");
-    await dialog.getByRole("button", { name: "Submit Feedback" }).click();
+    await dialog.getByRole("button", { name: "Send Feedback" }).click();
 
     // The subject field should be invalid (HTML5 required validation)
     const subjectInput = dialog.getByLabel(/subject/i);
@@ -256,5 +257,125 @@ test.describe("Feedback — error cases", () => {
     await page.goto("/my-feedback");
     await page.waitForURL("**/login", { timeout: 5_000 });
     expect(page.url()).toContain("/login");
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  Feedback — attachments                                             */
+/* ------------------------------------------------------------------ */
+
+test.describe("FeedbackButton — attachments", () => {
+  /** Open the feedback modal and return the dialog locator. */
+  async function openFeedbackModal(page: { goto: Function; getByRole: Function }) {
+    await page.goto("/events");
+    await page.getByRole("button", { name: "Submit feedback" }).click();
+    const dialog = page.getByRole("dialog", { name: "Feedback form" });
+    await expect(dialog.getByRole("heading", { name: /feedback/i })).toBeVisible({ timeout: 5_000 });
+    return dialog;
+  }
+
+  test("selecting a file adds it to the file list", async ({ volunteerPage }) => {
+    const dialog = await openFeedbackModal(volunteerPage);
+
+    await dialog.locator('input[type="file"]').setInputFiles({
+      name: "screenshot.png",
+      mimeType: "image/png",
+      buffer: Buffer.from("fake-png-content"),
+    });
+
+    await expect(dialog.getByText("screenshot.png")).toBeVisible({ timeout: 3_000 });
+  });
+
+  test("file over 5 MB shows an error in the file list", async ({ volunteerPage }) => {
+    const dialog = await openFeedbackModal(volunteerPage);
+
+    // 6 MB buffer — exceeds the 5 MB per-file limit
+    const bigBuffer = Buffer.alloc(6 * 1024 * 1024, "x");
+    await dialog.locator('input[type="file"]').setInputFiles({
+      name: "too-big.bin",
+      mimeType: "application/octet-stream",
+      buffer: bigBuffer,
+    });
+
+    await expect(dialog.getByText(/exceeds the 5 MB limit/i)).toBeVisible({ timeout: 3_000 });
+  });
+
+  test("submit with attachment — attachment shows on My Feedback detail page", async ({
+    volunteerPage,
+  }) => {
+    const subject = uniqueName("AttachSubmit");
+    const dialog = await openFeedbackModal(volunteerPage);
+
+    // Fill in the required fields
+    await dialog.getByLabel(/subject/i).fill(subject);
+    await dialog.getByLabel(/description/i).fill("Feedback with an attached file.");
+
+    // Attach a small file
+    await dialog.locator('input[type="file"]').setInputFiles({
+      name: "report.txt",
+      mimeType: "text/plain",
+      buffer: Buffer.from("Attachment content for E2E test"),
+    });
+    await expect(dialog.getByText("report.txt")).toBeVisible({ timeout: 3_000 });
+
+    // Submit
+    await dialog.getByRole("button", { name: "Send Feedback" }).click();
+    await expect(volunteerPage.getByText(/thank you/i)).toBeVisible({ timeout: 8_000 });
+
+    // Navigate to My Feedback and open the detail page
+    await volunteerPage.goto("/my-feedback");
+    await volunteerPage.getByText(subject).click();
+
+    // The Download button for our attachment should be visible
+    await expect(
+      volunteerPage.getByRole("button", { name: "Download" })
+    ).toBeVisible({ timeout: 8_000 });
+  });
+});
+
+test.describe("Feedback — attachment Download buttons", () => {
+  let feedbackId: string;
+  let ownerToken: string; // the volunteer who submitted — needed for ownFeedback (scoped per-user)
+
+  test.beforeAll(async ({ volunteerToken }) => {
+    ownerToken = volunteerToken;
+    feedbackId = await submitFeedback(volunteerToken, {
+      subject: uniqueName("DownloadBtnFeedback"),
+      text: "Testing download button visibility.",
+    });
+    await attachFileToFeedback(volunteerToken, feedbackId, "evidence.txt", "evidence content");
+  });
+
+  test("volunteer detail page shows Download button for attachments", async ({
+    browser,
+  }) => {
+    // ownFeedback is scoped per-user, so we must visit the page as the volunteer
+    // who actually submitted the feedback, not the volunteerPage fixture's user.
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    await page.addInitScript(({ token }) => {
+      localStorage.setItem("authToken", token);
+      localStorage.setItem("authRole", "VOLUNTEER");
+      localStorage.setItem("authName", "Test Volunteer");
+    }, { token: ownerToken });
+
+    try {
+      await page.goto(`/my-feedback/${feedbackId}`);
+      await expect(
+        page.getByRole("button", { name: "Download" })
+      ).toBeVisible({ timeout: 8_000 });
+    } finally {
+      await ctx.close();
+    }
+  });
+
+  test("admin detail page shows Download button for attachments", async ({
+    adminPage,
+  }) => {
+    // feedbackById is not user-scoped — any admin can see any feedback item.
+    await adminPage.goto(`/admin/feedback/${feedbackId}`);
+    await expect(
+      adminPage.getByRole("button", { name: "Download" })
+    ).toBeVisible({ timeout: 8_000 });
   });
 });

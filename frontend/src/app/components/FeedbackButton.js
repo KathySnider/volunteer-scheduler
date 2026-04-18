@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { getAuthToken, volunteerGql } from "../lib/api";
+import { getAuthToken, volunteerGql, volunteerGqlUpload } from "../lib/api";
 import styles from "./FeedbackButton.module.css";
 
 /* ----- GraphQL ----- */
@@ -16,38 +16,68 @@ const GIVE_FEEDBACK = `
   }
 `;
 
+const ATTACH_FILE = `
+  mutation AttachFile($feedbackId: ID!, $file: Upload!) {
+    attachFileToFeedback(feedbackId: $feedbackId, file: $file) {
+      success
+      message
+    }
+  }
+`;
+
 /* ----- Constants ----- */
 
 const TYPE_OPTIONS = [
-  { value: "BUG", label: "Bug Report" },
-  { value: "ENHANCEMENT", label: "Enhancement Request" },
-  { value: "GENERAL", label: "General Feedback" },
+  { value: "BUG", label: "🐛 Bug Report" },
+  { value: "ENHANCEMENT", label: "✨ Enhancement Request" },
+  { value: "GENERAL", label: "💬 General Feedback" },
 ];
 
 const MAX_SUBJECT = 200;
 const MAX_TEXT = 2000;
+const MAX_FILES = 5;
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+
+/* ----- Pure helpers ----- */
+
+function formatFileSize(bytes) {
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function validateFile(file) {
+  if (file.size > MAX_FILE_SIZE) {
+    return `${file.name} exceeds the 5 MB limit`;
+  }
+  return null;
+}
 
 /* ----- FeedbackButton component ----- */
 
 export default function FeedbackButton() {
   const [open, setOpen] = useState(false);
-  const [type, setType] = useState("GENERAL");
+  const [type, setType] = useState("BUG");
   const [subject, setSubject] = useState("");
   const [text, setText] = useState("");
+  const [files, setFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [successNote, setSuccessNote] = useState("");
   const successTimer = useRef(null);
   const overlayRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Reset form when modal opens
   useEffect(() => {
     if (open) {
-      setType("GENERAL");
+      setType("BUG");
       setSubject("");
       setText("");
+      setFiles([]);
       setError("");
       setSuccess(false);
+      setSuccessNote("");
     }
   }, [open]);
 
@@ -57,7 +87,8 @@ export default function FeedbackButton() {
       successTimer.current = setTimeout(() => {
         setOpen(false);
         setSuccess(false);
-      }, 2000);
+        setSuccessNote("");
+      }, 2500);
     }
     return () => clearTimeout(successTimer.current);
   }, [success]);
@@ -76,9 +107,32 @@ export default function FeedbackButton() {
     if (e.target === overlayRef.current) setOpen(false);
   }, []);
 
+  const handleFileSelect = useCallback((e) => {
+    const selected = Array.from(e.target.files ?? []);
+    e.target.value = ""; // reset so same file can be re-selected
+    setFiles((prev) => {
+      const combined = [...prev];
+      for (const f of selected) {
+        if (combined.length >= MAX_FILES) break;
+        combined.push(f);
+      }
+      return combined;
+    });
+  }, []);
+
+  const handleRemoveFile = useCallback((index) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     setError("");
+
+    // Validate files before hitting the server
+    for (const f of files) {
+      const err = validateFile(f);
+      if (err) { setError(err); return; }
+    }
 
     const token = getAuthToken();
     if (!token) {
@@ -96,6 +150,7 @@ export default function FeedbackButton() {
 
     setSubmitting(true);
     try {
+      // 1 — Submit the feedback text
       const res = await volunteerGql(GIVE_FEEDBACK, {
         input: {
           type,
@@ -107,17 +162,45 @@ export default function FeedbackButton() {
 
       if (res.errors) {
         setError(res.errors[0]?.message ?? "Failed to submit feedback.");
-      } else if (res.data?.giveFeedback?.success === false) {
-        setError(res.data.giveFeedback.message ?? "Failed to submit feedback.");
-      } else {
-        setSuccess(true);
+        return;
       }
+      if (res.data?.giveFeedback?.success === false) {
+        setError(res.data.giveFeedback.message ?? "Failed to submit feedback.");
+        return;
+      }
+
+      const feedbackId = res.data?.giveFeedback?.id;
+
+      // 2 — Upload attachments (best-effort; feedback text already saved)
+      if (feedbackId && files.length > 0) {
+        let failedCount = 0;
+        for (const file of files) {
+          try {
+            const r = await volunteerGqlUpload(
+              ATTACH_FILE,
+              { feedbackId },
+              file,
+              token
+            );
+            if (!r.data?.attachFileToFeedback?.success) failedCount++;
+          } catch {
+            failedCount++;
+          }
+        }
+        if (failedCount > 0) {
+          setSuccessNote(
+            `Note: ${failedCount} attachment${failedCount > 1 ? "s" : ""} could not be uploaded.`
+          );
+        }
+      }
+
+      setSuccess(true);
     } catch {
       setError("Unable to reach the server. Please try again.");
     } finally {
       setSubmitting(false);
     }
-  }, [type, subject, text]);
+  }, [type, subject, text, files]);
 
   return (
     <>
@@ -155,7 +238,10 @@ export default function FeedbackButton() {
 
             {success ? (
               <div className={styles.successMessage}>
-                Thank you! Your feedback has been submitted.
+                <div>Thank you! Your feedback has been submitted.</div>
+                {successNote && (
+                  <div className={styles.successNote}>{successNote}</div>
+                )}
               </div>
             ) : (
               <form className={styles.form} onSubmit={handleSubmit} noValidate>
@@ -193,9 +279,6 @@ export default function FeedbackButton() {
                     required
                     disabled={submitting}
                   />
-                  <div className={styles.charCount}>
-                    {subject.length}/{MAX_SUBJECT}
-                  </div>
                 </div>
 
                 {/* Description */}
@@ -208,15 +291,71 @@ export default function FeedbackButton() {
                     className={styles.textarea}
                     value={text}
                     onChange={(e) => setText(e.target.value.slice(0, MAX_TEXT))}
-                    placeholder="Please describe your feedback in detail..."
+                    placeholder="What happened? What did you expect to happen? Steps to reproduce..."
                     maxLength={MAX_TEXT}
                     rows={5}
                     required
                     disabled={submitting}
                   />
-                  <div className={styles.charCount}>
-                    {text.length}/{MAX_TEXT}
+                  <div className={styles.charCount}>{text.length}/{MAX_TEXT}</div>
+                </div>
+
+                {/* Attachments */}
+                <div className={styles.field}>
+                  <div className={styles.attachLabel}>
+                    Attachments{" "}
+                    <span className={styles.attachOptional}>(optional)</span>
                   </div>
+
+                  {/* Hidden file input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className={styles.hiddenInput}
+                    accept="image/*,.pdf,.doc,.docx,.txt"
+                    multiple
+                    onChange={handleFileSelect}
+                    disabled={submitting}
+                  />
+
+                  {files.length < MAX_FILES && (
+                    <button
+                      type="button"
+                      className={styles.addFileBtn}
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={submitting}
+                    >
+                      + Add file
+                    </button>
+                  )}
+
+                  {files.length > 0 && (
+                    <ul className={styles.fileList}>
+                      {files.map((file, i) => {
+                        const err = validateFile(file);
+                        return (
+                          <li key={i} className={`${styles.fileItem}${err ? ` ${styles.fileItemError}` : ""}`}>
+                            <span className={styles.fileName}>{file.name}</span>
+                            <span className={styles.fileSize}>{formatFileSize(file.size)}</span>
+                            {err && <span className={styles.fileError}>{err}</span>}
+                            <button
+                              type="button"
+                              className={styles.fileRemove}
+                              onClick={() => handleRemoveFile(i)}
+                              aria-label={`Remove ${file.name}`}
+                              disabled={submitting}
+                            >
+                              ✕
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+
+                  <p className={styles.fileHint}>
+                    Images, PDF, Word, or text files. Max 5 MB each, up to 5 files.
+                  </p>
                 </div>
 
                 {/* Actions */}
@@ -234,7 +373,7 @@ export default function FeedbackButton() {
                     className={styles.submitBtn}
                     disabled={submitting}
                   >
-                    {submitting ? "Submitting..." : "Submit Feedback"}
+                    {submitting ? "Submitting…" : "Send Feedback"}
                   </button>
                 </div>
               </form>

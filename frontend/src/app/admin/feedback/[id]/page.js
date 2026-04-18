@@ -8,6 +8,7 @@ import {
   getAuthName,
   signOut,
   adminGql,
+  downloadAttachment,
 } from "../../../lib/api";
 import UserMenu from "../../../components/UserMenu";
 import styles from "./admin-feedback-detail.module.css";
@@ -416,6 +417,19 @@ export default function AdminFeedbackDetailPage() {
   const [loading, setLoading]     = useState(true);
   const [pageError, setPageError] = useState("");
   const [actionMsg, setActionMsg] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
+
+  const handleDownload = useCallback(async (attachmentId) => {
+    if (!token) return;
+    setDownloadingId(attachmentId);
+    try {
+      await downloadAttachment(attachmentId, token, true);
+    } catch {
+      // non-fatal
+    } finally {
+      setDownloadingId(null);
+    }
+  }, [token]);
 
   /* ----- Load detail ----- */
   const loadData = useCallback((bound, feedbackId) => {
@@ -553,10 +567,19 @@ export default function AdminFeedbackDetailPage() {
                 <ul className={styles.attachmentList}>
                   {feedback.attachments.map((att) => (
                     <li key={att.id} className={styles.attachmentItem}>
-                      <span className={styles.attachmentName}>{att.filename}</span>
-                      <span className={styles.attachmentMeta}>
-                        {att.mimeType} · {Math.round(att.fileSize / 1024)} KB
-                      </span>
+                      <div className={styles.attachmentInfo}>
+                        <span className={styles.attachmentName}>{att.filename}</span>
+                        <span className={styles.attachmentMeta}>
+                          {att.mimeType} · {Math.round(att.fileSize / 1024)} KB
+                        </span>
+                      </div>
+                      <button
+                        className={styles.attachmentDownload}
+                        onClick={() => handleDownload(att.id)}
+                        disabled={downloadingId === att.id}
+                      >
+                        {downloadingId === att.id ? "Downloading…" : "Download"}
+                      </button>
                     </li>
                   ))}
                 </ul>

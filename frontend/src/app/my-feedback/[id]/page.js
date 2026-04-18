@@ -7,6 +7,7 @@ import {
   getAuthName,
   signOut,
   volunteerGql,
+  downloadAttachment,
 } from "../../lib/api";
 import UserMenu from "../../components/UserMenu";
 import styles from "./my-feedback-detail.module.css";
@@ -133,6 +134,19 @@ export default function FeedbackDetailPage() {
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [downloadingId, setDownloadingId] = useState(null);
+
+  const handleDownload = useCallback(async (attachmentId) => {
+    if (!token) return;
+    setDownloadingId(attachmentId);
+    try {
+      await downloadAttachment(attachmentId, token, false);
+    } catch {
+      // non-fatal — browser will show nothing; could add a toast here
+    } finally {
+      setDownloadingId(null);
+    }
+  }, [token]);
 
   const loadData = useCallback(async (boundGql) => {
     setLoading(true);
@@ -244,6 +258,32 @@ export default function FeedbackDetailPage() {
                     <NoteItem key={note.id} note={note} />
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Attachments */}
+            {item.attachments && item.attachments.length > 0 && (
+              <div className={styles.card}>
+                <h2 className={styles.attachTitle}>Attachments</h2>
+                <ul className={styles.attachList}>
+                  {item.attachments.map((att) => (
+                    <li key={att.id} className={styles.attachItem}>
+                      <div className={styles.attachInfo}>
+                        <span className={styles.attachName}>{att.filename}</span>
+                        <span className={styles.attachMeta}>
+                          {Math.round(att.fileSize / 1024)} KB
+                        </span>
+                      </div>
+                      <button
+                        className={styles.attachDownload}
+                        onClick={() => handleDownload(att.id)}
+                        disabled={downloadingId === att.id}
+                      >
+                        {downloadingId === att.id ? "Downloading…" : "Download"}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
           </>

@@ -301,6 +301,45 @@ export async function createEventWithShift(
 /*  Volunteer helpers                                                    */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Attach a small file to an existing feedback item via the volunteer endpoint.
+ * Used in test setup to seed attachment data without going through the UI.
+ */
+export async function attachFileToFeedback(
+  volunteerToken: string,
+  feedbackId: string,
+  filename = "test-attachment.txt",
+  content = "E2E test attachment content"
+): Promise<void> {
+  const operations = JSON.stringify({
+    query: `mutation AttachFile($feedbackId: ID!, $file: Upload!) {
+      attachFileToFeedback(feedbackId: $feedbackId, file: $file) { success message }
+    }`,
+    variables: { feedbackId, file: null },
+  });
+  const map = JSON.stringify({ "0": ["variables.file"] });
+
+  const form = new FormData();
+  form.append("operations", operations);
+  form.append("map", map);
+  form.append("0", new Blob([content], { type: "text/plain" }), filename);
+
+  const res = await fetch(VOLUNTEER_URL, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${volunteerToken}` },
+    body: form,
+  });
+  if (!res.ok) throw new Error(`attachFileToFeedback: HTTP ${res.status}`);
+  const json = (await res.json()) as {
+    data?: { attachFileToFeedback?: { success: boolean; message?: string } };
+    errors?: Array<{ message: string }>;
+  };
+  if (json.errors?.length) throw new Error(json.errors.map((e) => e.message).join("; "));
+  if (!json.data?.attachFileToFeedback?.success) {
+    throw new Error(`attachFileToFeedback failed: ${json.data?.attachFileToFeedback?.message ?? "unknown"}`);
+  }
+}
+
 /** Submit feedback as a volunteer. Returns the new feedback's ID. */
 export async function submitFeedback(
   volunteerToken: string,

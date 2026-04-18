@@ -270,21 +270,55 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 1rem;
   padding: 0.5rem 0.75rem;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
 }
 
+.attachmentInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  overflow: hidden;
+}
+
 .attachmentName {
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .attachmentMeta {
   font-size: 0.8rem;
   color: var(--color-text-muted);
+}
+
+.attachmentDownload {
+  flex-shrink: 0;
+  padding: 0.25rem 0.75rem;
+  background: transparent;
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.12s, color 0.12s;
+}
+
+.attachmentDownload:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.attachmentDownload:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 /* ----- Action panels ----- */

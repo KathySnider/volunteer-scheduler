@@ -16,6 +16,7 @@ type Query {
   allVolunteers(filter: VolunteerFilterInput): [Volunteer!]!
   volunteerShifts(volunteerId: ID!, filter: ShiftTimeFilter!): [VolunteerShift!]!
   filteredEvents(filter: EventFilterInput): [Event!]!
+  filteredEventsWithShifts(filter: EventFilterInput): [Event!]!
   opportunitiesForEvent(eventId: ID!): [Opportunity!]!
   feedback(filter: FeedbackFilterInput): [Feedback!]!
   feedbackById(feedbackId: ID!): Feedback
