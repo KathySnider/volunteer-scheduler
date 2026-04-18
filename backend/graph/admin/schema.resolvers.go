@@ -470,6 +470,15 @@ func (r *queryResolver) FilteredEvents(ctx context.Context, filter *generated.Ev
 	return toGenEvents(events), nil
 }
 
+// FilteredEventsWithShifts is the resolver for the filteredEventsWithShifts field.
+func (r *queryResolver) FilteredEventsWithShifts(ctx context.Context, filter *generated.EventFilterInput) ([]*generated.Event, error) {
+	events, err := r.EventService.FetchFilteredEventsWithShifts(ctx, toModelEventFilterInput(filter))
+	if err != nil {
+		return nil, err
+	}
+	return toGenEvents(events), nil
+}
+
 // OpportunitiesForEvent is the resolver for the opportunitiesForEvent field.
 func (r *queryResolver) OpportunitiesForEvent(ctx context.Context, eventID string) ([]*generated.Opportunity, error) {
 	opps, err := r.ShiftService.FetchOpportunitiesForEvent(ctx, eventID)

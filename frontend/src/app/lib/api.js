@@ -50,6 +50,75 @@ export function adminGql(query, variables, token) {
   return gqlFetch(ADMIN_URL, query, variables, token);
 }
 
+/**
+ * Upload a single file as a GraphQL multipart request
+ * (graphql-multipart-request-spec). Used for the attachFileToFeedback mutation.
+ * The caller passes variables WITHOUT the file key — this function sets it to
+ * null in `operations` and maps the real File object via the `map` part.
+ */
+export async function volunteerGqlUpload(query, variables, file, token) {
+  const operations = JSON.stringify({
+    query,
+    variables: { ...variables, file: null },
+  });
+  const map = JSON.stringify({ "0": ["variables.file"] });
+
+  const form = new FormData();
+  form.append("operations", operations);
+  form.append("map", map);
+  form.append("0", file, file.name);
+
+  const response = await fetch(VOLUNTEER_URL, {
+    method: "POST",
+    // Do NOT set Content-Type — the browser sets it with the correct boundary.
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Server returned HTTP ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Fetch one attachment's binary data (returned as Base64 by the server) and
+ * trigger a browser file-download. Pass useAdminEndpoint=true on admin pages.
+ */
+export async function downloadAttachment(attachmentId, token, useAdminEndpoint = false) {
+  const url = useAdminEndpoint ? ADMIN_URL : VOLUNTEER_URL;
+  const res = await gqlFetch(
+    url,
+    `query GetAttachment($id: ID!) {
+      attachment(attachmentId: $id) {
+        filename
+        mimeType
+        data
+      }
+    }`,
+    { id: attachmentId },
+    token
+  );
+
+  const att = res.data?.attachment;
+  if (!att) throw new Error("Attachment not found");
+
+  // Base64 → Uint8Array → Blob → object URL → programmatic click
+  const binary = atob(att.data);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const blob = new Blob([bytes], { type: att.mimeType });
+  const objectUrl = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = objectUrl;
+  a.download = att.filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(objectUrl);
+}
+
 /** Read the session token from localStorage (client-side only). */
 export function getAuthToken() {
   if (typeof window === "undefined") return null;
