@@ -11,6 +11,7 @@ import {
   setAuthToken,
 } from "../lib/api";
 import UserMenu from "../components/UserMenu";
+import FeedbackButton from "../components/FeedbackButton";
 import styles from "./profile.module.css";
 
 /* =========================================================
@@ -242,6 +243,8 @@ export default function ProfilePage() {
           </form>
         )}
       </div>
+
+      <FeedbackButton />
     </div>
   );
 }

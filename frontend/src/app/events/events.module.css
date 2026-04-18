@@ -25,23 +25,38 @@
   z-index: 30;
 }
 
+.topBarLeft {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
 .appTitle {
   font-size: 1rem;
   font-weight: 700;
   color: var(--color-text);
+  white-space: nowrap;
 }
 
-.topBarRight {
+.topBarNav {
   display: flex;
   align-items: center;
   gap: 1.25rem;
 }
 
+/* Shared style for both <a> and <button> nav items */
 .topBarLink {
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--color-primary);
   text-decoration: none;
+  /* button element resets */
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  line-height: inherit;
 }
 
 .topBarLink:hover {

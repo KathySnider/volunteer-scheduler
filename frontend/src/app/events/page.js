@@ -290,6 +290,7 @@ export default function EventsPage() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   /* ----- Auth check ----- */
   useEffect(() => {
@@ -454,12 +455,22 @@ export default function EventsPage() {
 
       {/* ---- Top bar ---- */}
       <div className={styles.topBar}>
-        <div className={styles.appTitle}>AARP Volunteer Events</div>
-        <div className={styles.topBarRight}>
-          <a href="/my-shifts" className={styles.topBarLink}>My Shifts</a>
-          <a href="/my-feedback" className={styles.topBarLink}>My Feedback</a>
-          <UserMenu name={userName} isAdmin={isAdmin} onSignOut={handleSignOut} />
+        <div className={styles.topBarLeft}>
+          <div className={styles.appTitle}>AARP Volunteer Events</div>
+          <nav className={styles.topBarNav}>
+            <a href="/my-shifts" className={styles.topBarLink}>My Shifts</a>
+            <a href="/profile" className={styles.topBarLink}>My Profile</a>
+            <button
+              type="button"
+              className={styles.topBarLink}
+              onClick={() => setFeedbackOpen(true)}
+            >
+              Submit Feedback
+            </button>
+            <a href="/my-feedback" className={styles.topBarLink}>My Feedback</a>
+          </nav>
         </div>
+        <UserMenu name={userName} isAdmin={isAdmin} onSignOut={handleSignOut} />
       </div>
 
       {/* ---- Filter bar ---- */}
@@ -576,7 +587,10 @@ export default function EventsPage() {
         )}
       </main>
 
-      <FeedbackButton />
+      <FeedbackButton
+        open={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+      />
     </div>
   );
 }

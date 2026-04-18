@@ -54,8 +54,33 @@ function validateFile(file) {
 
 /* ----- FeedbackButton component ----- */
 
-export default function FeedbackButton() {
-  const [open, setOpen] = useState(false);
+/**
+ * Can be used in two modes:
+ *
+ * Uncontrolled (default): renders a floating "?" button that opens the modal internally.
+ *   <FeedbackButton />
+ *
+ * Controlled: parent supplies open/onClose; no floating button is rendered.
+ *   <FeedbackButton open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
+ */
+export default function FeedbackButton({ open: controlledOpen, onClose: controlledOnClose } = {}) {
+  const isControlled = controlledOpen !== undefined;
+
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Unified open value — use controlled prop when provided, otherwise internal state
+  const open = isControlled ? controlledOpen : internalOpen;
+
+  // Unified setter — in controlled mode, closing notifies the parent; opening is a no-op
+  // (the parent decides when to open). In uncontrolled mode, drive internal state directly.
+  const setOpen = useCallback((val) => {
+    if (isControlled) {
+      if (!val) controlledOnClose?.();
+    } else {
+      setInternalOpen(val);
+    }
+  }, [isControlled, controlledOnClose]);
+
   const [type, setType] = useState("BUG");
   const [subject, setSubject] = useState("");
   const [text, setText] = useState("");
@@ -204,15 +229,32 @@ export default function FeedbackButton() {
 
   return (
     <>
-      {/* Floating button */}
-      <button
-        className={styles.floatingBtn}
-        onClick={() => setOpen(true)}
-        aria-label="Submit feedback"
-        title="Submit feedback"
-      >
-        ?
-      </button>
+      {/* Floating button — only rendered in uncontrolled mode */}
+      {!isControlled && (
+        <button
+          className={styles.floatingBtn}
+          onClick={() => setOpen(true)}
+          aria-label="Submit feedback"
+          title="Submit feedback"
+        >
+          {/* Edit / write icon */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+        </button>
+      )}
 
       {/* Modal overlay */}
       {open && (
