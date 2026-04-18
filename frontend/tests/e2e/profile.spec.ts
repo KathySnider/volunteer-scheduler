@@ -30,14 +30,20 @@ test.describe("Profile page — loading", () => {
     volunteerPage,
   }) => {
     await volunteerPage.goto("/events");
-    await expect(volunteerPage.getByRole("link", { name: "My Profile" })).toBeVisible();
+    // Scope to the <nav> to avoid matching the duplicate link inside UserMenu
+    await expect(
+      volunteerPage.getByRole("navigation").getByRole("link", { name: "My Profile" })
+    ).toBeVisible();
   });
 
   test("My Profile link is visible in the top bar for admins", async ({
     adminPage,
   }) => {
     await adminPage.goto("/events");
-    await expect(adminPage.getByRole("link", { name: "My Profile" })).toBeVisible();
+    // Scope to the <nav> to avoid matching the duplicate link inside UserMenu
+    await expect(
+      adminPage.getByRole("navigation").getByRole("link", { name: "My Profile" })
+    ).toBeVisible();
   });
 });
 

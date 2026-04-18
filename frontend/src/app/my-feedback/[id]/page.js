@@ -10,6 +10,7 @@ import {
   downloadAttachment,
 } from "../../lib/api";
 import UserMenu from "../../components/UserMenu";
+import FeedbackButton from "../../components/FeedbackButton";
 import styles from "./my-feedback-detail.module.css";
 
 /* ----- GraphQL ----- */
@@ -289,6 +290,8 @@ export default function FeedbackDetailPage() {
           </>
         )}
       </main>
+
+      <FeedbackButton />
     </div>
   );
 }
