@@ -5,9 +5,9 @@
 -- Run AFTER migrations have been applied (e.g. after docker-compose up --build).
 -- Run trunc.sql first if you want a clean reload.
 --
--- Lookup tables (job_types, service_types, regions) are seeded by the
--- migrations themselves and are NOT re-inserted here.
--- These upserts below are a safety net in case migrations ran incompletely.
+-- Lookup tables (job_types, service_types, funding_entities) are seeded by
+-- the migration and are NOT re-inserted here.
+-- The upserts below are a safety net in case the migration ran incompletely.
 -- ============================================================================
 
 -- Safety-net: re-seed service_types (ON CONFLICT = no-op if already there)
@@ -19,12 +19,12 @@ INSERT INTO service_types (code, name) VALUES
     ('other',           'Other')
 ON CONFLICT (code) DO NOTHING;
 
--- Safety-net: re-seed regions
-INSERT INTO regions (code, name) VALUES
-    ('seattle',      'Seattle Metro'),
-    ('spokane',      'Spokane'),
-    ('southwest_wa', 'Southwest WA')
-ON CONFLICT (code) DO NOTHING;
+-- Safety-net: re-seed funding_entities (ON CONFLICT = no-op if already there)
+INSERT INTO funding_entities (name) VALUES
+    ('Seattle Area'),
+    ('Spokane Area'),
+    ('Statewide')
+ON CONFLICT (name) DO NOTHING;
 
 
 -- ============================================================================
@@ -32,39 +32,13 @@ ON CONFLICT (code) DO NOTHING;
 -- ============================================================================
 
 INSERT INTO venues (venue_name, street_address, city, state, zip_code, timezone) VALUES
-    ('Seattle Central Library',     '1000 4th Ave',             'Seattle',       'WA', '98104', 'America/Los_Angeles'),
-    ('Spokane Convention Center',   '334 W Spokane Falls Blvd', 'Spokane',       'WA', '99201', 'America/Los_Angeles'),
-    ('Tacoma Convention Center',    '1500 Broadway',            'Tacoma',        'WA', '98402', 'America/Los_Angeles'),
-    ('Vancouver Community Library', '901 C St',                 'Vancouver',     'WA', '98660', 'America/Los_Angeles'),
-    ('Bellevue City Hall',          '450 110th Ave NE',         'Bellevue',      'WA', '98004', 'America/Los_Angeles'),
-    ('Spokane Valley Library',      '12004 E Main Ave',         'Spokane Valley','WA', '99206', 'America/Los_Angeles'),
-    ('Olympia Center',              '222 Columbia St NW',       'Olympia',       'WA', '98501', 'America/Los_Angeles');
-
-
--- ============================================================================
--- VENUE REGIONS
--- ============================================================================
-
--- Seattle Metro: Seattle, Tacoma, Bellevue
-INSERT INTO venue_regions (venue_id, region_id)
-SELECT v.venue_id, r.region_id
-FROM venues v, regions r
-WHERE v.city IN ('Seattle', 'Tacoma', 'Bellevue')
-  AND r.code = 'seattle';
-
--- Spokane: Spokane, Spokane Valley
-INSERT INTO venue_regions (venue_id, region_id)
-SELECT v.venue_id, r.region_id
-FROM venues v, regions r
-WHERE v.city IN ('Spokane', 'Spokane Valley')
-  AND r.code = 'spokane';
-
--- Southwest WA: Vancouver, Olympia
-INSERT INTO venue_regions (venue_id, region_id)
-SELECT v.venue_id, r.region_id
-FROM venues v, regions r
-WHERE v.city IN ('Vancouver', 'Olympia')
-  AND r.code = 'southwest_wa';
+    ('Seattle Central Library',     '1000 4th Ave',             'Seattle',        'WA', '98104', 'America/Los_Angeles'),
+    ('Spokane Convention Center',   '334 W Spokane Falls Blvd', 'Spokane',        'WA', '99201', 'America/Los_Angeles'),
+    ('Tacoma Convention Center',    '1500 Broadway',            'Tacoma',         'WA', '98402', 'America/Los_Angeles'),
+    ('Vancouver Community Library', '901 C St',                 'Vancouver',      'WA', '98660', 'America/Los_Angeles'),
+    ('Bellevue City Hall',          '450 110th Ave NE',         'Bellevue',       'WA', '98004', 'America/Los_Angeles'),
+    ('Spokane Valley Library',      '12004 E Main Ave',         'Spokane Valley', 'WA', '99206', 'America/Los_Angeles'),
+    ('Olympia Center',              '222 Columbia St NW',       'Olympia',        'WA', '98501', 'America/Los_Angeles');
 
 
 -- ============================================================================
@@ -106,61 +80,74 @@ INSERT INTO staff (first_name, last_name, email, phone, position) VALUES
 --   event_is_virtual=FALSE, venue_id IS NOT NULL  → IN_PERSON
 --   event_is_virtual=TRUE,  venue_id IS NULL       → VIRTUAL
 --   event_is_virtual=TRUE,  venue_id IS NOT NULL   → HYBRID
+--
+-- funding_entity_id maps to the funding_entities table seeded by the migration:
+--   1 = Seattle Area  (western WA: Seattle, Bellevue, Tacoma, Vancouver, Olympia)
+--   2 = Spokane Area  (eastern WA: Spokane, Spokane Valley)
+--   3 = Statewide     (virtual or state-wide events)
 -- ============================================================================
 
--- Seattle Metro - IN_PERSON
-INSERT INTO events (event_name, description, event_is_virtual, venue_id) VALUES
+-- Seattle Area - IN_PERSON
+INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id) VALUES
     ('Medicare Q&A Workshop',
      'Help seniors navigate Medicare enrollment and plan options. Volunteers assist with one-on-one sessions.',
      FALSE,
-     (SELECT venue_id FROM venues WHERE city = 'Seattle'));
+     (SELECT venue_id FROM venues WHERE city = 'Seattle'),
+     (SELECT id FROM funding_entities WHERE name = 'Seattle Area' LIMIT 1));
 
-INSERT INTO events (event_name, description, event_is_virtual, venue_id) VALUES
+INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id) VALUES
     ('Tax Aide Preparation - Spring Session',
      'Free tax preparation assistance for low-to-moderate income seniors. Training provided.',
      FALSE,
-     (SELECT venue_id FROM venues WHERE city = 'Bellevue'));
+     (SELECT venue_id FROM venues WHERE city = 'Bellevue'),
+     (SELECT id FROM funding_entities WHERE name = 'Seattle Area' LIMIT 1));
 
--- VIRTUAL
-INSERT INTO events (event_name, description, event_is_virtual, venue_id) VALUES
+-- Statewide - VIRTUAL
+INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id) VALUES
     ('Virtual Fraud Prevention Seminar',
      'Online session covering the latest scams targeting seniors and how to stay safe.',
      TRUE,
-     NULL);
+     NULL,
+     (SELECT id FROM funding_entities WHERE name = 'Statewide' LIMIT 1));
 
--- HYBRID (in-person venue + also streamed online)
-INSERT INTO events (event_name, description, event_is_virtual, venue_id) VALUES
+-- Seattle Area - HYBRID (in-person venue + also streamed online)
+INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id) VALUES
     ('Hybrid Benefits Counseling Day',
      'One-on-one benefits counseling available both in person and via video call. '
      'Volunteers help with check-in and virtual waiting room management.',
      TRUE,
-     (SELECT venue_id FROM venues WHERE city = 'Tacoma'));
+     (SELECT venue_id FROM venues WHERE city = 'Tacoma'),
+     (SELECT id FROM funding_entities WHERE name = 'Seattle Area' LIMIT 1));
 
--- Spokane - IN_PERSON
-INSERT INTO events (event_name, description, event_is_virtual, venue_id) VALUES
+-- Spokane Area - IN_PERSON
+INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id) VALUES
     ('Spokane Senior Health Fair',
      'Community health fair with blood pressure checks, medication reviews, and wellness resources.',
      FALSE,
-     (SELECT venue_id FROM venues WHERE city = 'Spokane'));
+     (SELECT venue_id FROM venues WHERE city = 'Spokane'),
+     (SELECT id FROM funding_entities WHERE name = 'Spokane Area' LIMIT 1));
 
-INSERT INTO events (event_name, description, event_is_virtual, venue_id) VALUES
+INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id) VALUES
     ('Driver Safety Course',
      'AARP Smart Driver course for seniors. Volunteers help with registration and materials.',
      FALSE,
-     (SELECT venue_id FROM venues WHERE city = 'Spokane Valley'));
+     (SELECT venue_id FROM venues WHERE city = 'Spokane Valley'),
+     (SELECT id FROM funding_entities WHERE name = 'Spokane Area' LIMIT 1));
 
--- Southwest WA - IN_PERSON
-INSERT INTO events (event_name, description, event_is_virtual, venue_id) VALUES
+-- Seattle Area - IN_PERSON (western WA)
+INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id) VALUES
     ('Social Security Benefits Workshop',
      'Informational session on maximizing Social Security benefits. Volunteers greet and assist attendees.',
      FALSE,
-     (SELECT venue_id FROM venues WHERE city = 'Vancouver'));
+     (SELECT venue_id FROM venues WHERE city = 'Vancouver'),
+     (SELECT id FROM funding_entities WHERE name = 'Seattle Area' LIMIT 1));
 
-INSERT INTO events (event_name, description, event_is_virtual, venue_id) VALUES
+INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id) VALUES
     ('Caregiver Support Forum',
      'Forum connecting family caregivers with local resources and support networks.',
      FALSE,
-     (SELECT venue_id FROM venues WHERE city = 'Olympia'));
+     (SELECT venue_id FROM venues WHERE city = 'Olympia'),
+     (SELECT id FROM funding_entities WHERE name = 'Seattle Area' LIMIT 1));
 
 
 -- ============================================================================
@@ -255,10 +242,6 @@ FROM events WHERE event_name = 'Caregiver Support Forum';
 
 -- ============================================================================
 -- OPPORTUNITIES AND SHIFTS
---
--- opportunities.job_type_id is a FK to the job_types lookup table.
--- job_types is seeded by migration 000002 with codes:
---   event_support, advocacy, speaker, volunteer_lead, attendee_only, other
 -- ============================================================================
 
 -- Medicare Q&A Workshop - event_support
@@ -462,7 +445,7 @@ WHERE v.first_name = 'Frank'
   AND jt.code = 'event_support'
   AND s.shift_start = '2026-05-10 08:30:00';
 
--- Isabel: Medicare Q&A advocacy slot (fully fills that 2-person opportunity)
+-- Isabel and James: Medicare Q&A advocacy slot (fully fills that 2-person opportunity)
 INSERT INTO volunteer_shifts (volunteer_id, shift_id, assigned_at)
 SELECT v.volunteer_id, s.shift_id, NOW()
 FROM volunteers v, shifts s
@@ -542,9 +525,10 @@ SELECT volunteer_id, 'ENHANCEMENT', 'OPEN',
 FROM volunteers WHERE first_name = 'David';
 
 -- Admin note on the bug report
-INSERT INTO feedback_notes (feedback_id, volunteer_id, note, created_at)
+INSERT INTO feedback_notes (feedback_id, volunteer_id, note, note_type, created_at)
 SELECT f.feedback_id, v.volunteer_id,
     'Reproduced the issue. Looks like the event date is being stored correctly in UTC but displaying without timezone conversion. Assigned to dev team.',
+    'ADMIN_NOTE',
     NOW() - INTERVAL '2 days'
 FROM feedback f, volunteers v
 WHERE f.subject = 'Event date not showing correctly'

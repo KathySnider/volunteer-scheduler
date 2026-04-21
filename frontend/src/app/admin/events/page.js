@@ -30,6 +30,7 @@ const FILTERED_EVENTS = `
       name
       eventType
       venue { city state }
+      fundingEntity { name }
       eventDates { startDateTime }
       shiftSummaries { assignedVolunteers maxVolunteers }
     }
@@ -327,7 +328,7 @@ export default function AdminEventsPage() {
         <div className={styles.pageHeader}>
           <h1 className={styles.pageTitle}>
             Manage Events
-            {!loading && events.length > 0 && (
+            {!loading && (
               <span className={styles.eventCount}>({events.length})</span>
             )}
           </h1>
@@ -445,6 +446,7 @@ export default function AdminEventsPage() {
                   <th>Event Name</th>
                   <th>Date</th>
                   <th>Location</th>
+                  <th>Region</th>
                   <th>Format</th>
                   <th className={styles.right}>Volunteers</th>
                   <th className={styles.right}>Actions</th>
@@ -465,14 +467,15 @@ export default function AdminEventsPage() {
                       <td>
                         <div className={styles.eventName}>{event.name}</div>
                       </td>
-                      <td>{formatDate(earliestDate(event.eventDates))}</td>
-                      <td>{location}</td>
-                      <td>
+                      <td className={styles.tdNoWrap}>{formatDate(earliestDate(event.eventDates))}</td>
+                      <td className={styles.tdLocation} title={location}>{location}</td>
+                      <td className={styles.tdNoWrap}>{event.fundingEntity?.name ?? "—"}</td>
+                      <td className={styles.tdNoWrap}>
                         <span className={`${styles.badge} ${FORMAT_BADGE[event.eventType] ?? ""}`}>
                           {FORMAT_LABEL[event.eventType] ?? event.eventType}
                         </span>
                       </td>
-                      <td className={styles.right}>
+                      <td className={`${styles.right} ${styles.tdNoWrap}`}>
                         {max > 0 ? (
                           <span className={isFull ? styles.countFull : styles.countOpen}>
                             {assigned}/{max}
@@ -483,7 +486,7 @@ export default function AdminEventsPage() {
                           </span>
                         )}
                       </td>
-                      <td className={styles.right}>
+                      <td className={`${styles.right} ${styles.tdNoWrap}`}>
                         <div className={styles.actions}>
                           <button
                             className={`${styles.iconBtn} ${styles.iconBtnEdit}`}

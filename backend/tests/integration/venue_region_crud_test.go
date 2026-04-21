@@ -25,29 +25,19 @@ const (
 			deleteVenue(venueId: $id) { success message id }
 		}`
 
-	mutCreateRegion = `
-		mutation CreateRegion($input: NewRegionInput!) {
-			createRegion(newRegion: $input) { success message id }
+	mutCreateFundingEntity = `
+		mutation CreateFundingEntity($input: NewFundingEntityInput!) {
+			createFundingEntity(input: $input) { success message id }
 		}`
 
-	mutUpdateRegion = `
-		mutation UpdateRegion($input: UpdateRegionInput!) {
-			updateRegion(region: $input) { success message id }
+	mutUpdateFundingEntity = `
+		mutation UpdateFundingEntity($input: UpdateFundingEntityInput!) {
+			updateFundingEntity(input: $input) { success message id }
 		}`
 
-	mutDeleteRegion = `
-		mutation DeleteRegion($id: Int!) {
-			deleteRegion(regionId: $id) { success message id }
-		}`
-
-	mutAddVenueRegion = `
-		mutation AddVenueRegion($venueId: Int!, $regionId: Int!) {
-			addVenueRegion(venueId: $venueId, regionId: $regionId) { success message id }
-		}`
-
-	mutRemoveVenueRegion = `
-		mutation RemoveVenueRegion($venueId: Int!, $regionId: Int!) {
-			removeVenueRegion(venueId: $venueId, regionId: $regionId) { success message id }
+	mutDeleteFundingEntity = `
+		mutation DeleteFundingEntity($id: Int!) {
+			deleteFundingEntity(id: $id) { success message id }
 		}`
 )
 
@@ -57,10 +47,8 @@ const (
 
 // TestCreateVenue verifies that a new venue can be created via the admin
 // mutation and that the returned ID maps to a row in the DB.
-// The service requires at least one region, so we seed one and pass it.
 func TestCreateVenue(t *testing.T) {
 	token := makeAdminToken(t)
-	regionID := seedRegion(t, uniqueCode(t, "vcr"), "Venue Create Region")
 
 	resp := gqlPost(t, "/graphql/admin", token, mutCreateVenue, map[string]any{
 		"input": map[string]any{
@@ -69,7 +57,6 @@ func TestCreateVenue(t *testing.T) {
 			"city":     "Portland",
 			"state":    "OR",
 			"ianaZone": "America/Los_Angeles",
-			"region":   []int{regionID},
 		},
 	})
 
@@ -172,19 +159,18 @@ func TestDeleteVenue(t *testing.T) {
 }
 
 // ============================================================================
-// createRegion
+// createFundingEntity
 // ============================================================================
 
-// TestCreateRegion verifies that a new region can be created via the admin
-// mutation and that the returned ID maps to a row in the DB.
-func TestCreateRegion(t *testing.T) {
+// TestCreateFundingEntity verifies that a new funding entity can be created
+// via the admin mutation and that the returned ID maps to a row in the DB.
+func TestCreateFundingEntity(t *testing.T) {
 	token := makeAdminToken(t)
-	code := uniqueCode(t, "rgn")
 
-	resp := gqlPost(t, "/graphql/admin", token, mutCreateRegion, map[string]any{
+	resp := gqlPost(t, "/graphql/admin", token, mutCreateFundingEntity, map[string]any{
 		"input": map[string]any{
-			"code": code,
-			"name": "CRUD Test Region",
+			"name":        "East Side",
+			"description": "East side area offices",
 		},
 	})
 
@@ -193,38 +179,37 @@ func TestCreateRegion(t *testing.T) {
 	}
 
 	var result mutationResult
-	unmarshalField(t, resp, "createRegion", &result)
+	unmarshalField(t, resp, "createFundingEntity", &result)
 
 	if !result.Success {
-		t.Fatalf("createRegion returned success=false: %v", result.Message)
+		t.Fatalf("createFundingEntity returned success=false: %v", result.Message)
 	}
 	if result.ID == nil || *result.ID == "" {
-		t.Fatal("expected a non-empty region ID in response")
+		t.Fatal("expected a non-empty id in response")
 	}
 
-	regionID := *result.ID
-	t.Cleanup(func() { testDB.Exec("DELETE FROM regions WHERE region_id = $1", regionID) })
+	id := *result.ID
+	t.Cleanup(func() { testDB.Exec("DELETE FROM funding_entities WHERE id = $1", id) })
 
-	if !rowExists(t, "SELECT COUNT(*) FROM regions WHERE region_id = $1", regionID) {
-		t.Errorf("expected region row in DB for id=%s", regionID)
+	if !rowExists(t, "SELECT COUNT(*) FROM funding_entities WHERE id = $1", id) {
+		t.Errorf("expected funding_entity row in DB for id=%s", id)
 	}
 }
 
 // ============================================================================
-// updateRegion
+// updateFundingEntity
 // ============================================================================
 
-// TestUpdateRegion verifies that a region's name can be changed and the update
-// is persisted to the DB.
-func TestUpdateRegion(t *testing.T) {
+// TestUpdateFundingEntity verifies that a funding entity's name can be changed
+// and the update is persisted to the DB.
+func TestUpdateFundingEntity(t *testing.T) {
 	token := makeAdminToken(t)
-	regionID := seedRegion(t, uniqueCode(t, "upd"), "Pre-Update Region")
+	feID := seedFundingEntity(t, "Pre-Update Area")
 
-	resp := gqlPost(t, "/graphql/admin", token, mutUpdateRegion, map[string]any{
+	resp := gqlPost(t, "/graphql/admin", token, mutUpdateFundingEntity, map[string]any{
 		"input": map[string]any{
-			"id":   regionID,
-			"name": "Post-Update Region",
-			"code": uniqueCode(t, "upd2"),
+			"id":   feID,
+			"name": "Post-Update Area",
 		},
 	})
 
@@ -233,34 +218,35 @@ func TestUpdateRegion(t *testing.T) {
 	}
 
 	var result mutationResult
-	unmarshalField(t, resp, "updateRegion", &result)
+	unmarshalField(t, resp, "updateFundingEntity", &result)
 
 	if !result.Success {
-		t.Fatalf("updateRegion returned success=false: %v", result.Message)
+		t.Fatalf("updateFundingEntity returned success=false: %v", result.Message)
 	}
 
 	var name string
 	if err := testDB.QueryRow(
-		"SELECT name FROM regions WHERE region_id = $1", regionID,
+		"SELECT name FROM funding_entities WHERE id = $1", feID,
 	).Scan(&name); err != nil {
-		t.Fatalf("querying updated region: %v", err)
+		t.Fatalf("querying updated funding entity: %v", err)
 	}
-	if name != "Post-Update Region" {
-		t.Errorf("expected name='Post-Update Region', got %q", name)
+	if name != "Post-Update Area" {
+		t.Errorf("expected name='Post-Update Area', got %q", name)
 	}
 }
 
 // ============================================================================
-// deleteRegion
+// deleteFundingEntity
 // ============================================================================
 
-// TestDeleteRegion verifies that deleteRegion removes the region row from the DB.
-func TestDeleteRegion(t *testing.T) {
+// TestDeleteFundingEntity verifies that deleteFundingEntity soft-deletes the
+// entity (sets is_active=false) rather than removing the row.
+func TestDeleteFundingEntity(t *testing.T) {
 	token := makeAdminToken(t)
-	regionID := seedRegion(t, uniqueCode(t, "del"), "Region To Delete")
+	feID := seedFundingEntity(t, "Area To Delete")
 
-	resp := gqlPost(t, "/graphql/admin", token, mutDeleteRegion, map[string]any{
-		"id": regionID,
+	resp := gqlPost(t, "/graphql/admin", token, mutDeleteFundingEntity, map[string]any{
+		"id": feID,
 	})
 
 	if hasGQLErrors(resp) {
@@ -268,99 +254,13 @@ func TestDeleteRegion(t *testing.T) {
 	}
 
 	var result mutationResult
-	unmarshalField(t, resp, "deleteRegion", &result)
+	unmarshalField(t, resp, "deleteFundingEntity", &result)
 
 	if !result.Success {
-		t.Fatalf("deleteRegion returned success=false: %v", result.Message)
+		t.Fatalf("deleteFundingEntity returned success=false: %v", result.Message)
 	}
 
-	if rowExists(t, "SELECT COUNT(*) FROM regions WHERE region_id = $1 AND is_active = TRUE", regionID) {
-		t.Error("expected region to be marked inactive after deleteRegion")
-	}
-}
-
-// ============================================================================
-// addVenueRegion / removeVenueRegion
-// ============================================================================
-
-// TestAddVenueRegion verifies that an admin can link a region to a venue and
-// that the venue_regions join row is created in the DB.
-func TestAddVenueRegion(t *testing.T) {
-	token := makeAdminToken(t)
-	venueID := seedVenue(t, "VR Link Venue", "10 Link Ln", "Bend", "OR", "America/Los_Angeles")
-	regionID := seedRegion(t, uniqueCode(t, "vr"), "VR Link Region")
-
-	// Cleanup the join row before the venue/region rows are deleted (LIFO).
-	t.Cleanup(func() {
-		testDB.Exec(
-			"DELETE FROM venue_regions WHERE venue_id = $1 AND region_id = $2",
-			venueID, regionID,
-		)
-	})
-
-	resp := gqlPost(t, "/graphql/admin", token, mutAddVenueRegion, map[string]any{
-		"venueId":  venueID,
-		"regionId": regionID,
-	})
-
-	if hasGQLErrors(resp) {
-		t.Fatalf("unexpected errors: %v", resp.Errors)
-	}
-
-	var result mutationResult
-	unmarshalField(t, resp, "addVenueRegion", &result)
-
-	if !result.Success {
-		t.Fatalf("addVenueRegion returned success=false: %v", result.Message)
-	}
-
-	if !rowExists(t,
-		"SELECT COUNT(*) FROM venue_regions WHERE venue_id = $1 AND region_id = $2",
-		venueID, regionID,
-	) {
-		t.Error("expected venue_regions row after addVenueRegion")
-	}
-}
-
-// TestRemoveVenueRegion verifies that an admin can unlink a region from a
-// venue and that the venue_regions join row is removed from the DB.
-// The service enforces "venue must have at least one region", so we seed
-// two regions and only remove one.
-func TestRemoveVenueRegion(t *testing.T) {
-	token := makeAdminToken(t)
-	venueID := seedVenue(t, "VR Unlink Venue", "11 Unlink Ln", "Bend", "OR", "America/Los_Angeles")
-	regionID := seedRegion(t, uniqueCode(t, "vru"), "VR Unlink Region")
-	keepRegionID := seedRegion(t, uniqueCode(t, "vrk"), "VR Keep Region")
-
-	// Seed both links. LIFO cleanup order: both venue_regions rows are deleted
-	// before either region row, and both region rows before the venue row.
-	seedVenueRegion(t, venueID, regionID)
-	seedVenueRegion(t, venueID, keepRegionID)
-
-	resp := gqlPost(t, "/graphql/admin", token, mutRemoveVenueRegion, map[string]any{
-		"venueId":  venueID,
-		"regionId": regionID,
-	})
-
-	if hasGQLErrors(resp) {
-		t.Fatalf("unexpected errors: %v", resp.Errors)
-	}
-
-	var result mutationResult
-	unmarshalField(t, resp, "removeVenueRegion", &result)
-
-	if !result.Success {
-		var msg string
-		if result.Message != nil {
-			msg = *result.Message
-		}
-		t.Fatalf("removeVenueRegion returned success=false: %s", msg)
-	}
-
-	if rowExists(t,
-		"SELECT COUNT(*) FROM venue_regions WHERE venue_id = $1 AND region_id = $2",
-		venueID, regionID,
-	) {
-		t.Error("expected venue_regions row to be gone after removeVenueRegion")
+	if rowExists(t, "SELECT COUNT(*) FROM funding_entities WHERE id = $1 AND is_active = TRUE", feID) {
+		t.Error("expected funding entity to be marked inactive after deleteFundingEntity")
 	}
 }

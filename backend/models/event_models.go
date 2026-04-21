@@ -19,6 +19,7 @@ type Event struct {
 	Description    *string
 	EventType      EventType
 	Venue          *Venue
+	FundingEntity  FundingEntity
 	ServiceTypes   []string
 	EventDates     []*EventDate
 	ShiftSummaries []*EventShiftSummary
@@ -51,12 +52,13 @@ type EventFilterInput struct {
 //  Input types for new rows.
 
 type NewEventInput struct {
-	Name         string
-	Description  *string
-	EventType    EventType
-	VenueId      *string
-	ServiceTypes []int
-	EventDates   []*NewEventDateInput
+	Name             string
+	Description      *string
+	EventType        EventType
+	VenueId          *string
+	FundingEntityID  int
+	ServiceTypes     []int
+	EventDates       []*NewEventDateInput
 }
 
 type NewEventDateInput struct {
@@ -75,12 +77,13 @@ type AddEventDateInput struct {
 //  Input types for updates.
 
 type UpdateEventInput struct {
-	ID           string
-	Name         string
-	Description  *string
-	EventType    EventType
-	VenueId      *string
-	ServiceTypes []int
+	ID              string
+	Name            string
+	Description     *string
+	EventType       EventType
+	VenueId         *string
+	FundingEntityID int
+	ServiceTypes    []int
 }
 
 type UpdateEventDateInput struct {

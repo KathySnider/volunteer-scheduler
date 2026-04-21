@@ -9,7 +9,7 @@ import (
 const queryLookupValues = `
 	query {
 		lookupValues {
-			regions {
+			fundingEntities {
 				id
 				name
 			}

@@ -3,10 +3,10 @@ package models
 // Output types
 
 type LookupValues struct {
-	Regions      []*Region
-	ServiceTypes []*ServiceType
-	JobTypes     []*JobType
-	Cities       []string
+	FundingEntities []*FundingEntity
+	ServiceTypes    []*ServiceType
+	JobTypes        []*JobType
+	Cities          []string
 }
 
 // Result types (API-wide).

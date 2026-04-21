@@ -13,35 +13,52 @@ import {
   createVenue,
   createJobType,
   createEventWithShift,
+  deleteEvent,
+  deleteVenue,
+  deleteJobType,
   uniqueName,
 } from "./helpers/api";
 
 test.describe("Shift signup — happy path", () => {
   let eventId: string;
   let eventName: string;
+  let happyVenueId: string;
+  let happyJobTypeId: number;
 
   test.beforeAll(async ({ adminToken }) => {
     eventName = uniqueName("ShiftEvent");
-    const venueId = await createVenue(adminToken, {
+    happyVenueId = await createVenue(adminToken, {
       name: uniqueName("Venue"),
       city: "Testville",
       state: "VA",
     });
     // Use a fully unique code so re-runs don't hit the uniqueness constraint.
-    const jobTypeId = await createJobType(
+    happyJobTypeId = await createJobType(
       adminToken,
       uniqueName("grtg"),
       uniqueName("Greeter")
     );
     const result = await createEventWithShift(adminToken, {
       eventName,
-      venueId,
-      jobTypeId,
+      venueId: happyVenueId,
+      jobTypeId: happyJobTypeId,
       startDateTime: "2027-06-15 09:00:00",
       endDateTime: "2027-06-15 12:00:00",
       maxVolunteers: 5,
     });
     eventId = result.eventId;
+  });
+
+  test.afterAll(async ({ adminToken }) => {
+    if (eventId) {
+      try { await deleteEvent(adminToken, eventId); } catch { /* ignore */ }
+    }
+    if (happyVenueId) {
+      try { await deleteVenue(adminToken, happyVenueId); } catch { /* ignore */ }
+    }
+    if (happyJobTypeId) {
+      try { await deleteJobType(adminToken, happyJobTypeId); } catch { /* ignore */ }
+    }
   });
 
   test("volunteer sees Sign Up button and signs up for a shift", async ({
@@ -97,15 +114,17 @@ test.describe("Shift signup — happy path", () => {
 
 test.describe("Shift signup — full shift", () => {
   let eventId: string;
+  let fullVenueId: string;
+  let fullJobTypeId: number;
 
   test.beforeAll(async ({ adminToken }) => {
     const eventName = uniqueName("FullEvent");
-    const venueId = await createVenue(adminToken, {
+    fullVenueId = await createVenue(adminToken, {
       name: uniqueName("Venue"),
       city: "Testville",
       state: "VA",
     });
-    const jobTypeId = await createJobType(
+    fullJobTypeId = await createJobType(
       adminToken,
       uniqueName("chck"),
       uniqueName("Checker")
@@ -113,8 +132,8 @@ test.describe("Shift signup — full shift", () => {
     // maxVolunteers must be > 0 (DB constraint). Use 1 and fill it via API.
     const result = await createEventWithShift(adminToken, {
       eventName,
-      venueId,
-      jobTypeId,
+      venueId: fullVenueId,
+      jobTypeId: fullJobTypeId,
       startDateTime: "2027-07-10 08:00:00",
       endDateTime: "2027-07-10 11:00:00",
       maxVolunteers: 1,
@@ -135,6 +154,18 @@ test.describe("Shift signup — full shift", () => {
         query: `mutation { assignVolunteerToShift(shiftId: "${result.shiftId}", volunteerId: "1") { success message } }`,
       }),
     });
+  });
+
+  test.afterAll(async ({ adminToken }) => {
+    if (eventId) {
+      try { await deleteEvent(adminToken, eventId); } catch { /* ignore */ }
+    }
+    if (fullVenueId) {
+      try { await deleteVenue(adminToken, fullVenueId); } catch { /* ignore */ }
+    }
+    if (fullJobTypeId) {
+      try { await deleteJobType(adminToken, fullJobTypeId); } catch { /* ignore */ }
+    }
   });
 
   test("full shift shows Full label and no Sign Up button", async ({

@@ -50,7 +50,7 @@ More administration features coming all the time.
 - Cancel upcoming shifts.
 
 #### Manage Venues Page (Admin)
-- Add, edit, and delete venues with region assignments.
+- Add, edit, and delete venues.
 
 #### Manage Volunteers Page (Admin)
 - Search volunteers by name or email.
@@ -221,7 +221,7 @@ docker-compose down -v
 The database is normalized to Third Normal Form (3NF) with the following main entities:
 
 - **Events**: Organization events that need volunteers, with dates and locations.
-- **Venues**: Reusable venue information (address, timezone, regions).
+- **Venues**: Reusable venue information (address, timezone).
 - **Opportunities**: Volunteer roles within events (job type, instructions).
 - **Shifts**: Time slots within an opportunity, with max volunteer capacity.
 - **Volunteers**: Registered volunteers. Administrators are also stored here with `role = 'ADMINISTRATOR'`.
@@ -300,9 +300,11 @@ npm run test:e2e:report   # open the last HTML report
 | Suite | What it covers |
 |---|---|
 | `auth.spec.ts` | Magic-link login, role routing, unknown email, invalid token |
+| `events.spec.ts` | Events listing page, filtering, event count display |
 | `shift-signup.spec.ts` | Sign up for a shift, cancel, full shift, access control |
 | `feedback.spec.ts` | Submit feedback, admin Q&A workflow, note visibility |
-| `admin-event.spec.ts` | Admin creates events, form validation, access control |
+| `admin-event.spec.ts` | Admin creates/edits/deletes events, form validation, access control |
+| `admin-volunteers.spec.ts` | Admin views, edits, and deletes volunteers |
 | `profile.spec.ts` | View and edit volunteer profile |
 
 See `frontend/tests/e2e/README.md` for more details.

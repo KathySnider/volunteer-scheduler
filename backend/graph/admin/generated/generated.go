@@ -55,6 +55,7 @@ type ComplexityRoot struct {
 		Description    func(childComplexity int) int
 		EventDates     func(childComplexity int) int
 		EventType      func(childComplexity int) int
+		FundingEntity  func(childComplexity int) int
 		ID             func(childComplexity int) int
 		Name           func(childComplexity int) int
 		ServiceTypes   func(childComplexity int) int
@@ -106,6 +107,12 @@ type ComplexityRoot struct {
 		NoteType  func(childComplexity int) int
 	}
 
+	FundingEntity struct {
+		Description func(childComplexity int) int
+		ID          func(childComplexity int) int
+		Name        func(childComplexity int) int
+	}
+
 	JobType struct {
 		Code      func(childComplexity int) int
 		ID        func(childComplexity int) int
@@ -115,45 +122,43 @@ type ComplexityRoot struct {
 	}
 
 	LookupValues struct {
-		Cities       func(childComplexity int) int
-		JobTypes     func(childComplexity int) int
-		Regions      func(childComplexity int) int
-		ServiceTypes func(childComplexity int) int
+		Cities          func(childComplexity int) int
+		FundingEntities func(childComplexity int) int
+		JobTypes        func(childComplexity int) int
+		ServiceTypes    func(childComplexity int) int
 	}
 
 	Mutation struct {
-		AddVenueRegion         func(childComplexity int, venueID int, regionID int) int
 		AssignVolunteerToShift func(childComplexity int, shiftID string, volunteerID string) int
 		AttachFileToFeedback   func(childComplexity int, feedbackID string, file graphql.Upload) int
 		CancelShift            func(childComplexity int, shiftID string, volunteerID string) int
 		CreateEvent            func(childComplexity int, newEvent NewEventInput) int
 		CreateEventDate        func(childComplexity int, newDate AddEventDateInput) int
+		CreateFundingEntity    func(childComplexity int, input NewFundingEntityInput) int
 		CreateJobType          func(childComplexity int, newJob NewJobTypeInput) int
 		CreateOpportunity      func(childComplexity int, newOpp NewOpportunityInput) int
-		CreateRegion           func(childComplexity int, newRegion NewRegionInput) int
 		CreateShift            func(childComplexity int, newShift AddShiftInput) int
 		CreateStaff            func(childComplexity int, newStaff NewStaffInput) int
 		CreateVenue            func(childComplexity int, newVenue NewVenueInput) int
 		CreateVolunteer        func(childComplexity int, newVol NewVolunteerInput) int
 		DeleteEvent            func(childComplexity int, eventID string) int
 		DeleteEventDate        func(childComplexity int, eventDateID string) int
+		DeleteFundingEntity    func(childComplexity int, id int) int
 		DeleteJobType          func(childComplexity int, jobID int) int
 		DeleteOpportunity      func(childComplexity int, oppID string) int
-		DeleteRegion           func(childComplexity int, regionID int) int
 		DeleteShift            func(childComplexity int, shiftID string) int
 		DeleteStaff            func(childComplexity int, staffID string) int
 		DeleteVenue            func(childComplexity int, venueID string) int
 		DeleteVolunteer        func(childComplexity int, volunteerID string) int
 		GiveFeedback           func(childComplexity int, feedback NewFeedbackInput) int
 		QuestionFeedback       func(childComplexity int, question QuestionFeedbackInput) int
-		RemoveVenueRegion      func(childComplexity int, venueID int, regionID int) int
 		ResolveFeedback        func(childComplexity int, resolution ResolveFeedbackInput) int
 		UpdateEvent            func(childComplexity int, event UpdateEventInput) int
 		UpdateEventDate        func(childComplexity int, date UpdateEventDateInput) int
 		UpdateFeedback         func(childComplexity int, feedback UpdateFeedbackInput) int
+		UpdateFundingEntity    func(childComplexity int, input UpdateFundingEntityInput) int
 		UpdateJobType          func(childComplexity int, job UpdateJobTypeInput) int
 		UpdateOpportunity      func(childComplexity int, opp UpdateOpportunityInput) int
-		UpdateRegion           func(childComplexity int, region UpdateRegionInput) int
 		UpdateShift            func(childComplexity int, shift UpdateShiftInput) int
 		UpdateStaff            func(childComplexity int, staff UpdateStaffInput) int
 		UpdateVenue            func(childComplexity int, venue UpdateVenueInput) int
@@ -175,26 +180,20 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		AllVolunteers         func(childComplexity int, filter *VolunteerFilterInput) int
-		Attachment            func(childComplexity int, attachmentID string) int
-		EventByID             func(childComplexity int, eventID string) int
-		Feedback              func(childComplexity int, filter *FeedbackFilterInput) int
-		FeedbackByID          func(childComplexity int, feedbackID string) int
-		FilteredEvents        func(childComplexity int, filter *EventFilterInput) int
-		LookupValues          func(childComplexity int) int
-		OpportunitiesForEvent func(childComplexity int, eventID string) int
-		Staff                 func(childComplexity int) int
-		Venues                func(childComplexity int) int
-		VolunteerByID         func(childComplexity int, volunteerID string) int
-		VolunteerProfile      func(childComplexity int) int
-		VolunteerShifts       func(childComplexity int, volunteerID string, filter ShiftTimeFilter) int
-	}
-
-	Region struct {
-		Code     func(childComplexity int) int
-		ID       func(childComplexity int) int
-		IsActive func(childComplexity int) int
-		Name     func(childComplexity int) int
+		AllVolunteers            func(childComplexity int, filter *VolunteerFilterInput) int
+		Attachment               func(childComplexity int, attachmentID string) int
+		EventByID                func(childComplexity int, eventID string) int
+		Feedback                 func(childComplexity int, filter *FeedbackFilterInput) int
+		FeedbackByID             func(childComplexity int, feedbackID string) int
+		FilteredEvents           func(childComplexity int, filter *EventFilterInput) int
+		FilteredEventsWithShifts func(childComplexity int, filter *EventFilterInput) int
+		LookupValues             func(childComplexity int) int
+		OpportunitiesForEvent    func(childComplexity int, eventID string) int
+		Staff                    func(childComplexity int) int
+		Venues                   func(childComplexity int) int
+		VolunteerByID            func(childComplexity int, volunteerID string) int
+		VolunteerProfile         func(childComplexity int) int
+		VolunteerShifts          func(childComplexity int, volunteerID string, filter ShiftTimeFilter) int
 	}
 
 	ServiceType struct {
@@ -225,7 +224,6 @@ type ComplexityRoot struct {
 		City     func(childComplexity int) int
 		ID       func(childComplexity int) int
 		Name     func(childComplexity int) int
-		Region   func(childComplexity int) int
 		State    func(childComplexity int) int
 		Timezone func(childComplexity int) int
 		ZipCode  func(childComplexity int) int
@@ -272,7 +270,6 @@ type MutationResolver interface {
 	AttachFileToFeedback(ctx context.Context, feedbackID string, file graphql.Upload) (*MutationResult, error)
 	CreateVolunteer(ctx context.Context, newVol NewVolunteerInput) (*MutationResult, error)
 	CreateVenue(ctx context.Context, newVenue NewVenueInput) (*MutationResult, error)
-	CreateRegion(ctx context.Context, newRegion NewRegionInput) (*MutationResult, error)
 	CreateEvent(ctx context.Context, newEvent NewEventInput) (*MutationResult, error)
 	CreateJobType(ctx context.Context, newJob NewJobTypeInput) (*MutationResult, error)
 	CreateOpportunity(ctx context.Context, newOpp NewOpportunityInput) (*MutationResult, error)
@@ -281,10 +278,7 @@ type MutationResolver interface {
 	CreateStaff(ctx context.Context, newStaff NewStaffInput) (*MutationResult, error)
 	AssignVolunteerToShift(ctx context.Context, shiftID string, volunteerID string) (*MutationResult, error)
 	CancelShift(ctx context.Context, shiftID string, volunteerID string) (*MutationResult, error)
-	AddVenueRegion(ctx context.Context, venueID int, regionID int) (*MutationResult, error)
-	RemoveVenueRegion(ctx context.Context, venueID int, regionID int) (*MutationResult, error)
 	UpdateVenue(ctx context.Context, venue UpdateVenueInput) (*MutationResult, error)
-	UpdateRegion(ctx context.Context, region UpdateRegionInput) (*MutationResult, error)
 	UpdateVolunteer(ctx context.Context, profile UpdateVolunteerInput) (*MutationResult, error)
 	UpdateEvent(ctx context.Context, event UpdateEventInput) (*MutationResult, error)
 	UpdateJobType(ctx context.Context, job UpdateJobTypeInput) (*MutationResult, error)
@@ -296,7 +290,6 @@ type MutationResolver interface {
 	UpdateFeedback(ctx context.Context, feedback UpdateFeedbackInput) (*MutationResult, error)
 	DeleteVolunteer(ctx context.Context, volunteerID string) (*MutationResult, error)
 	DeleteVenue(ctx context.Context, venueID string) (*MutationResult, error)
-	DeleteRegion(ctx context.Context, regionID int) (*MutationResult, error)
 	DeleteEvent(ctx context.Context, eventID string) (*MutationResult, error)
 	DeleteJobType(ctx context.Context, jobID int) (*MutationResult, error)
 	DeleteOpportunity(ctx context.Context, oppID string) (*MutationResult, error)
@@ -304,6 +297,9 @@ type MutationResolver interface {
 	DeleteEventDate(ctx context.Context, eventDateID string) (*MutationResult, error)
 	DeleteStaff(ctx context.Context, staffID string) (*MutationResult, error)
 	ResolveFeedback(ctx context.Context, resolution ResolveFeedbackInput) (*MutationResult, error)
+	CreateFundingEntity(ctx context.Context, input NewFundingEntityInput) (*MutationResult, error)
+	UpdateFundingEntity(ctx context.Context, input UpdateFundingEntityInput) (*MutationResult, error)
+	DeleteFundingEntity(ctx context.Context, id int) (*MutationResult, error)
 }
 type QueryResolver interface {
 	LookupValues(ctx context.Context) (*LookupValues, error)
@@ -315,6 +311,7 @@ type QueryResolver interface {
 	AllVolunteers(ctx context.Context, filter *VolunteerFilterInput) ([]*Volunteer, error)
 	VolunteerShifts(ctx context.Context, volunteerID string, filter ShiftTimeFilter) ([]*VolunteerShift, error)
 	FilteredEvents(ctx context.Context, filter *EventFilterInput) ([]*Event, error)
+	FilteredEventsWithShifts(ctx context.Context, filter *EventFilterInput) ([]*Event, error)
 	OpportunitiesForEvent(ctx context.Context, eventID string) ([]*Opportunity, error)
 	Feedback(ctx context.Context, filter *FeedbackFilterInput) ([]*Feedback, error)
 	FeedbackByID(ctx context.Context, feedbackID string) (*Feedback, error)
@@ -377,6 +374,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Event.EventType(childComplexity), true
+	case "Event.fundingEntity":
+		if e.complexity.Event.FundingEntity == nil {
+			break
+		}
+
+		return e.complexity.Event.FundingEntity(childComplexity), true
 	case "Event.id":
 		if e.complexity.Event.ID == nil {
 			break
@@ -587,6 +590,25 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.FeedbackNote.NoteType(childComplexity), true
 
+	case "FundingEntity.description":
+		if e.complexity.FundingEntity.Description == nil {
+			break
+		}
+
+		return e.complexity.FundingEntity.Description(childComplexity), true
+	case "FundingEntity.id":
+		if e.complexity.FundingEntity.ID == nil {
+			break
+		}
+
+		return e.complexity.FundingEntity.ID(childComplexity), true
+	case "FundingEntity.name":
+		if e.complexity.FundingEntity.Name == nil {
+			break
+		}
+
+		return e.complexity.FundingEntity.Name(childComplexity), true
+
 	case "JobType.code":
 		if e.complexity.JobType.Code == nil {
 			break
@@ -624,18 +646,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.LookupValues.Cities(childComplexity), true
+	case "LookupValues.fundingEntities":
+		if e.complexity.LookupValues.FundingEntities == nil {
+			break
+		}
+
+		return e.complexity.LookupValues.FundingEntities(childComplexity), true
 	case "LookupValues.jobTypes":
 		if e.complexity.LookupValues.JobTypes == nil {
 			break
 		}
 
 		return e.complexity.LookupValues.JobTypes(childComplexity), true
-	case "LookupValues.regions":
-		if e.complexity.LookupValues.Regions == nil {
-			break
-		}
-
-		return e.complexity.LookupValues.Regions(childComplexity), true
 	case "LookupValues.serviceTypes":
 		if e.complexity.LookupValues.ServiceTypes == nil {
 			break
@@ -643,17 +665,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.LookupValues.ServiceTypes(childComplexity), true
 
-	case "Mutation.addVenueRegion":
-		if e.complexity.Mutation.AddVenueRegion == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_addVenueRegion_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.AddVenueRegion(childComplexity, args["venueId"].(int), args["regionId"].(int)), true
 	case "Mutation.assignVolunteerToShift":
 		if e.complexity.Mutation.AssignVolunteerToShift == nil {
 			break
@@ -709,6 +720,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.CreateEventDate(childComplexity, args["newDate"].(AddEventDateInput)), true
+	case "Mutation.createFundingEntity":
+		if e.complexity.Mutation.CreateFundingEntity == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createFundingEntity_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateFundingEntity(childComplexity, args["input"].(NewFundingEntityInput)), true
 	case "Mutation.createJobType":
 		if e.complexity.Mutation.CreateJobType == nil {
 			break
@@ -731,17 +753,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.CreateOpportunity(childComplexity, args["newOpp"].(NewOpportunityInput)), true
-	case "Mutation.createRegion":
-		if e.complexity.Mutation.CreateRegion == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_createRegion_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.CreateRegion(childComplexity, args["newRegion"].(NewRegionInput)), true
 	case "Mutation.createShift":
 		if e.complexity.Mutation.CreateShift == nil {
 			break
@@ -808,6 +819,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteEventDate(childComplexity, args["eventDateId"].(string)), true
+	case "Mutation.deleteFundingEntity":
+		if e.complexity.Mutation.DeleteFundingEntity == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteFundingEntity_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteFundingEntity(childComplexity, args["id"].(int)), true
 	case "Mutation.deleteJobType":
 		if e.complexity.Mutation.DeleteJobType == nil {
 			break
@@ -830,17 +852,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteOpportunity(childComplexity, args["oppId"].(string)), true
-	case "Mutation.deleteRegion":
-		if e.complexity.Mutation.DeleteRegion == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_deleteRegion_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.DeleteRegion(childComplexity, args["regionId"].(int)), true
 	case "Mutation.deleteShift":
 		if e.complexity.Mutation.DeleteShift == nil {
 			break
@@ -907,17 +918,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.QuestionFeedback(childComplexity, args["question"].(QuestionFeedbackInput)), true
-	case "Mutation.removeVenueRegion":
-		if e.complexity.Mutation.RemoveVenueRegion == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_removeVenueRegion_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.RemoveVenueRegion(childComplexity, args["venueId"].(int), args["regionId"].(int)), true
 	case "Mutation.resolveFeedback":
 		if e.complexity.Mutation.ResolveFeedback == nil {
 			break
@@ -962,6 +962,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateFeedback(childComplexity, args["feedback"].(UpdateFeedbackInput)), true
+	case "Mutation.updateFundingEntity":
+		if e.complexity.Mutation.UpdateFundingEntity == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateFundingEntity_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateFundingEntity(childComplexity, args["input"].(UpdateFundingEntityInput)), true
 	case "Mutation.updateJobType":
 		if e.complexity.Mutation.UpdateJobType == nil {
 			break
@@ -984,17 +995,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateOpportunity(childComplexity, args["opp"].(UpdateOpportunityInput)), true
-	case "Mutation.updateRegion":
-		if e.complexity.Mutation.UpdateRegion == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_updateRegion_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.UpdateRegion(childComplexity, args["region"].(UpdateRegionInput)), true
 	case "Mutation.updateShift":
 		if e.complexity.Mutation.UpdateShift == nil {
 			break
@@ -1156,6 +1156,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.FilteredEvents(childComplexity, args["filter"].(*EventFilterInput)), true
+	case "Query.filteredEventsWithShifts":
+		if e.complexity.Query.FilteredEventsWithShifts == nil {
+			break
+		}
+
+		args, err := ec.field_Query_filteredEventsWithShifts_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FilteredEventsWithShifts(childComplexity, args["filter"].(*EventFilterInput)), true
 	case "Query.lookupValues":
 		if e.complexity.Query.LookupValues == nil {
 			break
@@ -1213,31 +1224,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.VolunteerShifts(childComplexity, args["volunteerId"].(string), args["filter"].(ShiftTimeFilter)), true
-
-	case "Region.code":
-		if e.complexity.Region.Code == nil {
-			break
-		}
-
-		return e.complexity.Region.Code(childComplexity), true
-	case "Region.id":
-		if e.complexity.Region.ID == nil {
-			break
-		}
-
-		return e.complexity.Region.ID(childComplexity), true
-	case "Region.isActive":
-		if e.complexity.Region.IsActive == nil {
-			break
-		}
-
-		return e.complexity.Region.IsActive(childComplexity), true
-	case "Region.name":
-		if e.complexity.Region.Name == nil {
-			break
-		}
-
-		return e.complexity.Region.Name(childComplexity), true
 
 	case "ServiceType.code":
 		if e.complexity.ServiceType.Code == nil {
@@ -1350,12 +1336,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Venue.Name(childComplexity), true
-	case "Venue.region":
-		if e.complexity.Venue.Region == nil {
-			break
-		}
-
-		return e.complexity.Venue.Region(childComplexity), true
 	case "Venue.state":
 		if e.complexity.Venue.State == nil {
 			break
@@ -1549,9 +1529,9 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputNewEventDateInput,
 		ec.unmarshalInputNewEventInput,
 		ec.unmarshalInputNewFeedbackInput,
+		ec.unmarshalInputNewFundingEntityInput,
 		ec.unmarshalInputNewJobTypeInput,
 		ec.unmarshalInputNewOpportunityInput,
-		ec.unmarshalInputNewRegionInput,
 		ec.unmarshalInputNewShiftInput,
 		ec.unmarshalInputNewStaffInput,
 		ec.unmarshalInputNewVenueInput,
@@ -1561,9 +1541,9 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputUpdateEventDateInput,
 		ec.unmarshalInputUpdateEventInput,
 		ec.unmarshalInputUpdateFeedbackInput,
+		ec.unmarshalInputUpdateFundingEntityInput,
 		ec.unmarshalInputUpdateJobTypeInput,
 		ec.unmarshalInputUpdateOpportunityInput,
-		ec.unmarshalInputUpdateRegionInput,
 		ec.unmarshalInputUpdateShiftInput,
 		ec.unmarshalInputUpdateStaffInput,
 		ec.unmarshalInputUpdateVenueInput,
@@ -1731,11 +1711,10 @@ input NewFeedbackInput {
 
 #-- Output --
 
-type Region {
+type FundingEntity {
   id: Int!
-  code: String!
   name: String!
-  isActive: Boolean!
+  description: String
 }
 
 type ServiceType{
@@ -1753,7 +1732,7 @@ type JobType{
 }
   
 type LookupValues{
-  regions: [Region!]!
+  fundingEntities: [FundingEntity!]!
   serviceTypes: [ServiceType!]!
   jobTypes: [JobType!]!
   cities: [String!]!
@@ -1792,7 +1771,6 @@ type Venue {
   state: String!
   zipCode: String
   timezone: String!
-  region: [Int!]!
 }
 
 type Event {
@@ -1801,6 +1779,7 @@ type Event {
   description: String
   eventType: EventType!
   venue: Venue
+  fundingEntity: FundingEntity!
   serviceTypes: [String!]
   eventDates: [EventDate!]!
   shiftSummaries: [EventShiftSummary!]!
@@ -1859,6 +1838,7 @@ type Query {
   allVolunteers(filter: VolunteerFilterInput): [Volunteer!]!
   volunteerShifts(volunteerId: ID!, filter: ShiftTimeFilter!): [VolunteerShift!]!
   filteredEvents(filter: EventFilterInput): [Event!]!
+  filteredEventsWithShifts(filter: EventFilterInput): [Event!]!
   opportunitiesForEvent(eventId: ID!): [Opportunity!]!
   feedback(filter: FeedbackFilterInput): [Feedback!]!
   feedbackById(feedbackId: ID!): Feedback
@@ -1875,7 +1855,6 @@ type Mutation {
   # Admin-only mutations:
   createVolunteer(newVol: NewVolunteerInput!): MutationResult!
   createVenue(newVenue: NewVenueInput!): MutationResult!
-  createRegion(newRegion: NewRegionInput!): MutationResult!
   createEvent(newEvent: NewEventInput!): MutationResult!
   createJobType(newJob: NewJobTypeInput!): MutationResult!
   createOpportunity(newOpp: NewOpportunityInput!): MutationResult!
@@ -1886,11 +1865,7 @@ type Mutation {
   assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): MutationResult!
   cancelShift(shiftId: ID!, volunteerId: ID!): MutationResult!
 
-  addVenueRegion(venueId: Int!, regionId: Int!): MutationResult!
-  removeVenueRegion(venueId: Int!, regionId: Int!): MutationResult!
-
   updateVenue(venue: UpdateVenueInput!): MutationResult!
-  updateRegion(region: UpdateRegionInput!): MutationResult!
   updateVolunteer(profile: UpdateVolunteerInput!): MutationResult!
   updateEvent(event: UpdateEventInput!): MutationResult!
   updateJobType(job: UpdateJobTypeInput!): MutationResult!
@@ -1904,7 +1879,6 @@ type Mutation {
 
   deleteVolunteer(volunteerId: ID!): MutationResult!
   deleteVenue(venueId: ID!): MutationResult!
-  deleteRegion(regionId: Int!): MutationResult!
   deleteEvent(eventId: ID!): MutationResult!
   deleteJobType(JobId: Int!): MutationResult!
   deleteOpportunity(oppId: ID!): MutationResult!
@@ -1913,6 +1887,10 @@ type Mutation {
   deleteStaff(staffId: ID!): MutationResult!
 
   resolveFeedback(resolution: ResolveFeedbackInput!): MutationResult!
+
+  createFundingEntity(input: NewFundingEntityInput!): MutationResult!
+  updateFundingEntity(input: UpdateFundingEntityInput!): MutationResult!
+  deleteFundingEntity(id: Int!): MutationResult!
 }
 
 #-- Outputs (for queries) --
@@ -2021,12 +1999,6 @@ input NewVenueInput {
   state: String!
   zipCode: String
   ianaZone: String!
-  region: [Int!]! # using array of ints instead of IDs, so gqlgen won't keep making them Strings.
-}
-
-input NewRegionInput {
-  code: String!
-  name: String!
 }
 
 input UpdateVenueInput {
@@ -2039,17 +2011,12 @@ input UpdateVenueInput {
   ianaZone: String!
 }
 
-input UpdateRegionInput {
-  id: Int!
-  code: String!
-  name: String!
-}
-
 input NewEventInput {
   name: String!
   description: String
   eventType: EventType!
   venueId: ID
+  fundingEntityId: Int!
   serviceTypes: [Int!]!
   eventDates: [NewEventDateInput!]! # a new event must have at least one date.
 }
@@ -2060,6 +2027,7 @@ input UpdateEventInput {
   description: String
   eventType: EventType!
   venueId: ID
+  fundingEntityId: Int!
   serviceTypes: [Int!]!
 }
 
@@ -2169,6 +2137,17 @@ input ResolveFeedbackInput {
   note: String!
   githubIssueURL: String
 }
+
+input NewFundingEntityInput {
+  name: String!
+  description: String
+}
+
+input UpdateFundingEntityInput {
+  id: Int!
+  name: String
+  description: String
+}
 `, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
@@ -2176,22 +2155,6 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
-
-func (ec *executionContext) field_Mutation_addVenueRegion_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "venueId", ec.unmarshalNInt2int)
-	if err != nil {
-		return nil, err
-	}
-	args["venueId"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "regionId", ec.unmarshalNInt2int)
-	if err != nil {
-		return nil, err
-	}
-	args["regionId"] = arg1
-	return args, nil
-}
 
 func (ec *executionContext) field_Mutation_assignVolunteerToShift_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
@@ -2263,6 +2226,17 @@ func (ec *executionContext) field_Mutation_createEvent_args(ctx context.Context,
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_createFundingEntity_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNNewFundingEntityInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewFundingEntityInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createJobType_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2282,17 +2256,6 @@ func (ec *executionContext) field_Mutation_createOpportunity_args(ctx context.Co
 		return nil, err
 	}
 	args["newOpp"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_createRegion_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "newRegion", ec.unmarshalNNewRegionInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewRegionInput)
-	if err != nil {
-		return nil, err
-	}
-	args["newRegion"] = arg0
 	return args, nil
 }
 
@@ -2362,6 +2325,17 @@ func (ec *executionContext) field_Mutation_deleteEvent_args(ctx context.Context,
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_deleteFundingEntity_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNInt2int)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_deleteJobType_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2381,17 +2355,6 @@ func (ec *executionContext) field_Mutation_deleteOpportunity_args(ctx context.Co
 		return nil, err
 	}
 	args["oppId"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_deleteRegion_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "regionId", ec.unmarshalNInt2int)
-	if err != nil {
-		return nil, err
-	}
-	args["regionId"] = arg0
 	return args, nil
 }
 
@@ -2461,22 +2424,6 @@ func (ec *executionContext) field_Mutation_questionFeedback_args(ctx context.Con
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_removeVenueRegion_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "venueId", ec.unmarshalNInt2int)
-	if err != nil {
-		return nil, err
-	}
-	args["venueId"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "regionId", ec.unmarshalNInt2int)
-	if err != nil {
-		return nil, err
-	}
-	args["regionId"] = arg1
-	return args, nil
-}
-
 func (ec *executionContext) field_Mutation_resolveFeedback_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2521,6 +2468,17 @@ func (ec *executionContext) field_Mutation_updateFeedback_args(ctx context.Conte
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_updateFundingEntity_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateFundingEntityInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateFundingEntityInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_updateJobType_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2540,17 +2498,6 @@ func (ec *executionContext) field_Mutation_updateOpportunity_args(ctx context.Co
 		return nil, err
 	}
 	args["opp"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_updateRegion_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "region", ec.unmarshalNUpdateRegionInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateRegionInput)
-	if err != nil {
-		return nil, err
-	}
-	args["region"] = arg0
 	return args, nil
 }
 
@@ -2657,6 +2604,17 @@ func (ec *executionContext) field_Query_feedback_args(ctx context.Context, rawAr
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOFeedbackFilterInput2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackFilterInput)
+	if err != nil {
+		return nil, err
+	}
+	args["filter"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_filteredEventsWithShifts_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOEventFilterInput2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventFilterInput)
 	if err != nil {
 		return nil, err
 	}
@@ -3006,10 +2964,45 @@ func (ec *executionContext) fieldContext_Event_venue(_ context.Context, field gr
 				return ec.fieldContext_Venue_zipCode(ctx, field)
 			case "timezone":
 				return ec.fieldContext_Venue_timezone(ctx, field)
-			case "region":
-				return ec.fieldContext_Venue_region(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Venue", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Event_fundingEntity(ctx context.Context, field graphql.CollectedField, obj *Event) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Event_fundingEntity,
+		func(ctx context.Context) (any, error) {
+			return obj.FundingEntity, nil
+		},
+		nil,
+		ec.marshalNFundingEntity2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFundingEntity,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Event_fundingEntity(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Event",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FundingEntity_id(ctx, field)
+			case "name":
+				return ec.fieldContext_FundingEntity_name(ctx, field)
+			case "description":
+				return ec.fieldContext_FundingEntity_description(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FundingEntity", field.Name)
 		},
 	}
 	return fc, nil
@@ -3983,6 +3976,93 @@ func (ec *executionContext) fieldContext_FeedbackNote_note(_ context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _FundingEntity_id(ctx context.Context, field graphql.CollectedField, obj *FundingEntity) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FundingEntity_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FundingEntity_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FundingEntity",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FundingEntity_name(ctx context.Context, field graphql.CollectedField, obj *FundingEntity) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FundingEntity_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FundingEntity_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FundingEntity",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FundingEntity_description(ctx context.Context, field graphql.CollectedField, obj *FundingEntity) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FundingEntity_description,
+		func(ctx context.Context) (any, error) {
+			return obj.Description, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_FundingEntity_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FundingEntity",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _JobType_id(ctx context.Context, field graphql.CollectedField, obj *JobType) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -4128,23 +4208,23 @@ func (ec *executionContext) fieldContext_JobType_isActive(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _LookupValues_regions(ctx context.Context, field graphql.CollectedField, obj *LookupValues) (ret graphql.Marshaler) {
+func (ec *executionContext) _LookupValues_fundingEntities(ctx context.Context, field graphql.CollectedField, obj *LookupValues) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_LookupValues_regions,
+		ec.fieldContext_LookupValues_fundingEntities,
 		func(ctx context.Context) (any, error) {
-			return obj.Regions, nil
+			return obj.FundingEntities, nil
 		},
 		nil,
-		ec.marshalNRegion2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRegionᚄ,
+		ec.marshalNFundingEntity2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFundingEntityᚄ,
 		true,
 		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_LookupValues_regions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_LookupValues_fundingEntities(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "LookupValues",
 		Field:      field,
@@ -4153,15 +4233,13 @@ func (ec *executionContext) fieldContext_LookupValues_regions(_ context.Context,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_Region_id(ctx, field)
-			case "code":
-				return ec.fieldContext_Region_code(ctx, field)
+				return ec.fieldContext_FundingEntity_id(ctx, field)
 			case "name":
-				return ec.fieldContext_Region_name(ctx, field)
-			case "isActive":
-				return ec.fieldContext_Region_isActive(ctx, field)
+				return ec.fieldContext_FundingEntity_name(ctx, field)
+			case "description":
+				return ec.fieldContext_FundingEntity_description(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Region", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type FundingEntity", field.Name)
 		},
 	}
 	return fc, nil
@@ -4464,55 +4542,6 @@ func (ec *executionContext) fieldContext_Mutation_createVenue(ctx context.Contex
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_createVenue_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_createRegion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_createRegion,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateRegion(ctx, fc.Args["newRegion"].(NewRegionInput))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_createRegion(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_createRegion_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -4911,104 +4940,6 @@ func (ec *executionContext) fieldContext_Mutation_cancelShift(ctx context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_addVenueRegion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_addVenueRegion,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().AddVenueRegion(ctx, fc.Args["venueId"].(int), fc.Args["regionId"].(int))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_addVenueRegion(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_addVenueRegion_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_removeVenueRegion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_removeVenueRegion,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().RemoveVenueRegion(ctx, fc.Args["venueId"].(int), fc.Args["regionId"].(int))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_removeVenueRegion(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_removeVenueRegion_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Mutation_updateVenue(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -5052,55 +4983,6 @@ func (ec *executionContext) fieldContext_Mutation_updateVenue(ctx context.Contex
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_updateVenue_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_updateRegion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_updateRegion,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateRegion(ctx, fc.Args["region"].(UpdateRegionInput))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_updateRegion(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_updateRegion_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -5646,55 +5528,6 @@ func (ec *executionContext) fieldContext_Mutation_deleteVenue(ctx context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_deleteRegion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_deleteRegion,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().DeleteRegion(ctx, fc.Args["regionId"].(int))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_deleteRegion(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_deleteRegion_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Mutation_deleteEvent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -6038,6 +5871,153 @@ func (ec *executionContext) fieldContext_Mutation_resolveFeedback(ctx context.Co
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_createFundingEntity(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_createFundingEntity,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CreateFundingEntity(ctx, fc.Args["input"].(NewFundingEntityInput))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createFundingEntity(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createFundingEntity_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateFundingEntity(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateFundingEntity,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateFundingEntity(ctx, fc.Args["input"].(UpdateFundingEntityInput))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateFundingEntity(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateFundingEntity_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteFundingEntity(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_deleteFundingEntity,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().DeleteFundingEntity(ctx, fc.Args["id"].(int))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteFundingEntity(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteFundingEntity_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _MutationResult_success(ctx context.Context, field graphql.CollectedField, obj *MutationResult) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -6306,8 +6286,8 @@ func (ec *executionContext) fieldContext_Query_lookupValues(_ context.Context, f
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "regions":
-				return ec.fieldContext_LookupValues_regions(ctx, field)
+			case "fundingEntities":
+				return ec.fieldContext_LookupValues_fundingEntities(ctx, field)
 			case "serviceTypes":
 				return ec.fieldContext_LookupValues_serviceTypes(ctx, field)
 			case "jobTypes":
@@ -6399,6 +6379,8 @@ func (ec *executionContext) fieldContext_Query_eventById(ctx context.Context, fi
 				return ec.fieldContext_Event_eventType(ctx, field)
 			case "venue":
 				return ec.fieldContext_Event_venue(ctx, field)
+			case "fundingEntity":
+				return ec.fieldContext_Event_fundingEntity(ctx, field)
 			case "serviceTypes":
 				return ec.fieldContext_Event_serviceTypes(ctx, field)
 			case "eventDates":
@@ -6510,8 +6492,6 @@ func (ec *executionContext) fieldContext_Query_venues(_ context.Context, field g
 				return ec.fieldContext_Venue_zipCode(ctx, field)
 			case "timezone":
 				return ec.fieldContext_Venue_timezone(ctx, field)
-			case "region":
-				return ec.fieldContext_Venue_region(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Venue", field.Name)
 		},
@@ -6723,6 +6703,8 @@ func (ec *executionContext) fieldContext_Query_filteredEvents(ctx context.Contex
 				return ec.fieldContext_Event_eventType(ctx, field)
 			case "venue":
 				return ec.fieldContext_Event_venue(ctx, field)
+			case "fundingEntity":
+				return ec.fieldContext_Event_fundingEntity(ctx, field)
 			case "serviceTypes":
 				return ec.fieldContext_Event_serviceTypes(ctx, field)
 			case "eventDates":
@@ -6741,6 +6723,67 @@ func (ec *executionContext) fieldContext_Query_filteredEvents(ctx context.Contex
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_filteredEvents_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_filteredEventsWithShifts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_filteredEventsWithShifts,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().FilteredEventsWithShifts(ctx, fc.Args["filter"].(*EventFilterInput))
+		},
+		nil,
+		ec.marshalNEvent2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_filteredEventsWithShifts(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Event_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Event_name(ctx, field)
+			case "description":
+				return ec.fieldContext_Event_description(ctx, field)
+			case "eventType":
+				return ec.fieldContext_Event_eventType(ctx, field)
+			case "venue":
+				return ec.fieldContext_Event_venue(ctx, field)
+			case "fundingEntity":
+				return ec.fieldContext_Event_fundingEntity(ctx, field)
+			case "serviceTypes":
+				return ec.fieldContext_Event_serviceTypes(ctx, field)
+			case "eventDates":
+				return ec.fieldContext_Event_eventDates(ctx, field)
+			case "shiftSummaries":
+				return ec.fieldContext_Event_shiftSummaries(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Event", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_filteredEventsWithShifts_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -7096,122 +7139,6 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 				return ec.fieldContext___Schema_directives(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Schema", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Region_id(ctx context.Context, field graphql.CollectedField, obj *Region) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Region_id,
-		func(ctx context.Context) (any, error) {
-			return obj.ID, nil
-		},
-		nil,
-		ec.marshalNInt2int,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Region_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Region",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Region_code(ctx context.Context, field graphql.CollectedField, obj *Region) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Region_code,
-		func(ctx context.Context) (any, error) {
-			return obj.Code, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Region_code(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Region",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Region_name(ctx context.Context, field graphql.CollectedField, obj *Region) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Region_name,
-		func(ctx context.Context) (any, error) {
-			return obj.Name, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Region_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Region",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Region_isActive(ctx context.Context, field graphql.CollectedField, obj *Region) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Region_isActive,
-		func(ctx context.Context) (any, error) {
-			return obj.IsActive, nil
-		},
-		nil,
-		ec.marshalNBoolean2bool,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Region_isActive(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Region",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7821,35 +7748,6 @@ func (ec *executionContext) fieldContext_Venue_timezone(_ context.Context, field
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Venue_region(ctx context.Context, field graphql.CollectedField, obj *Venue) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Venue_region,
-		func(ctx context.Context) (any, error) {
-			return obj.Region, nil
-		},
-		nil,
-		ec.marshalNInt2ᚕintᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Venue_region(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Venue",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -8618,8 +8516,6 @@ func (ec *executionContext) fieldContext_VolunteerShift_venue(_ context.Context,
 				return ec.fieldContext_Venue_zipCode(ctx, field)
 			case "timezone":
 				return ec.fieldContext_Venue_timezone(ctx, field)
-			case "region":
-				return ec.fieldContext_Venue_region(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Venue", field.Name)
 		},
@@ -10313,7 +10209,7 @@ func (ec *executionContext) unmarshalInputNewEventInput(ctx context.Context, obj
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description", "eventType", "venueId", "serviceTypes", "eventDates"}
+	fieldsInOrder := [...]string{"name", "description", "eventType", "venueId", "fundingEntityId", "serviceTypes", "eventDates"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -10348,6 +10244,13 @@ func (ec *executionContext) unmarshalInputNewEventInput(ctx context.Context, obj
 				return it, err
 			}
 			it.VenueID = data
+		case "fundingEntityId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fundingEntityId"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.FundingEntityID = data
 		case "serviceTypes":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceTypes"))
 			data, err := ec.unmarshalNInt2ᚕintᚄ(ctx, v)
@@ -10410,6 +10313,40 @@ func (ec *executionContext) unmarshalInputNewFeedbackInput(ctx context.Context, 
 				return it, err
 			}
 			it.Text = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputNewFundingEntityInput(ctx context.Context, obj any) (NewFundingEntityInput, error) {
+	var it NewFundingEntityInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "description"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "description":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
 		}
 	}
 
@@ -10506,40 +10443,6 @@ func (ec *executionContext) unmarshalInputNewOpportunityInput(ctx context.Contex
 				return it, err
 			}
 			it.Shifts = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputNewRegionInput(ctx context.Context, obj any) (NewRegionInput, error) {
-	var it NewRegionInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"code", "name"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "code":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("code"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Code = data
-		case "name":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Name = data
 		}
 	}
 
@@ -10663,7 +10566,7 @@ func (ec *executionContext) unmarshalInputNewVenueInput(ctx context.Context, obj
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "address", "city", "state", "zipCode", "ianaZone", "region"}
+	fieldsInOrder := [...]string{"name", "address", "city", "state", "zipCode", "ianaZone"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -10712,13 +10615,6 @@ func (ec *executionContext) unmarshalInputNewVenueInput(ctx context.Context, obj
 				return it, err
 			}
 			it.IanaZone = data
-		case "region":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("region"))
-			data, err := ec.unmarshalNInt2ᚕintᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Region = data
 		}
 	}
 
@@ -10931,7 +10827,7 @@ func (ec *executionContext) unmarshalInputUpdateEventInput(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "name", "description", "eventType", "venueId", "serviceTypes"}
+	fieldsInOrder := [...]string{"id", "name", "description", "eventType", "venueId", "fundingEntityId", "serviceTypes"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -10973,6 +10869,13 @@ func (ec *executionContext) unmarshalInputUpdateEventInput(ctx context.Context, 
 				return it, err
 			}
 			it.VenueID = data
+		case "fundingEntityId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fundingEntityId"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.FundingEntityID = data
 		case "serviceTypes":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceTypes"))
 			data, err := ec.unmarshalNInt2ᚕintᚄ(ctx, v)
@@ -11028,6 +10931,47 @@ func (ec *executionContext) unmarshalInputUpdateFeedbackInput(ctx context.Contex
 				return it, err
 			}
 			it.GithubIssueURL = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdateFundingEntityInput(ctx context.Context, obj any) (UpdateFundingEntityInput, error) {
+	var it UpdateFundingEntityInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "name", "description"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "description":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
 		}
 	}
 
@@ -11124,47 +11068,6 @@ func (ec *executionContext) unmarshalInputUpdateOpportunityInput(ctx context.Con
 				return it, err
 			}
 			it.PreEventInstructions = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputUpdateRegionInput(ctx context.Context, obj any) (UpdateRegionInput, error) {
-	var it UpdateRegionInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"id", "code", "name"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "id":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-			data, err := ec.unmarshalNInt2int(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ID = data
-		case "code":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("code"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Code = data
-		case "name":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Name = data
 		}
 	}
 
@@ -11561,6 +11464,11 @@ func (ec *executionContext) _Event(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "venue":
 			out.Values[i] = ec._Event_venue(ctx, field, obj)
+		case "fundingEntity":
+			out.Values[i] = ec._Event_fundingEntity(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "serviceTypes":
 			out.Values[i] = ec._Event_serviceTypes(ctx, field, obj)
 		case "eventDates":
@@ -11902,6 +11810,52 @@ func (ec *executionContext) _FeedbackNote(ctx context.Context, sel ast.Selection
 	return out
 }
 
+var fundingEntityImplementors = []string{"FundingEntity"}
+
+func (ec *executionContext) _FundingEntity(ctx context.Context, sel ast.SelectionSet, obj *FundingEntity) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, fundingEntityImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FundingEntity")
+		case "id":
+			out.Values[i] = ec._FundingEntity_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._FundingEntity_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "description":
+			out.Values[i] = ec._FundingEntity_description(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var jobTypeImplementors = []string{"JobType"}
 
 func (ec *executionContext) _JobType(ctx context.Context, sel ast.SelectionSet, obj *JobType) graphql.Marshaler {
@@ -11972,8 +11926,8 @@ func (ec *executionContext) _LookupValues(ctx context.Context, sel ast.Selection
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("LookupValues")
-		case "regions":
-			out.Values[i] = ec._LookupValues_regions(ctx, field, obj)
+		case "fundingEntities":
+			out.Values[i] = ec._LookupValues_fundingEntities(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -12062,13 +12016,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "createRegion":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_createRegion(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "createEvent":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createEvent(ctx, field)
@@ -12125,30 +12072,9 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "addVenueRegion":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_addVenueRegion(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "removeVenueRegion":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_removeVenueRegion(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "updateVenue":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateVenue(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "updateRegion":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_updateRegion(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -12230,13 +12156,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "deleteRegion":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_deleteRegion(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "deleteEvent":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteEvent(ctx, field)
@@ -12282,6 +12201,27 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "resolveFeedback":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_resolveFeedback(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createFundingEntity":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createFundingEntity(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateFundingEntity":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateFundingEntity(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteFundingEntity":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteFundingEntity(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -12622,6 +12562,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "filteredEventsWithShifts":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_filteredEventsWithShifts(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "opportunitiesForEvent":
 			field := field
 
@@ -12712,60 +12674,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___schema(ctx, field)
 			})
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var regionImplementors = []string{"Region"}
-
-func (ec *executionContext) _Region(ctx context.Context, sel ast.SelectionSet, obj *Region) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, regionImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("Region")
-		case "id":
-			out.Values[i] = ec._Region_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "code":
-			out.Values[i] = ec._Region_code(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "name":
-			out.Values[i] = ec._Region_name(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "isActive":
-			out.Values[i] = ec._Region_isActive(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -12986,11 +12894,6 @@ func (ec *executionContext) _Venue(ctx context.Context, sel ast.SelectionSet, ob
 			out.Values[i] = ec._Venue_zipCode(ctx, field, obj)
 		case "timezone":
 			out.Values[i] = ec._Venue_timezone(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "region":
-			out.Values[i] = ec._Venue_region(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -13951,6 +13854,60 @@ func (ec *executionContext) marshalNFeedbackType2volunteerᚑschedulerᚋgraph�
 	return v
 }
 
+func (ec *executionContext) marshalNFundingEntity2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFundingEntityᚄ(ctx context.Context, sel ast.SelectionSet, v []*FundingEntity) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNFundingEntity2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFundingEntity(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNFundingEntity2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFundingEntity(ctx context.Context, sel ast.SelectionSet, v *FundingEntity) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FundingEntity(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v any) (string, error) {
 	res, err := graphql.UnmarshalID(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -14125,6 +14082,11 @@ func (ec *executionContext) unmarshalNNewFeedbackInput2volunteerᚑschedulerᚋg
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNNewFundingEntityInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewFundingEntityInput(ctx context.Context, v any) (NewFundingEntityInput, error) {
+	res, err := ec.unmarshalInputNewFundingEntityInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNNewJobTypeInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewJobTypeInput(ctx context.Context, v any) (NewJobTypeInput, error) {
 	res, err := ec.unmarshalInputNewJobTypeInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -14132,11 +14094,6 @@ func (ec *executionContext) unmarshalNNewJobTypeInput2volunteerᚑschedulerᚋgr
 
 func (ec *executionContext) unmarshalNNewOpportunityInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewOpportunityInput(ctx context.Context, v any) (NewOpportunityInput, error) {
 	res, err := ec.unmarshalInputNewOpportunityInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNNewRegionInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewRegionInput(ctx context.Context, v any) (NewRegionInput, error) {
-	res, err := ec.unmarshalInputNewRegionInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -14232,60 +14189,6 @@ func (ec *executionContext) marshalNOpportunity2ᚖvolunteerᚑschedulerᚋgraph
 func (ec *executionContext) unmarshalNQuestionFeedbackInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐQuestionFeedbackInput(ctx context.Context, v any) (QuestionFeedbackInput, error) {
 	res, err := ec.unmarshalInputQuestionFeedbackInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNRegion2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRegionᚄ(ctx context.Context, sel ast.SelectionSet, v []*Region) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNRegion2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRegion(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) marshalNRegion2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRegion(ctx context.Context, sel ast.SelectionSet, v *Region) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._Region(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNResolveFeedbackInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐResolveFeedbackInput(ctx context.Context, v any) (ResolveFeedbackInput, error) {
@@ -14536,6 +14439,11 @@ func (ec *executionContext) unmarshalNUpdateFeedbackInput2volunteerᚑscheduler�
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNUpdateFundingEntityInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateFundingEntityInput(ctx context.Context, v any) (UpdateFundingEntityInput, error) {
+	res, err := ec.unmarshalInputUpdateFundingEntityInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNUpdateJobTypeInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateJobTypeInput(ctx context.Context, v any) (UpdateJobTypeInput, error) {
 	res, err := ec.unmarshalInputUpdateJobTypeInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -14543,11 +14451,6 @@ func (ec *executionContext) unmarshalNUpdateJobTypeInput2volunteerᚑscheduler�
 
 func (ec *executionContext) unmarshalNUpdateOpportunityInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateOpportunityInput(ctx context.Context, v any) (UpdateOpportunityInput, error) {
 	res, err := ec.unmarshalInputUpdateOpportunityInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNUpdateRegionInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateRegionInput(ctx context.Context, v any) (UpdateRegionInput, error) {
-	res, err := ec.unmarshalInputUpdateRegionInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 

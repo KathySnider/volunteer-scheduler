@@ -21,6 +21,7 @@ type Event struct {
 	Description    *string              `json:"description,omitempty"`
 	EventType      EventType            `json:"eventType"`
 	Venue          *Venue               `json:"venue,omitempty"`
+	FundingEntity  *FundingEntity       `json:"fundingEntity"`
 	ServiceTypes   []string             `json:"serviceTypes,omitempty"`
 	EventDates     []*EventDate         `json:"eventDates"`
 	ShiftSummaries []*EventShiftSummary `json:"shiftSummaries"`
@@ -53,6 +54,12 @@ type FeedbackAttachment struct {
 	CreatedAt string `json:"createdAt"`
 }
 
+type FundingEntity struct {
+	ID          int     `json:"id"`
+	Name        string  `json:"name"`
+	Description *string `json:"description,omitempty"`
+}
+
 type JobType struct {
 	ID        int    `json:"id"`
 	Code      string `json:"code"`
@@ -62,10 +69,10 @@ type JobType struct {
 }
 
 type LookupValues struct {
-	Regions      []*Region      `json:"regions"`
-	ServiceTypes []*ServiceType `json:"serviceTypes"`
-	JobTypes     []*JobType     `json:"jobTypes"`
-	Cities       []string       `json:"cities"`
+	FundingEntities []*FundingEntity `json:"fundingEntities"`
+	ServiceTypes    []*ServiceType   `json:"serviceTypes"`
+	JobTypes        []*JobType       `json:"jobTypes"`
+	Cities          []string         `json:"cities"`
 }
 
 type Mutation struct {
@@ -85,13 +92,6 @@ type NewFeedbackInput struct {
 }
 
 type Query struct {
-}
-
-type Region struct {
-	ID       int    `json:"id"`
-	Code     string `json:"code"`
-	Name     string `json:"name"`
-	IsActive bool   `json:"isActive"`
 }
 
 type ServiceType struct {
@@ -126,7 +126,6 @@ type Venue struct {
 	State    string  `json:"state"`
 	ZipCode  *string `json:"zipCode,omitempty"`
 	Timezone string  `json:"timezone"`
-	Region   []int   `json:"region"`
 }
 
 type VolunteerFeedback struct {

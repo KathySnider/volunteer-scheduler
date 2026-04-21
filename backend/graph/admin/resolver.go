@@ -7,11 +7,12 @@ import (
 
 // Resolver holds the services needed by GraphQL resolvers
 type Resolver struct {
-	DB               *sql.DB
-	ShiftService     *services.ShiftService
-	EventService     *services.EventService
-	VolunteerService *services.VolunteerService
-	VenueService     *services.VenueService
-	FeedbackService  *services.FeedbackService
-	StaffService     *services.StaffService
+	DB                    *sql.DB
+	ShiftService          *services.ShiftService
+	EventService          *services.EventService
+	VolunteerService      *services.VolunteerService
+	VenueService          *services.VenueService
+	FeedbackService       *services.FeedbackService
+	StaffService          *services.StaffService
+	FundingEntityService  *services.FundingEntityService
 }

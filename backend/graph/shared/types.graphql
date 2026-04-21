@@ -63,11 +63,10 @@ input NewFeedbackInput {
 
 #-- Output --
 
-type Region {
+type FundingEntity {
   id: Int!
-  code: String!
   name: String!
-  isActive: Boolean!
+  description: String
 }
 
 type ServiceType{
@@ -85,7 +84,7 @@ type JobType{
 }
   
 type LookupValues{
-  regions: [Region!]!
+  fundingEntities: [FundingEntity!]!
   serviceTypes: [ServiceType!]!
   jobTypes: [JobType!]!
   cities: [String!]!
@@ -124,7 +123,6 @@ type Venue {
   state: String!
   zipCode: String
   timezone: String!
-  region: [Int!]!
 }
 
 type Event {
@@ -133,6 +131,7 @@ type Event {
   description: String
   eventType: EventType!
   venue: Venue
+  fundingEntity: FundingEntity!
   serviceTypes: [String!]
   eventDates: [EventDate!]!
   shiftSummaries: [EventShiftSummary!]!

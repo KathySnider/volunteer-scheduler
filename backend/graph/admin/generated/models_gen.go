@@ -37,6 +37,7 @@ type Event struct {
 	Description    *string              `json:"description,omitempty"`
 	EventType      EventType            `json:"eventType"`
 	Venue          *Venue               `json:"venue,omitempty"`
+	FundingEntity  *FundingEntity       `json:"fundingEntity"`
 	ServiceTypes   []string             `json:"serviceTypes,omitempty"`
 	EventDates     []*EventDate         `json:"eventDates"`
 	ShiftSummaries []*EventShiftSummary `json:"shiftSummaries"`
@@ -98,6 +99,12 @@ type FeedbackNote struct {
 	Note      string           `json:"note"`
 }
 
+type FundingEntity struct {
+	ID          int     `json:"id"`
+	Name        string  `json:"name"`
+	Description *string `json:"description,omitempty"`
+}
+
 type JobType struct {
 	ID        int    `json:"id"`
 	Code      string `json:"code"`
@@ -107,10 +114,10 @@ type JobType struct {
 }
 
 type LookupValues struct {
-	Regions      []*Region      `json:"regions"`
-	ServiceTypes []*ServiceType `json:"serviceTypes"`
-	JobTypes     []*JobType     `json:"jobTypes"`
-	Cities       []string       `json:"cities"`
+	FundingEntities []*FundingEntity `json:"fundingEntities"`
+	ServiceTypes    []*ServiceType   `json:"serviceTypes"`
+	JobTypes        []*JobType       `json:"jobTypes"`
+	Cities          []string         `json:"cities"`
 }
 
 type Mutation struct {
@@ -129,12 +136,13 @@ type NewEventDateInput struct {
 }
 
 type NewEventInput struct {
-	Name         string               `json:"name"`
-	Description  *string              `json:"description,omitempty"`
-	EventType    EventType            `json:"eventType"`
-	VenueID      *string              `json:"venueId,omitempty"`
-	ServiceTypes []int                `json:"serviceTypes"`
-	EventDates   []*NewEventDateInput `json:"eventDates"`
+	Name            string               `json:"name"`
+	Description     *string              `json:"description,omitempty"`
+	EventType       EventType            `json:"eventType"`
+	VenueID         *string              `json:"venueId,omitempty"`
+	FundingEntityID int                  `json:"fundingEntityId"`
+	ServiceTypes    []int                `json:"serviceTypes"`
+	EventDates      []*NewEventDateInput `json:"eventDates"`
 }
 
 type NewFeedbackInput struct {
@@ -142,6 +150,11 @@ type NewFeedbackInput struct {
 	Subject     string       `json:"subject"`
 	AppPageName string       `json:"app_page_name"`
 	Text        string       `json:"text"`
+}
+
+type NewFundingEntityInput struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description,omitempty"`
 }
 
 type NewJobTypeInput struct {
@@ -156,11 +169,6 @@ type NewOpportunityInput struct {
 	IsVirtual            bool             `json:"isVirtual"`
 	PreEventInstructions *string          `json:"preEventInstructions,omitempty"`
 	Shifts               []*NewShiftInput `json:"shifts"`
-}
-
-type NewRegionInput struct {
-	Code string `json:"code"`
-	Name string `json:"name"`
 }
 
 type NewShiftInput struct {
@@ -186,7 +194,6 @@ type NewVenueInput struct {
 	State    string  `json:"state"`
 	ZipCode  *string `json:"zipCode,omitempty"`
 	IanaZone string  `json:"ianaZone"`
-	Region   []int   `json:"region"`
 }
 
 type NewVolunteerInput struct {
@@ -213,13 +220,6 @@ type QuestionFeedbackInput struct {
 	ID        string `json:"id"`
 	EmailText string `json:"emailText"`
 	Note      string `json:"note"`
-}
-
-type Region struct {
-	ID       int    `json:"id"`
-	Code     string `json:"code"`
-	Name     string `json:"name"`
-	IsActive bool   `json:"isActive"`
 }
 
 type ResolveFeedbackInput struct {
@@ -260,12 +260,13 @@ type UpdateEventDateInput struct {
 }
 
 type UpdateEventInput struct {
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	Description  *string   `json:"description,omitempty"`
-	EventType    EventType `json:"eventType"`
-	VenueID      *string   `json:"venueId,omitempty"`
-	ServiceTypes []int     `json:"serviceTypes"`
+	ID              string    `json:"id"`
+	Name            string    `json:"name"`
+	Description     *string   `json:"description,omitempty"`
+	EventType       EventType `json:"eventType"`
+	VenueID         *string   `json:"venueId,omitempty"`
+	FundingEntityID int       `json:"fundingEntityId"`
+	ServiceTypes    []int     `json:"serviceTypes"`
 }
 
 type UpdateFeedbackInput struct {
@@ -273,6 +274,12 @@ type UpdateFeedbackInput struct {
 	Status         FeedbackStatus `json:"status"`
 	Note           string         `json:"note"`
 	GithubIssueURL *string        `json:"githubIssueURL,omitempty"`
+}
+
+type UpdateFundingEntityInput struct {
+	ID          int     `json:"id"`
+	Name        *string `json:"name,omitempty"`
+	Description *string `json:"description,omitempty"`
 }
 
 type UpdateJobTypeInput struct {
@@ -287,12 +294,6 @@ type UpdateOpportunityInput struct {
 	JobID                int     `json:"jobId"`
 	IsVirtual            bool    `json:"isVirtual"`
 	PreEventInstructions *string `json:"preEventInstructions,omitempty"`
-}
-
-type UpdateRegionInput struct {
-	ID   int    `json:"id"`
-	Code string `json:"code"`
-	Name string `json:"name"`
 }
 
 type UpdateShiftInput struct {
@@ -341,7 +342,6 @@ type Venue struct {
 	State    string  `json:"state"`
 	ZipCode  *string `json:"zipCode,omitempty"`
 	Timezone string  `json:"timezone"`
-	Region   []int   `json:"region"`
 }
 
 type Volunteer struct {

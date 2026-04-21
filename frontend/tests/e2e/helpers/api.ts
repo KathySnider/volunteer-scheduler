@@ -124,16 +124,6 @@ export async function createVenue(
   adminToken: string,
   opts: { name: string; city: string; state: string; ianaZone?: string }
 ): Promise<string> {
-  // A venue requires at least one region — create a throw-away one for test use.
-  const regionData = await gql(
-    ADMIN_URL,
-    `mutation CreateRegion($r: NewRegionInput!) { createRegion(newRegion: $r) { success message id } }`,
-    { r: { code: uniqueName("rgn").toLowerCase(), name: uniqueName("TestRegion") } },
-    adminToken
-  );
-  const regionResult = regionData.createRegion as { success: boolean; message: string; id?: string };
-  if (!regionResult.success || !regionResult.id) throw new Error(`createRegion failed: ${regionResult.message}`);
-
   const data = await gql(
     ADMIN_URL,
     `mutation CreateVenue($v: NewVenueInput!) { createVenue(newVenue: $v) { success message id } }`,
@@ -144,7 +134,6 @@ export async function createVenue(
         city: opts.city,
         state: opts.state,
         ianaZone: opts.ianaZone ?? "America/New_York",
-        region: [parseInt(regionResult.id, 10)],
       },
     },
     adminToken
@@ -173,6 +162,61 @@ export async function createJobType(
   return parseInt(result.id, 10);
 }
 
+/** Find an event ID by exact name via filteredEvents query. Returns null if not found. */
+export async function findEventIdByName(
+  adminToken: string,
+  name: string
+): Promise<string | null> {
+  const data = await gql(
+    ADMIN_URL,
+    `query { filteredEvents { id name } }`,
+    undefined,
+    adminToken
+  );
+  const events = data.filteredEvents as Array<{ id: string; name: string }>;
+  return events.find((e) => e.name === name)?.id ?? null;
+}
+
+/** Delete an event by ID. */
+export async function deleteEvent(adminToken: string, eventId: string): Promise<void> {
+  await gql(
+    ADMIN_URL,
+    `mutation DeleteEvent($id: ID!) { deleteEvent(eventId: $id) { success message } }`,
+    { id: eventId },
+    adminToken
+  );
+}
+
+/** Delete a venue by ID. */
+export async function deleteVenue(adminToken: string, venueId: string): Promise<void> {
+  await gql(
+    ADMIN_URL,
+    `mutation DeleteVenue($id: ID!) { deleteVenue(venueId: $id) { success message } }`,
+    { id: venueId },
+    adminToken
+  );
+}
+
+/** Delete a job type by numeric ID. */
+export async function deleteJobType(adminToken: string, jobTypeId: number): Promise<void> {
+  await gql(
+    ADMIN_URL,
+    `mutation DeleteJobType($id: Int!) { deleteJobType(JobId: $id) { success message } }`,
+    { id: jobTypeId },
+    adminToken
+  );
+}
+
+/** Delete a volunteer by ID. */
+export async function deleteVolunteer(adminToken: string, volunteerId: string): Promise<void> {
+  await gql(
+    ADMIN_URL,
+    `mutation DeleteVol($id: ID!) { deleteVolunteer(volunteerId: $id) { success message } }`,
+    { id: volunteerId },
+    adminToken
+  );
+}
+
 /**
  * Create a bare event (no opportunities / shifts) via the admin API.
  * Useful for testing admin-only visibility of incomplete events.
@@ -195,6 +239,7 @@ export async function createEventWithoutShifts(
         description: "Test event — no shifts",
         eventType: "IN_PERSON",
         venueId: opts.venueId,
+        fundingEntityId: 1,
         serviceTypes: [],
         eventDates: [
           {
@@ -233,6 +278,7 @@ export async function createEventWithShift(
         description: "Test event",
         eventType: "IN_PERSON",
         venueId: opts.venueId,
+        fundingEntityId: 1,
         serviceTypes: [],
         eventDates: [
           {

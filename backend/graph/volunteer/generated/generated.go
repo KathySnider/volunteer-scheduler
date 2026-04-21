@@ -55,6 +55,7 @@ type ComplexityRoot struct {
 		Description    func(childComplexity int) int
 		EventDates     func(childComplexity int) int
 		EventType      func(childComplexity int) int
+		FundingEntity  func(childComplexity int) int
 		ID             func(childComplexity int) int
 		Name           func(childComplexity int) int
 		ServiceTypes   func(childComplexity int) int
@@ -82,6 +83,12 @@ type ComplexityRoot struct {
 		MimeType  func(childComplexity int) int
 	}
 
+	FundingEntity struct {
+		Description func(childComplexity int) int
+		ID          func(childComplexity int) int
+		Name        func(childComplexity int) int
+	}
+
 	JobType struct {
 		Code      func(childComplexity int) int
 		ID        func(childComplexity int) int
@@ -91,10 +98,10 @@ type ComplexityRoot struct {
 	}
 
 	LookupValues struct {
-		Cities       func(childComplexity int) int
-		JobTypes     func(childComplexity int) int
-		Regions      func(childComplexity int) int
-		ServiceTypes func(childComplexity int) int
+		Cities          func(childComplexity int) int
+		FundingEntities func(childComplexity int) int
+		JobTypes        func(childComplexity int) int
+		ServiceTypes    func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -122,13 +129,6 @@ type ComplexityRoot struct {
 		VolunteerProfile         func(childComplexity int) int
 	}
 
-	Region struct {
-		Code     func(childComplexity int) int
-		ID       func(childComplexity int) int
-		IsActive func(childComplexity int) int
-		Name     func(childComplexity int) int
-	}
-
 	ServiceType struct {
 		Code func(childComplexity int) int
 		ID   func(childComplexity int) int
@@ -150,7 +150,6 @@ type ComplexityRoot struct {
 		City     func(childComplexity int) int
 		ID       func(childComplexity int) int
 		Name     func(childComplexity int) int
-		Region   func(childComplexity int) int
 		State    func(childComplexity int) int
 		Timezone func(childComplexity int) int
 		ZipCode  func(childComplexity int) int
@@ -281,6 +280,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Event.EventType(childComplexity), true
+	case "Event.fundingEntity":
+		if e.complexity.Event.FundingEntity == nil {
+			break
+		}
+
+		return e.complexity.Event.FundingEntity(childComplexity), true
 	case "Event.id":
 		if e.complexity.Event.ID == nil {
 			break
@@ -381,6 +386,25 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.FeedbackAttachment.MimeType(childComplexity), true
 
+	case "FundingEntity.description":
+		if e.complexity.FundingEntity.Description == nil {
+			break
+		}
+
+		return e.complexity.FundingEntity.Description(childComplexity), true
+	case "FundingEntity.id":
+		if e.complexity.FundingEntity.ID == nil {
+			break
+		}
+
+		return e.complexity.FundingEntity.ID(childComplexity), true
+	case "FundingEntity.name":
+		if e.complexity.FundingEntity.Name == nil {
+			break
+		}
+
+		return e.complexity.FundingEntity.Name(childComplexity), true
+
 	case "JobType.code":
 		if e.complexity.JobType.Code == nil {
 			break
@@ -418,18 +442,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.LookupValues.Cities(childComplexity), true
+	case "LookupValues.fundingEntities":
+		if e.complexity.LookupValues.FundingEntities == nil {
+			break
+		}
+
+		return e.complexity.LookupValues.FundingEntities(childComplexity), true
 	case "LookupValues.jobTypes":
 		if e.complexity.LookupValues.JobTypes == nil {
 			break
 		}
 
 		return e.complexity.LookupValues.JobTypes(childComplexity), true
-	case "LookupValues.regions":
-		if e.complexity.LookupValues.Regions == nil {
-			break
-		}
-
-		return e.complexity.LookupValues.Regions(childComplexity), true
 	case "LookupValues.serviceTypes":
 		if e.complexity.LookupValues.ServiceTypes == nil {
 			break
@@ -586,31 +610,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.VolunteerProfile(childComplexity), true
 
-	case "Region.code":
-		if e.complexity.Region.Code == nil {
-			break
-		}
-
-		return e.complexity.Region.Code(childComplexity), true
-	case "Region.id":
-		if e.complexity.Region.ID == nil {
-			break
-		}
-
-		return e.complexity.Region.ID(childComplexity), true
-	case "Region.isActive":
-		if e.complexity.Region.IsActive == nil {
-			break
-		}
-
-		return e.complexity.Region.IsActive(childComplexity), true
-	case "Region.name":
-		if e.complexity.Region.Name == nil {
-			break
-		}
-
-		return e.complexity.Region.Name(childComplexity), true
-
 	case "ServiceType.code":
 		if e.complexity.ServiceType.Code == nil {
 			break
@@ -697,12 +696,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Venue.Name(childComplexity), true
-	case "Venue.region":
-		if e.complexity.Venue.Region == nil {
-			break
-		}
-
-		return e.complexity.Venue.Region(childComplexity), true
 	case "Venue.state":
 		if e.complexity.Venue.State == nil {
 			break
@@ -1110,11 +1103,10 @@ input NewFeedbackInput {
 
 #-- Output --
 
-type Region {
+type FundingEntity {
   id: Int!
-  code: String!
   name: String!
-  isActive: Boolean!
+  description: String
 }
 
 type ServiceType{
@@ -1132,7 +1124,7 @@ type JobType{
 }
   
 type LookupValues{
-  regions: [Region!]!
+  fundingEntities: [FundingEntity!]!
   serviceTypes: [ServiceType!]!
   jobTypes: [JobType!]!
   cities: [String!]!
@@ -1171,7 +1163,6 @@ type Venue {
   state: String!
   zipCode: String
   timezone: String!
-  region: [Int!]!
 }
 
 type Event {
@@ -1180,6 +1171,7 @@ type Event {
   description: String
   eventType: EventType!
   venue: Venue
+  fundingEntity: FundingEntity!
   serviceTypes: [String!]
   eventDates: [EventDate!]!
   shiftSummaries: [EventShiftSummary!]!
@@ -1712,10 +1704,45 @@ func (ec *executionContext) fieldContext_Event_venue(_ context.Context, field gr
 				return ec.fieldContext_Venue_zipCode(ctx, field)
 			case "timezone":
 				return ec.fieldContext_Venue_timezone(ctx, field)
-			case "region":
-				return ec.fieldContext_Venue_region(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Venue", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Event_fundingEntity(ctx context.Context, field graphql.CollectedField, obj *Event) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Event_fundingEntity,
+		func(ctx context.Context) (any, error) {
+			return obj.FundingEntity, nil
+		},
+		nil,
+		ec.marshalNFundingEntity2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFundingEntity,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Event_fundingEntity(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Event",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FundingEntity_id(ctx, field)
+			case "name":
+				return ec.fieldContext_FundingEntity_name(ctx, field)
+			case "description":
+				return ec.fieldContext_FundingEntity_description(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FundingEntity", field.Name)
 		},
 	}
 	return fc, nil
@@ -2143,6 +2170,93 @@ func (ec *executionContext) fieldContext_FeedbackAttachment_createdAt(_ context.
 	return fc, nil
 }
 
+func (ec *executionContext) _FundingEntity_id(ctx context.Context, field graphql.CollectedField, obj *FundingEntity) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FundingEntity_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FundingEntity_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FundingEntity",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FundingEntity_name(ctx context.Context, field graphql.CollectedField, obj *FundingEntity) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FundingEntity_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FundingEntity_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FundingEntity",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FundingEntity_description(ctx context.Context, field graphql.CollectedField, obj *FundingEntity) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FundingEntity_description,
+		func(ctx context.Context) (any, error) {
+			return obj.Description, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_FundingEntity_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FundingEntity",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _JobType_id(ctx context.Context, field graphql.CollectedField, obj *JobType) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2288,23 +2402,23 @@ func (ec *executionContext) fieldContext_JobType_isActive(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _LookupValues_regions(ctx context.Context, field graphql.CollectedField, obj *LookupValues) (ret graphql.Marshaler) {
+func (ec *executionContext) _LookupValues_fundingEntities(ctx context.Context, field graphql.CollectedField, obj *LookupValues) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_LookupValues_regions,
+		ec.fieldContext_LookupValues_fundingEntities,
 		func(ctx context.Context) (any, error) {
-			return obj.Regions, nil
+			return obj.FundingEntities, nil
 		},
 		nil,
-		ec.marshalNRegion2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐRegionᚄ,
+		ec.marshalNFundingEntity2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFundingEntityᚄ,
 		true,
 		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_LookupValues_regions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_LookupValues_fundingEntities(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "LookupValues",
 		Field:      field,
@@ -2313,15 +2427,13 @@ func (ec *executionContext) fieldContext_LookupValues_regions(_ context.Context,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_Region_id(ctx, field)
-			case "code":
-				return ec.fieldContext_Region_code(ctx, field)
+				return ec.fieldContext_FundingEntity_id(ctx, field)
 			case "name":
-				return ec.fieldContext_Region_name(ctx, field)
-			case "isActive":
-				return ec.fieldContext_Region_isActive(ctx, field)
+				return ec.fieldContext_FundingEntity_name(ctx, field)
+			case "description":
+				return ec.fieldContext_FundingEntity_description(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Region", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type FundingEntity", field.Name)
 		},
 	}
 	return fc, nil
@@ -2788,8 +2900,8 @@ func (ec *executionContext) fieldContext_Query_lookupValues(_ context.Context, f
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "regions":
-				return ec.fieldContext_LookupValues_regions(ctx, field)
+			case "fundingEntities":
+				return ec.fieldContext_LookupValues_fundingEntities(ctx, field)
 			case "serviceTypes":
 				return ec.fieldContext_LookupValues_serviceTypes(ctx, field)
 			case "jobTypes":
@@ -2881,6 +2993,8 @@ func (ec *executionContext) fieldContext_Query_filteredEventsWithShifts(ctx cont
 				return ec.fieldContext_Event_eventType(ctx, field)
 			case "venue":
 				return ec.fieldContext_Event_venue(ctx, field)
+			case "fundingEntity":
+				return ec.fieldContext_Event_fundingEntity(ctx, field)
 			case "serviceTypes":
 				return ec.fieldContext_Event_serviceTypes(ctx, field)
 			case "eventDates":
@@ -2940,6 +3054,8 @@ func (ec *executionContext) fieldContext_Query_eventById(ctx context.Context, fi
 				return ec.fieldContext_Event_eventType(ctx, field)
 			case "venue":
 				return ec.fieldContext_Event_venue(ctx, field)
+			case "fundingEntity":
+				return ec.fieldContext_Event_fundingEntity(ctx, field)
 			case "serviceTypes":
 				return ec.fieldContext_Event_serviceTypes(ctx, field)
 			case "eventDates":
@@ -3293,122 +3409,6 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 				return ec.fieldContext___Schema_directives(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Schema", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Region_id(ctx context.Context, field graphql.CollectedField, obj *Region) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Region_id,
-		func(ctx context.Context) (any, error) {
-			return obj.ID, nil
-		},
-		nil,
-		ec.marshalNInt2int,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Region_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Region",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Region_code(ctx context.Context, field graphql.CollectedField, obj *Region) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Region_code,
-		func(ctx context.Context) (any, error) {
-			return obj.Code, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Region_code(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Region",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Region_name(ctx context.Context, field graphql.CollectedField, obj *Region) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Region_name,
-		func(ctx context.Context) (any, error) {
-			return obj.Name, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Region_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Region",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Region_isActive(ctx context.Context, field graphql.CollectedField, obj *Region) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Region_isActive,
-		func(ctx context.Context) (any, error) {
-			return obj.IsActive, nil
-		},
-		nil,
-		ec.marshalNBoolean2bool,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Region_isActive(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Region",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3902,35 +3902,6 @@ func (ec *executionContext) fieldContext_Venue_timezone(_ context.Context, field
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Venue_region(ctx context.Context, field graphql.CollectedField, obj *Venue) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Venue_region,
-		func(ctx context.Context) (any, error) {
-			return obj.Region, nil
-		},
-		nil,
-		ec.marshalNInt2ᚕintᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Venue_region(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Venue",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -4982,8 +4953,6 @@ func (ec *executionContext) fieldContext_VolunteerShift_venue(_ context.Context,
 				return ec.fieldContext_Venue_zipCode(ctx, field)
 			case "timezone":
 				return ec.fieldContext_Venue_timezone(ctx, field)
-			case "region":
-				return ec.fieldContext_Venue_region(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Venue", field.Name)
 		},
@@ -6675,6 +6644,11 @@ func (ec *executionContext) _Event(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "venue":
 			out.Values[i] = ec._Event_venue(ctx, field, obj)
+		case "fundingEntity":
+			out.Values[i] = ec._Event_fundingEntity(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "serviceTypes":
 			out.Values[i] = ec._Event_serviceTypes(ctx, field, obj)
 		case "eventDates":
@@ -6867,6 +6841,52 @@ func (ec *executionContext) _FeedbackAttachment(ctx context.Context, sel ast.Sel
 	return out
 }
 
+var fundingEntityImplementors = []string{"FundingEntity"}
+
+func (ec *executionContext) _FundingEntity(ctx context.Context, sel ast.SelectionSet, obj *FundingEntity) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, fundingEntityImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FundingEntity")
+		case "id":
+			out.Values[i] = ec._FundingEntity_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._FundingEntity_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "description":
+			out.Values[i] = ec._FundingEntity_description(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var jobTypeImplementors = []string{"JobType"}
 
 func (ec *executionContext) _JobType(ctx context.Context, sel ast.SelectionSet, obj *JobType) graphql.Marshaler {
@@ -6937,8 +6957,8 @@ func (ec *executionContext) _LookupValues(ctx context.Context, sel ast.Selection
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("LookupValues")
-		case "regions":
-			out.Values[i] = ec._LookupValues_regions(ctx, field, obj)
+		case "fundingEntities":
+			out.Values[i] = ec._LookupValues_fundingEntities(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -7323,60 +7343,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 	return out
 }
 
-var regionImplementors = []string{"Region"}
-
-func (ec *executionContext) _Region(ctx context.Context, sel ast.SelectionSet, obj *Region) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, regionImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("Region")
-		case "id":
-			out.Values[i] = ec._Region_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "code":
-			out.Values[i] = ec._Region_code(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "name":
-			out.Values[i] = ec._Region_name(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "isActive":
-			out.Values[i] = ec._Region_isActive(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
 var serviceTypeImplementors = []string{"ServiceType"}
 
 func (ec *executionContext) _ServiceType(ctx context.Context, sel ast.SelectionSet, obj *ServiceType) graphql.Marshaler {
@@ -7529,11 +7495,6 @@ func (ec *executionContext) _Venue(ctx context.Context, sel ast.SelectionSet, ob
 			out.Values[i] = ec._Venue_zipCode(ctx, field, obj)
 		case "timezone":
 			out.Values[i] = ec._Venue_timezone(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "region":
-			out.Values[i] = ec._Venue_region(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -8489,6 +8450,60 @@ func (ec *executionContext) marshalNFeedbackType2volunteerᚑschedulerᚋgraph�
 	return v
 }
 
+func (ec *executionContext) marshalNFundingEntity2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFundingEntityᚄ(ctx context.Context, sel ast.SelectionSet, v []*FundingEntity) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNFundingEntity2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFundingEntity(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNFundingEntity2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFundingEntity(ctx context.Context, sel ast.SelectionSet, v *FundingEntity) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FundingEntity(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v any) (string, error) {
 	res, err := graphql.UnmarshalID(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -8519,36 +8534,6 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) unmarshalNInt2ᚕintᚄ(ctx context.Context, v any) ([]int, error) {
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
-	var err error
-	res := make([]int, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNInt2int(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) marshalNInt2ᚕintᚄ(ctx context.Context, sel ast.SelectionSet, v []int) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	for i := range v {
-		ret[i] = ec.marshalNInt2int(ctx, sel, v[i])
-	}
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
 }
 
 func (ec *executionContext) marshalNJobType2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐJobTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []*JobType) graphql.Marshaler {
@@ -8636,60 +8621,6 @@ func (ec *executionContext) marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgr
 func (ec *executionContext) unmarshalNNewFeedbackInput2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐNewFeedbackInput(ctx context.Context, v any) (NewFeedbackInput, error) {
 	res, err := ec.unmarshalInputNewFeedbackInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNRegion2ᚕᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐRegionᚄ(ctx context.Context, sel ast.SelectionSet, v []*Region) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNRegion2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐRegion(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) marshalNRegion2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐRegion(ctx context.Context, sel ast.SelectionSet, v *Region) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._Region(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNRole2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐRole(ctx context.Context, v any) (Role, error) {

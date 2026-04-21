@@ -20,7 +20,8 @@ const ADMIN_EVENT_DETAIL = `
   query AdminEventDetail($eventId: ID!) {
     eventById(eventId: $eventId) {
       id name description eventType
-      venue { id name city state timezone region }
+      venue { id name city state timezone }
+      fundingEntity { id name }
       eventDates { id startDateTime endDateTime }
       serviceTypes
     }
@@ -31,6 +32,7 @@ const ADMIN_EVENT_DETAIL = `
     lookupValues {
       serviceTypes { id name }
       jobTypes { id name }
+      fundingEntities { id name }
     }
     venues { id name city state timezone }
     staff { id firstName lastName position }
@@ -352,12 +354,16 @@ export default function AdminEventDetailPage() {
   const [userName, setUserName] = useState("");
 
   /* Page data */
-  const [event, setEvent]       = useState(null);
-  const [opps, setOpps]         = useState([]);
-  const [jobTypes, setJobTypes] = useState([]);
-  const [svcTypes, setSvcTypes] = useState([]);
-  const [venues, setVenues]     = useState([]);
-  const [staff, setStaff]       = useState([]);
+  const [event, setEvent]                   = useState(null);
+  const [opps, setOpps]                     = useState([]);
+  const [jobTypes, setJobTypes]             = useState([]);
+  const [svcTypes, setSvcTypes]             = useState([]);
+  const [fundingEntities, setFundingEntities] = useState([]);
+  const [venues, setVenues]                 = useState([]);
+  const [staff, setStaff]                   = useState([]);
+
+  /* Region field */
+  const [fundingEntityId, setFundingEntityId] = useState("");
 
   /* UI state */
   const [loading, setLoading]     = useState(true);
@@ -444,10 +450,13 @@ export default function AdminEventDetailPage() {
       .then((res) => {
         if (res.errors) { setPageError(res.errors[0]?.message ?? "Error loading data."); return; }
         const loadedOpps = res.data?.opportunitiesForEvent ?? [];
-        setEvent(res.data?.eventById ?? null);
+        const loadedEvent = res.data?.eventById ?? null;
+        setEvent(loadedEvent);
         setOpps(loadedOpps);
         setJobTypes(res.data?.lookupValues?.jobTypes ?? []);
         setSvcTypes(res.data?.lookupValues?.serviceTypes ?? []);
+        setFundingEntities(res.data?.lookupValues?.fundingEntities ?? []);
+        setFundingEntityId(String(loadedEvent?.fundingEntity?.id ?? ""));
         setVenues(res.data?.venues ?? []);
         setStaff(res.data?.staff ?? []);
         if (refreshRoster) {
@@ -536,6 +545,7 @@ export default function AdminEventDetailPage() {
         description: evForm.description.trim() || null,
         eventType: evForm.eventType,
         venueId: evForm.venueId || null,
+        fundingEntityId: parseInt(fundingEntityId, 10),
         serviceTypes: evForm.serviceTypes.map(Number),
       }},
       "Event updated.",
@@ -857,6 +867,9 @@ export default function AdminEventDetailPage() {
                 {event.venue ? `${event.venue.name ?? event.venue.city}, ${event.venue.state}` : "— none (virtual)"}
               </span>
 
+              <span className={styles.metaLabel}>Region</span>
+              <span className={styles.metaValue}>{event.fundingEntity?.name ?? "—"}</span>
+
               {(event.serviceTypes?.length > 0) && (
                 <>
                   <span className={styles.metaLabel}>Service Types</span>
@@ -1033,6 +1046,18 @@ export default function AdminEventDetailPage() {
                     </label>
                   ))}
                 </div>
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label}>Region</label>
+                <select
+                  className={styles.select}
+                  value={fundingEntityId}
+                  onChange={(e) => setFundingEntityId(e.target.value)}
+                >
+                  {fundingEntities.map((fe) => (
+                    <option key={fe.id} value={fe.id}>{fe.name}</option>
+                  ))}
+                </select>
               </div>
               <div className={styles.formActions}>
                 <button className={styles.btnPrimary} onClick={handleSaveEvent} disabled={busy}>Save Changes</button>

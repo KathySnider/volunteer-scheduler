@@ -33,22 +33,18 @@ type Mutation {
   # Admin-only mutations:
   createVolunteer(newVol: NewVolunteerInput!): MutationResult!
   createVenue(newVenue: NewVenueInput!): MutationResult!
-  createRegion(newRegion: NewRegionInput!): MutationResult!
   createEvent(newEvent: NewEventInput!): MutationResult!
   createJobType(newJob: NewJobTypeInput!): MutationResult!
   createOpportunity(newOpp: NewOpportunityInput!): MutationResult!
   createShift(newShift: AddShiftInput!): MutationResult!
   createEventDate(newDate: AddEventDateInput!): MutationResult!
   createStaff(newStaff: NewStaffInput!): MutationResult!
+  createFundingEntity(input: NewFundingEntityInput!): MutationResult!
 
   assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): MutationResult!
   cancelShift(shiftId: ID!, volunteerId: ID!): MutationResult!
 
-  addVenueRegion(venueId: Int!, regionId: Int!): MutationResult!
-  removeVenueRegion(venueId: Int!, regionId: Int!): MutationResult!
-
   updateVenue(venue: UpdateVenueInput!): MutationResult!
-  updateRegion(region: UpdateRegionInput!): MutationResult!
   updateVolunteer(profile: UpdateVolunteerInput!): MutationResult!
   updateEvent(event: UpdateEventInput!): MutationResult!
   updateJobType(job: UpdateJobTypeInput!): MutationResult!
@@ -56,19 +52,20 @@ type Mutation {
   updateShift(shift: UpdateShiftInput!): MutationResult!
   updateEventDate(date: UpdateEventDateInput!): MutationResult!
   updateStaff(staff: UpdateStaffInput!): MutationResult!
+  updateFundingEntity(input: UpdateFundingEntityInput!): MutationResult!
 
   questionFeedback(question: QuestionFeedbackInput!): MutationResult!
   updateFeedback(feedback: UpdateFeedbackInput!): MutationResult!
 
   deleteVolunteer(volunteerId: ID!): MutationResult!
   deleteVenue(venueId: ID!): MutationResult!
-  deleteRegion(regionId: Int!): MutationResult!
   deleteEvent(eventId: ID!): MutationResult!
   deleteJobType(JobId: Int!): MutationResult!
   deleteOpportunity(oppId: ID!): MutationResult!
   deleteShift(shiftId: ID!): MutationResult!
   deleteEventDate(eventDateId: ID!): MutationResult!
   deleteStaff(staffId: ID!): MutationResult!
+  deleteFundingEntity(id: Int!): MutationResult!
 
   resolveFeedback(resolution: ResolveFeedbackInput!): MutationResult!
 }
@@ -179,12 +176,6 @@ input NewVenueInput {
   state: String!
   zipCode: String
   ianaZone: String!
-  region: [Int!]! # using array of ints instead of IDs, so gqlgen won't keep making them Strings.
-}
-
-input NewRegionInput {
-  code: String!
-  name: String!
 }
 
 input UpdateVenueInput {
@@ -197,17 +188,12 @@ input UpdateVenueInput {
   ianaZone: String!
 }
 
-input UpdateRegionInput {
-  id: Int!
-  code: String!
-  name: String!
-}
-
 input NewEventInput {
   name: String!
   description: String
   eventType: EventType!
   venueId: ID
+  fundingEntityId: Int!
   serviceTypes: [Int!]!
   eventDates: [NewEventDateInput!]! # a new event must have at least one date.
 }
@@ -218,6 +204,7 @@ input UpdateEventInput {
   description: String
   eventType: EventType!
   venueId: ID
+  fundingEntityId: Int!
   serviceTypes: [Int!]!
 }
 
@@ -254,8 +241,6 @@ input UpdateJobTypeInput {
   sortOrder: Int!
 }
 
-# A new opp MUST include at
-# least 1 new shift.
 input NewOpportunityInput {
   eventId: ID!
   jobId: Int!
@@ -326,4 +311,15 @@ input ResolveFeedbackInput {
   status: FeedbackStatus!
   note: String!
   githubIssueURL: String
+}
+
+input NewFundingEntityInput {
+  name: String!
+  description: String
+}
+
+input UpdateFundingEntityInput {
+  id: Int!
+  name: String
+  description: String
 }

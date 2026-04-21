@@ -1,22 +1,11 @@
 -- ============================================================================
 -- VOLUNTEER SCHEDULER - FULL SCHEMA INITIALIZATION
--- Combines migrations 000001 through 000009
--- Run this file to create the database from scratch.
 -- ============================================================================
 
 
 -- ============================================================================
 -- ENUM TYPES
 -- ============================================================================
-
-CREATE TYPE job_type AS ENUM (
-    'event_support',
-    'advocacy',
-    'speaker',
-    'volunteer_lead',
-    'attendee_only',
-    'other'
-);
 
 CREATE TYPE volunteer_role AS ENUM (
     'VOLUNTEER',
@@ -36,45 +25,12 @@ CREATE TYPE feedback_status AS ENUM (
     'RESOLVED_REJECTED'
 );
 
-
--- ============================================================================
--- VENUES
--- ============================================================================
-
-CREATE TABLE venues (
-    venue_id       SERIAL PRIMARY KEY,
-    venue_name     TEXT,
-    street_address TEXT NOT NULL,
-    city           TEXT NOT NULL,
-    state          TEXT NOT NULL,
-    zip_code       VARCHAR(10),
-    timezone       TEXT NOT NULL DEFAULT 'America/Los_Angeles',
-    UNIQUE(street_address, city, state)
+CREATE TYPE feedback_note_type AS ENUM (
+    'ADMIN_NOTE',
+    'QUESTION',
+    'VOLUNTEER_REPLY',
+    'EMAIL_TO_VOLUNTEER'
 );
-
-
--- ============================================================================
--- REGIONS (many-to-many with venues)
--- ============================================================================
-
-CREATE TABLE regions (
-    region_id SERIAL PRIMARY KEY,
-    code      VARCHAR(50) UNIQUE NOT NULL,
-    name      TEXT NOT NULL,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    CHECK (code = lower(code))
-);
-
-CREATE INDEX idx_regions_active ON regions(region_id) WHERE is_active = TRUE;
-
-CREATE TABLE venue_regions (
-    venue_id  INT NOT NULL REFERENCES venues(venue_id) ON DELETE CASCADE,
-    region_id INT NOT NULL REFERENCES regions(region_id) ON DELETE RESTRICT,
-    PRIMARY KEY (venue_id, region_id)
-);
-
-CREATE INDEX idx_venue_regions_venue  ON venue_regions(venue_id);
-CREATE INDEX idx_venue_regions_region ON venue_regions(region_id);
 
 
 -- ============================================================================
@@ -150,32 +106,65 @@ CREATE INDEX idx_sessions_volunteer_id ON sessions(volunteer_id);
 
 
 -- ============================================================================
+-- VENUES
+-- ============================================================================
+
+CREATE TABLE venues (
+    venue_id       SERIAL PRIMARY KEY,
+    venue_name     TEXT,
+    street_address TEXT NOT NULL,
+    city           TEXT NOT NULL,
+    state          TEXT NOT NULL,
+    zip_code       VARCHAR(10),
+    timezone       TEXT NOT NULL DEFAULT 'America/Los_Angeles',
+    UNIQUE(street_address, city, state)
+);
+
+
+-- ============================================================================
+-- FUNDING ENTITIES
+-- ============================================================================
+
+CREATE TABLE funding_entities (
+    id          SERIAL PRIMARY KEY,
+    name        TEXT NOT NULL UNIQUE,
+    description TEXT,
+    is_active   BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+INSERT INTO funding_entities (name) VALUES
+    ('Seattle Area'),
+    ('Spokane Area'),
+    ('Statewide');
+
+
+-- ============================================================================
 -- EVENTS
 -- ============================================================================
 
 CREATE TABLE events (
-    event_id        SERIAL PRIMARY KEY,
-    event_name      TEXT NOT NULL,
-    description     TEXT,
-    event_is_virtual BOOLEAN DEFAULT FALSE,
-    venue_id        INT,
-    FOREIGN KEY (venue_id) REFERENCES venues(venue_id) ON DELETE RESTRICT
+    event_id          SERIAL PRIMARY KEY,
+    event_name        TEXT NOT NULL,
+    description       TEXT,
+    event_is_virtual  BOOLEAN DEFAULT FALSE,
+    venue_id          INT REFERENCES venues(venue_id) ON DELETE RESTRICT,
+    funding_entity_id INT NOT NULL REFERENCES funding_entities(id) ON DELETE RESTRICT
 );
 
-CREATE INDEX idx_events_venue ON events(venue_id);
+CREATE INDEX idx_events_venue          ON events(venue_id);
+CREATE INDEX idx_events_funding_entity ON events(funding_entity_id);
 
 CREATE TABLE event_dates (
     event_date_id   SERIAL PRIMARY KEY,
-    event_id        INT NOT NULL,
+    event_id        INT NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
     start_date_time TIMESTAMP NOT NULL,
     end_date_time   TIMESTAMP NOT NULL,
-    FOREIGN KEY (event_id) REFERENCES events(event_id) ON DELETE CASCADE,
     CONSTRAINT event_dates_check_end_after_start CHECK (end_date_time > start_date_time)
 );
 
 CREATE INDEX idx_event_dates_event ON event_dates(event_id);
 
--- Service types lookup
 CREATE TABLE service_types (
     service_type_id SERIAL PRIMARY KEY,
     code            VARCHAR(50) UNIQUE NOT NULL,
@@ -183,7 +172,6 @@ CREATE TABLE service_types (
     CHECK (code = lower(code))
 );
 
--- Event to service types (many-to-many)
 CREATE TABLE event_service_types (
     event_id        INT REFERENCES events(event_id) ON DELETE CASCADE,
     service_type_id INT REFERENCES service_types(service_type_id) ON DELETE CASCADE,
@@ -192,50 +180,63 @@ CREATE TABLE event_service_types (
 
 
 -- ============================================================================
+-- JOB TYPES
+-- ============================================================================
+
+CREATE TABLE job_types (
+    job_type_id SERIAL PRIMARY KEY,
+    code        VARCHAR(50) UNIQUE NOT NULL,
+    name        TEXT NOT NULL,
+    is_active   BOOLEAN NOT NULL DEFAULT TRUE,
+    sort_order  INT NOT NULL DEFAULT 0,
+    CHECK (code = lower(code))
+);
+
+CREATE INDEX idx_job_types_active ON job_types(job_type_id) WHERE is_active = TRUE;
+
+INSERT INTO job_types (code, name, sort_order) VALUES
+    ('event_support',  'Event Support',   10),
+    ('advocacy',       'Advocacy',        20),
+    ('speaker',        'Speaker',         30),
+    ('volunteer_lead', 'Volunteer Lead',  40),
+    ('attendee_only',  'Attendee Only',   50),
+    ('other',          'Other',           60);
+
+
+-- ============================================================================
 -- OPPORTUNITIES AND SHIFTS
 -- ============================================================================
 
 CREATE TABLE opportunities (
-    opportunity_id        SERIAL PRIMARY KEY,
-    event_id              INT NOT NULL,
-    job                   job_type NOT NULL,
-    other_job_description TEXT,
+    opportunity_id         SERIAL PRIMARY KEY,
+    event_id               INT NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
+    job_type_id            INT NOT NULL REFERENCES job_types(job_type_id) ON DELETE RESTRICT,
     opportunity_is_virtual BOOLEAN DEFAULT FALSE,
-    pre_event_instructions TEXT,
-    FOREIGN KEY (event_id) REFERENCES events(event_id) ON DELETE CASCADE,
-    CHECK (
-        (job != 'other' AND other_job_description IS NULL) OR
-        (job = 'other'  AND other_job_description IS NOT NULL)
-    )
+    pre_event_instructions TEXT
 );
 
 CREATE INDEX idx_opportunities_event ON opportunities(event_id);
 
 CREATE TABLE shifts (
-    shift_id       SERIAL PRIMARY KEY,
-    opportunity_id INT NOT NULL,
-    shift_start    TIMESTAMP NOT NULL,
-    shift_end      TIMESTAMP NOT NULL,
-    staff_contact_id INT,
-    max_volunteers INT NOT NULL,
-    FOREIGN KEY (opportunity_id) REFERENCES opportunities(opportunity_id) ON DELETE CASCADE,
-    FOREIGN KEY (staff_contact_id) REFERENCES staff(staff_id) ON DELETE SET NULL,
+    shift_id         SERIAL PRIMARY KEY,
+    opportunity_id   INT NOT NULL REFERENCES opportunities(opportunity_id) ON DELETE CASCADE,
+    shift_start      TIMESTAMP NOT NULL,
+    shift_end        TIMESTAMP NOT NULL,
+    staff_contact_id INT REFERENCES staff(staff_id) ON DELETE SET NULL,
+    max_volunteers   INT NOT NULL,
     CHECK (shift_end > shift_start),
     CHECK (max_volunteers > 0)
 );
 
-CREATE INDEX idx_shifts_opportunity  ON shifts(opportunity_id);
+CREATE INDEX idx_shifts_opportunity   ON shifts(opportunity_id);
 CREATE INDEX idx_shifts_staff_contact ON shifts(staff_contact_id);
 
--- Volunteer shift assignments
 CREATE TABLE volunteer_shifts (
-    volunteer_id INT,
-    shift_id     INT,
+    volunteer_id INT REFERENCES volunteers(volunteer_id) ON DELETE CASCADE,
+    shift_id     INT REFERENCES shifts(shift_id) ON DELETE CASCADE,
     assigned_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     cancelled_at TIMESTAMP,
-    PRIMARY KEY (volunteer_id, shift_id),
-    FOREIGN KEY (volunteer_id) REFERENCES volunteers(volunteer_id) ON DELETE CASCADE,
-    FOREIGN KEY (shift_id) REFERENCES shifts(shift_id) ON DELETE CASCADE
+    PRIMARY KEY (volunteer_id, shift_id)
 );
 
 CREATE INDEX idx_volunteer_shifts_volunteer ON volunteer_shifts(volunteer_id);
@@ -266,33 +267,40 @@ CREATE INDEX idx_feedback_status     ON feedback(status);
 CREATE INDEX idx_feedback_type       ON feedback(feedback_type);
 CREATE INDEX idx_feedback_created_at ON feedback(created_at DESC);
 
--- Append-only admin notes. No edits or deletes permitted (enforced at application layer).
+-- Append-only notes. No edits or deletes permitted (enforced at application layer).
 CREATE TABLE feedback_notes (
     note_id      SERIAL PRIMARY KEY,
     feedback_id  INT NOT NULL REFERENCES feedback(feedback_id) ON DELETE CASCADE,
     volunteer_id INT NOT NULL REFERENCES volunteers(volunteer_id) ON DELETE RESTRICT,
     note         TEXT NOT NULL,
+    note_type    feedback_note_type NOT NULL DEFAULT 'ADMIN_NOTE',
     created_at   TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_feedback_notes_feedback  ON feedback_notes(feedback_id);
 CREATE INDEX idx_feedback_notes_volunteer ON feedback_notes(volunteer_id);
+CREATE INDEX idx_feedback_notes_note_type ON feedback_notes(note_type);
+
+CREATE TABLE feedback_attachments (
+    attachment_id SERIAL PRIMARY KEY,
+    feedback_id   INTEGER NOT NULL REFERENCES feedback(feedback_id),
+    filename      TEXT NOT NULL,
+    mime_type     TEXT NOT NULL,
+    file_data     BYTEA NOT NULL,
+    file_size     INTEGER NOT NULL,
+    created_at    TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_feedback_attachments_feedback_id ON feedback_attachments(feedback_id);
 
 
 -- ============================================================================
 -- SEED DATA
 -- ============================================================================
 
--- Service types (AARP-wide convention)
 INSERT INTO service_types (code, name) VALUES
     ('outreach',        'Outreach'),
     ('advocacy',        'Advocacy'),
     ('speakers_bureau', 'Speakers Bureau'),
     ('office_support',  'Office Support'),
     ('other',           'Other');
-
--- Washington state regions
-INSERT INTO regions (code, name) VALUES
-    ('seattle',      'Seattle Metro'),
-    ('spokane',      'Spokane'),
-    ('southwest_wa', 'Southwest WA');

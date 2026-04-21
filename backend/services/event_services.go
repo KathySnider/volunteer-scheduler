@@ -36,22 +36,22 @@ func (s *EventService) FetchLookups(ctx context.Context) (*models.LookupValues, 
 
 	var lookup models.LookupValues
 
-	// Get regions.
-	lookup.Regions = make([]*models.Region, 0)
-	rows, err := s.DB.QueryContext(ctx, "Select region_id, code, name, is_active from regions WHERE is_active = true")
+	// Get FundingEntities.
+	lookup.FundingEntities = make([]*models.FundingEntity, 0)
+	rows, err := s.DB.QueryContext(ctx, "SELECT id, name, COALESCE(description, '') FROM funding_entities WHERE is_active = true ORDER BY name")
 	if err != nil {
-		return nil, fmt.Errorf("error querying regions: %w", err)
+		return nil, fmt.Errorf("error querying funding entities: %w", err)
 	}
 
 	for rows.Next() {
-		var r models.Region
+		var fe models.FundingEntity
 
-		err = rows.Scan(&r.ID, &r.Code, &r.Name, &r.IsActive)
+		err = rows.Scan(&fe.ID, &fe.Name, &fe.Description)
 		if err != nil {
 			rows.Close()
-			return nil, fmt.Errorf("error scanning regions: %w", err)
+			return nil, fmt.Errorf("error scanning funding entities: %w", err)
 		}
-		lookup.Regions = append(lookup.Regions, &r)
+		lookup.FundingEntities = append(lookup.FundingEntities, &fe)
 	}
 	rows.Close()
 
@@ -187,7 +187,7 @@ func (s *EventService) FetchEventById(ctx context.Context, eventId string) (*mod
 	}
 
 	query := `
-        SELECT 
+        SELECT
             e.event_name,
             e.description,
             e.event_is_virtual,
@@ -198,10 +198,11 @@ func (s *EventService) FetchEventById(ctx context.Context, eventId string) (*mod
             v.state,
             v.zip_code,
 			v.timezone,
-			vr.region_id
+			e.funding_entity_id,
+			fe.name
         FROM events e
         LEFT JOIN venues v ON e.venue_id = v.venue_id
-		LEFT JOIN venue_regions vr ON v.venue_id = vr.venue_id
+		LEFT JOIN funding_entities fe ON e.funding_entity_id = fe.id
 		WHERE e.event_id = $1
     `
 
@@ -213,7 +214,8 @@ func (s *EventService) FetchEventById(ctx context.Context, eventId string) (*mod
 	var isVirtual bool
 	var venueInt sql.NullInt64
 	var eventDesc, venueName, streetAddress, city, state, zip, timezone sql.NullString
-	var regionInt sql.NullInt32
+	var fundingEntityId int
+	var fundingEntityName string
 
 	err = row.Scan(
 		&e.Name,
@@ -226,7 +228,8 @@ func (s *EventService) FetchEventById(ctx context.Context, eventId string) (*mod
 		&state,
 		&zip,
 		&timezone,
-		&regionInt,
+		&fundingEntityId,
+		&fundingEntityName,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error scanning event: %w", err)
@@ -253,6 +256,8 @@ func (s *EventService) FetchEventById(ctx context.Context, eventId string) (*mod
 	} else {
 		e.Venue = nil
 	}
+
+	e.FundingEntity = models.FundingEntity{ID: fundingEntityId, Name: fundingEntityName}
 
 	stPtrs, err := FetchEventServiceTypes(ctx, s.DB, eventInt)
 	if err != nil {
@@ -331,19 +336,19 @@ func (s *EventService) CreateEvent(ctx context.Context, newEvent models.NewEvent
 	// Create the event first. We need the id to continue.
 	if venueIdPtr == nil {
 		query = `
-		INSERT INTO events (event_name, description, event_is_virtual)
-		VALUES ($1, $2, $3)
-		RETURNING event_id
-	`
-		err = tx.QueryRowContext(ctx, query, newEvent.Name, newEvent.Description, virtualEvent).Scan(&eventInt)
-
-	} else {
-		query = `
-		INSERT INTO events (event_name, description, event_is_virtual, venue_id)
+		INSERT INTO events (event_name, description, event_is_virtual, funding_entity_id)
 		VALUES ($1, $2, $3, $4)
 		RETURNING event_id
 	`
-		err = tx.QueryRowContext(ctx, query, newEvent.Name, newEvent.Description, virtualEvent, *venueIdPtr).Scan(&eventInt)
+		err = tx.QueryRowContext(ctx, query, newEvent.Name, newEvent.Description, virtualEvent, newEvent.FundingEntityID).Scan(&eventInt)
+
+	} else {
+		query = `
+		INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING event_id
+	`
+		err = tx.QueryRowContext(ctx, query, newEvent.Name, newEvent.Description, virtualEvent, *venueIdPtr, newEvent.FundingEntityID).Scan(&eventInt)
 	}
 
 	if err == nil {
@@ -489,15 +494,16 @@ func (s *EventService) UpdateEvent(ctx context.Context, event models.UpdateEvent
 	}
 
 	query := `
-		UPDATE events 
-		SET 
+		UPDATE events
+		SET
 			event_name = $1,
-			description = $2, 
+			description = $2,
 			event_is_virtual = $3,
-			venue_id = $4
-		WHERE event_id = $5
+			venue_id = $4,
+			funding_entity_id = $5
+		WHERE event_id = $6
 	`
-	_, err = s.DB.ExecContext(ctx, query, event.Name, event.Description, isVirtual, venueInt, eventInt)
+	_, err = s.DB.ExecContext(ctx, query, event.Name, event.Description, isVirtual, venueInt, event.FundingEntityID, eventInt)
 
 	if err != nil {
 		return &models.MutationResult{

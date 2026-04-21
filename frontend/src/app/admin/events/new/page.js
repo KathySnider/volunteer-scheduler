@@ -41,10 +41,9 @@ const VENUES_AND_LOOKUPS = `
       state
       zipCode
       timezone
-      region
     }
     lookupValues {
-      regions { id name }
+      fundingEntities { id name }
       serviceTypes { id name }
     }
   }
@@ -168,13 +167,13 @@ function TimeInput({ value24, period, onCommit, className }) {
 
 /* ----- VenueSelector sub-component ----- */
 
-function VenueSelector({ venues, regions, selectedVenue, onSelect, onClear, gql }) {
+function VenueSelector({ venues, selectedVenue, onSelect, onClear, gql }) {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [showNewForm, setShowNewForm] = useState(false);
   const [newVenue, setNewVenue] = useState({
     name: "", address: "", city: "", state: "WA",
-    zipCode: "", ianaZone: "America/Los_Angeles", regions: [],
+    zipCode: "", ianaZone: "America/Los_Angeles",
   });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
@@ -223,10 +222,6 @@ function VenueSelector({ venues, regions, selectedVenue, onSelect, onClear, gql 
       setCreateError("Address, city, and state are required.");
       return;
     }
-    if (newVenue.regions.length === 0) {
-      setCreateError("Select at least one region.");
-      return;
-    }
     setCreating(true);
     try {
       const res = await gql(CREATE_VENUE, {
@@ -237,7 +232,6 @@ function VenueSelector({ venues, regions, selectedVenue, onSelect, onClear, gql 
           state:    newVenue.state,
           zipCode:  newVenue.zipCode  || null,
           ianaZone: newVenue.ianaZone,
-          region:   newVenue.regions.map(Number),
         },
       });
       const result = res.data?.createVenue;
@@ -253,7 +247,6 @@ function VenueSelector({ venues, regions, selectedVenue, onSelect, onClear, gql 
         city:     newVenue.city,
         state:    newVenue.state,
         timezone: newVenue.ianaZone,
-        region:   newVenue.regions.map(Number),
       });
       setShowNewForm(false);
       setSearch("");
@@ -262,15 +255,6 @@ function VenueSelector({ venues, regions, selectedVenue, onSelect, onClear, gql 
     } finally {
       setCreating(false);
     }
-  };
-
-  const toggleRegion = (id) => {
-    setNewVenue((prev) => ({
-      ...prev,
-      regions: prev.regions.includes(id)
-        ? prev.regions.filter((r) => r !== id)
-        : [...prev.regions, id],
-    }));
   };
 
   // --- If a venue is already selected, show it as a chip ---
@@ -394,24 +378,6 @@ function VenueSelector({ venues, regions, selectedVenue, onSelect, onClear, gql 
             </div>
           </div>
 
-          <div className={styles.field}>
-            <label className={styles.label}>
-              Region(s) <span className={styles.required}>*</span>
-            </label>
-            <div className={styles.checkboxGroup}>
-              {regions.map((r) => (
-                <label key={r.id} className={styles.checkboxLabel}>
-                  <input
-                    type="checkbox"
-                    checked={newVenue.regions.includes(r.id)}
-                    onChange={() => toggleRegion(r.id)}
-                  />
-                  {r.name}
-                </label>
-              ))}
-            </div>
-          </div>
-
           {createError && <div className={styles.fieldError}>{createError}</div>}
 
           <div className={styles.newVenueActions}>
@@ -453,9 +419,12 @@ export default function AddEventPage() {
 
   // Lookup data
   const [venues, setVenues] = useState([]);
-  const [regions, setRegions] = useState([]);
+  const [fundingEntities, setFundingEntities] = useState([]);
   const [serviceTypes, setServiceTypes] = useState([]);
   const [loadError, setLoadError] = useState("");
+
+  // Region field
+  const [fundingEntityId, setFundingEntityId] = useState("");
 
   // Form state
   const [name, setName] = useState("");
@@ -490,9 +459,14 @@ export default function AddEventPage() {
     boundGql(VENUES_AND_LOOKUPS, null)
       .then((res) => {
         // Use whatever data came back even if one field errored.
-        if (res.data?.venues)                       setVenues(res.data.venues);
-        if (res.data?.lookupValues?.regions)        setRegions(res.data.lookupValues.regions);
-        if (res.data?.lookupValues?.serviceTypes)   setServiceTypes(res.data.lookupValues.serviceTypes);
+        if (res.data?.venues)                             setVenues(res.data.venues);
+        if (res.data?.lookupValues?.fundingEntities) {
+          setFundingEntities(res.data.lookupValues.fundingEntities);
+          if (res.data.lookupValues.fundingEntities.length > 0 && !fundingEntityId) {
+            setFundingEntityId(String(res.data.lookupValues.fundingEntities[0].id));
+          }
+        }
+        if (res.data?.lookupValues?.serviceTypes)         setServiceTypes(res.data.lookupValues.serviceTypes);
         if (res.errors) setLoadError(res.errors[0]?.message ?? "Error loading some data.");
       })
       .catch(() => setLoadError("Unable to reach the server."));
@@ -540,6 +514,7 @@ export default function AddEventPage() {
   const validate = () => {
     const errs = {};
     if (!name.trim()) errs.name = "Event name is required.";
+    if (!fundingEntityId) errs.fundingEntityId = "Region is required.";
     if (eventType !== "VIRTUAL" && !selectedVenue) {
       errs.venue = "Please select or add a venue.";
     }
@@ -565,12 +540,13 @@ export default function AddEventPage() {
     setSubmitError("");
 
     const newEvent = {
-      name:         name.trim(),
-      description:  description.trim() || null,
+      name:            name.trim(),
+      description:     description.trim() || null,
       eventType,
-      venueId:      selectedVenue?.id ?? null,
-      serviceTypes: selectedServiceTypes.map(Number),
-      eventDates:   eventDates.map((d) => ({
+      venueId:         selectedVenue?.id ?? null,
+      fundingEntityId: parseInt(fundingEntityId, 10),
+      serviceTypes:    selectedServiceTypes.map(Number),
+      eventDates:      eventDates.map((d) => ({
         startDateTime: `${d.startDate} ${normalizeTime(d.startTime)}:00`,
         endDateTime:   `${d.endDate} ${normalizeTime(d.endTime)}:00`,
         ianaZone,
@@ -599,6 +575,7 @@ export default function AddEventPage() {
     setEventType("IN_PERSON");
     setSelectedVenue(null);
     setSelectedServiceTypes([]);
+    setFundingEntityId(fundingEntities[0] ? String(fundingEntities[0].id) : "");
     setIanaZone(browserZone.current);
     setEventDates([EMPTY_DATE()]);
     setErrors({});
@@ -674,6 +651,28 @@ export default function AddEventPage() {
               </div>
 
               <div className={styles.field}>
+                <label className={styles.label}>
+                  Region <span className={styles.required}>*</span>
+                </label>
+                <select
+                  className={`${styles.select}${errors.fundingEntityId ? ` ${styles.error}` : ""}`}
+                  value={fundingEntityId}
+                  onChange={(e) => {
+                    setFundingEntityId(e.target.value);
+                    setErrors((p) => ({ ...p, fundingEntityId: undefined }));
+                  }}
+                >
+                  <option value="">Select a region…</option>
+                  {fundingEntities.map((fe) => (
+                    <option key={fe.id} value={fe.id}>{fe.name}</option>
+                  ))}
+                </select>
+                {errors.fundingEntityId && (
+                  <div className={styles.fieldError}>{errors.fundingEntityId}</div>
+                )}
+              </div>
+
+              <div className={styles.field}>
                 <label className={styles.label}>Format</label>
                 <div className={styles.radioGroup}>
                   {[
@@ -706,7 +705,6 @@ export default function AddEventPage() {
                   </label>
                   <VenueSelector
                     venues={venues}
-                    regions={regions}
                     selectedVenue={selectedVenue}
                     onSelect={handleVenueSelect}
                     onClear={handleVenueClear}

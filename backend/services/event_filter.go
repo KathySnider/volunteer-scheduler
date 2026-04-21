@@ -39,17 +39,20 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
             v.state,
             v.zip_code,
 			v.timezone,
-			earliest.first_date
+			earliest.first_date,
+			e.funding_entity_id,
+			fe.name
         FROM events e
         LEFT JOIN venues v ON e.venue_id = v.venue_id
+        LEFT JOIN funding_entities fe ON e.funding_entity_id = fe.id
         LEFT JOIN opportunities opp ON e.event_id = opp.event_id
 		LEFT JOIN job_types jt ON jt.job_type_id = opp.job_type_id
-	    LEFT JOIN shifts s_filter ON opp.opportunity_id = s_filter.opportunity_id 
+	    LEFT JOIN shifts s_filter ON opp.opportunity_id = s_filter.opportunity_id
 		LEFT JOIN (
 			SELECT event_id, MIN(start_date_time) as first_date
 			FROM event_dates
 			GROUP BY event_id
-		) earliest ON e.event_id = earliest.event_id       
+		) earliest ON e.event_id = earliest.event_id
 		WHERE 1=1
     `
 
@@ -127,6 +130,8 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 		var isVirtual bool
 		var firstDate *time.Time
 		var eventDesc, venueName, streetAddress, city, state, zip, timezone sql.NullString
+		var fundingEntityId int
+		var fundingEntityName string
 
 		err := rows.Scan(
 			&eventInt,
@@ -141,6 +146,8 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 			&zip,
 			&timezone,
 			&firstDate,
+			&fundingEntityId,
+			&fundingEntityName,
 		)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error scanning event: %w", err)
@@ -165,6 +172,8 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 		} else {
 			e.Venue = nil
 		}
+
+		e.FundingEntity = models.FundingEntity{ID: fundingEntityId, Name: fundingEntityName}
 
 		stPtrs, err := FetchEventServiceTypes(ctx, db, eventInt)
 		if err != nil {

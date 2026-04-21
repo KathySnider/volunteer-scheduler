@@ -347,6 +347,21 @@
   font-size: 0.8rem;
 }
 
+/* Prevents short-content cells (date, region, format, counts, actions) from
+   wrapping when a long event name or city pushes the table layout. */
+.tdNoWrap {
+  white-space: nowrap;
+}
+
+/* Caps the Location column so an unusually long city name can't crowd
+   out everything else; excess text is clipped with an ellipsis. */
+.tdLocation {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ----- Format badge ----- */
 
 .badge {

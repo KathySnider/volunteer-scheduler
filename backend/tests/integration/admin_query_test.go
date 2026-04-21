@@ -15,7 +15,7 @@ const (
 		lookupValues {
 			serviceTypes { name }
 			jobTypes { name }
-			regions { name }
+			fundingEntities { name }
 		}
 	}`
 
@@ -82,9 +82,9 @@ type lookupValuesResult struct {
 	JobTypes []struct {
 		Name string `json:"name"`
 	} `json:"jobTypes"`
-	Regions []struct {
+	FundingEntities []struct {
 		Name string `json:"name"`
-	} `json:"regions"`
+	} `json:"fundingEntities"`
 }
 
 type venueResult struct {
@@ -178,8 +178,6 @@ func TestLookupValues(t *testing.T) {
 func TestVenues(t *testing.T) {
 	adminToken := makeAdminToken(t)
 	venueID := seedVenue(t, "Admin Query Test Venue", "123 Main St", "Springfield", "IL", "America/Chicago")
-	regionID := seedRegion(t, uniqueCode(t, "vqr"), "Venue Query Region")
-	seedVenueRegion(t, venueID, regionID)
 
 	resp := gqlPost(t, "/graphql/admin", adminToken, qryVenues, nil)
 

@@ -95,6 +95,7 @@ func TestMain(m *testing.M) {
 	venueService := services.NewVenueService(db)
 	feedbackService := services.NewFeedbackService(db, mailer)
 	staffService := services.NewStaffService(db)
+	fundingEntityService := services.NewFundingEntityService(db)
 
 	eventService, err := services.NewEventService(db, mailer, shiftService)
 	if err != nil {
@@ -118,13 +119,14 @@ func TestMain(m *testing.M) {
 		FeedbackService:  feedbackService,
 	}
 	adminResolver := &admin.Resolver{
-		DB:               db,
-		EventService:     eventService,
-		VolunteerService: volunteerService,
-		ShiftService:     shiftService,
-		VenueService:     venueService,
-		FeedbackService:  feedbackService,
-		StaffService:     staffService,
+		DB:                   db,
+		EventService:         eventService,
+		VolunteerService:     volunteerService,
+		ShiftService:         shiftService,
+		VenueService:         venueService,
+		FeedbackService:      feedbackService,
+		StaffService:         staffService,
+		FundingEntityService: fundingEntityService,
 	}
 
 	// -------------------------------------------------------------------------

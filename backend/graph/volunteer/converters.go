@@ -37,19 +37,29 @@ func toGenAttachmentDownload(m *models.AttachmentDownload) *generated.Attachment
 
 func toGenLookupValues(m models.LookupValues) generated.LookupValues {
 	return generated.LookupValues{
-		Regions:      toGenRegions(m.Regions),
-		ServiceTypes: toGenServiceTypes(m.ServiceTypes),
-		JobTypes:     toGenJobTypes(m.JobTypes),
-		Cities:       m.Cities,
+		FundingEntities: toGenFundingEntities(m.FundingEntities),
+		ServiceTypes:    toGenServiceTypes(m.ServiceTypes),
+		JobTypes:        toGenJobTypes(m.JobTypes),
+		Cities:          m.Cities,
 	}
 }
 
-func toGenRegions(ms []*models.Region) []*generated.Region {
-	result := make([]*generated.Region, len(ms))
+func toGenFundingEntities(ms []*models.FundingEntity) []*generated.FundingEntity {
+	result := make([]*generated.FundingEntity, len(ms))
 	for i, m := range ms {
-		result[i] = toGenRegion(m)
+		result[i] = toGenFundingEntity(m)
 	}
 	return result
+}
+
+func toGenFundingEntity(m *models.FundingEntity) *generated.FundingEntity {
+	if m == nil {
+		return nil
+	}
+	return &generated.FundingEntity{
+		ID:   m.ID,
+		Name: m.Name,
+	}
 }
 
 func toGenServiceTypes(ms []*models.ServiceType) []*generated.ServiceType {
@@ -66,18 +76,6 @@ func toGenJobTypes(ms []*models.JobType) []*generated.JobType {
 		result[i] = toGenJobType(m)
 	}
 	return result
-}
-
-func toGenRegion(m *models.Region) *generated.Region {
-	if m == nil {
-		return nil
-	}
-	return &generated.Region{
-		ID:       m.ID,
-		Code:     m.Code,
-		Name:     m.Name,
-		IsActive: m.IsActive,
-	}
 }
 
 func toGenServiceType(m *models.ServiceType) *generated.ServiceType {
@@ -116,7 +114,6 @@ func toGenVenue(m *models.Venue) *generated.Venue {
 		State:    m.State,
 		ZipCode:  m.ZipCode,
 		Timezone: m.Timezone,
-		Region:   m.Region,
 	}
 }
 
@@ -183,6 +180,7 @@ func toGenEvent(m *models.Event) *generated.Event {
 		Description:    m.Description,
 		EventType:      generated.EventType(m.EventType),
 		Venue:          toGenVenue(m.Venue),
+		FundingEntity:  toGenFundingEntity(&m.FundingEntity),
 		EventDates:     toGenEventDates(m.EventDates),
 		ServiceTypes:   m.ServiceTypes,
 		ShiftSummaries: toGenEventShiftSummaries(m.ShiftSummaries),

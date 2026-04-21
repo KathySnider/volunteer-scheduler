@@ -220,20 +220,20 @@ func getJobTypeID(t *testing.T, code string) int {
 	return id
 }
 
-// seedRegion inserts a region and returns its region_id.
-func seedRegion(t *testing.T, code, name string) int {
+// seedFundingEntity inserts a funding entity and returns its id.
+func seedFundingEntity(t *testing.T, name string) int {
 	t.Helper()
 	var id int
 	err := testDB.QueryRow(`
-		INSERT INTO regions (code, name, is_active)
-		VALUES ($1, $2, TRUE)
-		RETURNING region_id
-	`, code, name).Scan(&id)
+		INSERT INTO funding_entities (name, is_active)
+		VALUES ($1, TRUE)
+		RETURNING id
+	`, name).Scan(&id)
 	if err != nil {
-		t.Fatalf("seedRegion: %v", err)
+		t.Fatalf("seedFundingEntity: %v", err)
 	}
 	t.Cleanup(func() {
-		testDB.Exec("DELETE FROM regions WHERE region_id = $1", id)
+		testDB.Exec("DELETE FROM funding_entities WHERE id = $1", id)
 	})
 	return id
 }
@@ -256,41 +256,38 @@ func seedVenue(t *testing.T, name, address, city, state, timezone string) int {
 	return id
 }
 
-// seedVenueRegion links a venue to a region.
-func seedVenueRegion(t *testing.T, venueID, regionID int) {
-	t.Helper()
-	_, err := testDB.Exec(`
-		INSERT INTO venue_regions (venue_id, region_id) VALUES ($1, $2)
-	`, venueID, regionID)
-	if err != nil {
-		t.Fatalf("seedVenueRegion: %v", err)
-	}
-	t.Cleanup(func() {
-		testDB.Exec("DELETE FROM venue_regions WHERE venue_id = $1 AND region_id = $2", venueID, regionID)
-	})
-}
-
 // seedEvent inserts an event and returns its event_id.
 //
 //	isVirtual=true,  venueID=nil  → VIRTUAL
 //	isVirtual=false, venueID!=nil → IN_PERSON
 //	isVirtual=true,  venueID!=nil → HYBRID
+//
+// funding_entity_id is always set to the seeded "Seattle Area" entity.
 func seedEvent(t *testing.T, name string, isVirtual bool, venueID *int) int {
 	t.Helper()
+
+	// funding_entity_id is NOT NULL — look up the always-present "Seattle Area" seed.
+	var feID int
+	if err := testDB.QueryRow(
+		"SELECT id FROM funding_entities WHERE name = 'Seattle Area' LIMIT 1",
+	).Scan(&feID); err != nil {
+		t.Fatalf("seedEvent: could not find 'Seattle Area' funding entity: %v", err)
+	}
+
 	var id int
 	var err error
 	if venueID == nil {
 		err = testDB.QueryRow(`
-			INSERT INTO events (event_name, event_is_virtual)
-			VALUES ($1, $2)
-			RETURNING event_id
-		`, name, isVirtual).Scan(&id)
-	} else {
-		err = testDB.QueryRow(`
-			INSERT INTO events (event_name, event_is_virtual, venue_id)
+			INSERT INTO events (event_name, event_is_virtual, funding_entity_id)
 			VALUES ($1, $2, $3)
 			RETURNING event_id
-		`, name, isVirtual, *venueID).Scan(&id)
+		`, name, isVirtual, feID).Scan(&id)
+	} else {
+		err = testDB.QueryRow(`
+			INSERT INTO events (event_name, event_is_virtual, venue_id, funding_entity_id)
+			VALUES ($1, $2, $3, $4)
+			RETURNING event_id
+		`, name, isVirtual, *venueID, feID).Scan(&id)
 	}
 	if err != nil {
 		t.Fatalf("seedEvent: %v", err)

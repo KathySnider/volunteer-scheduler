@@ -15,10 +15,20 @@ import {
   createJobType,
   createEventWithShift,
   createEventWithoutShifts,
+  findEventIdByName,
+  deleteEvent,
+  deleteVenue,
+  deleteJobType,
   uniqueName,
 } from "./helpers/api";
 
 test.describe("Admin event creation — happy path", () => {
+  let happyVenueId: string;
+  let happyEventName: string;
+  let listedVenueId: string;
+  let listedEventName: string;
+  let listedJobTypeId: number;
+
   test("admin can navigate to the new event form", async ({ adminPage }) => {
     await adminPage.goto("/admin/events");
     await expect(
@@ -33,11 +43,11 @@ test.describe("Admin event creation — happy path", () => {
     adminPage,
     adminToken,
   }) => {
-    const eventName = uniqueName("AdminCreatedEvent");
+    happyEventName = uniqueName("AdminCreatedEvent");
     const venueName = uniqueName("TestVenue");
 
     // Pre-create a venue so it appears in the search dropdown.
-    await createVenue(adminToken, {
+    happyVenueId = await createVenue(adminToken, {
       name: venueName,
       city: "Washington",
       state: "DC",
@@ -49,7 +59,7 @@ test.describe("Admin event creation — happy path", () => {
     // Wait for the form to be ready.
     const nameInput = adminPage.getByPlaceholder(/medicare|workshop/i);
     await expect(nameInput).toBeVisible({ timeout: 10_000 });
-    await nameInput.fill(eventName);
+    await nameInput.fill(happyEventName);
 
     // Select In-Person format.
     await adminPage.getByRole("radio", { name: /in.person/i }).check();
@@ -86,25 +96,43 @@ test.describe("Admin event creation — happy path", () => {
     adminPage,
     adminToken,
   }) => {
-    const eventName = uniqueName("ListedEvent");
-    const venueId = await createVenue(adminToken, {
+    listedEventName = uniqueName("ListedEvent");
+    listedVenueId = await createVenue(adminToken, {
       name: uniqueName("ListVenue"),
       city: "Baltimore",
       state: "MD",
     });
-    const jobTypeId = await createJobType(adminToken, uniqueName("tblr"), uniqueName("Tabling"));
+    listedJobTypeId = await createJobType(adminToken, uniqueName("tblr"), uniqueName("Tabling"));
 
-    const { createEventWithShift } = await import("./helpers/api");
     await createEventWithShift(adminToken, {
-      eventName,
-      venueId,
-      jobTypeId,
+      eventName: listedEventName,
+      venueId: listedVenueId,
+      jobTypeId: listedJobTypeId,
       startDateTime: "2027-10-05 10:00:00",
       endDateTime: "2027-10-05 14:00:00",
     });
 
     await adminPage.goto("/admin/events");
-    await expect(adminPage.getByText(eventName)).toBeVisible({ timeout: 5_000 });
+    await expect(adminPage.getByText(listedEventName)).toBeVisible({ timeout: 5_000 });
+  });
+
+  test.afterAll(async ({ adminToken }) => {
+    // Delete events first (FK on venue), then venues, then job types.
+    for (const name of [happyEventName, listedEventName].filter(Boolean)) {
+      try {
+        const id = await findEventIdByName(adminToken, name);
+        if (id) await deleteEvent(adminToken, id);
+      } catch { /* ignore */ }
+    }
+    if (happyVenueId) {
+      try { await deleteVenue(adminToken, happyVenueId); } catch { /* ignore */ }
+    }
+    if (listedVenueId) {
+      try { await deleteVenue(adminToken, listedVenueId); } catch { /* ignore */ }
+    }
+    if (listedJobTypeId) {
+      try { await deleteJobType(adminToken, listedJobTypeId); } catch { /* ignore */ }
+    }
   });
 });
 
@@ -186,38 +214,54 @@ test.describe("Manage Events listing — city filter", () => {
   let filterCity: string;
   let upcomingEventName: string;
   let pastEventName: string;
+  let cityFilterVenueId: string;
+  let cityFilterJobTypeId: number;
+  let cityFilterUpcomingEventId: string;
+  let cityFilterPastEventId: string;
 
   test.beforeAll(async ({ adminToken }) => {
     filterCity        = uniqueName("AdminFilterCity");
     upcomingEventName = uniqueName("AdminUpcomingEvent");
     pastEventName     = uniqueName("AdminPastEvent");
 
-    const jobTypeId = await createJobType(
+    cityFilterJobTypeId = await createJobType(
       adminToken,
       uniqueName("afl"),
       uniqueName("Admin Filter Role"),
     );
-    const venueId = await createVenue(adminToken, {
+    cityFilterVenueId = await createVenue(adminToken, {
       name: uniqueName("AdminFilterVenue"),
       city: filterCity,
       state: "WA",
     });
 
-    await createEventWithShift(adminToken, {
+    ({ eventId: cityFilterUpcomingEventId } = await createEventWithShift(adminToken, {
       eventName: upcomingEventName,
-      venueId,
-      jobTypeId,
+      venueId: cityFilterVenueId,
+      jobTypeId: cityFilterJobTypeId,
       startDateTime: "2027-08-05 09:00:00",
       endDateTime:   "2027-08-05 13:00:00",
-    });
+    }));
 
-    await createEventWithShift(adminToken, {
+    ({ eventId: cityFilterPastEventId } = await createEventWithShift(adminToken, {
       eventName: pastEventName,
-      venueId,
-      jobTypeId,
+      venueId: cityFilterVenueId,
+      jobTypeId: cityFilterJobTypeId,
       startDateTime: "2020-04-10 09:00:00",
       endDateTime:   "2020-04-10 13:00:00",
-    });
+    }));
+  });
+
+  test.afterAll(async ({ adminToken }) => {
+    for (const id of [cityFilterUpcomingEventId, cityFilterPastEventId].filter(Boolean)) {
+      try { await deleteEvent(adminToken, id); } catch { /* ignore */ }
+    }
+    if (cityFilterVenueId) {
+      try { await deleteVenue(adminToken, cityFilterVenueId); } catch { /* ignore */ }
+    }
+    if (cityFilterJobTypeId) {
+      try { await deleteJobType(adminToken, cityFilterJobTypeId); } catch { /* ignore */ }
+    }
   });
 
   test("selecting a city shows only that city's events", async ({ adminPage }) => {
@@ -274,38 +318,54 @@ test.describe("Manage Events listing — timeframe filter", () => {
   let tfCity: string;
   let tfUpcomingName: string;
   let tfPastName: string;
+  let tfVenueId: string;
+  let tfJobTypeId: number;
+  let tfUpcomingEventId: string;
+  let tfPastEventId: string;
 
   test.beforeAll(async ({ adminToken }) => {
     tfCity         = uniqueName("AdminTFCity");
     tfUpcomingName = uniqueName("AdminTFUpcoming");
     tfPastName     = uniqueName("AdminTFPast");
 
-    const jobTypeId = await createJobType(
+    tfJobTypeId = await createJobType(
       adminToken,
       uniqueName("atf"),
       uniqueName("Admin TF Role"),
     );
-    const venueId = await createVenue(adminToken, {
+    tfVenueId = await createVenue(adminToken, {
       name: uniqueName("AdminTFVenue"),
       city: tfCity,
       state: "OR",
     });
 
-    await createEventWithShift(adminToken, {
+    ({ eventId: tfUpcomingEventId } = await createEventWithShift(adminToken, {
       eventName: tfUpcomingName,
-      venueId,
-      jobTypeId,
+      venueId: tfVenueId,
+      jobTypeId: tfJobTypeId,
       startDateTime: "2027-09-01 09:00:00",
       endDateTime:   "2027-09-01 13:00:00",
-    });
+    }));
 
-    await createEventWithShift(adminToken, {
+    ({ eventId: tfPastEventId } = await createEventWithShift(adminToken, {
       eventName: tfPastName,
-      venueId,
-      jobTypeId,
+      venueId: tfVenueId,
+      jobTypeId: tfJobTypeId,
       startDateTime: "2020-05-15 09:00:00",
       endDateTime:   "2020-05-15 13:00:00",
-    });
+    }));
+  });
+
+  test.afterAll(async ({ adminToken }) => {
+    for (const id of [tfUpcomingEventId, tfPastEventId].filter(Boolean)) {
+      try { await deleteEvent(adminToken, id); } catch { /* ignore */ }
+    }
+    if (tfVenueId) {
+      try { await deleteVenue(adminToken, tfVenueId); } catch { /* ignore */ }
+    }
+    if (tfJobTypeId) {
+      try { await deleteJobType(adminToken, tfJobTypeId); } catch { /* ignore */ }
+    }
   });
 
   test("UPCOMING hides past events", async ({ adminPage }) => {
@@ -355,29 +415,44 @@ test.describe("Manage Events listing — timeframe filter", () => {
 test.describe("Manage Events listing — format filter", () => {
   let fmtCity: string;
   let inPersonName: string;
+  let fmtVenueId: string;
+  let fmtJobTypeId: number;
+  let fmtEventId: string;
 
   test.beforeAll(async ({ adminToken }) => {
     fmtCity      = uniqueName("AdminFmtCity");
     inPersonName = uniqueName("AdminInPersonEvent");
 
-    const jobTypeId = await createJobType(
+    fmtJobTypeId = await createJobType(
       adminToken,
       uniqueName("afmt"),
       uniqueName("Admin Fmt Role"),
     );
-    const venueId = await createVenue(adminToken, {
+    fmtVenueId = await createVenue(adminToken, {
       name: uniqueName("AdminFmtVenue"),
       city: fmtCity,
       state: "CA",
     });
 
-    await createEventWithShift(adminToken, {
+    ({ eventId: fmtEventId } = await createEventWithShift(adminToken, {
       eventName: inPersonName,
-      venueId,
-      jobTypeId,
+      venueId: fmtVenueId,
+      jobTypeId: fmtJobTypeId,
       startDateTime: "2027-10-01 09:00:00",
       endDateTime:   "2027-10-01 13:00:00",
-    });
+    }));
+  });
+
+  test.afterAll(async ({ adminToken }) => {
+    if (fmtEventId) {
+      try { await deleteEvent(adminToken, fmtEventId); } catch { /* ignore */ }
+    }
+    if (fmtVenueId) {
+      try { await deleteVenue(adminToken, fmtVenueId); } catch { /* ignore */ }
+    }
+    if (fmtJobTypeId) {
+      try { await deleteJobType(adminToken, fmtJobTypeId); } catch { /* ignore */ }
+    }
   });
 
   test("IN_PERSON format filter shows in-person events", async ({ adminPage }) => {
@@ -409,15 +484,26 @@ test.describe("Manage Events listing — format filter", () => {
 
 test.describe("Manage Events listing — 'No shifts' badge", () => {
   let noShiftsName: string;
+  let noShiftsVenueId: string;
 
   test.beforeAll(async ({ adminToken }) => {
     noShiftsName = uniqueName("AdminNoShiftsEvent");
-    const venueId = await createVenue(adminToken, {
+    noShiftsVenueId = await createVenue(adminToken, {
       name: uniqueName("AdminNoShiftsVenue"),
       city: uniqueName("AdminNoShiftsCity"),
       state: "TX",
     });
-    await createEventWithoutShifts(adminToken, { eventName: noShiftsName, venueId });
+    await createEventWithoutShifts(adminToken, { eventName: noShiftsName, venueId: noShiftsVenueId });
+  });
+
+  test.afterAll(async ({ adminToken }) => {
+    try {
+      const id = await findEventIdByName(adminToken, noShiftsName);
+      if (id) await deleteEvent(adminToken, id);
+    } catch { /* ignore */ }
+    if (noShiftsVenueId) {
+      try { await deleteVenue(adminToken, noShiftsVenueId); } catch { /* ignore */ }
+    }
   });
 
   test("event with no shifts shows 'No shifts' badge in the Volunteers column", async ({
@@ -432,5 +518,44 @@ test.describe("Manage Events listing — 'No shifts' badge", () => {
     const row = adminPage.locator("tr").filter({ hasText: noShiftsName });
     await expect(row).toBeVisible({ timeout: 5_000 });
     await expect(row.getByText("No shifts")).toBeVisible();
+  });
+});
+
+test.describe("Manage Events listing — Region column", () => {
+  let regionEventName: string;
+  let regionVenueId: string;
+
+  test.beforeAll(async ({ adminToken }) => {
+    regionEventName = uniqueName("AdminRegionEvent");
+    regionVenueId = await createVenue(adminToken, {
+      name: uniqueName("AdminRegionVenue"),
+      city: uniqueName("AdminRegionCity"),
+      state: "WA",
+    });
+    // createEventWithoutShifts seeds fundingEntityId: 1 = "Seattle Area" (migration 000006).
+    await createEventWithoutShifts(adminToken, { eventName: regionEventName, venueId: regionVenueId });
+  });
+
+  test.afterAll(async ({ adminToken }) => {
+    try {
+      const id = await findEventIdByName(adminToken, regionEventName);
+      if (id) await deleteEvent(adminToken, id);
+    } catch { /* ignore */ }
+    if (regionVenueId) {
+      try { await deleteVenue(adminToken, regionVenueId); } catch { /* ignore */ }
+    }
+  });
+
+  test("event row shows its funding entity name in the Region column", async ({
+    adminPage,
+  }) => {
+    await adminPage.goto("/admin/events");
+    await expect(
+      adminPage.getByRole("heading", { name: /manage events/i })
+    ).toBeVisible({ timeout: 8_000 });
+
+    const row = adminPage.locator("tr").filter({ hasText: regionEventName });
+    await expect(row).toBeVisible({ timeout: 5_000 });
+    await expect(row.getByText("Seattle Area")).toBeVisible();
   });
 });

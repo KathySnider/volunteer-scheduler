@@ -18,6 +18,10 @@ import {
   createJobType,
   createEventWithShift,
   createEventWithoutShifts,
+  findEventIdByName,
+  deleteEvent,
+  deleteVenue,
+  deleteJobType,
   uniqueName,
 } from "./helpers/api";
 
@@ -94,42 +98,58 @@ test.describe("Events page — filtering", () => {
   let filterCity: string;
   let upcomingEventName: string;
   let pastEventName: string;
+  let filterVenueId: string;
+  let filterJobTypeId: number;
+  let filterUpcomingEventId: string;
+  let filterPastEventId: string;
 
   test.beforeAll(async ({ adminToken }) => {
     filterCity       = uniqueName("FilterCity");
     upcomingEventName = uniqueName("UpcomingEvent");
     pastEventName    = uniqueName("PastEvent");
 
-    const jobTypeId = await createJobType(
+    filterJobTypeId = await createJobType(
       adminToken,
       uniqueName("flt"),
       uniqueName("Filter Role"),
     );
-    const venueId = await createVenue(adminToken, {
+    filterVenueId = await createVenue(adminToken, {
       name: uniqueName("FilterVenue"),
       city: filterCity,
       state: "WA",
     });
 
     // Upcoming in-person event in the unique test city.
-    await createEventWithShift(adminToken, {
+    ({ eventId: filterUpcomingEventId } = await createEventWithShift(adminToken, {
       eventName: upcomingEventName,
-      venueId,
-      jobTypeId,
+      venueId: filterVenueId,
+      jobTypeId: filterJobTypeId,
       startDateTime: "2027-08-01 09:00:00",
       endDateTime: "2027-08-01 13:00:00",
       maxVolunteers: 4,
-    });
+    }));
 
     // Past in-person event in the same city.
-    await createEventWithShift(adminToken, {
+    ({ eventId: filterPastEventId } = await createEventWithShift(adminToken, {
       eventName: pastEventName,
-      venueId,
-      jobTypeId,
+      venueId: filterVenueId,
+      jobTypeId: filterJobTypeId,
       startDateTime: "2020-03-10 09:00:00",
       endDateTime: "2020-03-10 13:00:00",
       maxVolunteers: 2,
-    });
+    }));
+  });
+
+  test.afterAll(async ({ adminToken }) => {
+    for (const id of [filterUpcomingEventId, filterPastEventId].filter(Boolean)) {
+      try { await deleteEvent(adminToken, id); } catch { /* ignore */ }
+    }
+    if (filterVenueId) {
+      try { await deleteVenue(adminToken, filterVenueId); } catch { /* ignore */ }
+    }
+    if (filterJobTypeId) {
+      try { await deleteJobType(adminToken, filterJobTypeId); } catch { /* ignore */ }
+    }
   });
 
   test("page loads with UPCOMING as the default timeframe", async ({
@@ -242,29 +262,44 @@ test.describe("Events page — filtering", () => {
 test.describe("Events page — format filter", () => {
   let formatCity: string;
   let inPersonEventName: string;
+  let formatVenueId: string;
+  let formatJobTypeId: number;
+  let formatEventId: string;
 
   test.beforeAll(async ({ adminToken }) => {
     formatCity       = uniqueName("FormatCity");
     inPersonEventName = uniqueName("InPersonEvent");
 
-    const jobTypeId = await createJobType(
+    formatJobTypeId = await createJobType(
       adminToken,
       uniqueName("fmt"),
       uniqueName("Format Role"),
     );
-    const venueId = await createVenue(adminToken, {
+    formatVenueId = await createVenue(adminToken, {
       name: uniqueName("FormatVenue"),
       city: formatCity,
       state: "OR",
     });
 
-    await createEventWithShift(adminToken, {
+    ({ eventId: formatEventId } = await createEventWithShift(adminToken, {
       eventName: inPersonEventName,
-      venueId,
-      jobTypeId,
+      venueId: formatVenueId,
+      jobTypeId: formatJobTypeId,
       startDateTime: "2027-09-15 10:00:00",
       endDateTime: "2027-09-15 14:00:00",
-    });
+    }));
+  });
+
+  test.afterAll(async ({ adminToken }) => {
+    if (formatEventId) {
+      try { await deleteEvent(adminToken, formatEventId); } catch { /* ignore */ }
+    }
+    if (formatVenueId) {
+      try { await deleteVenue(adminToken, formatVenueId); } catch { /* ignore */ }
+    }
+    if (formatJobTypeId) {
+      try { await deleteJobType(adminToken, formatJobTypeId); } catch { /* ignore */ }
+    }
   });
 
   test("IN_PERSON filter shows in-person events", async ({ volunteerPage }) => {
@@ -306,34 +341,54 @@ test.describe("Events page — no-shifts events are hidden", () => {
   let noShiftsCity: string;
   let noShiftsName: string;
   let withShiftsName: string;
+  let noShiftsVenueId: string;
+  let noShiftsJobTypeId: number;
+  let withShiftsEventId: string;
 
   test.beforeAll(async ({ adminToken }) => {
     noShiftsCity  = uniqueName("NoShiftsCity");
     noShiftsName  = uniqueName("VolNoShiftsEvent");
     withShiftsName = uniqueName("VolWithShiftsEvent");
 
-    const jobTypeId = await createJobType(
+    noShiftsJobTypeId = await createJobType(
       adminToken,
       uniqueName("nsh"),
       uniqueName("No Shifts Role"),
     );
-    const venueId = await createVenue(adminToken, {
+    noShiftsVenueId = await createVenue(adminToken, {
       name: uniqueName("NoShiftsVenue"),
       city: noShiftsCity,
       state: "NV",
     });
 
     // Event WITH shifts — volunteers should see this.
-    await createEventWithShift(adminToken, {
+    ({ eventId: withShiftsEventId } = await createEventWithShift(adminToken, {
       eventName: withShiftsName,
-      venueId,
-      jobTypeId,
+      venueId: noShiftsVenueId,
+      jobTypeId: noShiftsJobTypeId,
       startDateTime: "2027-12-01 09:00:00",
       endDateTime:   "2027-12-01 13:00:00",
-    });
+    }));
 
     // Event WITHOUT shifts — volunteers should NOT see this.
-    await createEventWithoutShifts(adminToken, { eventName: noShiftsName, venueId });
+    await createEventWithoutShifts(adminToken, { eventName: noShiftsName, venueId: noShiftsVenueId });
+  });
+
+  test.afterAll(async ({ adminToken }) => {
+    // Delete the no-shifts event by name lookup, then the with-shifts event by ID.
+    try {
+      const id = await findEventIdByName(adminToken, noShiftsName);
+      if (id) await deleteEvent(adminToken, id);
+    } catch { /* ignore */ }
+    if (withShiftsEventId) {
+      try { await deleteEvent(adminToken, withShiftsEventId); } catch { /* ignore */ }
+    }
+    if (noShiftsVenueId) {
+      try { await deleteVenue(adminToken, noShiftsVenueId); } catch { /* ignore */ }
+    }
+    if (noShiftsJobTypeId) {
+      try { await deleteJobType(adminToken, noShiftsJobTypeId); } catch { /* ignore */ }
+    }
   });
 
   test("no-shifts event does not appear on the volunteer events page", async ({
@@ -366,30 +421,45 @@ test.describe("Events page — no-shifts events are hidden", () => {
 test.describe("Events page — card display", () => {
   let cardCity: string;
   let cardEventName: string;
+  let cardVenueId: string;
+  let cardJobTypeId: number;
+  let cardEventId: string;
 
   test.beforeAll(async ({ adminToken }) => {
     cardCity      = uniqueName("CardCity");
     cardEventName = uniqueName("CardEvent");
 
-    const jobTypeId = await createJobType(
+    cardJobTypeId = await createJobType(
       adminToken,
       uniqueName("crd"),
       uniqueName("Card Role"),
     );
-    const venueId = await createVenue(adminToken, {
+    cardVenueId = await createVenue(adminToken, {
       name: uniqueName("CardVenue"),
       city: cardCity,
       state: "CA",
     });
 
-    await createEventWithShift(adminToken, {
+    ({ eventId: cardEventId } = await createEventWithShift(adminToken, {
       eventName: cardEventName,
-      venueId,
-      jobTypeId,
+      venueId: cardVenueId,
+      jobTypeId: cardJobTypeId,
       startDateTime: "2027-10-20 09:00:00",
       endDateTime: "2027-10-20 12:00:00",
       maxVolunteers: 5,
-    });
+    }));
+  });
+
+  test.afterAll(async ({ adminToken }) => {
+    if (cardEventId) {
+      try { await deleteEvent(adminToken, cardEventId); } catch { /* ignore */ }
+    }
+    if (cardVenueId) {
+      try { await deleteVenue(adminToken, cardVenueId); } catch { /* ignore */ }
+    }
+    if (cardJobTypeId) {
+      try { await deleteJobType(adminToken, cardJobTypeId); } catch { /* ignore */ }
+    }
   });
 
   test("event card shows volunteer count (assigned/max)", async ({

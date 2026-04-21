@@ -80,7 +80,7 @@ func fetchProfile(ctx context.Context, DB *sql.DB, volId int) (*models.Volunteer
 func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter models.ShiftsTimeFilter) ([]*models.VolunteerShift, error) {
 
 	query := `
-        SELECT 
+        SELECT
 			sv.shift_id,
 			sv.assigned_at,
 			sv.cancelled_at,
@@ -98,15 +98,13 @@ func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter mod
             v.city,
             v.state,
             v.zip_code,
-			v.timezone,
-			vr.region_id
+			v.timezone
     	FROM volunteer_shifts sv
 		LEFT JOIN shifts s ON s.shift_id = sv.shift_id
 		LEFT JOIN opportunities opp ON opp.opportunity_id = s.opportunity_id
 		LEFT JOIN job_types jt ON jt.job_type_id = opp.job_type_id
 		LEFT JOIN events e ON e.event_id = opp.event_id
 		LEFT JOIN venues v ON e.venue_id = v.venue_id
-		LEFT JOIN venue_regions vr on v.venue_id = vr.venue_id
 		WHERE sv.volunteer_id = $1
 		AND sv.cancelled_at IS NULL
     `
@@ -132,7 +130,6 @@ func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter mod
 		var shiftInt, eventInt int
 		var cancelledAt, preEventInst, eventDesc sql.NullString
 		var venueName, streetAddress, city, state, zip, timezone sql.NullString
-		var regionInt sql.NullInt32
 		var maxVols sql.NullInt64
 
 		err := shiftRows.Scan(
@@ -154,7 +151,6 @@ func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter mod
 			&state,
 			&zip,
 			&timezone,
-			&regionInt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning shift row: %w", err)
@@ -201,15 +197,7 @@ func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter mod
 		}
 
 		_, exists := shiftsMap[shiftInt]
-		if exists {
-			// Duplicate row can be because the venue is in mutiple regions.
-			if (shiftsMap[shiftInt].Venue != nil) && (regionInt.Valid) {
-				shiftsMap[shiftInt].Venue.Region = append(shiftsMap[shiftInt].Venue.Region, int(regionInt.Int32))
-			}
-		} else {
-			if (volShift.Venue != nil) && (regionInt.Valid) {
-				volShift.Venue.Region = append(volShift.Venue.Region, int(regionInt.Int32))
-			}
+		if !exists {
 			shiftsMap[shiftInt] = &volShift
 		}
 	}

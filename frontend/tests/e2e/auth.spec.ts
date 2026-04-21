@@ -12,7 +12,7 @@
 // Use the extended test so we can reach adminPage/volunteerPage fixtures.
 import { test, expect } from "./helpers/fixtures";
 import { clearMailbox, waitForEmail, extractMagicLink } from "./helpers/mailhog";
-import { requestMagicLink, createVolunteer, uniqueEmail } from "./helpers/api";
+import { requestMagicLink, createVolunteer, deleteVolunteer, uniqueEmail } from "./helpers/api";
 import { getAdminSession } from "./helpers/fixtures";
 
 // We need a seeded admin token to create test volunteers.
@@ -21,6 +21,7 @@ const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL!;
 
 test.describe("Magic-link login — happy path", () => {
   let volunteerEmail: string;
+  let happyPathVolunteerId: string;
 
   test.beforeAll(async () => {
     if (!ADMIN_EMAIL) throw new Error("E2E_ADMIN_EMAIL not set");
@@ -31,12 +32,19 @@ test.describe("Magic-link login — happy path", () => {
     volunteerEmail = uniqueEmail("auth-happy");
     const { token: adminToken } = await getAdminSession();
 
-    await createVolunteer(adminToken, {
+    happyPathVolunteerId = await createVolunteer(adminToken, {
       firstName: "Happy",
       lastName: "Path",
       email: volunteerEmail,
       role: "VOLUNTEER",
     });
+  });
+
+  test.afterAll(async () => {
+    if (happyPathVolunteerId) {
+      const { token: adminToken } = await getAdminSession();
+      try { await deleteVolunteer(adminToken, happyPathVolunteerId); } catch { /* ignore */ }
+    }
   });
 
   test("requests a magic link, receives email, clicks link, lands on /events", async ({

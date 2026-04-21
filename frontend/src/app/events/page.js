@@ -556,7 +556,7 @@ export default function EventsPage() {
         <div className={styles.mainHeader}>
           <h1 className={styles.mainTitle}>
             Volunteer Events
-            {!loading && events.length > 0 && (
+            {!loading && (
               <span className={styles.eventCount}>({events.length})</span>
             )}
           </h1>

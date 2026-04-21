@@ -11,7 +11,7 @@
  */
 
 import { test, expect } from "./helpers/fixtures";
-import { createVolunteer, uniqueEmail, uniqueName } from "./helpers/api";
+import { createVolunteer, deleteVolunteer, uniqueEmail, uniqueName } from "./helpers/api";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -69,18 +69,25 @@ test.describe("Manage Volunteers — page load", () => {
 test.describe("Manage Volunteers — search", () => {
   let searchFirst: string;
   let searchLast: string;
+  let searchVolunteerId: string;
 
   test.beforeAll(async ({ adminToken }) => {
     // Use highly unique names so previous test runs don't cause strict-mode
     // violations — the timestamp suffix makes collisions essentially impossible.
     searchFirst = uniqueName("Srchable");
     searchLast  = uniqueName("McFindme");
-    await createVolunteer(adminToken, {
+    searchVolunteerId = await createVolunteer(adminToken, {
       firstName: searchFirst,
       lastName:  searchLast,
       email:     uniqueEmail("vol-search"),
       role:      "VOLUNTEER",
     });
+  });
+
+  test.afterAll(async ({ adminToken }) => {
+    if (searchVolunteerId) {
+      try { await deleteVolunteer(adminToken, searchVolunteerId); } catch { /* ignore */ }
+    }
   });
 
   test("search box filters the list by name", async ({ adminPage }) => {
@@ -182,16 +189,23 @@ test.describe("Manage Volunteers — create", () => {
 test.describe("Manage Volunteers — edit", () => {
   let editFirstName: string;
   let editLastName: string;
+  let editVolunteerId: string;
 
   test.beforeAll(async ({ adminToken }) => {
     editFirstName = uniqueName("EditFirst");
     editLastName  = uniqueName("EditLast");
-    await createVolunteer(adminToken, {
+    editVolunteerId = await createVolunteer(adminToken, {
       firstName: editFirstName,
       lastName:  editLastName,
       email:     uniqueEmail("vol-edit"),
       role:      "VOLUNTEER",
     });
+  });
+
+  test.afterAll(async ({ adminToken }) => {
+    if (editVolunteerId) {
+      try { await deleteVolunteer(adminToken, editVolunteerId); } catch { /* ignore */ }
+    }
   });
 
   test("admin can open the inline edit form for a volunteer", async ({
@@ -245,6 +259,7 @@ test.describe("Manage Volunteers — edit", () => {
 test.describe("Manage Volunteers — delete", () => {
   let deleteFirstName: string;
   let deleteLastName: string;
+  let keepVolId: string;
 
   test.beforeAll(async ({ adminToken }) => {
     deleteFirstName = uniqueName("DeleteFirst");
@@ -255,6 +270,14 @@ test.describe("Manage Volunteers — delete", () => {
       email:     uniqueEmail("vol-delete"),
       role:      "VOLUNTEER",
     });
+    // deleteFirstName/deleteLastName volunteer is deleted by the test itself.
+  });
+
+  test.afterAll(async ({ adminToken }) => {
+    // The "dismissing confirm" volunteer is not deleted by any test.
+    if (keepVolId) {
+      try { await deleteVolunteer(adminToken, keepVolId); } catch { /* ignore */ }
+    }
   });
 
   test("admin can delete a volunteer after confirming", async ({ adminPage }) => {
@@ -284,7 +307,7 @@ test.describe("Manage Volunteers — delete", () => {
   }) => {
     const keepFirst = uniqueName("KeepFirst");
     const keepLast  = uniqueName("KeepLast");
-    await createVolunteer(adminToken, {
+    keepVolId = await createVolunteer(adminToken, {
       firstName: keepFirst,
       lastName:  keepLast,
       email:     uniqueEmail("vol-keep"),

@@ -26,15 +26,12 @@ erDiagram
     varchar zip_code
     text timezone
   }
-  regions {
-    serial region_id PK
-    varchar code
+  funding_entities {
+    serial id PK
     text name
+    text description
     boolean is_active
-  }
-  venue_regions {
-    int venue_id FK
-    int region_id FK
+    timestamptz created_at
   }
   volunteers {
     serial volunteer_id PK
@@ -82,6 +79,7 @@ erDiagram
     text description
     boolean event_is_virtual
     int venue_id FK
+    int funding_entity_id FK
   }
   event_dates {
     serial event_date_id PK
@@ -98,11 +96,17 @@ erDiagram
     int event_id FK
     int service_type_id FK
   }
+  job_types {
+    serial job_type_id PK
+    varchar code
+    text name
+    boolean is_active
+    int sort_order
+  }
   opportunities {
     serial opportunity_id PK
     int event_id FK
-    job_type job
-    text other_job_description
+    int job_type_id FK
     boolean opportunity_is_virtual
     text pre_event_instructions
   }
@@ -138,11 +142,20 @@ erDiagram
     int feedback_id FK
     int volunteer_id FK
     text note
+    feedback_note_type note_type
+    timestamp created_at
+  }
+  feedback_attachments {
+    serial attachment_id PK
+    integer feedback_id FK
+    text filename
+    text mime_type
+    bytea file_data
+    integer file_size
     timestamp created_at
   }
 
-  venues ||--o{ venue_regions : "has"
-  regions ||--o{ venue_regions : "has"
+  funding_entities ||--o{ events : "funds"
   venues ||--o{ events : "hosts"
   volunteers ||--o{ sessions : "has"
   volunteers ||--o{ volunteer_shifts : "assigned to"
@@ -153,9 +166,11 @@ erDiagram
   events ||--o{ event_service_types : "has"
   service_types ||--o{ event_service_types : "used in"
   events ||--o{ opportunities : "has"
+  job_types ||--o{ opportunities : "defines"
   opportunities ||--o{ shifts : "has"
   shifts ||--o{ volunteer_shifts : "has"
   feedback ||--o{ feedback_notes : "has"
+  feedback ||--o{ feedback_attachments : "has"
 ```
 ### Loading Sample Data
 
@@ -206,7 +221,7 @@ docker exec -i volunteer-scheduler psql -U postgres volunteer-scheduler < backup
 
 ## Database Migrations
 
-If you want to do database migrations, the files are in backend/database/migrations. You will 
+If you want to do database migrations, the files are in `backend/migrations`. You will 
 need to either install golang-migrate, or:
 
 ```bash
@@ -217,19 +232,19 @@ The latter is recommended since it will perform the command and then exit.
 ### Create a new migration:
 
 ```bash
-migrate create -ext sql -dir database/migrations -seq migration_name
+migrate create -ext sql -dir migrations -seq migration_name
 ```
 
 ### Apply migrations:
 
 ```bash
-migrate -database postgresql://postgres@db:5432/volunteer-scheduler -path database/migrations up
+migrate -database postgresql://postgres@db:5432/volunteer-scheduler -path migrations up
 ```
 
 ### Rollback last migration:
 
 ```bash
-migrate -database postgresql://postgres@db:5432/volunteer-scheduler -path database/migrations down 1
+migrate -database postgresql://postgres@db:5432/volunteer-scheduler -path migrations down 1
 ```
 
 

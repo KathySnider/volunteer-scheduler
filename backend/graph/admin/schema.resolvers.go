@@ -73,15 +73,6 @@ func (r *mutationResolver) CreateVenue(ctx context.Context, newVenue generated.N
 	return toGenMutationResult(result), nil
 }
 
-// CreateRegion is the resolver for the createRegion field.
-func (r *mutationResolver) CreateRegion(ctx context.Context, newRegion generated.NewRegionInput) (*generated.MutationResult, error) {
-	result, err := r.VenueService.CreateRegion(ctx, toModelNewRegionInput(newRegion))
-	if err != nil {
-		return nil, err
-	}
-	return toGenMutationResult(result), nil
-}
-
 // CreateEvent is the resolver for the createEvent field.
 func (r *mutationResolver) CreateEvent(ctx context.Context, newEvent generated.NewEventInput) (*generated.MutationResult, error) {
 	result, err := r.EventService.CreateEvent(ctx, toModelNewEventInput(newEvent))
@@ -154,36 +145,9 @@ func (r *mutationResolver) CancelShift(ctx context.Context, shiftID string, volu
 	return toGenMutationResult(result), nil
 }
 
-// AddVenueRegion is the resolver for the addVenueRegion field.
-func (r *mutationResolver) AddVenueRegion(ctx context.Context, venueID int, regionID int) (*generated.MutationResult, error) {
-	result, err := r.VenueService.AddVenueRegion(ctx, venueID, regionID)
-	if err != nil {
-		return nil, err
-	}
-	return toGenMutationResult(result), nil
-}
-
-// RemoveVenueRegion is the resolver for the removeVenueRegion field.
-func (r *mutationResolver) RemoveVenueRegion(ctx context.Context, venueID int, regionID int) (*generated.MutationResult, error) {
-	result, err := r.VenueService.RemoveVenueRegion(ctx, venueID, regionID)
-	if err != nil {
-		return nil, err
-	}
-	return toGenMutationResult(result), nil
-}
-
 // UpdateVenue is the resolver for the updateVenue field.
 func (r *mutationResolver) UpdateVenue(ctx context.Context, venue generated.UpdateVenueInput) (*generated.MutationResult, error) {
 	result, err := r.VenueService.UpdateVenue(ctx, toModelUpdateVenue(venue))
-	if err != nil {
-		return nil, err
-	}
-	return toGenMutationResult(result), nil
-}
-
-// UpdateRegion is the resolver for the updateRegion field.
-func (r *mutationResolver) UpdateRegion(ctx context.Context, region generated.UpdateRegionInput) (*generated.MutationResult, error) {
-	result, err := r.VenueService.UpdateRegion(ctx, toModelUpdateRegionInput(region))
 	if err != nil {
 		return nil, err
 	}
@@ -298,15 +262,6 @@ func (r *mutationResolver) DeleteVenue(ctx context.Context, venueID string) (*ge
 	return toGenMutationResult(result), nil
 }
 
-// DeleteRegion is the resolver for the deleteRegion field.
-func (r *mutationResolver) DeleteRegion(ctx context.Context, regionID int) (*generated.MutationResult, error) {
-	result, err := r.VenueService.DeleteRegion(ctx, regionID)
-	if err != nil {
-		return nil, err
-	}
-	return toGenMutationResult(result), nil
-}
-
 // DeleteEvent is the resolver for the deleteEvent field.
 func (r *mutationResolver) DeleteEvent(ctx context.Context, eventID string) (*generated.MutationResult, error) {
 	result, err := r.EventService.DeleteEvent(ctx, eventID)
@@ -372,6 +327,36 @@ func (r *mutationResolver) ResolveFeedback(ctx context.Context, resolution gener
 		return nil, err
 	}
 	return toGenMutationResult(result), nil
+}
+
+// CreateFundingEntity is the resolver for the createFundingEntity field.
+func (r *mutationResolver) CreateFundingEntity(ctx context.Context, input generated.NewFundingEntityInput) (*generated.MutationResult, error) {
+	m := toModelNewFundingEntityInput(input)
+	id, err := r.FundingEntityService.CreateFundingEntity(ctx, m.Name, m.Description)
+	if err != nil {
+		return nil, err
+	}
+	idStr := strconv.Itoa(id)
+	return &generated.MutationResult{Success: true, ID: &idStr}, nil
+}
+
+// UpdateFundingEntity is the resolver for the updateFundingEntity field.
+func (r *mutationResolver) UpdateFundingEntity(ctx context.Context, input generated.UpdateFundingEntityInput) (*generated.MutationResult, error) {
+	m := toModelUpdateFundingEntityInput(input)
+	err := r.FundingEntityService.UpdateFundingEntity(ctx, m.ID, m.Name, m.Description)
+	if err != nil {
+		return nil, err
+	}
+	return &generated.MutationResult{Success: true}, nil
+}
+
+// DeleteFundingEntity is the resolver for the deleteFundingEntity field.
+func (r *mutationResolver) DeleteFundingEntity(ctx context.Context, id int) (*generated.MutationResult, error) {
+	err := r.FundingEntityService.DeleteFundingEntity(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return &generated.MutationResult{Success: true}, nil
 }
 
 // LookupValues is the resolver for the lookupValues field.
