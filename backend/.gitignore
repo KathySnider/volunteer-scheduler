@@ -23,3 +23,6 @@ graph/model/models_gen.go
 # Environment variables
 .env
 .env.local
+
+# Claude code stuff
+.claude

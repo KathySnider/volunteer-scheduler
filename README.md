@@ -283,6 +283,10 @@ E2E_ADMIN_EMAIL=your-admin@example.com
 ```
 Set this to the email of an existing `ADMINISTRATOR` account in the database.
 
+To get an admin account for testing, you have two options:
+- **Sample data** (recommended): Load `database/load-sample-data.sql` — it includes an admin account. Update the placeholder email in that file to your own before loading, then use that email here.
+- **Manual**: Insert a row directly in PostgreSQL with `role = 'ADMINISTRATOR'`.
+
 **Run all tests:**
 ```bash
 cd frontend
