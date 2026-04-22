@@ -200,8 +200,11 @@ func main() {
 	// -------------------------------------------------------------------------
 
 	// CORS middleware — allow the frontend origin.
-	// APP_URL is set to the frontend's public URL in production.
-	frontendURL := getEnvWithDefault("APP_URL", "http://localhost:3000")
+	// FRONTEND_URL can be set explicitly; falls back to APP_URL then localhost.
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		frontendURL = getEnvWithDefault("APP_URL", "http://localhost:3000")
+	}
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{frontendURL},
 		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
