@@ -205,6 +205,7 @@ func main() {
 	if frontendURL == "" {
 		frontendURL = getEnvWithDefault("APP_URL", "http://localhost:3000")
 	}
+	log.Printf("CORS allowed origin: %s", frontendURL)
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{frontendURL},
 		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
