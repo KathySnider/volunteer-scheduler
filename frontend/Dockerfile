@@ -23,6 +23,14 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Build args for NEXT_PUBLIC_ variables (baked in at build time)
+ARG NEXT_PUBLIC_GRAPHQL_AUTH_URL
+ARG NEXT_PUBLIC_GRAPHQL_VOLUNTEER_URL
+ARG NEXT_PUBLIC_GRAPHQL_ADMIN_URL
+ENV NEXT_PUBLIC_GRAPHQL_AUTH_URL=$NEXT_PUBLIC_GRAPHQL_AUTH_URL
+ENV NEXT_PUBLIC_GRAPHQL_VOLUNTEER_URL=$NEXT_PUBLIC_GRAPHQL_VOLUNTEER_URL
+ENV NEXT_PUBLIC_GRAPHQL_ADMIN_URL=$NEXT_PUBLIC_GRAPHQL_ADMIN_URL
+
 # Build the Next.js application
 RUN npm run build
 
@@ -50,8 +58,7 @@ COPY --from=builder /app/src ./src
 # Expose port
 EXPOSE 3000
 
-# Set environment variable for API URL (can be overridden)
-ENV NEXT_PUBLIC_API_URL=http://localhost:8080/graphql/admin
+# Remove hardcoded localhost — URLs are baked in at build time via ARGs above
 
 # Start the application
 CMD ["npm", "start"]
