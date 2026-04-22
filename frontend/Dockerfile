@@ -20,16 +20,17 @@ COPY package*.json ./
 # Install dependencies
 RUN npm ci
 
-# Copy source code
-COPY . .
-
-# Build args for NEXT_PUBLIC_ variables (baked in at build time)
+# Build args for NEXT_PUBLIC_ variables — must be declared before COPY/RUN
+# so they are available when Next.js bakes them into the bundle at build time.
 ARG NEXT_PUBLIC_GRAPHQL_AUTH_URL
 ARG NEXT_PUBLIC_GRAPHQL_VOLUNTEER_URL
 ARG NEXT_PUBLIC_GRAPHQL_ADMIN_URL
 ENV NEXT_PUBLIC_GRAPHQL_AUTH_URL=$NEXT_PUBLIC_GRAPHQL_AUTH_URL
 ENV NEXT_PUBLIC_GRAPHQL_VOLUNTEER_URL=$NEXT_PUBLIC_GRAPHQL_VOLUNTEER_URL
 ENV NEXT_PUBLIC_GRAPHQL_ADMIN_URL=$NEXT_PUBLIC_GRAPHQL_ADMIN_URL
+
+# Copy source code
+COPY . .
 
 # Build the Next.js application
 RUN npm run build
