@@ -51,22 +51,26 @@ func main() {
 	// Database connection
 	// -------------------------------------------------------------------------
 
-	// Get the postgres password for the database.
-	secret, err := os.ReadFile("/run/secrets/secret_db_pw")
-	if err != nil {
-		log.Fatalf("Unable to read postgres pw: %v", err)
-	}
-	db_pw := strings.TrimSpace(string(secret))
+	// Get the database connection URL.
+	// In production (Railway, Render, etc.) DATABASE_URL is provided as an env var.
+	// Locally with Docker Compose, it is assembled from Docker secret files.
+	var db_url string
+	if url := os.Getenv("DATABASE_URL"); url != "" {
+		db_url = url
+	} else {
+		secret, err := os.ReadFile("/run/secrets/secret_db_pw")
+		if err != nil {
+			log.Fatalf("Unable to read postgres pw: %v", err)
+		}
+		db_pw := strings.TrimSpace(string(secret))
 
-	// Get the url with a placeholder for the password.
-	secret, err = os.ReadFile("/run/secrets/secret_db_url")
-	if err != nil {
-		log.Fatalf("Unable to read db url: %v", err)
+		secret, err = os.ReadFile("/run/secrets/secret_db_url")
+		if err != nil {
+			log.Fatalf("Unable to read db url: %v", err)
+		}
+		pattern := strings.TrimSpace(string(secret))
+		db_url = strings.Replace(pattern, "database_password", db_pw, -1)
 	}
-	pattern := strings.TrimSpace(string(secret))
-
-	// Replace the placeholder with the actual password in the url.
-	db_url := strings.Replace(pattern, "database_password", db_pw, -1)
 
 	// Connect.
 	db, err := sql.Open("postgres", db_url)
@@ -96,10 +100,12 @@ func main() {
 	// Services
 	// -------------------------------------------------------------------------
 
-	// Read the Resend API key from the Docker secret file.
-	// Returns an empty string in local dev (file absent); NewMailer handles that
-	// gracefully — Mailhog is used instead when USE_RESEND is false.
-	resendAPIKey := readSecret("/run/secrets/secret_resend_api_key")
+	// Read the Resend API key from an env var (production) or Docker secret file (local).
+	// An empty string is fine in local dev — NewMailer uses Mailhog when USE_RESEND is false.
+	resendAPIKey := os.Getenv("RESEND_API_KEY")
+	if resendAPIKey == "" {
+		resendAPIKey = readSecret("/run/secrets/secret_resend_api_key")
+	}
 
 	mailer, err := services.NewMailer(resendAPIKey)
 	if err != nil {
@@ -194,8 +200,10 @@ func main() {
 	// -------------------------------------------------------------------------
 
 	// CORS middleware — allow the frontend origin.
+	// APP_URL is set to the frontend's public URL in production.
+	frontendURL := getEnvWithDefault("APP_URL", "http://localhost:3000")
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000"},
+		AllowedOrigins:   []string{frontendURL},
 		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
