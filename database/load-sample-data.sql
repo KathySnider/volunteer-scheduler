@@ -59,7 +59,7 @@ INSERT INTO volunteers (first_name, last_name, email, phone, zip_code, role, is_
     ('Henry',   'Thompson',  'henry.thompson@example.com', '360-555-0108', '98501', 'VOLUNTEER',     TRUE),
     ('Isabel',  'Chen',      'isabel.chen@example.com',    '206-555-0109', '98104', 'VOLUNTEER',     TRUE),
     ('James',   'Robinson',  'james.robinson@example.com', '509-555-0110', '99201', 'VOLUNTEER',     TRUE),
-    ('Test',    'Admin',     'vol-sched-violations@tuta.com', NULL,           NULL,    'ADMINISTRATOR', TRUE);
+    ('Test',    'Admin',     'kathy.snider@icloud.com', NULL,           NULL,    'ADMINISTRATOR', TRUE);
 
 
 -- ============================================================================
