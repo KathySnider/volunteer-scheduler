@@ -81,7 +81,7 @@ func (s *MagicLinkService) GenerateMagicLink(ctx context.Context, email, ipAddre
 
 // SendMagicLinkEmail sends the magic link email to the user
 func (s *MagicLinkService) SendMagicLinkEmail(ctx context.Context, to, token string) error {
-	appURL := os.Getenv("APP_URL")
+	appURL := os.Getenv("FRONTEND_BASE_URL")
 	if appURL == "" {
 		appURL = "http://localhost:3000"
 	}

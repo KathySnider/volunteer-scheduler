@@ -49,6 +49,9 @@ EXPOSE 8080
 # Frontend URL for CORS — update if the frontend domain changes
 ENV ALLOWED_ORIGIN=https://feisty-enchantment-production-878e.up.railway.app
 
+# Frontend URL for magic link emails — must match the frontend's public domain
+ENV FRONTEND_BASE_URL=https://feisty-enchantment-production-878e.up.railway.app
+
 # Sender address for magic link emails
 ENV MAIL_FROM="Volunteer Scheduler <onboarding@resend.dev>"
 
