@@ -50,7 +50,7 @@ EXPOSE 8080
 ENV ALLOWED_ORIGIN=https://feisty-enchantment-production-878e.up.railway.app
 
 # Sender address for magic link emails
-ENV EMAIL_FROM="Volunteer Scheduler <onboarding@resend.dev>"
+ENV MAIL_FROM="Volunteer Scheduler <onboarding@resend.dev>"
 
 # Run the application
 CMD ["./volunteer-api"]

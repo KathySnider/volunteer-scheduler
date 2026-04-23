@@ -496,9 +496,9 @@ type Mailer struct {
 // NewMailer creates a new Mailer instance based on environment configuration
 func NewMailer(apiKey string) (*Mailer, error) {
 
-	fromEmail := os.Getenv("EMAIL_FROM")
+	fromEmail := os.Getenv("MAIL_FROM")
 	if fromEmail == "" {
-		return nil, fmt.Errorf("EMAIL_FROM environment variable is required")
+		return nil, fmt.Errorf("MAIL_FROM environment variable is required")
 	}
 
 	// Parse email to extract name if present
@@ -585,7 +585,7 @@ type ResendResponse struct {
 
 // SendEmail sends an email via the Resend API
 func (r *ResendTransport) SendEmail(ctx context.Context, to, subject, htmlBody, textBody string) error {
-	fromEmail := os.Getenv("EMAIL_FROM")
+	fromEmail := os.Getenv("MAIL_FROM")
 	if fromEmail == "" {
 		return fmt.Errorf("EMAIL_FROM not set")
 	}
@@ -664,7 +664,7 @@ func NewMailhogTransport() (*MailhogTransport, error) {
 
 // SendEmail sends an email via Mailhog SMTP
 func (m *MailhogTransport) SendEmail(ctx context.Context, to, subject, htmlBody, textBody string) error {
-	fromEmail := os.Getenv("EMAIL_FROM")
+	fromEmail := os.Getenv("MAIL_FROM")
 	if fromEmail == "" {
 		return fmt.Errorf("EMAIL_FROM not set")
 	}
