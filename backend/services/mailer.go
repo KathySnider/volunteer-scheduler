@@ -508,6 +508,8 @@ func NewMailer(apiKey string) (*Mailer, error) {
 		fromEmail = addr.Address
 	}
 
+	log.Printf("Email sender address: %s (display name: %s)", fromEmail, fromName)
+
 	var transport EmailTransport
 	var err error
 
@@ -624,6 +626,7 @@ func (r *ResendTransport) SendEmail(ctx context.Context, to, subject, htmlBody, 
 	respBody, _ := io.ReadAll(resp.Body)
 
 	if resp.StatusCode >= 400 {
+		log.Printf("Resend API error (%d) sending to %s from %s — raw body: %s", resp.StatusCode, to, fromEmail, string(respBody))
 		var errResp ResendResponse
 		json.Unmarshal(respBody, &errResp)
 		return fmt.Errorf("Resend API error (%d): %s", resp.StatusCode, errResp.Error)
