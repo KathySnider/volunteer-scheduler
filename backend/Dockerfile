@@ -46,5 +46,8 @@ COPY --from=builder /app/migrations/ /app/migrations/
 # Expose port
 EXPOSE 8080
 
+# Frontend URL for CORS — update if the frontend domain changes
+ENV ALLOWED_ORIGIN=https://feisty-enchantment-production-878e.up.railway.app
+
 # Run the application
 CMD ["./volunteer-api"]
