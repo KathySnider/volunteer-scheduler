@@ -204,6 +204,8 @@ func main() {
 	// Falls back to localhost for local development.
 	frontendURL := getEnvWithDefault("ALLOWED_ORIGIN", "http://localhost:3000")
 	log.Printf("CORS allowed origin (ALLOWED_ORIGIN): %s", frontendURL)
+	log.Printf("ENV ALLOWED_ORIGIN=%s APP_URL=%s FRONTEND_URL=%s",
+		os.Getenv("ALLOWED_ORIGIN"), os.Getenv("APP_URL"), os.Getenv("FRONTEND_URL"))
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{frontendURL},
 		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
