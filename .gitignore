@@ -2,8 +2,9 @@
 .git
 .gitattributes
 
-# Documentation
-docs/
+# Claude stuff
+.claude
+
 
 # IDE
 .vscode
