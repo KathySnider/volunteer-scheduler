@@ -670,9 +670,10 @@ func toModelUpdateEventDateInput(g generated.UpdateEventDateInput) models.Update
 
 func toModelUpdateJobTypeInput(g generated.UpdateJobTypeInput) models.UpdateJobTypeInput {
 	return models.UpdateJobTypeInput{
-		ID:   g.ID,
-		Code: g.Code,
-		Name: g.Name,
+		ID:        g.ID,
+		Code:      g.Code,
+		Name:      g.Name,
+		SortOrder: g.SortOrder,
 	}
 }
 
