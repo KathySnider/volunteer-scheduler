@@ -27,7 +27,6 @@ const ADMIN_ITEMS = [
   { label: "Manage Venues", href: "/admin/venues" },
   { label: "Manage Volunteers", href: "/admin/volunteers" },
   { label: "Manage Staff", href: "/admin/staff" },
-  { label: "Manage Regions", href: "/admin/regions" },
   { label: "Manage Job Types", href: "/admin/job-types" },
   { label: "Manage Feedback", href: "/admin/feedback" },
 ];
