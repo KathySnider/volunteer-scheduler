@@ -14,13 +14,10 @@ import styles from "./admin-venues.module.css";
 
 /* ----- GraphQL ----- */
 
-const VENUES_AND_REGIONS = `
+const VENUES_QUERY = `
   query {
     venues {
-      id name address city state zipCode timezone region
-    }
-    lookupValues {
-      regions { id name }
+      id name address city state zipCode timezone
     }
   }
 `;
@@ -43,18 +40,6 @@ const CREATE_VENUE = `
   }
 `;
 
-const ADD_VENUE_REGION = `
-  mutation AddVenueRegion($venueId: Int!, $regionId: Int!) {
-    addVenueRegion(venueId: $venueId, regionId: $regionId) { success message }
-  }
-`;
-
-const REMOVE_VENUE_REGION = `
-  mutation RemoveVenueRegion($venueId: Int!, $regionId: Int!) {
-    removeVenueRegion(venueId: $venueId, regionId: $regionId) { success message }
-  }
-`;
-
 /* ----- Constants ----- */
 
 const US_TIMEZONES = [
@@ -68,7 +53,7 @@ const US_TIMEZONES = [
 
 const EMPTY_VENUE_FORM = {
   name: "", address: "", city: "", state: "WA",
-  zipCode: "", ianaZone: "America/Los_Angeles", regions: [],
+  zipCode: "", ianaZone: "America/Los_Angeles",
 };
 
 /* ----- VenueFormFields -----
@@ -76,70 +61,46 @@ const EMPTY_VENUE_FORM = {
    (outside AdminVenuesPage). If it is moved inside the page component,
    React will treat it as a new component type on every render,
    unmount/remount it each keystroke, and focus will be lost after
-   every character typed in a text input. Pass `regions` as a prop. */
-function VenueFormFields({ form, setForm, regions }) {
-  function toggleRegion(id) {
-    setForm((p) => ({
-      ...p,
-      regions: p.regions.includes(id)
-        ? p.regions.filter((r) => r !== id)
-        : [...p.regions, id],
-    }));
-  }
-
+   every character typed in a text input. */
+function VenueFormFields({ form, setForm }) {
   return (
-    <>
-      <div className={styles.grid2}>
-        <div className={styles.field}>
-          <label className={styles.label}>Venue Name</label>
-          <input className={styles.input} value={form.name}
-            onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-            placeholder="e.g. Central Library" />
-        </div>
-        <div className={styles.field}>
-          <label className={styles.label}>Address <span className={styles.required}>*</span></label>
-          <input className={styles.input} value={form.address}
-            onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))} />
-        </div>
-        <div className={styles.field}>
-          <label className={styles.label}>City <span className={styles.required}>*</span></label>
-          <input className={styles.input} value={form.city}
-            onChange={(e) => setForm((p) => ({ ...p, city: e.target.value }))} />
-        </div>
-        <div className={styles.field}>
-          <label className={styles.label}>State <span className={styles.required}>*</span></label>
-          <input className={styles.input} value={form.state}
-            onChange={(e) => setForm((p) => ({ ...p, state: e.target.value }))} />
-        </div>
-        <div className={styles.field}>
-          <label className={styles.label}>Zip Code</label>
-          <input className={styles.input} value={form.zipCode}
-            onChange={(e) => setForm((p) => ({ ...p, zipCode: e.target.value }))} />
-        </div>
-        <div className={styles.field}>
-          <label className={styles.label}>Timezone <span className={styles.required}>*</span></label>
-          <select className={styles.select} value={form.ianaZone}
-            onChange={(e) => setForm((p) => ({ ...p, ianaZone: e.target.value }))}>
-            {US_TIMEZONES.map((tz) => (
-              <option key={tz.value} value={tz.value}>{tz.label}</option>
-            ))}
-          </select>
-        </div>
+    <div className={styles.grid2}>
+      <div className={styles.field}>
+        <label className={styles.label}>Venue Name</label>
+        <input className={styles.input} value={form.name}
+          onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+          placeholder="e.g. Central Library" />
       </div>
       <div className={styles.field}>
-        <label className={styles.label}>Region(s) <span className={styles.required}>*</span></label>
-        <div className={styles.checkboxGroup}>
-          {regions.map((r) => (
-            <label key={r.id} className={styles.checkboxLabel}>
-              <input type="checkbox"
-                checked={form.regions.includes(r.id)}
-                onChange={() => toggleRegion(r.id)} />
-              {r.name}
-            </label>
-          ))}
-        </div>
+        <label className={styles.label}>Address <span className={styles.required}>*</span></label>
+        <input className={styles.input} value={form.address}
+          onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))} />
       </div>
-    </>
+      <div className={styles.field}>
+        <label className={styles.label}>City <span className={styles.required}>*</span></label>
+        <input className={styles.input} value={form.city}
+          onChange={(e) => setForm((p) => ({ ...p, city: e.target.value }))} />
+      </div>
+      <div className={styles.field}>
+        <label className={styles.label}>State <span className={styles.required}>*</span></label>
+        <input className={styles.input} value={form.state}
+          onChange={(e) => setForm((p) => ({ ...p, state: e.target.value }))} />
+      </div>
+      <div className={styles.field}>
+        <label className={styles.label}>Zip Code</label>
+        <input className={styles.input} value={form.zipCode}
+          onChange={(e) => setForm((p) => ({ ...p, zipCode: e.target.value }))} />
+      </div>
+      <div className={styles.field}>
+        <label className={styles.label}>Timezone <span className={styles.required}>*</span></label>
+        <select className={styles.select} value={form.ianaZone}
+          onChange={(e) => setForm((p) => ({ ...p, ianaZone: e.target.value }))}>
+          {US_TIMEZONES.map((tz) => (
+            <option key={tz.value} value={tz.value}>{tz.label}</option>
+          ))}
+        </select>
+      </div>
+    </div>
   );
 }
 
@@ -152,7 +113,6 @@ export default function AdminVenuesPage() {
   const [userName, setUserName] = useState("");
 
   const [venues, setVenues]   = useState([]);
-  const [regions, setRegions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionMsg, setActionMsg] = useState(null);
   const [busy, setBusy]       = useState(false);
@@ -168,10 +128,9 @@ export default function AdminVenuesPage() {
   /* ----- Auth + load ----- */
   const loadData = useCallback((bound) => {
     setLoading(true);
-    bound(VENUES_AND_REGIONS, null)
+    bound(VENUES_QUERY, null)
       .then((res) => {
         setVenues(res.data?.venues ?? []);
-        setRegions(res.data?.lookupValues?.regions ?? []);
         if (res.errors) setActionMsg({ type: "error", text: res.errors[0]?.message ?? "Error loading data." });
       })
       .catch(() => setActionMsg({ type: "error", text: "Unable to reach the server." }))
@@ -226,7 +185,6 @@ export default function AdminVenuesPage() {
       state:    venue.state,
       zipCode:  venue.zipCode ?? "",
       ianaZone: venue.timezone,
-      regions:  [...(venue.region ?? [])],
     });
     setAdding(false);
   };
@@ -235,12 +193,7 @@ export default function AdminVenuesPage() {
     if (!editForm.address || !editForm.city || !editForm.state) {
       showMsg("error", "Address, city, and state are required."); return;
     }
-    if (editForm.regions.length === 0) {
-      showMsg("error", "At least one region is required."); return;
-    }
-
-    // Update core venue fields
-    const result = await mutate(
+    await mutate(
       UPDATE_VENUE,
       { venue: {
         id:       editingId,
@@ -254,21 +207,6 @@ export default function AdminVenuesPage() {
       "Venue updated.",
       () => setEditingId(null),
     );
-    if (!result) return;
-
-    // Sync regions: add new ones, remove removed ones
-    const venueInt  = parseInt(editingId, 10);
-    const original  = venues.find((v) => v.id === editingId)?.region ?? [];
-    const toAdd     = editForm.regions.filter((r) => !original.includes(r));
-    const toRemove  = original.filter((r) => !editForm.regions.includes(r));
-
-    for (const regionId of toAdd) {
-      await gql(ADD_VENUE_REGION, { venueId: venueInt, regionId });
-    }
-    for (const regionId of toRemove) {
-      await gql(REMOVE_VENUE_REGION, { venueId: venueInt, regionId });
-    }
-    loadData(gql);
   };
 
   /* ----- Delete ----- */
@@ -282,9 +220,6 @@ export default function AdminVenuesPage() {
     if (!addForm.address || !addForm.city || !addForm.state) {
       showMsg("error", "Address, city, and state are required."); return;
     }
-    if (addForm.regions.length === 0) {
-      showMsg("error", "At least one region is required."); return;
-    }
     await mutate(
       CREATE_VENUE,
       { newVenue: {
@@ -294,7 +229,6 @@ export default function AdminVenuesPage() {
         state:    addForm.state.trim(),
         zipCode:  addForm.zipCode.trim() || null,
         ianaZone: addForm.ianaZone,
-        region:   addForm.regions.map(Number),
       }},
       "Venue created.",
       () => { setAdding(false); setAddForm(EMPTY_VENUE_FORM); },
@@ -331,7 +265,7 @@ export default function AdminVenuesPage() {
         {adding && (
           <div className={styles.formCard}>
             <div className={styles.formCardTitle}>New Venue</div>
-            <VenueFormFields form={addForm} setForm={setAddForm} regions={regions} />
+            <VenueFormFields form={addForm} setForm={setAddForm} />
             <div className={styles.formActions}>
               <button className={styles.btnPrimary} onClick={handleAdd} disabled={busy}>Create Venue</button>
               <button className={styles.btnSecondary} onClick={() => setAdding(false)}>Cancel</button>
@@ -357,11 +291,6 @@ export default function AdminVenuesPage() {
 
         {!loading && venues.map((venue) => {
           const isEditing = editingId === venue.id;
-          const regionNames = regions
-            .filter((r) => (venue.region ?? []).includes(r.id))
-            .map((r) => r.name)
-            .join(", ");
-
           return (
             <div key={venue.id} className={styles.venueCard}>
               <div className={styles.venueHeader}>
@@ -371,7 +300,7 @@ export default function AdminVenuesPage() {
                     {venue.address}, {venue.city}, {venue.state}{venue.zipCode ? ` ${venue.zipCode}` : ""}
                   </div>
                   <div className={styles.venueMeta}>
-                    {venue.timezone} · {regionNames || "No region"}
+                    {venue.timezone}
                   </div>
                 </div>
                 <div className={styles.venueActions}>
@@ -392,7 +321,7 @@ export default function AdminVenuesPage() {
               {/* Inline edit form */}
               {isEditing && (
                 <div className={styles.editForm}>
-                  <VenueFormFields form={editForm} setForm={setEditForm} regions={regions} />
+                  <VenueFormFields form={editForm} setForm={setEditForm} />
                   <div className={styles.formActions}>
                     <button className={styles.btnPrimary} onClick={handleSave} disabled={busy}>Save Changes</button>
                     <button className={styles.btnSecondary} onClick={() => setEditingId(null)}>Cancel</button>

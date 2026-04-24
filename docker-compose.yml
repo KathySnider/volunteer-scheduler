@@ -45,10 +45,11 @@ services:
       MIGRATIONS_PATH: file:///app/migrations
       DB_NAME: volunteer-scheduler
       APP_ENV: ${APP_ENV:-development}
-      APP_URL: ${APP_URL:-http://localhost:3000}
+      ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-http://localhost:3000}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3000}
       MAGIC_LINK_CALLBACK_PATH: ${MAGIC_LINK_CALLBACK_PATH:-/auth/magic-link}
       SESSION_MAX_AGE: ${SESSION_MAX_AGE:-2592000}
-      EMAIL_FROM: ${EMAIL_FROM:-noreply@volunteer-scheduler.local}
+      MAIL_FROM: ${MAIL_FROM:-noreply@volunteer-scheduler.local}
       USE_RESEND: ${USE_RESEND:-false}
       EMAIL_SERVER_HOST: ${EMAIL_SERVER_HOST:-mailhog}
       EMAIL_SERVER_PORT: ${EMAIL_SERVER_PORT:-1025}

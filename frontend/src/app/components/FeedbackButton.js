@@ -85,6 +85,7 @@ export default function FeedbackButton({ open: controlledOpen, onClose: controll
   const [subject, setSubject] = useState("");
   const [text, setText] = useState("");
   const [files, setFiles] = useState([]);
+  const [pageName, setPageName] = useState("/");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -103,6 +104,7 @@ export default function FeedbackButton({ open: controlledOpen, onClose: controll
       setError("");
       setSuccess(false);
       setSuccessNote("");
+      setPageName(typeof window !== "undefined" ? window.location.pathname : "/");
     }
   }, [open]);
 
@@ -170,9 +172,6 @@ export default function FeedbackButton({ open: controlledOpen, onClose: controll
     if (!trimmedSubject) { setError("Subject is required."); return; }
     if (!trimmedText) { setError("Description is required."); return; }
 
-    const appPageName =
-      typeof window !== "undefined" ? window.location.pathname : "/";
-
     setSubmitting(true);
     try {
       // 1 — Submit the feedback text
@@ -180,7 +179,7 @@ export default function FeedbackButton({ open: controlledOpen, onClose: controll
         input: {
           type,
           subject: trimmedSubject,
-          app_page_name: appPageName,
+          app_page_name: pageName,
           text: trimmedText,
         },
       }, token);
@@ -225,7 +224,7 @@ export default function FeedbackButton({ open: controlledOpen, onClose: controll
     } finally {
       setSubmitting(false);
     }
-  }, [type, subject, text, files]);
+  }, [type, subject, text, files, pageName]);
 
   return (
     <>
@@ -303,6 +302,19 @@ export default function FeedbackButton({ open: controlledOpen, onClose: controll
                       <option key={o.value} value={o.value}>{o.label}</option>
                     ))}
                   </select>
+                </div>
+
+                {/* Page */}
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="fb-page">Page</label>
+                  <input
+                    id="fb-page"
+                    type="text"
+                    className={styles.input}
+                    value={pageName}
+                    readOnly
+                    disabled
+                  />
                 </div>
 
                 {/* Subject */}
