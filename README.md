@@ -2,6 +2,10 @@
 
 A full-stack web application for managing organizational events, volunteer opportunities, and shift assignments. Built with a Next.js (React) frontend and a Go/GraphQL backend.
 
+**[Live Demo](https://feisty-enchantment-production-878e.up.railway.app)** — use the magic-link login with any email to explore as a volunteer, or contact the repo owner for admin credentials.
+
+<img src="docs/screenshot-events.png" alt="Volunteer Events listing page" width="800" />
+
 ## Overview
 
 This application allows organizations to:
@@ -11,7 +15,7 @@ This application allows organizations to:
 - Allow volunteers to sign up for opportunities and choose their shifts.
 - Track and display volunteer assignments.
 
-This application is still under construction. Currently, volunteers can:
+Volunteers can:
 - See events and filter on dates, regions, event format, and job types.
 - See available jobs and shifts for an event, grouped by job.
 - Sign up for a shift.
@@ -29,7 +33,8 @@ More administration features coming all the time.
 
 #### Events Listing Page
 - Filter events by:
-  - Region
+  - City
+  - Job type
   - Event format (Virtual, In-Person, Hybrid)
   - Date range (defaults to today forward)
 - View filtered events with key information.
