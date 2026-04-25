@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "AARP Volunteer System",
+  title: "Volunteer Scheduler System",
   description: "Volunteer event scheduling and management",
 };
 

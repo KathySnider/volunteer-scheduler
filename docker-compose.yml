@@ -76,7 +76,12 @@ services:
 
   # Next.js Frontend
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_GRAPHQL_AUTH_URL: ${NEXT_PUBLIC_GRAPHQL_AUTH_URL:-http://localhost:8080/graphql/auth}
+        NEXT_PUBLIC_GRAPHQL_VOLUNTEER_URL: ${NEXT_PUBLIC_GRAPHQL_VOLUNTEER_URL:-http://localhost:8080/graphql/volunteer}
+        NEXT_PUBLIC_GRAPHQL_ADMIN_URL: ${NEXT_PUBLIC_GRAPHQL_ADMIN_URL:-http://localhost:8080/graphql/admin}
     container_name: volunteer-frontend
     environment:
       NEXT_PUBLIC_GRAPHQL_AUTH_URL: ${NEXT_PUBLIC_GRAPHQL_AUTH_URL:-http://localhost:8080/graphql/auth}

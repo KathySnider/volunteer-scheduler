@@ -104,7 +104,7 @@ export default function LoginPage() {
   return (
     <div className={styles.page}>
       <div className={styles.appHeader}>
-        <div className={styles.appName}>AARP Volunteer System</div>
+        <div className={styles.appName}>Volunteer Scheduler System</div>
         <div className={styles.appTagline}>Volunteer event management</div>
       </div>
 

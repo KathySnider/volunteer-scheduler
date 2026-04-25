@@ -456,7 +456,7 @@ export default function EventsPage() {
       {/* ---- Top bar ---- */}
       <div className={styles.topBar}>
         <div className={styles.topBarLeft}>
-          <div className={styles.appTitle}>AARP Volunteer Events</div>
+          <div className={styles.appTitle}>Volunteer Events</div>
           <nav className={styles.topBarNav}>
             <a href="/my-shifts" className={styles.topBarLink}>My Shifts</a>
             <a href="/profile" className={styles.topBarLink}>My Profile</a>
