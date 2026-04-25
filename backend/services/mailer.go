@@ -28,15 +28,15 @@ const emailHeader = `<!DOCTYPE html>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0;">
     <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background-color: #0066cc; color: white; padding: 20px; text-align: center;">
-            <h1 style="margin: 0; color: white;">AARP Volunteer System</h1>
+            <h1 style="margin: 0; color: white;">Volunteer Scheduler</h1>
         </div>
         <div style="padding: 20px; background-color: #f9f9f9;">`
 
 const emailFooter = `
-            <p>Thank you,<br>AARP Volunteer System</p>
+            <p>Thank you,<br>Volunteer Scheduler</p>
         </div>
         <div style="font-size: 12px; color: #666; text-align: center; padding: 20px;">
-            <p>&copy; 2026 AARP. All rights reserved.</p>
+            <p>&copy; 2026 Volunteer Scheduler</p>
         </div>
     </div>
 </body>
@@ -64,7 +64,7 @@ const newAccountRequestHTMLTmpl = emailHeader + `
                     <td ` + tdValueAlt + `>{{.Email}}</td>
                 </tr>
             ` + tableClose + `
-            <p>To approve this request, log in to the AARP Volunteer System and create an account for this volunteer.</p>
+            <p>To approve this request, log in to the Volunteer Scheduler and create an account for this volunteer.</p>
             <p>If you do not recognize this person or do not wish to approve their request, no action is needed.</p>
 ` + emailFooter
 
@@ -73,12 +73,12 @@ const newAccountRequestTextTmpl = `A new volunteer account request has been subm
 Name:  {{.FirstName}} {{.LastName}}
 Email: {{.Email}}
 
-To approve this request, log in to the AARP Volunteer System and create an account for this volunteer.
+To approve this request, log in to the Volunteer Scheduler and create an account for this volunteer.
 
 If you do not recognize this person or do not wish to approve their request, no action is needed.
 
 Thank you,
-AARP Volunteer System`
+Volunteer Scheduler`
 
 type newAccountRequestData struct {
 	FirstName string
@@ -139,7 +139,7 @@ You have two options:
 If you do not recognize this person or do not wish to approve their request, no action is needed.
 
 Thank you,
-AARP Volunteer System`
+Volunteer Scheduler`
 
 type activateAccountRequestData struct {
 	FirstName    string
@@ -187,7 +187,7 @@ const signupConfirmedHTMLTmpl = emailHeader + `
                 <strong>Pre-Event Instructions:</strong> {{.Instructions}}
             </div>
             {{end}}
-            <p>To view or manage your shifts, log in to the AARP Volunteer System.</p>
+            <p>To view or manage your shifts, log in to the Volunteer Scheduler.</p>
 ` + emailFooter
 
 const signupConfirmedTextTmpl = `You are signed up for {{.EventName}}.
@@ -205,10 +205,10 @@ Location:{{if .VenueName}}
 Pre-Event Instructions:
 {{.Instructions}}
 {{end}}
-To view or manage your shifts, log in to the AARP Volunteer System.
+To view or manage your shifts, log in to the Volunteer Scheduler.
 
 Thank you,
-AARP Volunteer System`
+Volunteer Scheduler`
 
 type signupConfirmedData struct {
 	FirstName    string
@@ -245,7 +245,7 @@ const signupCancelledHTMLTmpl = emailHeader + `
                     <td ` + tdValue + `>{{.End}}</td>
                 </tr>
             ` + tableClose + `
-            <p>If this was a mistake, log in to the AARP Volunteer System to sign up again.</p>
+            <p>If this was a mistake, log in to the Volunteer Scheduler to sign up again.</p>
 ` + emailFooter
 
 const signupCancelledTextTmpl = `Your signup for the following shift has been cancelled:
@@ -254,10 +254,10 @@ Event: {{.EventName}}
 Start: {{.Start}}
 End:   {{.End}}
 
-If this was a mistake, log in to the AARP Volunteer System to sign up again.
+If this was a mistake, log in to the Volunteer Scheduler to sign up again.
 
 Thank you,
-AARP Volunteer System`
+Volunteer Scheduler`
 
 type signupCancelledData struct {
 	FirstName string
@@ -272,7 +272,7 @@ type signupCancelledData struct {
 
 const accountCreatedHTMLTmpl = emailHeader + `
             <p>Hello {{.FirstName}},</p>
-            <p>Welcome to the AARP Washington Volunteer System! Your account has been
+            <p>Welcome to the Volunteer Scheduler! Your account has been
             created with the following details:</p>
             ` + tableOpen + `
                 <tr>
@@ -288,24 +288,24 @@ const accountCreatedHTMLTmpl = emailHeader + `
                     <td ` + tdValue + `>{{.Role}}</td>
                 </tr>
             ` + tableClose + `
-            <p>To sign in, go to the AARP Volunteer System and enter your email address.
+            <p>To sign in, go to the Volunteer Scheduler and enter your email address.
             A magic link will be sent to you — no password needed.</p>
 ` + emailFooter
 
 const accountCreatedTextTmpl = `Hello {{.FirstName}},
 
-Welcome to the AARP Washington Volunteer System! Your account has been created
+Welcome to the Volunteer Scheduler! Your account has been created
 with the following details:
 
 Name:  {{.FirstName}} {{.LastName}}
 Email: {{.Email}}
 Role:  {{.Role}}
 
-To sign in, go to the AARP Volunteer System and enter your email address.
+To sign in, go to the Volunteer Scheduler and enter your email address.
 A magic link will be sent to you — no password needed.
 
 Thank you,
-AARP Volunteer System`
+Volunteer Scheduler`
 
 type accountCreatedData struct {
 	FirstName string
@@ -348,7 +348,7 @@ Role:       {{.Role}}
 Created by: {{.CreatedBy}}
 
 Thank you,
-AARP Volunteer System`
+Volunteer Scheduler`
 
 type accountCreatedAdminData struct {
 	FirstName string
@@ -388,8 +388,8 @@ const eventCancelledVolunteerHTMLTmpl = emailHeader + `
                 </tr>
                 {{end}}
             ` + tableClose + `
-            <p>We apologize for any inconvenience. Please log in to the AARP Volunteer
-            System to sign up for other upcoming events.</p>
+            <p>We apologize for any inconvenience. Please log in to Volunteer Scheduler
+            to sign up for other upcoming events.</p>
 ` + emailFooter
 
 const eventCancelledVolunteerTextTmpl = `Hello {{.FirstName}},
@@ -401,11 +401,11 @@ Event: {{.EventName}}
 Shift {{if gt (len $.Shifts) 1}}{{add $i 1}} {{end}}start: {{$s.Start}}
 Shift {{if gt (len $.Shifts) 1}}{{add $i 1}} {{end}}end:   {{$s.End}}
 {{end}}
-We apologize for any inconvenience. Please log in to the AARP Volunteer System
+We apologize for any inconvenience. Please log in to the Volunteer Scheduler
 to sign up for other upcoming events.
 
 Thank you,
-AARP Volunteer System`
+Volunteer Scheduler`
 
 type eventCancelledVolunteerData struct {
 	FirstName string
@@ -453,7 +453,7 @@ Shift {{if gt (len $.Shifts) 1}}{{add $i 1}} {{end}}end:   {{$s.End}}
 Volunteers assigned to your shift(s) have been notified separately.
 
 Thank you,
-AARP Volunteer System`
+Volunteer Scheduler`
 
 type eventCancelledStaffData struct {
 	FirstName string
@@ -502,7 +502,7 @@ func NewMailer(apiKey string) (*Mailer, error) {
 	}
 
 	// Parse email to extract name if present
-	fromName := "AARP Volunteer System"
+	fromName := "Volunteer Scheduler"
 	if addr, err := mail.ParseAddress(fromEmail); err == nil && addr.Name != "" {
 		fromName = addr.Name
 		fromEmail = addr.Address

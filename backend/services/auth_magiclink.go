@@ -98,7 +98,7 @@ func (s *MagicLinkService) SendMagicLinkEmail(ctx context.Context, to, token str
 
 	callbackURL := fmt.Sprintf("%s%s?token=%s", appURL, callbackPath, token)
 
-	subject := "Your AARP Volunteer System Magic Link"
+	subject := "Your Volunteer Scheduler Sign-In Link"
 
 	// HTML email body - uses inline styles for email client compatibility
 	htmlBody := fmt.Sprintf(`
@@ -110,21 +110,18 @@ func (s *MagicLinkService) SendMagicLinkEmail(ctx context.Context, to, token str
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0;">
     <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background-color: #0066cc; color: white; padding: 20px; text-align: center;">
-            <h1 style="margin: 0; color: white;">AARP Volunteer System</h1>
+            <h1 style="margin: 0; color: white;">Volunteer Scheduler</h1>
         </div>
         <div style="padding: 20px; background-color: #f9f9f9;">
             <p>Hello,</p>
-            <p>We received a request to sign you into the AARP Volunteer System. Click the button below to complete your sign-in:</p>
-            <a href="%s" style="display: inline-block; padding: 12px 24px; background-color: #0066cc; color: #ffffff; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold;">Sign In with Magic Link</a>
+            <p>We received a request to sign you in. Click the button below to complete your sign-in:</p>
+            <a href="%s" style="display: inline-block; padding: 12px 24px; background-color: #0066cc; color: #ffffff; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold;">Sign In</a>
             <p>Or copy and paste this link in your browser:</p>
             <p style="word-break: break-all;"><code>%s</code></p>
             <div style="background-color: #fff3cd; padding: 10px; border-left: 4px solid #ffc107; margin: 20px 0;">
                 <strong>Security Note:</strong> This link will expire in 15 minutes. If you did not request this link, please ignore this email.
             </div>
-            <p>Thank you,<br>AARP Volunteer System Team</p>
-        </div>
-        <div style="font-size: 12px; color: #666; text-align: center; padding: 20px;">
-            <p>&copy; 2026 AARP. All rights reserved.</p>
+            <p>Thank you,<br>The Volunteer Scheduler Team</p>
         </div>
     </div>
 </body>
@@ -135,7 +132,7 @@ func (s *MagicLinkService) SendMagicLinkEmail(ctx context.Context, to, token str
 	textBody := fmt.Sprintf(`
 Hello,
 
-We received a request to sign you into the AARP Volunteer System. Click the link below to complete your sign-in:
+We received a request to sign you in to Volunteer Scheduler. Click the link below to complete your sign-in:
 
 %s
 
@@ -144,7 +141,7 @@ This link will expire in 15 minutes.
 If you did not request this link, please ignore this email.
 
 Thank you,
-AARP Volunteer System Team
+The Volunteer Scheduler Team
     `, callbackURL)
 
 	if err := s.mailer.SendEmail(ctx, to, subject, htmlBody, textBody); err != nil {

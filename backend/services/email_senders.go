@@ -160,7 +160,7 @@ func sendAccountCreated(ctx context.Context, mailer *Mailer, firstName, lastName
 		Role:      role,
 	}
 
-	subject := "Your AARP Washington Volunteer System Account Has Been Created"
+	subject := "Your Volunteer Scheduler Account Has Been Created"
 	htmlBody, err := renderTemplate(accountCreatedHTMLTmpl, data)
 	if err != nil {
 		return err
