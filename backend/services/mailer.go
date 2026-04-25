@@ -570,6 +570,7 @@ func NewResendTransport(apiKey string) (*ResendTransport, error) {
 type ResendRequest struct {
 	From    string `json:"from"`
 	To      string `json:"to"`
+	ReplyTo string `json:"reply_to,omitempty"`
 	Subject string `json:"subject"`
 	HTML    string `json:"html"`
 	Text    string `json:"text,omitempty"`
@@ -595,9 +596,12 @@ func (r *ResendTransport) SendEmail(ctx context.Context, to, subject, htmlBody, 
 		fromEmail = addr.Address
 	}
 
+	replyTo := os.Getenv("MAIL_REPLY_TO")
+
 	request := ResendRequest{
 		From:    fromEmail,
 		To:      to,
+		ReplyTo: replyTo,
 		Subject: subject,
 		HTML:    htmlBody,
 		Text:    textBody,

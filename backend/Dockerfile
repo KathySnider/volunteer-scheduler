@@ -55,5 +55,8 @@ ENV FRONTEND_BASE_URL=https://feisty-enchantment-production-878e.up.railway.app
 # Sender address for magic link emails
 ENV MAIL_FROM="Volunteer Scheduler <onboarding@resend.dev>"
 
+# Reply-To address — volunteers who reply to emails will reach this inbox
+ENV MAIL_REPLY_TO=adminvolsched@gmail.com
+
 # Run the application
 CMD ["./volunteer-api"]
