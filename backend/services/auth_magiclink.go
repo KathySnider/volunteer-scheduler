@@ -307,7 +307,7 @@ func (s *MagicLinkService) RequestAccount(ctx context.Context, email, firstName,
 
 	// Fetch all admin email addresses.
 	rows, err := s.DB.QueryContext(ctx,
-		"SELECT email FROM volunteers WHERE role = 'ADMINISTRATOR'")
+		"SELECT email FROM volunteers WHERE role = 'ADMINISTRATOR' AND is_active = true")
 	if err != nil {
 		return fmt.Errorf("error fetching admin emails: %w", err)
 	}

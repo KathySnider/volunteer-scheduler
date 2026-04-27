@@ -192,7 +192,7 @@ func sendAccountCreatedAdminNotification(ctx context.Context, DB *sql.DB, mailer
 		return err
 	}
 
-	rows, err := DB.QueryContext(ctx, "SELECT email FROM volunteers WHERE role = 'ADMINISTRATOR'")
+	rows, err := DB.QueryContext(ctx, "SELECT email FROM volunteers WHERE role = 'ADMINISTRATOR' AND is_active = true")
 	if err != nil {
 		return fmt.Errorf("error fetching admin emails: %w", err)
 	}
