@@ -49,7 +49,7 @@ services:
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3000}
       MAGIC_LINK_CALLBACK_PATH: ${MAGIC_LINK_CALLBACK_PATH:-/auth/magic-link}
       SESSION_MAX_AGE: ${SESSION_MAX_AGE:-2592000}
-      MAIL_FROM: ${MAIL_FROM:-noreply@volunteer-scheduler.local}
+      MAIL_FROM: ${MAIL_FROM:-Volunteer Scheduler <noreply@volunteer-scheduler.org>}
       MAIL_REPLY_TO: ${MAIL_REPLY_TO:-}
       USE_RESEND: ${USE_RESEND:-false}
       EMAIL_SERVER_HOST: ${EMAIL_SERVER_HOST:-mailhog}
