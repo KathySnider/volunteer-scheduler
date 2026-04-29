@@ -356,4 +356,5 @@ MIT License
 - Database migrations managed by [golang-migrate](https://github.com/golang-migrate/migrate)
 - Email delivery via [Resend](https://resend.com/)
 - Email previewing in development via [Mailhog](https://github.com/mailhog/MailHog)
+- Frontend was prototyped by Darrell Quick, and many volunteers helps improve the frontend with their feedback.
 - Developed with the assistance of [Claude Code](https://claude.ai/code) by Anthropic
