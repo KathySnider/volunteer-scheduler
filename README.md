@@ -16,11 +16,13 @@ This application allows organizations to:
 - Track and display volunteer assignments.
 
 Volunteers can:
-- See events and filter on dates, regions, event format, and job types.
+- See events and filter on dates, cities, event format, and job types.
 - See available jobs and shifts for an event, grouped by job.
 - Sign up for a shift.
 - See their own shift assignments on the My Shifts page.
 - Cancel a shift.
+- Edit their own profile.
+- Submit feedback about the app.
 
 Admins can:
 - Do everything volunteers can do, including sign up for shifts.
@@ -29,14 +31,12 @@ Admins can:
 - Add/edit/delete volunteers and view their shift history.
 - View the volunteer roster for each event.
 
-More administration features coming all the time.
-
 #### Events Listing Page
 - Filter events by:
   - City
   - Job type
   - Event format (Virtual, In-Person, Hybrid)
-  - Date range (defaults to today forward)
+  - Date timeframe (defaults to today forward)
 - View filtered events with key information.
 - Navigate to an event's details using the "View Details" button.
 
@@ -46,13 +46,14 @@ More administration features coming all the time.
 - View shift capacity (spots available / full).
 - Sign up for or cancel a shift directly on the page.
 
-#### Admin Event Management Page
-- Edit event details, dates, opportunities, and shifts.
-- View the volunteer roster (who is signed up for each shift).
-
 #### My Shifts Page
 - View upcoming, past, or all signed-up shifts grouped by event.
 - Cancel upcoming shifts.
+
+#### Admin Event Management Page
+- Create new events.
+- Edit or delete event details, dates, opportunities, and shifts.
+- View the volunteer roster (who is signed up for each shift).
 
 #### Manage Venues Page (Admin)
 - Add, edit, and delete venues.
@@ -356,5 +357,5 @@ MIT License
 - Database migrations managed by [golang-migrate](https://github.com/golang-migrate/migrate)
 - Email delivery via [Resend](https://resend.com/)
 - Email previewing in development via [Mailhog](https://github.com/mailhog/MailHog)
-- Frontend was prototyped by Darrell Quick, and many volunteers helps improve the frontend with their feedback.
+- Frontend was prototyped by Darrell Quick, and many volunteers helped improve the frontend with their feedback.
 - Developed with the assistance of [Claude Code](https://claude.ai/code) by Anthropic
