@@ -46,6 +46,13 @@ COPY --from=builder /app/migrations/ /app/migrations/
 # Expose port
 EXPOSE 8080
 
+# The following vars are hardcoded here for the railway environment only, and
+# should be removed if you are going to deploy elsewhere. Railway is *very*
+# stubborn about editing its env vars and we needed to override its values
+# here. 
+# The values in the "secrets" files (see docker-compose.yml at the project's
+# root) override these values when building locally (for development).
+
 # Frontend URL for CORS — update if the frontend domain changes
 ENV ALLOWED_ORIGIN=https://feisty-enchantment-production-878e.up.railway.app
 

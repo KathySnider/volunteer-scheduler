@@ -59,7 +59,5 @@ COPY --from=builder /app/src ./src
 # Expose port
 EXPOSE 3000
 
-# Remove hardcoded localhost — URLs are baked in at build time via ARGs above
-
 # Start the application
 CMD ["npm", "start"]
