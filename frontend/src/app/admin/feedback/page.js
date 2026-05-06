@@ -10,6 +10,7 @@ import {
   adminGql,
 } from "../../lib/api";
 import UserMenu from "../../components/UserMenu";
+import FeedbackButton from "../../components/FeedbackButton";
 import styles from "./admin-feedback.module.css";
 
 /* =========================================================
@@ -225,6 +226,7 @@ export default function AdminFeedbackPage() {
           </button>
         ))}
       </div>
+      <FeedbackButton />
     </div>
   );
 }

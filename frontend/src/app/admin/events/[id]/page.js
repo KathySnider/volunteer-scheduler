@@ -10,6 +10,7 @@ import {
   adminGql,
 } from "../../../lib/api";
 import UserMenu from "../../../components/UserMenu";
+import FeedbackButton from "../../../components/FeedbackButton";
 import styles from "./admin-event-detail.module.css";
 
 /* =========================================================
@@ -1357,6 +1358,7 @@ export default function AdminEventDetailPage() {
 
 
       </div>
+      <FeedbackButton />
     </div>
   );
 }

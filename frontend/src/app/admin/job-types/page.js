@@ -11,6 +11,7 @@ import {
   volunteerGql,
 } from "../../lib/api";
 import UserMenu from "../../components/UserMenu";
+import FeedbackButton from "../../components/FeedbackButton";
 import styles from "./admin-job-types.module.css";
 
 /* =========================================================
@@ -337,6 +338,7 @@ export default function AdminJobTypesPage() {
           );
         })}
       </div>
+      <FeedbackButton />
     </div>
   );
 }
