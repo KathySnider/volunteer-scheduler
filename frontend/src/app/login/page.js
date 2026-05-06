@@ -25,10 +25,9 @@ const REQUEST_ACCOUNT = `
 `;
 
 /* ----- Stages ----- */
-// enterEmail → (found) linkSent
-//            → (not found) notFound → requestForm → requestSent
-//            → (inactive)  inactive
+// enterEmail → linkSent (always, regardless of whether email exists)
 //            → (server error) enterEmail with errorMsg
+// enterEmail → requestForm → requestSent
 
 export default function LoginPage() {
   const [stage, setStage] = useState("enterEmail");
@@ -51,24 +50,15 @@ export default function LoginPage() {
     setErrorMsg("");
   };
 
-  /* Submit the email address to request a magic link */
+  /* Submit the email address to request a magic link.
+     Always show linkSent — never reveal whether the address is in the DB. */
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
     setLoading(true);
     try {
-      const result = await authGql(REQUEST_MAGIC_LINK, { email });
-      const { success, message } = result.data.requestMagicLink;
-
-      if (success) {
-        setStage("linkSent");
-      } else if (message.toLowerCase().includes("no volunteer account")) {
-        setStage("notFound");
-      } else if (message.toLowerCase().includes("inactive")) {
-        setStage("inactive");
-      } else {
-        setErrorMsg(message);
-      }
+      await authGql(REQUEST_MAGIC_LINK, { email });
+      setStage("linkSent");
     } catch {
       setErrorMsg("Unable to reach the server. Please try again.");
     } finally {
@@ -116,19 +106,12 @@ export default function LoginPage() {
             loading={loading}
             errorMsg={errorMsg}
             onSubmit={handleEmailSubmit}
+            onRequestAccount={() => setStage("requestForm")}
           />
         )}
 
         {stage === "linkSent" && (
           <LinkSentStage email={email} onReset={reset} />
-        )}
-
-        {stage === "notFound" && (
-          <NotFoundStage
-            email={email}
-            onRequestAccount={() => setStage("requestForm")}
-            onReset={reset}
-          />
         )}
 
         {stage === "requestForm" && (
@@ -141,20 +124,12 @@ export default function LoginPage() {
             loading={loading}
             errorMsg={errorMsg}
             onSubmit={handleRequestAccount}
-            onBack={() => setStage("notFound")}
+            onBack={() => setStage("enterEmail")}
           />
         )}
 
         {stage === "requestSent" && (
           <RequestSentStage email={email} onReset={reset} />
-        )}
-
-        {stage === "inactive" && (
-          <InactiveStage
-            email={email}
-            onRequestAccount={() => setStage("requestForm")}
-            onReset={reset}
-          />
         )}
       </div>
     </div>
@@ -165,7 +140,7 @@ export default function LoginPage() {
    Stage components
    ========================================================= */
 
-function EnterEmailStage({ email, setEmail, loading, errorMsg, onSubmit }) {
+function EnterEmailStage({ email, setEmail, loading, errorMsg, onSubmit, onRequestAccount }) {
   return (
     <>
       <h1 className={styles.cardTitle}>Sign In</h1>
@@ -193,6 +168,14 @@ function EnterEmailStage({ email, setEmail, loading, errorMsg, onSubmit }) {
           {loading ? "Sending…" : "Continue"}
         </button>
       </form>
+      <button
+        className={styles.buttonOutline}
+        onClick={() => email.trim() ? onRequestAccount() : document.getElementById("email").reportValidity()}
+        style={{ marginTop: "0.75rem" }}
+        type="button"
+      >
+        Request an Account
+      </button>
     </>
   );
 }
@@ -205,9 +188,9 @@ function LinkSentStage({ email, onReset }) {
       </div>
       <h1 className={styles.cardTitle}>Check your email</h1>
       <p className={styles.cardBody}>
-        We sent a sign-in link to{" "}
-        <span className={styles.highlight}>{email}</span>. Click the link in
-        the email to sign in.
+        If <span className={styles.highlight}>{email}</span> is associated
+        with an account, we&apos;ve sent a sign-in link to that address.
+        Click the link in the email to sign in.
       </p>
       <p className={styles.cardBody}>
         The link expires in 15 minutes. Check your spam folder if you
@@ -216,27 +199,6 @@ function LinkSentStage({ email, onReset }) {
       <button className={styles.linkButton} onClick={onReset}>
         Use a different email
       </button>
-    </>
-  );
-}
-
-function NotFoundStage({ email, onRequestAccount, onReset }) {
-  return (
-    <>
-      <h1 className={styles.cardTitle}>No account found</h1>
-      <p className={styles.cardBody}>
-        There&apos;s no volunteer account associated with{" "}
-        <span className={styles.highlight}>{email}</span>.
-      </p>
-      <p className={styles.cardBody}>Would you like to request access?</p>
-      <div className={`${styles.buttonStack} ${styles.notFoundActions}`}>
-        <button className={styles.buttonPrimary} onClick={onRequestAccount}>
-          Request an Account
-        </button>
-        <button className={styles.buttonOutline} onClick={onReset}>
-          Try a Different Email
-        </button>
-      </div>
     </>
   );
 }
@@ -256,8 +218,8 @@ function RequestFormStage({
     <>
       <h1 className={styles.cardTitle}>Request an Account</h1>
       <p className={styles.cardBody}>
-        Fill in your name and submit a request. An administrator will review
-        it and create your account.
+        Fill in your details and submit a request. An administrator will
+        review it and create your account.
       </p>
       <form className={styles.form} onSubmit={onSubmit}>
         <div className={styles.field}>
@@ -320,29 +282,6 @@ function RequestFormStage({
   );
 }
 
-function InactiveStage({ email, onRequestAccount, onReset }) {
-  return (
-    <>
-      <h1 className={styles.cardTitle}>Account Inactive</h1>
-      <p className={styles.cardBody}>
-        The account for <span className={styles.highlight}>{email}</span> is
-        currently inactive.
-      </p>
-      <p className={styles.cardBody}>
-        You can submit a request and an administrator will review it. They
-        may reactivate your existing account or create a new one.
-      </p>
-      <div className={`${styles.buttonStack} ${styles.notFoundActions}`}>
-        <button className={styles.buttonPrimary} onClick={onRequestAccount}>
-          Request Account Access
-        </button>
-        <button className={styles.buttonOutline} onClick={onReset}>
-          Try a Different Email
-        </button>
-      </div>
-    </>
-  );
-}
 
 function RequestSentStage({ email, onReset }) {
   return (
