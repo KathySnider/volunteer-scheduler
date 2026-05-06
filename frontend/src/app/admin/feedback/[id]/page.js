@@ -169,6 +169,30 @@ function InputField({ label, value, onChange, required, placeholder, type = "tex
 }
 
 /* =========================================================
+   Accordion wrapper
+   ========================================================= */
+
+function AccordionPanel({ title, isOpen, onToggle, children }) {
+  return (
+    <div className={styles.accordionPanel}>
+      <button
+        className={styles.accordionHeader}
+        onClick={onToggle}
+        aria-expanded={isOpen}
+      >
+        <span className={styles.accordionTitle}>{title}</span>
+        <span className={`${styles.accordionChevron} ${isOpen ? styles.chevronOpen : ""}`}>▼</span>
+      </button>
+      {isOpen && (
+        <div className={styles.accordionBody}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* =========================================================
    Ask a Question Panel
    ========================================================= */
 
@@ -199,8 +223,7 @@ function AskQuestionPanel({ feedbackId, gql, onSuccess, onError }) {
   };
 
   return (
-    <div className={styles.actionPanel}>
-      <h3 className={styles.panelTitle}>Ask a Question</h3>
+    <>
       <TextField
         label="Email text to volunteer"
         value={emailText}
@@ -221,7 +244,7 @@ function AskQuestionPanel({ feedbackId, gql, onSuccess, onError }) {
           {busy ? "Sending…" : "Send Question"}
         </button>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -268,8 +291,7 @@ function UpdatePanel({ feedbackId, currentStatus, currentGithubURL, gql, onSucce
   };
 
   return (
-    <div className={styles.actionPanel}>
-      <h3 className={styles.panelTitle}>Update / Add to GitHub</h3>
+    <>
       <TextField
         label="Note"
         value={note}
@@ -304,7 +326,7 @@ function UpdatePanel({ feedbackId, currentStatus, currentGithubURL, gql, onSucce
           {busy ? "Saving…" : "Update"}
         </button>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -348,8 +370,7 @@ function ResolvePanel({ feedbackId, currentGithubURL, gql, onSuccess, onError })
   };
 
   return (
-    <div className={styles.actionPanel}>
-      <h3 className={styles.panelTitle}>Resolve Feedback</h3>
+    <>
       <TextField
         label="Resolution note (will be emailed to volunteer)"
         value={note}
@@ -397,7 +418,7 @@ function ResolvePanel({ feedbackId, currentGithubURL, gql, onSuccess, onError })
           {busy ? "Resolving…" : "Resolve Feedback"}
         </button>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -419,6 +440,9 @@ export default function AdminFeedbackDetailPage() {
   const [pageError, setPageError] = useState("");
   const [actionMsg, setActionMsg] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
+  const [openPanel, setOpenPanel] = useState(null);
+
+  const togglePanel = (name) => setOpenPanel((prev) => (prev === name ? null : name));
 
   const handleDownload = useCallback(async (attachmentId) => {
     if (!token) return;
@@ -595,28 +619,46 @@ export default function AdminFeedbackDetailPage() {
             ) : (
               <>
                 {feedback.status === "OPEN" && (
-                  <AskQuestionPanel
+                  <AccordionPanel
+                    title="Ask a Question"
+                    isOpen={openPanel === "question"}
+                    onToggle={() => togglePanel("question")}
+                  >
+                    <AskQuestionPanel
+                      feedbackId={feedback.id}
+                      gql={gql}
+                      onSuccess={handleSuccess}
+                      onError={handleError}
+                    />
+                  </AccordionPanel>
+                )}
+                <AccordionPanel
+                  title="Update / Add to GitHub"
+                  isOpen={openPanel === "update"}
+                  onToggle={() => togglePanel("update")}
+                >
+                  <UpdatePanel
                     feedbackId={feedback.id}
+                    currentStatus={feedback.status}
+                    currentGithubURL={feedback.githubIssueURL}
                     gql={gql}
                     onSuccess={handleSuccess}
                     onError={handleError}
                   />
-                )}
-                <UpdatePanel
-                  feedbackId={feedback.id}
-                  currentStatus={feedback.status}
-                  currentGithubURL={feedback.githubIssueURL}
-                  gql={gql}
-                  onSuccess={handleSuccess}
-                  onError={handleError}
-                />
-                <ResolvePanel
-                  feedbackId={feedback.id}
-                  currentGithubURL={feedback.githubIssueURL}
-                  gql={gql}
-                  onSuccess={handleSuccess}
-                  onError={handleError}
-                />
+                </AccordionPanel>
+                <AccordionPanel
+                  title="Resolve Feedback"
+                  isOpen={openPanel === "resolve"}
+                  onToggle={() => togglePanel("resolve")}
+                >
+                  <ResolvePanel
+                    feedbackId={feedback.id}
+                    currentGithubURL={feedback.githubIssueURL}
+                    gql={gql}
+                    onSuccess={handleSuccess}
+                    onError={handleError}
+                  />
+                </AccordionPanel>
               </>
             )}
           </>

@@ -111,10 +111,12 @@ export default function AdminJobTypesPage() {
   /* Add form */
   const [showAdd, setShowAdd]   = useState(false);
   const [addForm, setAddForm]   = useState(EMPTY_FORM);
+  const [addJobTypeError, setAddJobTypeError] = useState("");
 
   /* Edit state */
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm]   = useState(EMPTY_FORM);
+  const [editJobTypeError, setEditJobTypeError] = useState("");
 
   /* ----- Auth + load ----- */
   const loadData = useCallback((volFn) => {
@@ -174,9 +176,10 @@ export default function AdminJobTypesPage() {
   /* ----- Add ----- */
   const handleAdd = async () => {
     if (!addForm.code.trim() || !addForm.name.trim()) {
-      showMsg("error", "Code and name are required.");
+      setAddJobTypeError("Code and name are required.");
       return;
     }
+    setAddJobTypeError("");
     await mutate(
       CREATE_JOB_TYPE,
       {
@@ -187,7 +190,7 @@ export default function AdminJobTypesPage() {
         },
       },
       "Job type created.",
-      () => { setShowAdd(false); setAddForm(EMPTY_FORM); },
+      () => { setShowAdd(false); setAddForm(EMPTY_FORM); setAddJobTypeError(""); },
     );
   };
 
@@ -195,13 +198,15 @@ export default function AdminJobTypesPage() {
   const openEdit = (jt) => {
     setEditingId(jt.id);
     setEditForm({ code: jt.code, name: jt.name, sortOrder: String(jt.sortOrder) });
+    setEditJobTypeError("");
   };
 
   const handleSave = async () => {
     if (!editForm.code.trim() || !editForm.name.trim()) {
-      showMsg("error", "Code and name are required.");
+      setEditJobTypeError("Code and name are required.");
       return;
     }
+    setEditJobTypeError("");
     await mutate(
       UPDATE_JOB_TYPE,
       {
@@ -241,7 +246,7 @@ export default function AdminJobTypesPage() {
           {!showAdd && (
             <button
               className={styles.btnOutline}
-              onClick={() => { setShowAdd(true); setAddForm(EMPTY_FORM); setActionMsg(null); }}
+              onClick={() => { setShowAdd(true); setAddForm(EMPTY_FORM); setActionMsg(null); setAddJobTypeError(""); }}
             >
               + Add Job Type
             </button>
@@ -256,11 +261,12 @@ export default function AdminJobTypesPage() {
         {showAdd && (
           <div className={styles.addForm}>
             <JobTypeFormFields form={addForm} setForm={setAddForm} />
+            {addJobTypeError && <div className={styles.inlineError}>{addJobTypeError}</div>}
             <div className={styles.formActions}>
               <button className={styles.btnPrimary} onClick={handleAdd} disabled={busy}>
                 Create Job Type
               </button>
-              <button className={styles.btnSecondary} onClick={() => { setShowAdd(false); setAddForm(EMPTY_FORM); }}>
+              <button className={styles.btnSecondary} onClick={() => { setShowAdd(false); setAddForm(EMPTY_FORM); setAddJobTypeError(""); }}>
                 Cancel
               </button>
             </div>
@@ -324,11 +330,12 @@ export default function AdminJobTypesPage() {
               {isEditing && (
                 <div className={styles.editForm}>
                   <JobTypeFormFields form={editForm} setForm={setEditForm} />
+                  {editJobTypeError && <div className={styles.inlineError}>{editJobTypeError}</div>}
                   <div className={styles.formActions}>
                     <button className={styles.btnPrimary} onClick={handleSave} disabled={busy}>
                       Save Changes
                     </button>
-                    <button className={styles.btnSecondary} onClick={() => setEditingId(null)}>
+                    <button className={styles.btnSecondary} onClick={() => { setEditingId(null); setEditJobTypeError(""); }}>
                       Cancel
                     </button>
                   </div>

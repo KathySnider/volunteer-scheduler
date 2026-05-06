@@ -318,7 +318,7 @@ function ShiftFormFields({ form, setForm, staff }) {
         </div>
       </div>
       <div className={styles.field}>
-        <label className={styles.label}>Max Volunteers</label>
+        <label className={styles.label}>Max Volunteers <span className={styles.required}>*</span></label>
         <input
           type="number" min="1"
           className={styles.input}
@@ -399,8 +399,17 @@ export default function AdminEventDetailPage() {
   /* --- Add / Edit shift --- */
   const [addingShiftOppId, setAddingShiftOppId] = useState(null);
   const [addShiftForm, setAddShiftForm]         = useState(EMPTY_SHIFT_FORM);
+  const [addShiftError, setAddShiftError]       = useState("");
   const [editingShiftId, setEditingShiftId]     = useState(null);
   const [editShiftForm, setEditShiftForm]       = useState(EMPTY_SHIFT_FORM);
+  const [editShiftError, setEditShiftError]     = useState("");
+
+  /* --- Inline form errors --- */
+  const [editEventError, setEditEventError]   = useState("");
+  const [addDateError, setAddDateError]       = useState("");
+  const [editDateError, setEditDateError]     = useState("");
+  const [addOppError, setAddOppError]         = useState("");
+  const [editOppError, setEditOppError]       = useState("");
 
   /* --- Volunteer roster (shiftId → [{id, firstName, lastName}]) --- */
   const [rosterMap, setRosterMap]         = useState(null); // null = not yet loaded
@@ -493,7 +502,23 @@ export default function AdminEventDetailPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const mutate = async (mutation, variables, successMsg, onSuccess) => {
+  /** Translate raw DB/server error messages into user-friendly text. */
+  const friendlyError = (msg) => {
+    if (!msg) return "Operation failed.";
+    if (msg.includes("check constraint") && msg.includes("shifts"))
+      return "Shift end time must be after its start time.";
+    if (msg.includes("null value") && msg.includes("max_volunteers"))
+      return "Max Volunteers is required.";
+    return msg;
+  };
+
+  /**
+   * Run a GraphQL mutation.
+   * If onError is provided, server errors call onError(msg) instead of the
+   * top-of-page banner — use this for inline forms so the error appears near
+   * the submit button.
+   */
+  const mutate = async (mutation, variables, successMsg, onSuccess, onError) => {
     setBusy(true);
     setActionMsg(null);
     try {
@@ -501,7 +526,8 @@ export default function AdminEventDetailPage() {
       const key = Object.keys(res.data ?? {})[0];
       const result = res.data?.[key];
       if (res.errors || !result?.success) {
-        showMsg("error", result?.message ?? res.errors?.[0]?.message ?? "Operation failed.");
+        const msg = friendlyError(result?.message ?? res.errors?.[0]?.message);
+        if (onError) onError(msg); else showMsg("error", msg);
         return null;
       }
       showMsg("success", successMsg);
@@ -509,7 +535,8 @@ export default function AdminEventDetailPage() {
       loadPage(gql, eventId, true);
       return result;
     } catch {
-      showMsg("error", "Unable to reach the server.");
+      const msg = "Unable to reach the server.";
+      if (onError) onError(msg); else showMsg("error", msg);
       return null;
     } finally {
       setBusy(false);
@@ -532,12 +559,14 @@ export default function AdminEventDetailPage() {
       venueId: event.venue?.id ?? "",
       serviceTypes: svcIds,
     });
+    setEditEventError("");
     setEditingEvent(true);
     setAddingOpp(false);
   };
 
   const handleSaveEvent = async () => {
-    if (!evForm.name.trim()) { showMsg("error", "Event name is required."); return; }
+    if (!evForm.name.trim()) { setEditEventError("Event name is required."); return; }
+    setEditEventError("");
     await mutate(
       UPDATE_EVENT,
       { event: {
@@ -568,6 +597,7 @@ export default function AdminEventDetailPage() {
       start: toDatetimeLocal(date.startDateTime, tz),
       end:   toDatetimeLocal(date.endDateTime,   tz),
     });
+    setEditDateError("");
   };
 
   const handleSaveDate = async () => {
@@ -613,16 +643,22 @@ export default function AdminEventDetailPage() {
       shiftEndDate:   "", shiftEndTime:   "00:00",
       shiftMaxVols: "", shiftStaffId: "",
     });
+    setAddOppError("");
     setAddingOpp(true);
     setEditingEvent(false);
   };
 
   const handleSaveOpp = async () => {
-    if (!oppForm.jobId) { showMsg("error", "Please select a job type."); return; }
+    if (!oppForm.jobId) { setAddOppError("Please select a job type."); return; }
     if (!oppForm.shiftStartDate || !oppForm.shiftEndDate) {
-      showMsg("error", "First shift start and end dates are required.");
+      setAddOppError("First shift start and end dates are required.");
       return;
     }
+    if (!oppForm.shiftMaxVols) {
+      setAddOppError("Max Volunteers is required.");
+      return;
+    }
+    setAddOppError("");
     await mutate(
       CREATE_OPP,
       { newOpp: {
@@ -650,6 +686,7 @@ export default function AdminEventDetailPage() {
       isVirtual: opp.isVirtual,
       preEventInstructions: opp.preEventInstructions ?? "",
     });
+    setEditOppError("");
     setEditingShiftId(null);
     setAddingShiftOppId(null);
   };
@@ -677,14 +714,20 @@ export default function AdminEventDetailPage() {
   const openAddShift = (oppId) => {
     setAddingShiftOppId(oppId);
     setAddShiftForm({ ...EMPTY_SHIFT_FORM, ianaZone: tz });
+    setAddShiftError("");
     setEditingShiftId(null);
   };
 
   const handleSaveAddShift = async () => {
     if (!addShiftForm.startDate || !addShiftForm.endDate) {
-      showMsg("error", "Shift start and end dates are required.");
+      setAddShiftError("Shift start and end dates are required.");
       return;
     }
+    if (!addShiftForm.maxVolunteers) {
+      setAddShiftError("Max Volunteers is required.");
+      return;
+    }
+    setAddShiftError("");
     await mutate(
       CREATE_SHIFT,
       { newShift: {
@@ -697,10 +740,12 @@ export default function AdminEventDetailPage() {
       }},
       "Shift added.",
       () => setAddingShiftOppId(null),
+      (err) => setAddShiftError(err),
     );
   };
 
   const openEditShift = (shift) => {
+    setEditShiftError("");
     setEditingShiftId(shift.id);
     const startLocal = toDatetimeLocal(shift.startDateTime, tz);
     const endLocal   = toDatetimeLocal(shift.endDateTime,   tz);
@@ -717,6 +762,11 @@ export default function AdminEventDetailPage() {
   };
 
   const handleSaveEditShift = async () => {
+    if (!editShiftForm.maxVolunteers) {
+      setEditShiftError("Max Volunteers is required.");
+      return;
+    }
+    setEditShiftError("");
     await mutate(
       UPDATE_SHIFT,
       { shift: {
@@ -729,6 +779,7 @@ export default function AdminEventDetailPage() {
       }},
       "Shift updated.",
       () => setEditingShiftId(null),
+      (err) => setEditShiftError(err),
     );
   };
 
@@ -936,9 +987,10 @@ export default function AdminEventDetailPage() {
                           onChange={(e) => setEditDateForm((p) => ({ ...p, end: joinDT(splitDT(p.end).d, e.target.value) }))} />
                       </div>
                     </div>
+                    {editDateError && <div className={styles.inlineError}>{editDateError}</div>}
                     <div className={styles.formActions}>
                       <button className={styles.btnPrimary} onClick={handleSaveDate} disabled={busy}>Save</button>
-                      <button className={styles.btnSecondary} onClick={() => setEditingDateId(null)}>Cancel</button>
+                      <button className={styles.btnSecondary} onClick={() => { setEditingDateId(null); setEditDateError(""); }}>Cancel</button>
                     </div>
                   </div>
                 )}
@@ -980,9 +1032,10 @@ export default function AdminEventDetailPage() {
                           onChange={(e) => setAddDateForm((p) => ({ ...p, end: joinDT(splitDT(p.end).d, e.target.value) }))} />
                       </div>
                     </div>
+                    {addDateError && <div className={styles.inlineError}>{addDateError}</div>}
                     <div className={styles.formActions}>
                       <button className={styles.btnPrimary} onClick={handleAddDate} disabled={busy}>Add Date</button>
-                      <button className={styles.btnSecondary} onClick={() => setAddingDate(false)}>Cancel</button>
+                      <button className={styles.btnSecondary} onClick={() => { setAddingDate(false); setAddDateError(""); }}>Cancel</button>
                     </div>
                   </div>
                 )}
@@ -1060,9 +1113,10 @@ export default function AdminEventDetailPage() {
                   ))}
                 </select>
               </div>
+              {editEventError && <div className={styles.inlineError}>{editEventError}</div>}
               <div className={styles.formActions}>
                 <button className={styles.btnPrimary} onClick={handleSaveEvent} disabled={busy}>Save Changes</button>
-                <button className={styles.btnSecondary} onClick={() => setEditingEvent(false)}>Cancel</button>
+                <button className={styles.btnSecondary} onClick={() => { setEditingEvent(false); setEditEventError(""); }}>Cancel</button>
               </div>
             </div>
           )}
@@ -1128,9 +1182,10 @@ export default function AdminEventDetailPage() {
                 })}
               />
 
+              {addOppError && <div className={styles.inlineError}>{addOppError}</div>}
               <div className={styles.formActions}>
                 <button className={styles.btnPrimary} onClick={handleSaveOpp} disabled={busy}>Add Opportunity</button>
-                <button className={styles.btnSecondary} onClick={() => setAddingOpp(false)}>Cancel</button>
+                <button className={styles.btnSecondary} onClick={() => { setAddingOpp(false); setAddOppError(""); }}>Cancel</button>
               </div>
             </div>
           )}
@@ -1198,9 +1253,10 @@ export default function AdminEventDetailPage() {
                       <textarea className={styles.textarea} value={editOppForm.preEventInstructions}
                         onChange={(e) => setEditOppForm((p) => ({ ...p, preEventInstructions: e.target.value }))} />
                     </div>
+                    {editOppError && <div className={styles.inlineError}>{editOppError}</div>}
                     <div className={styles.formActions}>
                       <button className={styles.btnPrimary} onClick={handleSaveEditOpp} disabled={busy}>Save</button>
-                      <button className={styles.btnSecondary} onClick={() => setEditingOppId(null)}>Cancel</button>
+                      <button className={styles.btnSecondary} onClick={() => { setEditingOppId(null); setEditOppError(""); }}>Cancel</button>
                     </div>
                   </div>
                 )}
@@ -1256,9 +1312,12 @@ export default function AdminEventDetailPage() {
                           <div className={styles.inlineForm}>
                             <div className={styles.inlineFormTitle}>Edit Shift</div>
                             <ShiftFormFields staff={staff} form={editShiftForm} setForm={setEditShiftForm} />
+                            {editShiftError && (
+                              <div className={styles.inlineError}>{editShiftError}</div>
+                            )}
                             <div className={styles.formActions}>
                               <button className={styles.btnPrimary} onClick={handleSaveEditShift} disabled={busy}>Save</button>
-                              <button className={styles.btnSecondary} onClick={() => setEditingShiftId(null)}>Cancel</button>
+                              <button className={styles.btnSecondary} onClick={() => { setEditingShiftId(null); setEditShiftError(""); }}>Cancel</button>
                             </div>
                           </div>
                         )}
@@ -1336,9 +1395,12 @@ export default function AdminEventDetailPage() {
                     <div className={styles.inlineForm}>
                       <div className={styles.inlineFormTitle}>Add Shift</div>
                       <ShiftFormFields staff={staff} form={addShiftForm} setForm={setAddShiftForm} />
+                      {addShiftError && (
+                        <div className={styles.inlineError}>{addShiftError}</div>
+                      )}
                       <div className={styles.formActions}>
                         <button className={styles.btnPrimary} onClick={handleSaveAddShift} disabled={busy}>Add Shift</button>
-                        <button className={styles.btnSecondary} onClick={() => setAddingShiftOppId(null)}>Cancel</button>
+                        <button className={styles.btnSecondary} onClick={() => { setAddingShiftOppId(null); setAddShiftError(""); }}>Cancel</button>
                       </div>
                     </div>
                   ) : (

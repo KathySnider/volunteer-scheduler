@@ -132,10 +132,12 @@ export default function AdminStaffPage() {
   /* Add form state */
   const [addOpen, setAddOpen]   = useState(false);
   const [addForm, setAddForm]   = useState(EMPTY_FORM);
+  const [addStaffError, setAddStaffError] = useState("");
 
   /* Edit state */
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm]   = useState(EMPTY_FORM);
+  const [editStaffError, setEditStaffError] = useState("");
 
   /* ----- Auth + load ----- */
   const loadData = useCallback((bound) => {
@@ -190,9 +192,10 @@ export default function AdminStaffPage() {
   /* ----- Add ----- */
   const handleAdd = async () => {
     if (!addForm.firstName.trim() || !addForm.lastName.trim() || !addForm.email.trim()) {
-      showMsg("error", "First name, last name, and email are required.");
+      setAddStaffError("First name, last name, and email are required.");
       return;
     }
+    setAddStaffError("");
     await mutate(
       CREATE_STAFF,
       { newStaff: {
@@ -206,6 +209,7 @@ export default function AdminStaffPage() {
       () => {
         setAddOpen(false);
         setAddForm(EMPTY_FORM);
+        setAddStaffError("");
       },
     );
   };
@@ -220,13 +224,15 @@ export default function AdminStaffPage() {
       phone:     member.phone ?? "",
       position:  member.position ?? "",
     });
+    setEditStaffError("");
   };
 
   const handleSave = async () => {
     if (!editForm.firstName.trim() || !editForm.lastName.trim() || !editForm.email.trim()) {
-      showMsg("error", "First name, last name, and email are required.");
+      setEditStaffError("First name, last name, and email are required.");
       return;
     }
+    setEditStaffError("");
     await mutate(
       UPDATE_STAFF,
       { staff: {
@@ -279,6 +285,7 @@ export default function AdminStaffPage() {
               setAddOpen((v) => !v);
               setAddForm(EMPTY_FORM);
               setActionMsg(null);
+              setAddStaffError("");
             }}
           >
             {addOpen ? "Cancel" : "+ Add Staff Member"}
@@ -289,11 +296,12 @@ export default function AdminStaffPage() {
         {addOpen && (
           <div className={styles.addForm}>
             <StaffFormFields form={addForm} setForm={setAddForm} />
+            {addStaffError && <div className={styles.inlineError}>{addStaffError}</div>}
             <div className={styles.formActions}>
               <button className={styles.btnPrimary} onClick={handleAdd} disabled={busy}>
                 Save Staff Member
               </button>
-              <button className={styles.btnSecondary} onClick={() => { setAddOpen(false); setAddForm(EMPTY_FORM); }}>
+              <button className={styles.btnSecondary} onClick={() => { setAddOpen(false); setAddForm(EMPTY_FORM); setAddStaffError(""); }}>
                 Cancel
               </button>
             </div>
@@ -367,11 +375,12 @@ export default function AdminStaffPage() {
               {isEditing && (
                 <div className={styles.editForm}>
                   <StaffFormFields form={editForm} setForm={setEditForm} />
+                  {editStaffError && <div className={styles.inlineError}>{editStaffError}</div>}
                   <div className={styles.formActions}>
                     <button className={styles.btnPrimary} onClick={handleSave} disabled={busy}>
                       Save Changes
                     </button>
-                    <button className={styles.btnSecondary} onClick={() => setEditingId(null)}>
+                    <button className={styles.btnSecondary} onClick={() => { setEditingId(null); setEditStaffError(""); }}>
                       Cancel
                     </button>
                   </div>

@@ -165,10 +165,12 @@ export default function AdminVolunteersPage() {
   /* Create state */
   const [showCreate, setShowCreate] = useState(false);
   const [createForm, setCreateForm] = useState(EMPTY_FORM);
+  const [addVolError, setAddVolError] = useState("");
 
   /* Edit state */
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm]   = useState(EMPTY_FORM);
+  const [editVolError, setEditVolError] = useState("");
 
   /* Shifts panel state — keyed by volunteer id */
   const [openShiftsId, setOpenShiftsId]     = useState(null);
@@ -229,9 +231,10 @@ export default function AdminVolunteersPage() {
   /* ----- Create ----- */
   const handleCreate = async () => {
     if (!createForm.firstName.trim() || !createForm.lastName.trim() || !createForm.email.trim()) {
-      showMsg("error", "First name, last name, and email are required.");
+      setAddVolError("First name, last name, and email are required.");
       return;
     }
+    setAddVolError("");
     await mutate(
       CREATE_VOLUNTEER,
       { v: {
@@ -243,7 +246,7 @@ export default function AdminVolunteersPage() {
         role:      createForm.role,
       }},
       "Volunteer created.",
-      () => { setShowCreate(false); setCreateForm(EMPTY_FORM); },
+      () => { setShowCreate(false); setCreateForm(EMPTY_FORM); setAddVolError(""); },
     );
   };
 
@@ -258,14 +261,16 @@ export default function AdminVolunteersPage() {
       zipCode:   vol.zipCode ?? "",
       role:      vol.role,
     });
+    setEditVolError("");
     setOpenShiftsId(null);
   };
 
   const handleSave = async () => {
     if (!editForm.firstName.trim() || !editForm.lastName.trim() || !editForm.email.trim()) {
-      showMsg("error", "First name, last name, and email are required.");
+      setEditVolError("First name, last name, and email are required.");
       return;
     }
+    setEditVolError("");
     await mutate(
       UPDATE_VOLUNTEER,
       { profile: {
@@ -352,7 +357,7 @@ export default function AdminVolunteersPage() {
           <h1 className={styles.pageTitle}>Manage Volunteers</h1>
           <button
             className={styles.btnPrimary}
-            onClick={() => { setShowCreate((v) => !v); setEditingId(null); setActionMsg(null); }}
+            onClick={() => { setShowCreate((v) => !v); setEditingId(null); setActionMsg(null); setAddVolError(""); }}
           >
             {showCreate ? "Cancel" : "+ New Volunteer"}
           </button>
@@ -363,11 +368,12 @@ export default function AdminVolunteersPage() {
           <div className={styles.createPanel}>
             <h2 className={styles.createPanelTitle}>New Volunteer</h2>
             <VolunteerFormFields form={createForm} setForm={setCreateForm} />
+            {addVolError && <div className={styles.inlineError}>{addVolError}</div>}
             <div className={styles.formActions}>
               <button className={styles.btnPrimary} onClick={handleCreate} disabled={busy}>
                 Create Volunteer
               </button>
-              <button className={styles.btnSecondary} onClick={() => { setShowCreate(false); setCreateForm(EMPTY_FORM); }}>
+              <button className={styles.btnSecondary} onClick={() => { setShowCreate(false); setCreateForm(EMPTY_FORM); setAddVolError(""); }}>
                 Cancel
               </button>
             </div>
@@ -502,11 +508,12 @@ export default function AdminVolunteersPage() {
               {isEditing && (
                 <div className={styles.editForm}>
                   <VolunteerFormFields form={editForm} setForm={setEditForm} />
+                  {editVolError && <div className={styles.inlineError}>{editVolError}</div>}
                   <div className={styles.formActions}>
                     <button className={styles.btnPrimary} onClick={handleSave} disabled={busy}>
                       Save Changes
                     </button>
-                    <button className={styles.btnSecondary} onClick={() => setEditingId(null)}>
+                    <button className={styles.btnSecondary} onClick={() => { setEditingId(null); setEditVolError(""); }}>
                       Cancel
                     </button>
                   </div>

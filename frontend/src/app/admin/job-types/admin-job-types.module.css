@@ -372,3 +372,15 @@
   background: var(--color-primary);
   color: #fff;
 }
+
+/* ----- Inline form error ----- */
+
+.inlineError {
+  background: var(--color-danger-light);
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-danger);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+}

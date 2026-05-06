@@ -121,10 +121,12 @@ export default function AdminVenuesPage() {
   /* Edit state */
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm]   = useState(EMPTY_VENUE_FORM);
+  const [editVenueError, setEditVenueError] = useState("");
 
   /* Add state */
   const [adding, setAdding]     = useState(false);
   const [addForm, setAddForm]   = useState(EMPTY_VENUE_FORM);
+  const [addVenueError, setAddVenueError] = useState("");
 
   /* ----- Auth + load ----- */
   const loadData = useCallback((bound) => {
@@ -187,13 +189,15 @@ export default function AdminVenuesPage() {
       zipCode:  venue.zipCode ?? "",
       ianaZone: venue.timezone,
     });
+    setEditVenueError("");
     setAdding(false);
   };
 
   const handleSave = async () => {
     if (!editForm.address || !editForm.city || !editForm.state) {
-      showMsg("error", "Address, city, and state are required."); return;
+      setEditVenueError("Address, city, and state are required."); return;
     }
+    setEditVenueError("");
     await mutate(
       UPDATE_VENUE,
       { venue: {
@@ -219,8 +223,9 @@ export default function AdminVenuesPage() {
   /* ----- Add ----- */
   const handleAdd = async () => {
     if (!addForm.address || !addForm.city || !addForm.state) {
-      showMsg("error", "Address, city, and state are required."); return;
+      setAddVenueError("Address, city, and state are required."); return;
     }
+    setAddVenueError("");
     await mutate(
       CREATE_VENUE,
       { newVenue: {
@@ -232,7 +237,7 @@ export default function AdminVenuesPage() {
         ianaZone: addForm.ianaZone,
       }},
       "Venue created.",
-      () => { setAdding(false); setAddForm(EMPTY_VENUE_FORM); },
+      () => { setAdding(false); setAddForm(EMPTY_VENUE_FORM); setAddVenueError(""); },
     );
   };
 
@@ -252,7 +257,7 @@ export default function AdminVenuesPage() {
         <div className={styles.pageHeader}>
           <h1 className={styles.pageTitle}>Manage Venues</h1>
           {!adding && (
-            <button className={styles.createBtn} onClick={() => { setAdding(true); setEditingId(null); setAddForm(EMPTY_VENUE_FORM); }}>
+            <button className={styles.createBtn} onClick={() => { setAdding(true); setEditingId(null); setAddForm(EMPTY_VENUE_FORM); setAddVenueError(""); }}>
               + Add Venue
             </button>
           )}
@@ -267,9 +272,10 @@ export default function AdminVenuesPage() {
           <div className={styles.formCard}>
             <div className={styles.formCardTitle}>New Venue</div>
             <VenueFormFields form={addForm} setForm={setAddForm} />
+            {addVenueError && <div className={styles.inlineError}>{addVenueError}</div>}
             <div className={styles.formActions}>
               <button className={styles.btnPrimary} onClick={handleAdd} disabled={busy}>Create Venue</button>
-              <button className={styles.btnSecondary} onClick={() => setAdding(false)}>Cancel</button>
+              <button className={styles.btnSecondary} onClick={() => { setAdding(false); setAddVenueError(""); }}>Cancel</button>
             </div>
           </div>
         )}
@@ -323,9 +329,10 @@ export default function AdminVenuesPage() {
               {isEditing && (
                 <div className={styles.editForm}>
                   <VenueFormFields form={editForm} setForm={setEditForm} />
+                  {editVenueError && <div className={styles.inlineError}>{editVenueError}</div>}
                   <div className={styles.formActions}>
                     <button className={styles.btnPrimary} onClick={handleSave} disabled={busy}>Save Changes</button>
-                    <button className={styles.btnSecondary} onClick={() => setEditingId(null)}>Cancel</button>
+                    <button className={styles.btnSecondary} onClick={() => { setEditingId(null); setEditVenueError(""); }}>Cancel</button>
                   </div>
                 </div>
               )}
