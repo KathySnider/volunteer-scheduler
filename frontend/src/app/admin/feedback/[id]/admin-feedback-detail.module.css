@@ -30,6 +30,11 @@
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 500;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--font-sans);
 }
 
 .backLink:hover {

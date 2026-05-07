@@ -11,6 +11,22 @@ import (
 // Send functions — called from the service layer
 // ============================================================================
 
+// SendShiftReminder sends a 24-hour reminder email for a single shift to a
+// single volunteer. It is exported so reminder_scheduler.go can call it
+// directly with data already fetched by the reminder query.
+func SendShiftReminder(ctx context.Context, mailer *Mailer, data shiftReminderData, email string) error {
+	subject := "Reminder: " + data.EventName + " is Tomorrow"
+	htmlBody, err := renderTemplate(shiftReminderHTMLTmpl, data)
+	if err != nil {
+		return err
+	}
+	textBody, err := renderTemplate(shiftReminderTextTmpl, data)
+	if err != nil {
+		return err
+	}
+	return mailer.SendEmail(ctx, email, subject, htmlBody, textBody)
+}
+
 func sendAssignmentConfirmation(ctx context.Context, DB *sql.DB, mailer *Mailer, shiftId int, volId int) error {
 	email, err := fetchEmailByVolId(ctx, DB, volId)
 	if err != nil {

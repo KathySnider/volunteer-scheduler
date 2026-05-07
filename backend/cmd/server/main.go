@@ -119,6 +119,7 @@ func main() {
 	feedbackService := services.NewFeedbackService(db, mailer)
 	staffService := services.NewStaffService(db)
 	fundingEntityService := services.NewFundingEntityService(db)
+	reminderScheduler := services.NewReminderScheduler(db, mailer)
 
 	eventService, err := services.NewEventService(db, mailer, shiftService)
 	if err != nil {
@@ -128,6 +129,9 @@ func main() {
 	// -------------------------------------------------------------------------
 	// Background jobs
 	// -------------------------------------------------------------------------
+
+	// Run the reminder scheduler at startup. It will run "forever".
+	go reminderScheduler.RunReminderScheduler(context.Background())
 
 	// Run token cleanup once at startup, then every 24 hours.
 	go func() {

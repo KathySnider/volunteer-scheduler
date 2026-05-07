@@ -505,7 +505,7 @@ export default function AdminFeedbackDetailPage() {
     <div className={styles.page}>
       {/* Top bar */}
       <div className={styles.topBar}>
-        <a href="/admin/feedback" className={styles.backLink}>← Manage Feedback</a>
+        <button className={styles.backLink} onClick={() => router.back()}>← Manage Feedback</button>
         <UserMenu name={userName} isAdmin={true} onSignOut={handleSignOut} />
       </div>
 

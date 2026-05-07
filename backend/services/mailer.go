@@ -149,7 +149,6 @@ type activateAccountRequestData struct {
 	ExistingID   int
 }
 
-
 // ============================================================================
 // Signup Confirmed
 // ============================================================================
@@ -356,6 +355,82 @@ type accountCreatedAdminData struct {
 	Email     string
 	Role      string
 	CreatedBy string
+}
+
+// ============================================================================
+// Shift Reminder
+// ============================================================================
+
+const shiftReminderHTMLTmpl = emailHeader + `
+            <p>Hello {{.FirstName}},</p>
+            <p>This is a friendly reminder that you have a shift coming up tomorrow:</p>
+            ` + tableOpen + `
+                <tr>
+                    <td ` + tdLabel + `>Event</td>
+                    <td ` + tdValue + `>{{.EventName}}</td>
+                </tr>
+                <tr>
+                    <td ` + tdLabel + `>Start</td>
+                    <td ` + tdValueAlt + `>{{.Start}}</td>
+                </tr>
+                <tr>
+                    <td ` + tdLabel + `>End</td>
+                    <td ` + tdValue + `>{{.End}}</td>
+                </tr>
+                {{if .IsVirtual}}
+                <tr>
+                    <td ` + tdLabel + `>Location</td>
+                    <td ` + tdValueAlt + `>This shift is virtual.</td>
+                </tr>
+                {{else}}
+                <tr>
+                    <td ` + tdLabel + `>Location</td>
+                    <td ` + tdValueAlt + `>{{if .VenueName}}{{.VenueName}}<br>{{end}}{{.Address}}<br>{{.City}}, {{.State}}{{if .Zip}} {{.Zip}}{{end}}</td>
+                </tr>
+                {{end}}
+            ` + tableClose + `
+            {{if .Instructions}}
+            <div style="background-color: #fff3cd; padding: 10px; border-left: 4px solid #ffc107; margin: 16px 0;">
+                <strong>Pre-Event Instructions:</strong> {{.Instructions}}
+            </div>
+            {{end}}
+            <p>We look forward to seeing you there! To view your shifts, log in to the Volunteer Scheduler.</p>
+` + emailFooter
+
+const shiftReminderTextTmpl = `Hello {{.FirstName}},
+
+This is a friendly reminder that you have a shift coming up tomorrow for {{.EventName}}.
+
+Start: {{.Start}}
+End:   {{.End}}
+{{if .IsVirtual}}
+Location: This shift is virtual.
+{{else}}
+Location:{{if .VenueName}}
+  {{.VenueName}}{{end}}
+  {{.Address}}
+  {{.City}}, {{.State}}{{if .Zip}} {{.Zip}}{{end}}
+{{end}}{{if .Instructions}}
+Pre-Event Instructions:
+{{.Instructions}}
+{{end}}
+We look forward to seeing you there! To view your shifts, log in to the Volunteer Scheduler.
+
+Thank you,
+Volunteer Scheduler`
+
+type shiftReminderData struct {
+	FirstName    string
+	EventName    string
+	Start        string
+	End          string
+	IsVirtual    bool
+	VenueName    string
+	Address      string
+	City         string
+	State        string
+	Zip          string
+	Instructions string
 }
 
 // ============================================================================

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   getAuthToken,
   getAuthRole,
@@ -79,8 +79,10 @@ function StatusBadge({ status }) {
    Page
    ========================================================= */
 
-export default function AdminFeedbackPage() {
-  const router = useRouter();
+function AdminFeedbackPage() {
+  const router       = useRouter();
+  const searchParams = useSearchParams();
+
   const [token, setToken]       = useState(null);
   const [gql, setGql]           = useState(null);
   const [userName, setUserName] = useState("");
@@ -89,9 +91,28 @@ export default function AdminFeedbackPage() {
   const [loading, setLoading]         = useState(true);
   const [pageError, setPageError]     = useState("");
 
-  // Filters (client-side)
-  const [statusFilter, setStatusFilter] = useState("ALL");    // ALL | OPEN | RESOLVED
-  const [typeFilter, setTypeFilter]     = useState("");        // "" | BUG | ENHANCEMENT | GENERAL
+  // Filters — initialised from URL params so they survive navigation
+  const [statusFilter, setStatusFilter] = useState(() => searchParams.get("status") || "OPEN");
+  const [typeFilter, setTypeFilter]     = useState(() => searchParams.get("type")   || "");
+
+  // Keep URL in sync whenever filters change
+  const updateFilter = useCallback((status, type) => {
+    const params = new URLSearchParams();
+    if (status && status !== "ALL") params.set("status", status);
+    if (type) params.set("type", type);
+    const qs = params.toString();
+    router.replace(`/admin/feedback${qs ? `?${qs}` : ""}`, { scroll: false });
+  }, [router]);
+
+  const handleStatusFilter = (value) => {
+    setStatusFilter(value);
+    updateFilter(value, typeFilter);
+  };
+
+  const handleTypeFilter = (value) => {
+    setTypeFilter(value);
+    updateFilter(statusFilter, value);
+  };
 
   /* ----- Load data ----- */
   const loadData = useCallback((bound) => {
@@ -163,7 +184,7 @@ export default function AdminFeedbackPage() {
                 <button
                   key={value}
                   className={`${styles.segBtn} ${statusFilter === value ? styles.segBtnActive : ""}`}
-                  onClick={() => setStatusFilter(value)}
+                  onClick={() => handleStatusFilter(value)}
                 >
                   {label}
                 </button>
@@ -176,7 +197,7 @@ export default function AdminFeedbackPage() {
             <select
               className={styles.filterSelect}
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
+              onChange={(e) => handleTypeFilter(e.target.value)}
             >
               <option value="">All Types</option>
               <option value="BUG">Bug</option>
@@ -228,5 +249,13 @@ export default function AdminFeedbackPage() {
       </div>
       <FeedbackButton />
     </div>
+  );
+}
+
+export default function AdminFeedbackPageWrapper() {
+  return (
+    <Suspense>
+      <AdminFeedbackPage />
+    </Suspense>
   );
 }
