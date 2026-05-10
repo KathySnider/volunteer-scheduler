@@ -202,10 +202,10 @@ test.describe("Manage Events listing — defaults and event count", () => {
     await expect(adminPage.locator("#adminTimeFrameFilter")).toHaveValue("ALL");
   });
 
-  test("event count appears in the heading after load", async ({ adminPage }) => {
+  test("stats strip appears in the heading after load", async ({ adminPage }) => {
     await adminPage.goto("/admin/events");
     await expect(
-      adminPage.locator("h1").filter({ hasText: /\(\d+\)/ })
+      adminPage.locator("h1").filter({ hasText: /Upcoming:/ })
     ).toBeVisible({ timeout: 8_000 });
   });
 });

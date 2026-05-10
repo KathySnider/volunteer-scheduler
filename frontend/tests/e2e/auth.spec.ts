@@ -179,19 +179,20 @@ test.describe("Logout", () => {
 });
 
 test.describe("Magic-link login — error cases", () => {
-  test("unknown email shows 'No account found' with request-account option", async ({
+  test("unknown email shows privacy-safe 'Check your email' response", async ({
     page,
   }) => {
     await page.goto("/login");
     await page.getByLabel("Email address").fill("nobody@definitely-not-real.test");
     await page.getByRole("button", { name: "Continue" }).click();
 
+    // Never reveal whether the email is in the database.
+    await expect(
+      page.getByRole("heading", { name: "Check your email" })
+    ).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "No account found" })
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Request an Account" })
-    ).toBeVisible();
+    ).not.toBeVisible();
   });
 
   test("invalid magic-link token shows sign-in failed page", async ({
@@ -233,7 +234,7 @@ test.describe("Magic-link login — error cases", () => {
 
     await page.goto("/login");
     await page.getByLabel("Email address").fill(newEmail);
-    await page.getByRole("button", { name: "Continue" }).click();
+    // "Request an Account" is on the sign-in form — no need to click Continue first.
     await page.getByRole("button", { name: "Request an Account" }).click();
 
     // Fill in the request form

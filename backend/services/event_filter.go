@@ -98,9 +98,9 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 		if filter.TimeFrame != nil {
 			switch *filter.TimeFrame {
 			case "UPCOMING":
-				query += " AND s_filter.shift_start >= NOW()"
+				query += " AND earliest.first_date >= NOW()"
 			case "PAST":
-				query += " AND s_filter.shift_start < NOW()"
+				query += " AND earliest.first_date < NOW()"
 			case "ALL":
 				// NO filter needed
 			}

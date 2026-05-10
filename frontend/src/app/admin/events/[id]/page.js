@@ -144,6 +144,36 @@ function to24Hour(display, period) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+/** Add one hour to a "HH:MM" 24-hour string (wraps at midnight). */
+function addOneHour(hhmm) {
+  const [h, m] = hhmm.split(":").map(Number);
+  const newH = (h + 1) % 24;
+  return `${String(newH).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function toMinutes(hhmm) {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function fromMinutes(mins) {
+  const wrapped = ((mins % 1440) + 1440) % 1440;
+  return `${String(Math.floor(wrapped / 60)).padStart(2, "0")}:${String(wrapped % 60).padStart(2, "0")}`;
+}
+
+/**
+ * Compute the new end time when start time changes.
+ * - If end was never set ("00:00"): default to newStart + 1 hour.
+ * - Otherwise: preserve the interval between start and end.
+ *   Handles overnight shifts (e.g. 11 PM → 1 AM stays 2 hours apart).
+ */
+function shiftEndTime(oldStart, oldEnd, newStart) {
+  if (oldEnd === "00:00") return addOneHour(newStart);
+  const rawInterval = toMinutes(oldEnd) - toMinutes(oldStart);
+  const interval = rawInterval >= 0 ? rawInterval : rawInterval + 1440;
+  return fromMinutes(toMinutes(newStart) + interval);
+}
+
 /** Convert UTC ISO string to datetime-local value in a given IANA timezone. */
 function toDatetimeLocal(utcString, ianaZone) {
   if (!utcString) return "";
@@ -271,14 +301,25 @@ function ShiftFormFields({ form, setForm, staff }) {
             value24={form.startTime}
             period={to12Hour(form.startTime).period}
             className={styles.input}
-            onCommit={(t24) => setForm((p) => ({ ...p, startTime: t24 }))}
+            onCommit={(t24) => setForm((p) => ({
+              ...p,
+              startTime: t24,
+              endTime: shiftEndTime(p.startTime, p.endTime, t24),
+            }))}
           />
           <select
             className={styles.ampmSelect}
             value={to12Hour(form.startTime).period}
             onChange={(e) => {
               const newPeriod = e.target.value;
-              setForm((p) => ({ ...p, startTime: to24Hour(to12Hour(p.startTime).display, newPeriod) }));
+              setForm((p) => {
+                const newStart = to24Hour(to12Hour(p.startTime).display, newPeriod);
+                return {
+                  ...p,
+                  startTime: newStart,
+                  endTime: shiftEndTime(p.startTime, p.endTime, newStart),
+                };
+              });
             }}
           >
             <option>AM</option>
