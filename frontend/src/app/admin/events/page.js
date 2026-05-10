@@ -292,6 +292,20 @@ export default function AdminEventsPage() {
 
   if (!token) return null;
 
+  /* ----- Stats (always scoped to upcoming events regardless of filter) ----- */
+  const now = new Date();
+  const upcomingEvents = events.filter((e) => {
+    const d = earliestDate(e.eventDates);
+    return d && new Date(d) >= now;
+  });
+  const needShifts = upcomingEvents.filter(
+    (e) => totalVols(e.shiftSummaries).max === 0
+  ).length;
+  const volunteersNeeded = upcomingEvents.reduce((sum, e) => {
+    const { assigned, max } = totalVols(e.shiftSummaries);
+    return sum + Math.max(0, max - assigned);
+  }, 0);
+
   /* ----- Derived labels ----- */
   const cityBtnLabel =
     selectedCities.length === 0
@@ -330,7 +344,9 @@ export default function AdminEventsPage() {
           <h1 className={styles.pageTitle}>
             Manage Events
             {!loading && (
-              <span className={styles.eventCount}>({events.length})</span>
+              <span className={styles.statsStrip}>
+                Upcoming: {upcomingEvents.length}&nbsp;·&nbsp;{needShifts} need shifts&nbsp;·&nbsp;{volunteersNeeded} volunteers needed
+              </span>
             )}
           </h1>
           <a href="/admin/events/new" className={styles.createBtn}>+ Create New Event</a>

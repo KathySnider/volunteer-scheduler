@@ -65,8 +65,8 @@
   gap: 0.5rem;
 }
 
-.eventCount {
-  font-size: 1rem;
+.statsStrip {
+  font-size: 0.875rem;
   font-weight: 400;
   color: var(--color-text-muted);
 }
