@@ -90,11 +90,12 @@ func (s *VenueService) CreateVenue(ctx context.Context, newVenue models.NewVenue
 	var venueInt int
 	err := s.DB.QueryRowContext(ctx, query, newVenue.Name, newVenue.Address, newVenue.City, newVenue.State, newVenue.ZipCode, newVenue.IanaZone).Scan(&venueInt)
 	if err != nil {
+		friendly := friendlyDBError(err)
 		return &models.MutationResult{
 			Success: false,
-			Message: ptrString("Failed to create new venue."),
+			Message: ptrString(friendly.Error()),
 			ID:      nil,
-		}, err
+		}, friendly
 	}
 
 	return &models.MutationResult{
@@ -132,11 +133,12 @@ func (s *VenueService) UpdateVenue(ctx context.Context, venue models.UpdateVenue
 	_, err = s.DB.ExecContext(ctx, update, venue.Name, venue.Address, venue.City, venue.State, venue.ZipCode, venue.IanaZone, venueId)
 
 	if err != nil {
+		friendly := friendlyDBError(err)
 		return &models.MutationResult{
 			Success: false,
-			Message: ptrString("Failed to update venue."),
+			Message: ptrString(friendly.Error()),
 			ID:      &venue.ID,
-		}, err
+		}, friendly
 	}
 
 	return &models.MutationResult{
@@ -161,11 +163,12 @@ func (s *VenueService) DeleteVenue(ctx context.Context, venueId string) (*models
 	_, err = s.DB.ExecContext(ctx, "DELETE FROM venues WHERE venue_id = $1", venueInt)
 
 	if err != nil {
+		friendly := friendlyDBError(err)
 		return &models.MutationResult{
 			Success: false,
-			Message: ptrString("Failed to delete venue."),
+			Message: ptrString(friendly.Error()),
 			ID:      &venueId,
-		}, err
+		}, friendly
 	}
 
 	return &models.MutationResult{

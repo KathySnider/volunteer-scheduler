@@ -25,7 +25,7 @@ func (s *FundingEntityService) CreateFundingEntity(ctx context.Context, name str
 	var id int
 	err := s.DB.QueryRowContext(ctx, query, name, description).Scan(&id)
 	if err != nil {
-		return 0, err
+		return 0, friendlyDBError(err)
 	}
 
 	return id, nil
@@ -43,7 +43,7 @@ func (s *FundingEntityService) UpdateFundingEntity(ctx context.Context, id int, 
 	`
 
 	_, err := s.DB.ExecContext(ctx, update, id, name, description)
-	return err
+	return friendlyDBError(err)
 }
 
 // Delete (soft).

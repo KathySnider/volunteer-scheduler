@@ -83,11 +83,12 @@ func (s *StaffService) CreateStaff(ctx context.Context, staff models.NewStaffInp
 	`
 	err := s.DB.QueryRowContext(ctx, insert, staff.FirstName, staff.LastName, staff.Email, staff.Phone, staff.Position).Scan(&staffInt)
 	if err != nil {
+		friendly := friendlyDBError(err)
 		return &models.MutationResult{
 			Success: false,
-			Message: ptrString("Failed to created staff member."),
+			Message: ptrString(friendly.Error()),
 			ID:      nil,
-		}, err
+		}, friendly
 	}
 
 	id := strconv.Itoa(staffInt)
@@ -116,7 +117,7 @@ func (s *StaffService) UpdateStaff(ctx context.Context, staff models.UpdateStaff
 	`
 	result, err := s.DB.ExecContext(ctx, update, staff.FirstName, staff.LastName, staff.Email, staff.Phone, staff.Position, staffInt)
 	if err != nil {
-		return nil, fmt.Errorf("error updating staff member: %w", err)
+		return nil, friendlyDBError(err)
 	}
 
 	rows, _ := result.RowsAffected()

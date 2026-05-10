@@ -396,11 +396,12 @@ func (s *ShiftService) CreateShift(ctx context.Context, shift models.AddShiftInp
 	err = s.DB.QueryRowContext(ctx, insert, shift.OppId, *startUTC, *endUTC, staffId, maxVols).Scan(&shiftInt)
 
 	if err != nil {
+		friendly := friendlyDBError(err)
 		return &models.MutationResult{
 			Success: false,
-			Message: ptrString("error creating shift"),
+			Message: ptrString(friendly.Error()),
 			ID:      nil,
-		}, err
+		}, friendly
 	}
 
 	shiftStr := strconv.Itoa(shiftInt)
@@ -500,11 +501,12 @@ func (s *ShiftService) UpdateShift(ctx context.Context, shift models.UpdateShift
 	_, err = s.DB.ExecContext(ctx, update, startUTC, endUTC, shift.MaxVolunteers, shift.StaffContactId, shift.ID)
 
 	if err != nil {
+		friendly := friendlyDBError(err)
 		return &models.MutationResult{
 			Success: false,
-			Message: ptrString("Failed to update shift."),
+			Message: ptrString(friendly.Error()),
 			ID:      nil,
-		}, err
+		}, friendly
 	}
 
 	return &models.MutationResult{

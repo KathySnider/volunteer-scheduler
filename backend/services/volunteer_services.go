@@ -142,11 +142,12 @@ func (s *VolunteerService) CreateVolunteer(ctx context.Context, creatorId int, n
 	var volInt int
 	err := s.DB.QueryRowContext(ctx, query, newVol.FirstName, newVol.LastName, newVol.Email, newVol.Phone, newVol.ZipCode, newVol.Role).Scan(&volInt)
 	if err != nil {
+		friendly := friendlyDBError(err)
 		return &models.MutationResult{
 			Success: false,
-			Message: ptrString("Failed to create volunteer."),
+			Message: ptrString(friendly.Error()),
 			ID:      nil,
-		}, err
+		}, friendly
 	}
 
 	// Temporary, until we fix role handling.
@@ -214,11 +215,12 @@ func (s *VolunteerService) UpdateVolunteerProfile(ctx context.Context, profile m
 	_, err = s.DB.ExecContext(ctx, query, profile.FirstName, profile.LastName, profile.Email, profile.Phone, profile.ZipCode, profile.Role, volInt)
 
 	if err != nil {
+		friendly := friendlyDBError(err)
 		return &models.MutationResult{
 			Success: false,
-			Message: ptrString("Failed to update volunteer profile."),
+			Message: ptrString(friendly.Error()),
 			ID:      &profile.ID,
-		}, err
+		}, friendly
 	}
 
 	return &models.MutationResult{
