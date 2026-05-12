@@ -12,6 +12,7 @@ import {
 } from "../lib/api";
 import UserMenu from "../components/UserMenu";
 import FeedbackButton from "../components/FeedbackButton";
+import AdminTabs from "../components/AdminTabs";
 import styles from "./events.module.css";
 
 /* ----- Constants ----- */
@@ -456,7 +457,7 @@ export default function EventsPage() {
       {/* ---- Top bar ---- */}
       <div className={styles.topBar}>
         <div className={styles.topBarLeft}>
-          <div className={styles.appTitle}>Volunteer Events</div>
+          <div className={styles.appTitle}>Volunteer Scheduler</div>
           <nav className={styles.topBarNav}>
             <a href="/my-shifts" className={styles.topBarLink}>My Shifts</a>
             <a href="/profile" className={styles.topBarLink}>My Profile</a>
@@ -470,7 +471,20 @@ export default function EventsPage() {
             <a href="/my-feedback" className={styles.topBarLink}>My Feedback</a>
           </nav>
         </div>
-        <UserMenu name={userName} isAdmin={isAdmin} onSignOut={handleSignOut} />
+        <UserMenu name={userName} isAdmin={false} onSignOut={handleSignOut} />
+      </div>
+
+      {/* ---- Admin tabs (admins only) ---- */}
+      {isAdmin && <AdminTabs />}
+
+      {/* ---- Page heading ---- */}
+      <div className={styles.mainHeader}>
+        <h1 className={styles.mainTitle}>
+          Volunteer Events
+          {!loading && (
+            <span className={styles.eventCount}>({events.length})</span>
+          )}
+        </h1>
       </div>
 
       {/* ---- Filter bar ---- */}
@@ -553,15 +567,6 @@ export default function EventsPage() {
 
       {/* ---- Main content ---- */}
       <main className={styles.main}>
-        <div className={styles.mainHeader}>
-          <h1 className={styles.mainTitle}>
-            Volunteer Events
-            {!loading && (
-              <span className={styles.eventCount}>({events.length})</span>
-            )}
-          </h1>
-        </div>
-
         {searchError && <div className={styles.errorBox}>{searchError}</div>}
 
         {loading && (

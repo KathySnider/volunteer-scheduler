@@ -9,7 +9,8 @@ import {
   signOut,
   adminGql,
 } from "../../lib/api";
-import UserMenu from "../../components/UserMenu";
+import AdminTopBar from "../../components/AdminTopBar";
+import AdminTabs from "../../components/AdminTabs";
 import FeedbackButton from "../../components/FeedbackButton";
 import styles from "./admin-staff.module.css";
 
@@ -120,6 +121,7 @@ export default function AdminStaffPage() {
   const [token, setToken]       = useState(null);
   const [gql, setGql]           = useState(null);
   const [userName, setUserName] = useState("");
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const [staff, setStaff]           = useState([]);
   const [loading, setLoading]       = useState(true);
@@ -270,11 +272,8 @@ export default function AdminStaffPage() {
 
   return (
     <div className={styles.page}>
-      {/* Top bar */}
-      <div className={styles.topBar}>
-        <a href="/events" className={styles.backLink}>← Back to Events</a>
-        <UserMenu name={userName} isAdmin={true} onSignOut={handleSignOut} />
-      </div>
+      <AdminTopBar userName={userName} onSignOut={handleSignOut} onFeedbackOpen={() => setFeedbackOpen(true)} />
+      <AdminTabs />
 
       <div className={styles.content}>
         <div className={styles.pageHeader}>
@@ -390,7 +389,7 @@ export default function AdminStaffPage() {
           );
         })}
       </div>
-      <FeedbackButton />
+      <FeedbackButton open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </div>
   );
 }
