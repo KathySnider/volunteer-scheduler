@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
-  getAuthToken,
+  isAuthenticated,
   getAuthName,
   signOut,
   volunteerGql,
@@ -129,7 +129,6 @@ function NoteItem({ note }) {
 export default function FeedbackDetailPage() {
   const router = useRouter();
   const { id } = useParams();
-  const [token, setToken] = useState(null);
   const [gql, setGql] = useState(null);
   const [userName, setUserName] = useState("");
   const [item, setItem] = useState(null);
@@ -138,16 +137,15 @@ export default function FeedbackDetailPage() {
   const [downloadingId, setDownloadingId] = useState(null);
 
   const handleDownload = useCallback(async (attachmentId) => {
-    if (!token) return;
     setDownloadingId(attachmentId);
     try {
-      await downloadAttachment(attachmentId, token, false);
+      await downloadAttachment(attachmentId, false);
     } catch {
       // non-fatal — browser will show nothing; could add a toast here
     } finally {
       setDownloadingId(null);
     }
-  }, [token]);
+  }, []);
 
   const loadData = useCallback(async (boundGql) => {
     setLoading(true);
@@ -173,16 +171,14 @@ export default function FeedbackDetailPage() {
   }, [id]);
 
   useEffect(() => {
-    const t = getAuthToken();
-    if (!t) { router.replace("/login"); return; }
-    const bound = (q, v) => volunteerGql(q, v, t);
-    setToken(t);
+    if (!isAuthenticated()) { router.replace("/login"); return; }
+    const bound = volunteerGql;
     setGql(() => bound);
     setUserName(getAuthName() ?? "");
     loadData(bound);
   }, [router, loadData]);
 
-  const handleSignOut = async () => { await signOut(token); router.replace("/login"); };
+  const handleSignOut = async () => { await signOut(); router.replace("/login"); };
 
   if (!gql) return null;
 

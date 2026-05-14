@@ -2,13 +2,13 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getAuthToken } from "./lib/api";
+import { isAuthenticated } from "./lib/api";
 
 export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (getAuthToken()) {
+    if (isAuthenticated()) {
       router.replace("/events");
     } else {
       router.replace("/login");

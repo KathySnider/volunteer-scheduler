@@ -173,15 +173,20 @@ test.describe("Feedback — admin workflow", () => {
     );
 
     // Create a page logged in as the volunteer who actually submitted the feedback.
-    // We must use their token — ownFeedback is scoped per-user, so a different
+    // We must use their session — ownFeedback is scoped per-user, so a different
     // volunteer's session would not find feedbackId.
     const ctx = await browser.newContext();
+    await ctx.addCookies([{
+      name: "session", value: workflowVolunteerToken,
+      domain: "localhost", path: "/",
+      httpOnly: true, secure: false, sameSite: "Lax",
+    }]);
     const page = await ctx.newPage();
-    await page.addInitScript(({ token }) => {
-      localStorage.setItem("authToken", token);
+    await page.addInitScript(() => {
+      localStorage.setItem("sessionActive", "1");
       localStorage.setItem("authRole", "VOLUNTEER");
       localStorage.setItem("authName", "Test Volunteer");
-    }, { token: workflowVolunteerToken });
+    });
 
     try {
       await page.goto(`/my-feedback/${feedbackId}`);
@@ -352,12 +357,17 @@ test.describe("Feedback — attachment Download buttons", () => {
     // ownFeedback is scoped per-user, so we must visit the page as the volunteer
     // who actually submitted the feedback, not the volunteerPage fixture's user.
     const ctx = await browser.newContext();
+    await ctx.addCookies([{
+      name: "session", value: ownerToken,
+      domain: "localhost", path: "/",
+      httpOnly: true, secure: false, sameSite: "Lax",
+    }]);
     const page = await ctx.newPage();
-    await page.addInitScript(({ token }) => {
-      localStorage.setItem("authToken", token);
+    await page.addInitScript(() => {
+      localStorage.setItem("sessionActive", "1");
       localStorage.setItem("authRole", "VOLUNTEER");
       localStorage.setItem("authName", "Test Volunteer");
-    }, { token: ownerToken });
+    });
 
     try {
       await page.goto(`/my-feedback/${feedbackId}`);

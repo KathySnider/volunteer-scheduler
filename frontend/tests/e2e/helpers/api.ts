@@ -58,28 +58,50 @@ export async function requestMagicLink(email: string): Promise<void> {
   await gql(AUTH_URL, `mutation { requestMagicLink(email: "${email}") { success message } }`);
 }
 
-/** Consume a magic link token, returning the session token. */
+/**
+ * Consume a magic link token.
+ *
+ * The session token is no longer returned in the JSON body — the server sets
+ * it as an HttpOnly cookie. We call fetch() directly (bypassing the gql
+ * helper) so we can read the raw Set-Cookie response header and extract the
+ * token value. That value is usable both as a cookie in browser contexts and
+ * as a Bearer token in Node.js API setup calls (the middleware accepts both).
+ */
 export async function consumeMagicLink(token: string): Promise<string> {
-  const data = await gql(
-    AUTH_URL,
-    `mutation ConsumeMagicLink($token: String!) {
-      consumeMagicLink(token: $token) {
-        success
-        message
-        sessionToken
-      }
-    }`,
-    { token }
-  );
-  const result = data.consumeMagicLink as {
-    success: boolean;
-    message: string;
-    sessionToken?: string;
-  };
-  if (!result.success || !result.sessionToken) {
-    throw new Error(`consumeMagicLink failed: ${result.message}`);
+  const res = await fetch(AUTH_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      query: `mutation ConsumeMagicLink($token: String!) {
+        consumeMagicLink(token: $token) { success message email }
+      }`,
+      variables: { token },
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`consumeMagicLink: HTTP ${res.status}: ${text}`);
   }
-  return result.sessionToken;
+
+  const json = (await res.json()) as {
+    data?: { consumeMagicLink?: { success: boolean; message: string } };
+    errors?: Array<{ message: string }>;
+  };
+  if (json.errors?.length) throw new Error(json.errors.map((e) => e.message).join("; "));
+  const result = json.data?.consumeMagicLink;
+  if (!result?.success) throw new Error(`consumeMagicLink failed: ${result?.message ?? "unknown"}`);
+
+  // Extract the session token from the Set-Cookie header.
+  const setCookie = res.headers.get("set-cookie") ?? "";
+  const match = setCookie.match(/\bsession=([^;]+)/);
+  if (!match) {
+    throw new Error(
+      "consumeMagicLink: no session cookie in response — " +
+        "check AUTH_URL and server IsProd config"
+    );
+  }
+  return match[1];
 }
 
 /* ------------------------------------------------------------------ */

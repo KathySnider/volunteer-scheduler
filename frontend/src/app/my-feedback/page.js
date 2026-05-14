@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  getAuthToken,
+  isAuthenticated,
   getAuthName,
   signOut,
   volunteerGql,
@@ -106,7 +106,6 @@ function FeedbackCard({ item, onClick }) {
 
 export default function MyFeedbackPage() {
   const router = useRouter();
-  const [token, setToken] = useState(null);
   const [gql, setGql] = useState(null);
   const [userName, setUserName] = useState("");
   const [feedback, setFeedback] = useState([]);
@@ -133,16 +132,14 @@ export default function MyFeedbackPage() {
   }, []);
 
   useEffect(() => {
-    const t = getAuthToken();
-    if (!t) { router.replace("/login"); return; }
-    const bound = (q, v) => volunteerGql(q, v, t);
-    setToken(t);
+    if (!isAuthenticated()) { router.replace("/login"); return; }
+    const bound = volunteerGql;
     setGql(() => bound);
     setUserName(getAuthName() ?? "");
     loadData(bound);
   }, [router, loadData]);
 
-  const handleSignOut = async () => { await signOut(token); router.replace("/login"); };
+  const handleSignOut = async () => { await signOut(); router.replace("/login"); };
 
   if (!gql) return null;
 

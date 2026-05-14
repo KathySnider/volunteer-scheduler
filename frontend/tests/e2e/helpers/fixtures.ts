@@ -89,15 +89,30 @@ export const test = base.extend<TestFixtures>({
 
   adminPage: async ({ browser, adminToken, adminEmail }, use) => {
     const ctx = await browser.newContext();
+    // Inject the session cookie so fetch requests from the page carry it.
+    // Domain "localhost" covers all ports (localhost:3000 frontend +
+    // localhost:8080 API), which is how cookies behave in browsers.
+    await ctx.addCookies([{
+      name: "session",
+      value: adminToken,
+      domain: "localhost",
+      path: "/",
+      httpOnly: true,
+      secure: false,
+      sameSite: "Lax",
+    }]);
     const page = await ctx.newPage();
+    // Set the localStorage flags the app uses to decide if the user is
+    // logged in and what role they have.  Do NOT set authToken — it was
+    // removed as part of the HttpOnly-cookie migration.
     await page.addInitScript(
-      ({ token, email }) => {
-        localStorage.setItem("authToken", token);
+      ({ email }: { email: string }) => {
+        localStorage.setItem("sessionActive", "1");
         localStorage.setItem("authEmail", email);
         localStorage.setItem("authRole", "ADMINISTRATOR");
         localStorage.setItem("authName", "Test Admin");
       },
-      { token: adminToken, email: adminEmail }
+      { email: adminEmail }
     );
     await use(page);
     await ctx.close();
@@ -151,15 +166,24 @@ export const test = base.extend<TestFixtures>({
 
   volunteerPage: async ({ browser, _volunteerSession }, use) => {
     const ctx = await browser.newContext();
+    await ctx.addCookies([{
+      name: "session",
+      value: _volunteerSession.token,
+      domain: "localhost",
+      path: "/",
+      httpOnly: true,
+      secure: false,
+      sameSite: "Lax",
+    }]);
     const page = await ctx.newPage();
     await page.addInitScript(
-      ({ token, email }) => {
-        localStorage.setItem("authToken", token);
+      ({ email }: { email: string }) => {
+        localStorage.setItem("sessionActive", "1");
         localStorage.setItem("authEmail", email);
         localStorage.setItem("authRole", "VOLUNTEER");
         localStorage.setItem("authName", "Test Volunteer");
       },
-      { token: _volunteerSession.token, email: _volunteerSession.email }
+      { email: _volunteerSession.email }
     );
     await use(page);
     await ctx.close();

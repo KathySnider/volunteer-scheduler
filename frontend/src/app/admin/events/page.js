@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
-  getAuthToken,
+  isAuthenticated,
   getAuthRole,
   getAuthName,
   signOut,
@@ -157,7 +157,6 @@ function MultiSelectDropdown({
 
 export default function AdminEventsPage() {
   const router = useRouter();
-  const [token, setToken] = useState(null);
   const [gql, setGql] = useState(null);
   const [userName, setUserName] = useState("");
 
@@ -180,13 +179,11 @@ export default function AdminEventsPage() {
 
   /* ----- Auth check ----- */
   useEffect(() => {
-    const t = getAuthToken();
-    if (!t) { router.replace("/login"); return; }
+    if (!isAuthenticated()) { router.replace("/login"); return; }
     const role = getAuthRole();
     if (role !== "ADMINISTRATOR") { router.replace("/events"); return; }
 
-    const bound = (q, v) => adminGql(q, v, t);
-    setToken(t);
+    const bound = adminGql;
     setGql(() => bound);
     setUserName(getAuthName() ?? "");
   }, [router]);
@@ -288,9 +285,9 @@ export default function AdminEventsPage() {
     }
   };
 
-  const handleSignOut = async () => { await signOut(token); router.replace("/login"); };
+  const handleSignOut = async () => { await signOut(); router.replace("/login"); };
 
-  if (!token) return null;
+  if (!gql) return null;
 
   /* ----- Stats (always scoped to upcoming events regardless of filter) ----- */
   const now = new Date();

@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  getAuthToken,
+  isAuthenticated,
   getAuthRole,
   getAuthName,
   signOut,
   volunteerGql,
-  setAuthToken,
+  setAuthInfo,
 } from "../lib/api";
 import UserMenu from "../components/UserMenu";
 import FeedbackButton from "../components/FeedbackButton";
@@ -49,7 +49,6 @@ const EMPTY_FORM = { firstName: "", lastName: "", email: "", phone: "", zipCode:
 export default function ProfilePage() {
   const router = useRouter();
   const [gql, setGql]           = useState(null);
-  const [token, setToken]       = useState(null);
   const [userName, setUserName] = useState("");
   const [isAdmin, setIsAdmin]   = useState(false);
 
@@ -60,12 +59,10 @@ export default function ProfilePage() {
 
   /* ----- Auth + load ----- */
   useEffect(() => {
-    const t = getAuthToken();
-    if (!t) { router.replace("/login"); return; }
+    if (!isAuthenticated()) { router.replace("/login"); return; }
     const role = getAuthRole();
-    const bound = (q, v) => volunteerGql(q, v, t);
+    const bound = volunteerGql;
     setGql(() => bound);
-    setToken(t);
     setIsAdmin(role === "ADMINISTRATOR");
     setUserName(getAuthName() ?? "");
 
@@ -117,7 +114,7 @@ export default function ProfilePage() {
 
       // Keep the display name in localStorage in sync
       const newName = `${form.firstName.trim()} ${form.lastName.trim()}`.trim();
-      setAuthToken(token, form.email.trim(), getAuthRole(), newName);
+      setAuthInfo(form.email.trim(), getAuthRole(), newName);
       setUserName(newName);
 
       setActionMsg({ type: "success", text: "Profile updated." });
@@ -133,7 +130,7 @@ export default function ProfilePage() {
     }
   };
 
-  const handleSignOut = async () => { await signOut(token); router.replace("/login"); };
+  const handleSignOut = async () => { await signOut(); router.replace("/login"); };
 
   if (!gql) return null;
 

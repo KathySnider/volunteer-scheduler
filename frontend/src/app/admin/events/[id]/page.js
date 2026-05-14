@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
-  getAuthToken,
+  isAuthenticated,
   getAuthRole,
   getAuthName,
   signOut,
@@ -390,8 +390,6 @@ export default function AdminEventDetailPage() {
   const router = useRouter();
   const params = useParams();
   const eventId = params?.id;
-
-  const [token, setToken]       = useState(null);
   const [gql, setGql]           = useState(null);
   const [userName, setUserName] = useState("");
 
@@ -522,12 +520,10 @@ export default function AdminEventDetailPage() {
   }, [loadRoster]);
 
   useEffect(() => {
-    const t = getAuthToken();
-    if (!t) { router.replace("/login"); return; }
+    if (!isAuthenticated()) { router.replace("/login"); return; }
     const role = getAuthRole();
     if (role !== "ADMINISTRATOR") { router.replace("/events"); return; }
-    const bound = (q, v) => adminGql(q, v, t);
-    setToken(t);
+    const bound = adminGql;
     setGql(() => bound);
     setUserName(getAuthName() ?? "");
     loadPage(bound, eventId, true);
@@ -849,7 +845,7 @@ export default function AdminEventDetailPage() {
     );
   };
 
-  const handleSignOut = async () => { await signOut(token); router.replace("/login"); };
+  const handleSignOut = async () => { await signOut(); router.replace("/login"); };
 
   /* =========================================================
      Loading / error state

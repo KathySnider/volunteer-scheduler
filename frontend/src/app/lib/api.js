@@ -2,9 +2,13 @@
  * GraphQL fetch utilities.
  *
  * Three helper functions correspond to the three API endpoints:
- *   authGql      — /graphql/auth      (no token required)
- *   volunteerGql — /graphql/volunteer (Bearer token required)
- *   adminGql     — /graphql/admin     (Bearer token + admin role required)
+ *   authGql      — /graphql/auth      (no auth required)
+ *   volunteerGql — /graphql/volunteer (session cookie required)
+ *   adminGql     — /graphql/admin     (session cookie + admin role required)
+ *
+ * Authentication is handled via an HttpOnly session cookie sent automatically
+ * by the browser on every request (credentials: "include"). No token is passed
+ * from JavaScript.
  */
 
 const AUTH_URL =
@@ -19,15 +23,11 @@ const ADMIN_URL =
   process.env.NEXT_PUBLIC_GRAPHQL_ADMIN_URL ||
   "http://localhost:8080/graphql/admin";
 
-async function gqlFetch(url, query, variables, token) {
-  const headers = { "Content-Type": "application/json" };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
+async function gqlFetch(url, query, variables) {
   const response = await fetch(url, {
     method: "POST",
-    headers,
+    credentials: "include", // send the HttpOnly session cookie on every request
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query, variables }),
   });
 
@@ -42,12 +42,12 @@ export function authGql(query, variables) {
   return gqlFetch(AUTH_URL, query, variables);
 }
 
-export function volunteerGql(query, variables, token) {
-  return gqlFetch(VOLUNTEER_URL, query, variables, token);
+export function volunteerGql(query, variables) {
+  return gqlFetch(VOLUNTEER_URL, query, variables);
 }
 
-export function adminGql(query, variables, token) {
-  return gqlFetch(ADMIN_URL, query, variables, token);
+export function adminGql(query, variables) {
+  return gqlFetch(ADMIN_URL, query, variables);
 }
 
 /**
@@ -56,7 +56,7 @@ export function adminGql(query, variables, token) {
  * The caller passes variables WITHOUT the file key — this function sets it to
  * null in `operations` and maps the real File object via the `map` part.
  */
-export async function volunteerGqlUpload(query, variables, file, token) {
+export async function volunteerGqlUpload(query, variables, file) {
   const operations = JSON.stringify({
     query,
     variables: { ...variables, file: null },
@@ -70,8 +70,8 @@ export async function volunteerGqlUpload(query, variables, file, token) {
 
   const response = await fetch(VOLUNTEER_URL, {
     method: "POST",
+    credentials: "include", // send the HttpOnly session cookie
     // Do NOT set Content-Type — the browser sets it with the correct boundary.
-    headers: { Authorization: `Bearer ${token}` },
     body: form,
   });
 
@@ -85,7 +85,7 @@ export async function volunteerGqlUpload(query, variables, file, token) {
  * Fetch one attachment's binary data (returned as Base64 by the server) and
  * trigger a browser file-download. Pass useAdminEndpoint=true on admin pages.
  */
-export async function downloadAttachment(attachmentId, token, useAdminEndpoint = false) {
+export async function downloadAttachment(attachmentId, useAdminEndpoint = false) {
   const url = useAdminEndpoint ? ADMIN_URL : VOLUNTEER_URL;
   const queryName = useAdminEndpoint ? "attachment" : "ownAttachment";
   const res = await gqlFetch(
@@ -97,8 +97,7 @@ export async function downloadAttachment(attachmentId, token, useAdminEndpoint =
         data
       }
     }`,
-    { id: attachmentId },
-    token
+    { id: attachmentId }
   );
 
   const att = res.data?.[queryName];
@@ -120,18 +119,25 @@ export async function downloadAttachment(attachmentId, token, useAdminEndpoint =
   URL.revokeObjectURL(objectUrl);
 }
 
-/** Read the session token from localStorage (client-side only). */
-export function getAuthToken() {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("authToken");
-}
-
-/** Persist the session token, email, role, and display name to localStorage. */
-export function setAuthToken(token, email, role, name) {
-  localStorage.setItem("authToken", token);
+/**
+ * Persist the non-sensitive display values (email, role, name) to localStorage
+ * and set the sessionActive flag. The real session lives in the HttpOnly cookie.
+ */
+export function setAuthInfo(email, role, name) {
+  localStorage.setItem("sessionActive", "1");
   if (email) localStorage.setItem("authEmail", email);
   if (role)  localStorage.setItem("authRole", role);
   if (name)  localStorage.setItem("authName", name);
+}
+
+/**
+ * Returns true when the user has an active session.
+ * Checks the sessionActive flag — the session token lives in an HttpOnly cookie
+ * that JavaScript cannot read.
+ */
+export function isAuthenticated() {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem("sessionActive") === "1";
 }
 
 /** Read the volunteer's role from localStorage (client-side only). */
@@ -148,26 +154,21 @@ export function getAuthName() {
 
 /** Clear all session data from localStorage. */
 export function clearAuthToken() {
-  localStorage.removeItem("authToken");
+  localStorage.removeItem("sessionActive");
   localStorage.removeItem("authEmail");
   localStorage.removeItem("authRole");
   localStorage.removeItem("authName");
 }
 
 /**
- * Sign the user out: invalidate the server session, then clear localStorage.
+ * Sign the user out: invalidate the server session cookie, then clear localStorage.
  * The server call is best-effort — localStorage is always cleared regardless.
  */
-export async function signOut(token) {
-  if (token) {
-    try {
-      await authGql(
-        `mutation Logout($token: String!) { logout(token: $token) { success } }`,
-        { token }
-      );
-    } catch {
-      // Non-fatal — clear locally even if the server call fails.
-    }
+export async function signOut() {
+  try {
+    await authGql(`mutation { logout { success } }`);
+  } catch {
+    // Non-fatal — clear locally even if the server call fails.
   }
   clearAuthToken();
 }

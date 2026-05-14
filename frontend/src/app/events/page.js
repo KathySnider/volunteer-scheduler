@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
-  getAuthToken,
+  isAuthenticated,
   getAuthRole,
   getAuthName,
   signOut,
@@ -269,7 +269,7 @@ function EventCard({ event, onView }) {
 
 export default function EventsPage() {
   const router = useRouter();
-  const [token, setToken] = useState(null);
+  const [ready, setReady] = useState(false);
   const [gql, setGql] = useState(null);
   const [userName, setUserName] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
@@ -294,18 +294,17 @@ export default function EventsPage() {
 
   /* ----- Auth check ----- */
   useEffect(() => {
-    const t = getAuthToken();
-    if (!t) {
+    if (!isAuthenticated()) {
       router.replace("/login");
       return;
     }
     const role = getAuthRole();
     const boundGql =
       role === "ADMINISTRATOR"
-        ? (q, v) => adminGql(q, v, t)
-        : (q, v) => volunteerGql(q, v, t);
+        ? adminGql
+        : volunteerGql;
 
-    setToken(t);
+    setReady(true);
     setGql(() => boundGql);
     setUserName(getAuthName() ?? "");
     setIsAdmin(role === "ADMINISTRATOR");
@@ -418,13 +417,13 @@ export default function EventsPage() {
     // sessionStorage will be cleared by the persist effect above.
   }
 
-  const handleSignOut = async () => { await signOut(token); router.replace("/login"); };
+  const handleSignOut = async () => { await signOut(); router.replace("/login"); };
 
   const handleView = (eventId) => {
     router.push(`/events/${eventId}`);
   };
 
-  if (!token) return null;
+  if (!ready) return null;
 
   /* ----- Derived labels for multi-select buttons ----- */
   const cityBtnLabel =

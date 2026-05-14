@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { authGql, volunteerGql, setAuthToken } from "../../lib/api";
+import { authGql, volunteerGql, setAuthInfo } from "../../lib/api";
 import styles from "./magic-link.module.css";
 
 /* ----- GraphQL operations ----- */
@@ -14,7 +14,6 @@ const CONSUME_MAGIC_LINK = `
       success
       message
       email
-      sessionToken
     }
   }
 `;
@@ -52,24 +51,20 @@ function MagicLinkContent() {
   const consumeToken = async (token) => {
     try {
       const result = await authGql(CONSUME_MAGIC_LINK, { token });
-      const { success, message, sessionToken, email } =
-        result.data.consumeMagicLink;
+      const { success, message, email } = result.data.consumeMagicLink;
 
-      if (!success || !sessionToken) {
+      if (!success) {
         setStatus("error");
         setErrorMsg(message || "Authentication failed.");
         return;
       }
 
-      // Fetch the volunteer's profile so we have the role and display name.
+      // The server has set an HttpOnly session cookie. Now fetch the volunteer's
+      // profile — the cookie is sent automatically via credentials: 'include'.
       let role = null;
       let name = null;
       try {
-        const profileResult = await volunteerGql(
-          VOLUNTEER_PROFILE,
-          null,
-          sessionToken
-        );
+        const profileResult = await volunteerGql(VOLUNTEER_PROFILE);
         const profile = profileResult.data?.volunteerProfile;
         role = profile?.role ?? null;
         if (profile?.firstName || profile?.lastName) {
@@ -79,7 +74,8 @@ function MagicLinkContent() {
         // Non-fatal — proceed without profile; the events page will still load.
       }
 
-      setAuthToken(sessionToken, email, role, name);
+      // Save only display values — the session token lives in the HttpOnly cookie.
+      setAuthInfo(email, role, name);
       setStatus("success");
       setTimeout(() => router.push("/events"), 2000);
     } catch {

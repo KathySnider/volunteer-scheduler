@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  getAuthToken,
+  isAuthenticated,
   getAuthRole,
   getAuthName,
   signOut,
@@ -117,7 +117,6 @@ const EMPTY_FORM = {
 
 export default function AdminStaffPage() {
   const router = useRouter();
-  const [token, setToken]       = useState(null);
   const [gql, setGql]           = useState(null);
   const [userName, setUserName] = useState("");
 
@@ -152,12 +151,10 @@ export default function AdminStaffPage() {
   }, []);
 
   useEffect(() => {
-    const t = getAuthToken();
-    if (!t) { router.replace("/login"); return; }
+    if (!isAuthenticated()) { router.replace("/login"); return; }
     const role = getAuthRole();
     if (role !== "ADMINISTRATOR") { router.replace("/events"); return; }
-    const bound = (q, v) => adminGql(q, v, t);
-    setToken(t);
+    const bound = adminGql;
     setGql(() => bound);
     setUserName(getAuthName() ?? "");
     loadData(bound);
@@ -264,7 +261,7 @@ export default function AdminStaffPage() {
     (m.position ?? "").toLowerCase().includes(lc)
   );
 
-  const handleSignOut = async () => { await signOut(token); router.replace("/login"); };
+  const handleSignOut = async () => { await signOut(); router.replace("/login"); };
 
   if (!gql) return null;
 

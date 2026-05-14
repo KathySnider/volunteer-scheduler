@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { getAuthToken, volunteerGql, volunteerGqlUpload } from "../lib/api";
+import { isAuthenticated, volunteerGql, volunteerGqlUpload } from "../lib/api";
 import styles from "./FeedbackButton.module.css";
 
 /* ----- GraphQL ----- */
@@ -161,8 +161,7 @@ export default function FeedbackButton({ open: controlledOpen, onClose: controll
       if (err) { setError(err); return; }
     }
 
-    const token = getAuthToken();
-    if (!token) {
+    if (!isAuthenticated()) {
       setError("You must be signed in to submit feedback.");
       return;
     }
@@ -182,7 +181,7 @@ export default function FeedbackButton({ open: controlledOpen, onClose: controll
           app_page_name: pageName,
           text: trimmedText,
         },
-      }, token);
+      });
 
       if (res.errors) {
         setError(res.errors[0]?.message ?? "Failed to submit feedback.");
@@ -203,8 +202,7 @@ export default function FeedbackButton({ open: controlledOpen, onClose: controll
             const r = await volunteerGqlUpload(
               ATTACH_FILE,
               { feedbackId },
-              file,
-              token
+              file
             );
             if (!r.data?.attachFileToFeedback?.success) failedCount++;
           } catch {

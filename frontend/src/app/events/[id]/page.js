@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
-  getAuthToken,
+  isAuthenticated,
   getAuthRole,
   getAuthName,
   signOut,
@@ -227,8 +227,6 @@ export default function EventDetailPage() {
   const router  = useRouter();
   const params  = useParams();
   const eventId = params?.id;
-
-  const [token,     setToken]     = useState(null);
   const [gql,       setGql]       = useState(null);
   const [volGql,    setVolGql]    = useState(null);
   const [userName,  setUserName]  = useState("");
@@ -245,15 +243,12 @@ export default function EventDetailPage() {
 
   /* Auth check + initial data load */
   useEffect(() => {
-    const t = getAuthToken();
-    if (!t) { router.replace("/login"); return; }
+    if (!isAuthenticated()) { router.replace("/login"); return; }
     const role = getAuthRole();
     const boundGql    = role === "ADMINISTRATOR"
-      ? (q, v) => adminGql(q, v, t)
-      : (q, v) => volunteerGql(q, v, t);
-    const boundVolGql = (q, v) => volunteerGql(q, v, t);
-
-    setToken(t);
+      ? adminGql
+      : volunteerGql;
+    const boundVolGql = volunteerGql;
     setGql(() => boundGql);
     setVolGql(() => boundVolGql);
     setUserName(getAuthName() ?? "");
@@ -341,7 +336,7 @@ export default function EventDetailPage() {
     }
   }, [volGql, refreshShifts]);
 
-  const handleSignOut = async () => { await signOut(token); router.replace("/login"); };
+  const handleSignOut = async () => { await signOut(); router.replace("/login"); };
 
   /* ----- Render ----- */
   return (

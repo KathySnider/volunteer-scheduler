@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
-  getAuthToken,
+  isAuthenticated,
   getAuthRole,
   getAuthName,
   signOut,
@@ -430,8 +430,6 @@ export default function AdminFeedbackDetailPage() {
   const router   = useRouter();
   const params   = useParams();
   const id       = params?.id;
-
-  const [token, setToken]       = useState(null);
   const [gql, setGql]           = useState(null);
   const [userName, setUserName] = useState("");
 
@@ -445,16 +443,15 @@ export default function AdminFeedbackDetailPage() {
   const togglePanel = (name) => setOpenPanel((prev) => (prev === name ? null : name));
 
   const handleDownload = useCallback(async (attachmentId) => {
-    if (!token) return;
     setDownloadingId(attachmentId);
     try {
-      await downloadAttachment(attachmentId, token, true);
+      await downloadAttachment(attachmentId, true);
     } catch {
       // non-fatal
     } finally {
       setDownloadingId(null);
     }
-  }, [token]);
+  }, []);
 
   /* ----- Load detail ----- */
   const loadData = useCallback((bound, feedbackId) => {
@@ -472,18 +469,16 @@ export default function AdminFeedbackDetailPage() {
 
   /* ----- Auth guard ----- */
   useEffect(() => {
-    const t = getAuthToken();
-    if (!t) { router.replace("/login"); return; }
+    if (!isAuthenticated()) { router.replace("/login"); return; }
     const role = getAuthRole();
     if (role !== "ADMINISTRATOR") { router.replace("/events"); return; }
-    const bound = (q, v) => adminGql(q, v, t);
-    setToken(t);
+    const bound = adminGql;
     setGql(() => bound);
     setUserName(getAuthName() ?? "");
     if (id) loadData(bound, id);
   }, [router, loadData, id]);
 
-  const handleSignOut = async () => { await signOut(token); router.replace("/login"); };
+  const handleSignOut = async () => { await signOut(); router.replace("/login"); };
 
   const handleSuccess = (msg) => {
     setActionMsg({ type: "success", text: msg });

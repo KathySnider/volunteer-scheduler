@@ -79,7 +79,7 @@ test.describe("Magic-link login — happy path", () => {
     expect(page.url()).toContain("/events");
   });
 
-  test("session token is stored in localStorage after login", async ({ page }) => {
+  test("sessionActive flag is set in localStorage; raw token is absent", async ({ page }) => {
     await clearMailbox();
     await requestMagicLink(volunteerEmail);
     const msg = await waitForEmail(volunteerEmail);
@@ -88,8 +88,13 @@ test.describe("Magic-link login — happy path", () => {
     await page.goto(magicUrl);
     await page.waitForURL("**/events", { timeout: 8_000 });
 
+    // sessionActive (not authToken) is the login indicator
+    const sessionActive = await page.evaluate(() => localStorage.getItem("sessionActive"));
+    expect(sessionActive).toBe("1");
+
+    // Raw token must NOT be in localStorage — it lives in the HttpOnly cookie
     const token = await page.evaluate(() => localStorage.getItem("authToken"));
-    expect(token).toBeTruthy();
+    expect(token).toBeNull();
 
     const role = await page.evaluate(() => localStorage.getItem("authRole"));
     expect(role).toBe("VOLUNTEER");
@@ -113,10 +118,10 @@ test.describe("Logout", () => {
   const VOLUNTEER_URL =
     process.env.NEXT_PUBLIC_GRAPHQL_VOLUNTEER_URL || "http://localhost:8080/graphql/volunteer";
 
-  test("logout mutation invalidates the server session token", async ({
+  test("logout via cookie invalidates the server session", async ({
     volunteerToken,
   }) => {
-    // Verify the token works before logout.
+    // Verify the session works as a Bearer token before logout.
     const beforeRes = await fetch(VOLUNTEER_URL, {
       method: "POST",
       headers: {
@@ -127,21 +132,22 @@ test.describe("Logout", () => {
     });
     expect(beforeRes.status).toBe(200);
 
-    // Call the logout mutation.
+    // Call logout the way the browser does — via the session cookie.
+    // logout no longer takes a token argument; the server reads the cookie.
     const logoutRes = await fetch(AUTH_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query: `mutation Logout($token: String!) { logout(token: $token) { success } }`,
-        variables: { token: volunteerToken },
-      }),
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `session=${volunteerToken}`,
+      },
+      body: JSON.stringify({ query: "mutation { logout { success } }" }),
     });
     const logoutJson = (await logoutRes.json()) as {
       data?: { logout?: { success: boolean } };
     };
     expect(logoutJson.data?.logout?.success).toBe(true);
 
-    // The same token should now be rejected by the authenticated endpoint.
+    // The session should now be rejected.
     const afterRes = await fetch(VOLUNTEER_URL, {
       method: "POST",
       headers: {
@@ -168,13 +174,13 @@ test.describe("Logout", () => {
     await volunteerPage.waitForURL("**/login", { timeout: 5_000 });
     expect(volunteerPage.url()).toContain("/login");
 
-    // localStorage should be cleared by signOut().
+    // sessionActive must be cleared by signOut() — not authToken (removed).
     // Note: we can't re-navigate to /events here to test the redirect because
     // the volunteerPage fixture uses addInitScript which re-seeds localStorage
     // on every navigation. The redirect-when-unauthenticated behaviour is
     // covered by the "unauthenticated user visiting /events" test in this file.
-    const token = await volunteerPage.evaluate(() => localStorage.getItem("authToken"));
-    expect(token).toBeNull();
+    const sessionActive = await volunteerPage.evaluate(() => localStorage.getItem("sessionActive"));
+    expect(sessionActive).toBeNull();
   });
 });
 
