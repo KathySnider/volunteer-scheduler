@@ -19,6 +19,7 @@ import (
 	"volunteer-scheduler/middleware"
 	"volunteer-scheduler/services"
 
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -179,6 +180,8 @@ func main() {
 	// GraphQL servers
 	// -------------------------------------------------------------------------
 
+	isProd := os.Getenv("APP_ENV") == "production"
+
 	authSrv := handler.NewDefaultServer(authGen.NewExecutableSchema(authGen.Config{
 		Resolvers: authResolver,
 	}))
@@ -199,6 +202,20 @@ func main() {
 		MaxUploadSize: 10 << 20, // 10 MB hard limit (service adds the 5 MB app limit)
 	})
 
+	// Disable introspection and playground in production.
+	// AroundOperations runs after the Introspection extension sets DisableIntrospection=false,
+	// so setting it back to true here wins.
+	if isProd {
+		noIntrospection := func(ctx context.Context, next graphql.OperationHandler) graphql.ResponseHandler {
+			graphql.GetOperationContext(ctx).DisableIntrospection = true
+			return next(ctx)
+		}
+		authSrv.AroundOperations(noIntrospection)
+		volunteerSrv.AroundOperations(noIntrospection)
+		adminSrv.AroundOperations(noIntrospection)
+		log.Println("GraphQL introspection disabled (production mode)")
+	}
+
 	// -------------------------------------------------------------------------
 	// HTTP routing
 	// -------------------------------------------------------------------------
@@ -215,10 +232,12 @@ func main() {
 		AllowCredentials: true,
 	})
 
-	// GraphQL playgrounds (GET, no auth required).
-	http.Handle("/auth", playground.Handler("Auth GraphQL", "/graphql/auth"))
-	http.Handle("/admin", playground.Handler("Admin GraphQL", "/graphql/admin"))
-	http.Handle("/volunteer", playground.Handler("Volunteer GraphQL", "/graphql/volunteer"))
+	// GraphQL playgrounds — local development only.
+	if !isProd {
+		http.Handle("/auth", playground.Handler("Auth GraphQL", "/graphql/auth"))
+		http.Handle("/admin", playground.Handler("Admin GraphQL", "/graphql/admin"))
+		http.Handle("/volunteer", playground.Handler("Volunteer GraphQL", "/graphql/volunteer"))
+	}
 
 	// GraphQL API endpoints.
 	http.Handle("/graphql/auth", c.Handler(authSrv))

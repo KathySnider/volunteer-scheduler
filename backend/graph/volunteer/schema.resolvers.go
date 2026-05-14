@@ -177,21 +177,17 @@ func (r *queryResolver) OwnFeedback(ctx context.Context) ([]*generated.Volunteer
 	return toGenVolunteerFeedbacks(fb), nil
 }
 
-// Attachment is the resolver for the attachment field.
-func (r *queryResolver) Attachment(ctx context.Context, attachmentID string) (*generated.AttachmentDownload, error) {
-	aInt, err := strconv.Atoi(attachmentID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid attachmentId")
+// OwnAttachment is the resolver for the ownAttachment field.
+func (r *queryResolver) OwnAttachment(ctx context.Context, attachmentID int) (*generated.AttachmentDownload, error) {
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
 	}
-	dl, err := r.FeedbackService.FetchAttachment(ctx, aInt)
+	att, err := r.FeedbackService.FetchOwnAttachment(ctx, attachmentID, volId)
 	if err != nil {
 		return nil, err
 	}
-	return &generated.AttachmentDownload{
-		Filename: dl.Filename,
-		MimeType: dl.MimeType,
-		Data:     dl.Data,
-	}, nil
+	return toGenAttachmentDownload(att), nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

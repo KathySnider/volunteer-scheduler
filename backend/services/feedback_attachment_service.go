@@ -106,19 +106,19 @@ func (s *FeedbackService) fetchAttachmentsForFeedback(ctx context.Context, feedb
 	return attachments, nil
 }
 
-// FetchAttachment fetches a single attachment including its binary content,
+// FetchAttachment and FetchOwnAttachment each fetch a single attachment including its binary content,
 // returned as a Base64-encoded string so the client can reconstruct the file
-// (e.g. display a screenshot inline).
+// (e.g. display a screenshot inline). Difference is volunteer v admin.
 func (s *FeedbackService) FetchAttachment(ctx context.Context, attachmentID int) (*models.AttachmentDownload, error) {
 
 	query := `
-		SELECT filename, 
+		SELECT 
+		    filename, 
 			mime_type, 
 			file_data
-		FROM feedback_attachments
+		FROM feedback_attachments 
 		WHERE attachment_id = $1
 	`
-
 	var filename, mimeType string
 	var raw []byte
 
@@ -128,6 +128,41 @@ func (s *FeedbackService) FetchAttachment(ctx context.Context, attachmentID int)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("GetAttachmentData: %w", err)
+	}
+
+	return &models.AttachmentDownload{
+		Filename: filename,
+		MimeType: mimeType,
+		Data:     base64.StdEncoding.EncodeToString(raw),
+	}, nil
+}
+
+func (s *FeedbackService) FetchOwnAttachment(ctx context.Context, attachmentID int, volId int) (*models.AttachmentDownload, error) {
+
+	query := `
+		SELECT 
+		    fa.filename, 
+			fa.mime_type, 
+			fa.file_data,
+			f.volunteer_id
+		FROM feedback_attachments fa
+		JOIN feedback f ON f.feedback_id = fa.feedback_id
+		WHERE attachment_id = $1
+	`
+	var filename, mimeType string
+	var raw []byte
+	var volInt int
+
+	err := s.DB.QueryRowContext(ctx, query, attachmentID).Scan(&filename, &mimeType, &raw, &volInt)
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("attachment %d not found", attachmentID)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("GetAttachmentData: %w", err)
+	}
+
+	if volInt != volId {
+		return nil, fmt.Errorf("unauthorized")
 	}
 
 	return &models.AttachmentDownload{
