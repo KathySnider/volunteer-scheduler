@@ -10,7 +10,7 @@ type Query {
   shiftsForEvent(eventId: ID!): [ShiftView!]!  
   ownShifts(filter: ShiftTimeFilter!): [VolunteerShift!]! 
   ownFeedback: [VolunteerFeedback!]!
-  attachment(attachmentId: ID!): AttachmentDownload
+  ownAttachment(attachmentId: Int!): AttachmentDownload!
 }
 
 type Mutation {

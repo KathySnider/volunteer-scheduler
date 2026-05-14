@@ -8,7 +8,6 @@ type Query {
   lookupValues: LookupValues!
   volunteerProfile: VolunteerProfile!
   eventById(eventId: ID!): Event!
-  attachment(attachmentId: ID!): AttachmentDownload
 
   # Admin-only queries:
   venues: [Venue!]!
@@ -20,6 +19,7 @@ type Query {
   opportunitiesForEvent(eventId: ID!): [Opportunity!]!
   feedback(filter: FeedbackFilterInput): [Feedback!]!
   feedbackById(feedbackId: ID!): Feedback
+  attachment(attachmentId: Int!): AttachmentDownload!
 
   # Currently unused; remove (along with service)?
   volunteerById(volunteerId: ID!): VolunteerProfile  

@@ -127,6 +127,17 @@ func (r *mutationResolver) CreateStaff(ctx context.Context, newStaff generated.N
 	return toGenMutationResult(result), nil
 }
 
+// CreateFundingEntity is the resolver for the createFundingEntity field.
+func (r *mutationResolver) CreateFundingEntity(ctx context.Context, input generated.NewFundingEntityInput) (*generated.MutationResult, error) {
+	m := toModelNewFundingEntityInput(input)
+	id, err := r.FundingEntityService.CreateFundingEntity(ctx, m.Name, m.Description)
+	if err != nil {
+		return nil, err
+	}
+	idStr := strconv.Itoa(id)
+	return &generated.MutationResult{Success: true, ID: &idStr}, nil
+}
+
 // AssignVolunteerToShift is the resolver for the assignVolunteerToShift field.
 func (r *mutationResolver) AssignVolunteerToShift(ctx context.Context, shiftID string, volunteerID string) (*generated.MutationResult, error) {
 	result, err := r.ShiftService.AssignVolunteerToShift(ctx, shiftID, volunteerID)
@@ -215,6 +226,16 @@ func (r *mutationResolver) UpdateStaff(ctx context.Context, staff generated.Upda
 		return nil, err
 	}
 	return toGenMutationResult(result), nil
+}
+
+// UpdateFundingEntity is the resolver for the updateFundingEntity field.
+func (r *mutationResolver) UpdateFundingEntity(ctx context.Context, input generated.UpdateFundingEntityInput) (*generated.MutationResult, error) {
+	m := toModelUpdateFundingEntityInput(input)
+	err := r.FundingEntityService.UpdateFundingEntity(ctx, m.ID, m.Name, m.Description)
+	if err != nil {
+		return nil, err
+	}
+	return &generated.MutationResult{Success: true}, nil
 }
 
 // QuestionFeedback is the resolver for the questionFeedback field.
@@ -316,6 +337,15 @@ func (r *mutationResolver) DeleteStaff(ctx context.Context, staffID string) (*ge
 	return toGenMutationResult(result), nil
 }
 
+// DeleteFundingEntity is the resolver for the deleteFundingEntity field.
+func (r *mutationResolver) DeleteFundingEntity(ctx context.Context, id int) (*generated.MutationResult, error) {
+	err := r.FundingEntityService.DeleteFundingEntity(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return &generated.MutationResult{Success: true}, nil
+}
+
 // ResolveFeedback is the resolver for the resolveFeedback field.
 func (r *mutationResolver) ResolveFeedback(ctx context.Context, resolution generated.ResolveFeedbackInput) (*generated.MutationResult, error) {
 	volId, ok := middleware.VolunteerIdFromContext(ctx)
@@ -327,36 +357,6 @@ func (r *mutationResolver) ResolveFeedback(ctx context.Context, resolution gener
 		return nil, err
 	}
 	return toGenMutationResult(result), nil
-}
-
-// CreateFundingEntity is the resolver for the createFundingEntity field.
-func (r *mutationResolver) CreateFundingEntity(ctx context.Context, input generated.NewFundingEntityInput) (*generated.MutationResult, error) {
-	m := toModelNewFundingEntityInput(input)
-	id, err := r.FundingEntityService.CreateFundingEntity(ctx, m.Name, m.Description)
-	if err != nil {
-		return nil, err
-	}
-	idStr := strconv.Itoa(id)
-	return &generated.MutationResult{Success: true, ID: &idStr}, nil
-}
-
-// UpdateFundingEntity is the resolver for the updateFundingEntity field.
-func (r *mutationResolver) UpdateFundingEntity(ctx context.Context, input generated.UpdateFundingEntityInput) (*generated.MutationResult, error) {
-	m := toModelUpdateFundingEntityInput(input)
-	err := r.FundingEntityService.UpdateFundingEntity(ctx, m.ID, m.Name, m.Description)
-	if err != nil {
-		return nil, err
-	}
-	return &generated.MutationResult{Success: true}, nil
-}
-
-// DeleteFundingEntity is the resolver for the deleteFundingEntity field.
-func (r *mutationResolver) DeleteFundingEntity(ctx context.Context, id int) (*generated.MutationResult, error) {
-	err := r.FundingEntityService.DeleteFundingEntity(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	return &generated.MutationResult{Success: true}, nil
 }
 
 // LookupValues is the resolver for the lookupValues field.
@@ -390,24 +390,6 @@ func (r *queryResolver) EventByID(ctx context.Context, eventID string) (*generat
 		return nil, fmt.Errorf("error calling FetchEventById: %w", err)
 	}
 	return toGenEvent(event), nil
-}
-
-// Attachment is the resolver for the attachment field.
-func (r *queryResolver) Attachment(ctx context.Context, attachmentID string) (*generated.AttachmentDownload, error) {
-	aInt, err := strconv.Atoi(attachmentID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid attachmentId")
-	}
-
-	dl, err := r.FeedbackService.FetchAttachment(ctx, aInt)
-	if err != nil {
-		return nil, err
-	}
-	return &generated.AttachmentDownload{
-		Filename: dl.Filename,
-		MimeType: dl.MimeType,
-		Data:     dl.Data,
-	}, nil
 }
 
 // Venues is the resolver for the venues field.
@@ -489,6 +471,15 @@ func (r *queryResolver) FeedbackByID(ctx context.Context, feedbackID string) (*g
 		return nil, err
 	}
 	return toGenFeedback(fb), nil
+}
+
+// Attachment is the resolver for the attachment field.
+func (r *queryResolver) Attachment(ctx context.Context, attachmentID int) (*generated.AttachmentDownload, error) {
+	att, err := r.FeedbackService.FetchAttachment(ctx, attachmentID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenAttachmentDownload(att), nil
 }
 
 // VolunteerByID is the resolver for the volunteerById field.

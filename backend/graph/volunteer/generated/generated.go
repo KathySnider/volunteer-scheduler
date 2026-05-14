@@ -119,10 +119,10 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Attachment               func(childComplexity int, attachmentID string) int
 		EventByID                func(childComplexity int, eventID string) int
 		FilteredEventsWithShifts func(childComplexity int, filter *EventFilterInput) int
 		LookupValues             func(childComplexity int) int
+		OwnAttachment            func(childComplexity int, attachmentID int) int
 		OwnFeedback              func(childComplexity int) int
 		OwnShifts                func(childComplexity int, filter ShiftTimeFilter) int
 		ShiftsForEvent           func(childComplexity int, eventID string) int
@@ -221,7 +221,7 @@ type QueryResolver interface {
 	ShiftsForEvent(ctx context.Context, eventID string) ([]*ShiftView, error)
 	OwnShifts(ctx context.Context, filter ShiftTimeFilter) ([]*VolunteerShift, error)
 	OwnFeedback(ctx context.Context) ([]*VolunteerFeedback, error)
-	Attachment(ctx context.Context, attachmentID string) (*AttachmentDownload, error)
+	OwnAttachment(ctx context.Context, attachmentID int) (*AttachmentDownload, error)
 }
 
 type executableSchema struct {
@@ -536,17 +536,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.MutationResult.Success(childComplexity), true
 
-	case "Query.attachment":
-		if e.complexity.Query.Attachment == nil {
-			break
-		}
-
-		args, err := ec.field_Query_attachment_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.Attachment(childComplexity, args["attachmentId"].(string)), true
 	case "Query.eventById":
 		if e.complexity.Query.EventByID == nil {
 			break
@@ -575,6 +564,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.LookupValues(childComplexity), true
+	case "Query.ownAttachment":
+		if e.complexity.Query.OwnAttachment == nil {
+			break
+		}
+
+		args, err := ec.field_Query_ownAttachment_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.OwnAttachment(childComplexity, args["attachmentId"].(int)), true
 	case "Query.ownFeedback":
 		if e.complexity.Query.OwnFeedback == nil {
 			break
@@ -1224,7 +1224,7 @@ type Query {
   shiftsForEvent(eventId: ID!): [ShiftView!]!  
   ownShifts(filter: ShiftTimeFilter!): [VolunteerShift!]! 
   ownFeedback: [VolunteerFeedback!]!
-  attachment(attachmentId: ID!): AttachmentDownload
+  ownAttachment(attachmentId: Int!): AttachmentDownload!
 }
 
 type Mutation {
@@ -1356,17 +1356,6 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_attachment_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "attachmentId", ec.unmarshalNID2string)
-	if err != nil {
-		return nil, err
-	}
-	args["attachmentId"] = arg0
-	return args, nil
-}
-
 func (ec *executionContext) field_Query_eventById_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -1386,6 +1375,17 @@ func (ec *executionContext) field_Query_filteredEventsWithShifts_args(ctx contex
 		return nil, err
 	}
 	args["filter"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_ownAttachment_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "attachmentId", ec.unmarshalNInt2int)
+	if err != nil {
+		return nil, err
+	}
+	args["attachmentId"] = arg0
 	return args, nil
 }
 
@@ -3257,24 +3257,24 @@ func (ec *executionContext) fieldContext_Query_ownFeedback(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_attachment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_ownAttachment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_attachment,
+		ec.fieldContext_Query_ownAttachment,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().Attachment(ctx, fc.Args["attachmentId"].(string))
+			return ec.resolvers.Query().OwnAttachment(ctx, fc.Args["attachmentId"].(int))
 		},
 		nil,
-		ec.marshalOAttachmentDownload2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐAttachmentDownload,
+		ec.marshalNAttachmentDownload2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐAttachmentDownload,
 		true,
-		false,
+		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_attachment(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_ownAttachment(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -3299,7 +3299,7 @@ func (ec *executionContext) fieldContext_Query_attachment(ctx context.Context, f
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_attachment_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_ownAttachment_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -7293,16 +7293,19 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "attachment":
+		case "ownAttachment":
 			field := field
 
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
 				defer func() {
 					if r := recover(); r != nil {
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_attachment(ctx, field)
+				res = ec._Query_ownAttachment(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
 				return res
 			}
 
@@ -8173,6 +8176,20 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 // endregion **************************** object.gotpl ****************************
 
 // region    ***************************** type.gotpl *****************************
+
+func (ec *executionContext) marshalNAttachmentDownload2volunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐAttachmentDownload(ctx context.Context, sel ast.SelectionSet, v AttachmentDownload) graphql.Marshaler {
+	return ec._AttachmentDownload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAttachmentDownload2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐAttachmentDownload(ctx context.Context, sel ast.SelectionSet, v *AttachmentDownload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._AttachmentDownload(ctx, sel, v)
+}
 
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v any) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
@@ -9259,13 +9276,6 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) marshalOAttachmentDownload2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐAttachmentDownload(ctx context.Context, sel ast.SelectionSet, v *AttachmentDownload) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._AttachmentDownload(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v any) (bool, error) {

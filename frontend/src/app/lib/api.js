@@ -87,10 +87,11 @@ export async function volunteerGqlUpload(query, variables, file, token) {
  */
 export async function downloadAttachment(attachmentId, token, useAdminEndpoint = false) {
   const url = useAdminEndpoint ? ADMIN_URL : VOLUNTEER_URL;
+  const queryName = useAdminEndpoint ? "attachment" : "ownAttachment";
   const res = await gqlFetch(
     url,
-    `query GetAttachment($id: ID!) {
-      attachment(attachmentId: $id) {
+    `query GetAttachment($id: Int!) {
+      ${queryName}(attachmentId: $id) {
         filename
         mimeType
         data
@@ -100,7 +101,7 @@ export async function downloadAttachment(attachmentId, token, useAdminEndpoint =
     token
   );
 
-  const att = res.data?.attachment;
+  const att = res.data?.[queryName];
   if (!att) throw new Error("Attachment not found");
 
   // Base64 → Uint8Array → Blob → object URL → programmatic click
