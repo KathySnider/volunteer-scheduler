@@ -9,7 +9,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
+	"time"
 	"volunteer-scheduler/graph/auth/generated"
+	"volunteer-scheduler/middleware"
 )
 
 // RequestMagicLink is the resolver for the requestMagicLink field.
@@ -44,6 +47,7 @@ func (r *mutationResolver) RequestMagicLink(ctx context.Context, email string) (
 }
 
 // ConsumeMagicLink is the resolver for the consumeMagicLink field.
+// On success it sets an HttpOnly session cookie instead of returning the token.
 func (r *mutationResolver) ConsumeMagicLink(ctx context.Context, token string) (*generated.AuthResult, error) {
 	email, err := r.MagicLinkService.ConsumeMagicLink(ctx, token)
 	if err != nil {
@@ -54,7 +58,7 @@ func (r *mutationResolver) ConsumeMagicLink(ctx context.Context, token string) (
 		}, nil
 	}
 
-	sessionToken, err := r.MagicLinkService.CreateSessionToken(ctx, email)
+	sessionToken, expiresAt, err := r.MagicLinkService.CreateSessionToken(ctx, email)
 	if err != nil {
 		err = fmt.Errorf("error creating session token: %w", err)
 		return &generated.AuthResult{
@@ -64,11 +68,29 @@ func (r *mutationResolver) ConsumeMagicLink(ctx context.Context, token string) (
 		}, nil
 	}
 
+	// Write the session token as an HttpOnly cookie so JavaScript cannot read it.
+	// The cookie expiry matches the DB session exactly (both driven by SESSION_MAX_AGE).
+	if w, ok := middleware.ResponseWriterFromContext(ctx); ok {
+		cookie := &http.Cookie{
+			Name:     "session",
+			Value:    sessionToken,
+			Path:     "/",
+			HttpOnly: true,
+			Secure:   r.IsProd, // HTTPS only in production
+			SameSite: http.SameSiteLaxMode,
+			Expires:  expiresAt,
+		}
+		if r.IsProd {
+			// Frontend and backend are on different Railway domains, so cross-origin.
+			cookie.SameSite = http.SameSiteNoneMode
+		}
+		http.SetCookie(w, cookie)
+	}
+
 	return &generated.AuthResult{
-		Success:      true,
-		Message:      "Successfully authenticated.",
-		Email:        &email,
-		SessionToken: &sessionToken,
+		Success: true,
+		Message: "Successfully authenticated.",
+		Email:   &email,
 	}, nil
 }
 
@@ -89,17 +111,39 @@ func (r *mutationResolver) RequestAccount(ctx context.Context, email string, fir
 }
 
 // Logout is the resolver for the logout field.
-func (r *mutationResolver) Logout(ctx context.Context, token string) (*generated.LogoutResult, error) {
-	err := r.MagicLinkService.Logout(ctx, token)
-	if err != nil {
-		return &generated.LogoutResult{
-			Success: false,
-		}, err
+// Reads the session token from the HttpOnly cookie, invalidates it on the server,
+// and clears the cookie.
+func (r *mutationResolver) Logout(ctx context.Context) (*generated.LogoutResult, error) {
+	// Read token from the session cookie.
+	var token string
+	if req, ok := middleware.RequestFromContext(ctx); ok {
+		if cookie, err := req.Cookie("session"); err == nil {
+			token = cookie.Value
+		}
 	}
 
-	return &generated.LogoutResult{
-		Success: true,
-	}, nil
+	// Invalidate on the server (best-effort — clear the cookie regardless).
+	if token != "" {
+		if err := r.MagicLinkService.Logout(ctx, token); err != nil {
+			log.Printf("[auth] logout server error: %v", err)
+		}
+	}
+
+	// Clear the cookie by setting it expired.
+	if w, ok := middleware.ResponseWriterFromContext(ctx); ok {
+		http.SetCookie(w, &http.Cookie{
+			Name:     "session",
+			Value:    "",
+			Path:     "/",
+			HttpOnly: true,
+			Secure:   r.IsProd,
+			SameSite: http.SameSiteLaxMode,
+			Expires:  time.Unix(0, 0),
+			MaxAge:   -1,
+		})
+	}
+
+	return &generated.LogoutResult{Success: true}, nil
 }
 
 // AuthHealthCheck is the resolver for the _authHealthCheck field.

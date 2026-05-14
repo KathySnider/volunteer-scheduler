@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
 	"fmt"
@@ -49,7 +50,7 @@ func (s *MagicLinkService) GenerateMagicLink(ctx context.Context, email, ipAddre
 		return "", fmt.Errorf("no volunteer account found for this email")
 	}
 	var isActive bool
-	err = row.Scan(&isActive) 
+	err = row.Scan(&isActive)
 	if err != nil {
 		return "", fmt.Errorf("no volunteer account found for this email")
 	}
@@ -220,28 +221,34 @@ type SessionClaims struct {
 
 // CreateSessionToken creates a session token for the authenticated user,
 // storing both volunteer ID and role for fast context population on each request.
-func (s *MagicLinkService) CreateSessionToken(ctx context.Context, email string) (string, error) {
+// Returns the token and the exact expiry time so the caller can set a matching cookie.
+func (s *MagicLinkService) CreateSessionToken(ctx context.Context, email string) (string, time.Time, error) {
 
 	// Look up volunteer ID and role — never exposed to caller.
 	volunteerId, role, err := fetchVolunteerIdAndRoleByEmail(ctx, s.DB, email)
 	if err != nil {
-		return "", err
+		return "", time.Time{}, err
 	}
 
 	// Generate session token.
 	tokenBytes := make([]byte, 32)
 	if _, err := rand.Read(tokenBytes); err != nil {
-		return "", fmt.Errorf("failed to generate session token: %w", err)
+		return "", time.Time{}, fmt.Errorf("failed to generate session token: %w", err)
 	}
 	sessionToken := hex.EncodeToString(tokenBytes)
 
-	// Get session max age from environment (default 30 days).
+	// Hash the hex string — the same representation that arrives in the cookie,
+	// so ValidateSessionToken and Logout can re-derive the same hash.
+	hashToken := sha256.Sum256([]byte(sessionToken))
+	hexHashToken := hex.EncodeToString(hashToken[:])
+
+	// Get session max age from environment (default 8 hours).
 	sessionMaxAgeStr := os.Getenv("SESSION_MAX_AGE")
-	sessionMaxAge := 2592000
+	sessionMaxAge := 28800 // 8 hours in seconds
 	if val, err := strconv.Atoi(sessionMaxAgeStr); err == nil {
 		sessionMaxAge = val
 	}
-	expiresAt := time.Now().Add(time.Duration(sessionMaxAge) * time.Second)
+	expiresAt := time.Now().UTC().Add(time.Duration(sessionMaxAge) * time.Second)
 
 	insertQuery := `
         INSERT INTO sessions (email, token, created_at, expires_at, volunteer_id, role)
@@ -253,16 +260,20 @@ func (s *MagicLinkService) CreateSessionToken(ctx context.Context, email string)
             volunteer_id = EXCLUDED.volunteer_id,
             role = EXCLUDED.role
     `
-	if _, err := s.DB.ExecContext(ctx, insertQuery, email, sessionToken, expiresAt, volunteerId, role); err != nil {
-		return "", fmt.Errorf("failed to store session: %w", err)
+	if _, err := s.DB.ExecContext(ctx, insertQuery, email, hexHashToken, expiresAt, volunteerId, role); err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to store session: %w", err)
 	}
 
-	return sessionToken, nil
+	return sessionToken, expiresAt, nil
 }
 
 // ValidateSessionToken validates the session token and returns the volunteer ID
 // and role stored at login time, avoiding a DB lookup on every request.
 func (s *MagicLinkService) ValidateSessionToken(ctx context.Context, token string) (int, string, error) {
+
+	hashToken := sha256.Sum256([]byte(token))
+	hexHashToken := hex.EncodeToString(hashToken[:])
+
 	query := `
         SELECT volunteer_id, role FROM sessions
         WHERE token = $1 AND expires_at > NOW()
@@ -270,7 +281,7 @@ func (s *MagicLinkService) ValidateSessionToken(ctx context.Context, token strin
     `
 	var volunteerId int
 	var role string
-	if err := s.DB.QueryRowContext(ctx, query, token).Scan(&volunteerId, &role); err != nil {
+	if err := s.DB.QueryRowContext(ctx, query, hexHashToken).Scan(&volunteerId, &role); err != nil {
 		if err == sql.ErrNoRows {
 			return 0, "", fmt.Errorf("invalid or expired session token")
 		}
@@ -278,7 +289,7 @@ func (s *MagicLinkService) ValidateSessionToken(ctx context.Context, token strin
 	}
 
 	// Update last activity.
-	s.DB.ExecContext(ctx, "UPDATE sessions SET last_activity_at = NOW() WHERE token = $1", token)
+	s.DB.ExecContext(ctx, "UPDATE sessions SET last_activity_at = NOW() WHERE token = $1", hexHashToken)
 
 	return volunteerId, role, nil
 }
@@ -347,6 +358,10 @@ func (s *MagicLinkService) RequestAccount(ctx context.Context, email, firstName,
 }
 
 func (s *MagicLinkService) Logout(ctx context.Context, token string) error {
-	_, err := s.DB.ExecContext(ctx, "DELETE FROM sessions where token = $1", token)
+
+	hashToken := sha256.Sum256([]byte(token))
+	hexHashToken := hex.EncodeToString(hashToken[:])
+
+	_, err := s.DB.ExecContext(ctx, "DELETE FROM sessions where token = $1", hexHashToken)
 	return err
 }

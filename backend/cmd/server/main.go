@@ -148,12 +148,15 @@ func main() {
 		}
 	}()
 
+	isProd := os.Getenv("APP_ENV") == "production"
+
 	// -------------------------------------------------------------------------
 	// Resolvers
 	// -------------------------------------------------------------------------
 
 	authResolver := &auth.Resolver{
 		MagicLinkService: magicLinkService,
+		IsProd:           isProd,
 	}
 
 	volunteerResolver := &volunteer.Resolver{
@@ -179,8 +182,6 @@ func main() {
 	// -------------------------------------------------------------------------
 	// GraphQL servers
 	// -------------------------------------------------------------------------
-
-	isProd := os.Getenv("APP_ENV") == "production"
 
 	authSrv := handler.NewDefaultServer(authGen.NewExecutableSchema(authGen.Config{
 		Resolvers: authResolver,
@@ -240,7 +241,10 @@ func main() {
 	}
 
 	// GraphQL API endpoints.
-	http.Handle("/graphql/auth", c.Handler(authSrv))
+	// The auth endpoint has no token, so we wrap it manually to inject the
+	// ResponseWriter and Request into the context — the login resolver needs
+	// them to set the HttpOnly session cookie.
+	http.Handle("/graphql/auth", c.Handler(middleware.WithHTTPContext(authSrv)))
 	http.Handle("/graphql/volunteer", c.Handler(middleware.RequireAuth(magicLinkService, volunteerSrv)))
 	http.Handle("/graphql/admin", c.Handler(middleware.RequireAdmin(magicLinkService, adminSrv)))
 

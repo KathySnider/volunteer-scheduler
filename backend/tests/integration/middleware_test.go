@@ -1,6 +1,9 @@
 package integration
 
 import (
+	"bytes"
+	"encoding/json"
+	"net/http"
 	"testing"
 )
 
@@ -119,5 +122,80 @@ func TestRequireAdmin_ExpiredAdminToken(t *testing.T) {
 
 	if !hasGQLErrors(resp) {
 		t.Error("expected expired admin token to be rejected, got no errors")
+	}
+}
+
+// ============================================================================
+// Cookie-based authentication
+// ============================================================================
+
+// TestRequireAuth_SessionCookie verifies that a valid session cookie is
+// accepted by the volunteer endpoint (no Authorization header needed).
+func TestRequireAuth_SessionCookie(t *testing.T) {
+	email := uniqueEmail(t)
+	volID := seedVolunteer(t, email, "Cookie", "Vol", "VOLUNTEER")
+	token := seedSession(t, email, volID, "VOLUNTEER", "cookie-vol-"+email)
+
+	resp := gqlPostCookie(t, "/graphql/volunteer", token, queryLookupValues, nil)
+
+	if hasGQLErrors(resp) {
+		t.Errorf("expected cookie auth to succeed, got errors: %v", resp.Errors)
+	}
+}
+
+// TestRequireAuth_InvalidCookie verifies that an unrecognised session cookie
+// is rejected with a 401-equivalent GQL error.
+func TestRequireAuth_InvalidCookie(t *testing.T) {
+	resp := gqlPostCookie(t, "/graphql/volunteer", "not-a-real-session", queryLookupValues, nil)
+
+	if !hasGQLErrors(resp) {
+		t.Error("expected invalid cookie to be rejected, got no errors")
+	}
+}
+
+// TestRequireAuth_ExpiredCookie verifies that an expired session cookie is
+// rejected even though it exists in the database.
+func TestRequireAuth_ExpiredCookie(t *testing.T) {
+	email := uniqueEmail(t)
+	volID := seedVolunteer(t, email, "Expired", "Cookie", "VOLUNTEER")
+	token := seedExpiredSession(t, email, volID, "VOLUNTEER", "expired-cookie-"+email)
+
+	resp := gqlPostCookie(t, "/graphql/volunteer", token, queryLookupValues, nil)
+
+	if !hasGQLErrors(resp) {
+		t.Error("expected expired session cookie to be rejected, got no errors")
+	}
+}
+
+// TestRequireAuth_CookiePrecedence verifies that when both a valid session
+// cookie and a Bearer token are present, the cookie is used. We send a valid
+// cookie alongside a made-up Bearer token — the request should succeed because
+// the middleware checks the cookie first.
+func TestRequireAuth_CookiePrecedence(t *testing.T) {
+	email := uniqueEmail(t)
+	volID := seedVolunteer(t, email, "Precedence", "Test", "VOLUNTEER")
+	cookieToken := seedSession(t, email, volID, "VOLUNTEER", "prec-cookie-"+email)
+
+	// Build a request with BOTH a valid cookie and a bogus Bearer token.
+	body := map[string]any{"query": queryLookupValues}
+	b, _ := json.Marshal(body)
+	req, _ := http.NewRequest(http.MethodPost, testServer.URL+"/graphql/volunteer", bytes.NewReader(b))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer bogus-token-that-does-not-exist")
+	req.AddCookie(&http.Cookie{Name: "session", Value: cookieToken})
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	var result gqlResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+
+	if hasGQLErrors(result) {
+		t.Errorf("expected cookie to take precedence over bogus Bearer, got errors: %v", result.Errors)
 	}
 }

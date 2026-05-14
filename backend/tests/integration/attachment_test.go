@@ -117,8 +117,14 @@ const (
 		attachFileToFeedback(feedbackId: $feedbackId, file: $file) { success message id }
 	}`
 
-	qryGetAttachment = `query GetAttachment($attachmentId: ID!) {
-		attachment(attachmentId: $attachmentId) { filename mimeType data }
+	// ownAttachment is the volunteer query — server enforces ownership.
+	qryOwnAttachment = `query OwnAttachment($id: Int!) {
+		ownAttachment(attachmentId: $id) { filename mimeType data }
+	}`
+
+	// attachment is the admin-only query — no ownership check.
+	qryAdminAttachment = `query AdminAttachment($id: Int!) {
+		attachment(attachmentId: $id) { filename mimeType data }
 	}`
 )
 
@@ -246,44 +252,52 @@ func TestAttachFileToFeedback_TooLarge(t *testing.T) {
 	}
 }
 
-// TestGetAttachment verifies that an attached file can be retrieved as a
-// Base64-encoded string via the getAttachment query.
-func TestGetAttachment(t *testing.T) {
-	token, volID := makeVolunteer(t)
-	feedbackID := seedFeedback(t, volID)
-
-	content := []byte("hello attachment")
-
-	// Attach the file first.
-	attachResp := gqlFilePost(
+// attachFile is a test helper that uploads a file to a feedback item and
+// returns the attachment ID.
+func attachFile(t *testing.T, volToken string, feedbackID int, filename, mimeType string, content []byte) int {
+	t.Helper()
+	resp := gqlFilePost(
 		t,
 		"/graphql/volunteer",
-		token,
+		volToken,
 		mutAttachFile,
 		map[string]any{"feedbackId": fmt.Sprintf("%d", feedbackID)},
-		"note.txt",
-		"text/plain",
+		filename,
+		mimeType,
 		content,
 	)
-	if hasGQLErrors(attachResp) {
-		t.Fatalf("attach: unexpected GQL errors: %v", attachResp.Errors)
+	if hasGQLErrors(resp) {
+		t.Fatalf("attachFile: unexpected GQL errors: %v", resp.Errors)
 	}
-	var attachResult mutationResult
-	unmarshalField(t, attachResp, "attachFileToFeedback", &attachResult)
-	if !attachResult.Success || attachResult.ID == nil {
-		t.Fatalf("attach failed: success=%v message=%v", attachResult.Success, attachResult.Message)
+	var result mutationResult
+	unmarshalField(t, resp, "attachFileToFeedback", &result)
+	if !result.Success || result.ID == nil {
+		t.Fatalf("attachFile: failed: success=%v message=%v", result.Success, result.Message)
 	}
+	id, err := strconv.Atoi(*result.ID)
+	if err != nil {
+		t.Fatalf("attachFile: non-numeric id %q: %v", *result.ID, err)
+	}
+	return id
+}
 
-	// Now retrieve it.
-	getResp := gqlPost(t, "/graphql/volunteer", token, qryGetAttachment, map[string]any{
-		"attachmentId": *attachResult.ID,
+// TestOwnAttachment_HappyPath verifies that a volunteer can retrieve their own
+// attachment via ownAttachment and gets correct metadata + Base64 content.
+func TestOwnAttachment_HappyPath(t *testing.T) {
+	token, volID := makeVolunteer(t)
+	feedbackID := seedFeedback(t, volID)
+	content := []byte("hello attachment")
+	attachmentID := attachFile(t, token, feedbackID, "note.txt", "text/plain", content)
+
+	resp := gqlPost(t, "/graphql/volunteer", token, qryOwnAttachment, map[string]any{
+		"id": attachmentID,
 	})
-	if hasGQLErrors(getResp) {
-		t.Fatalf("getAttachment: unexpected GQL errors: %v", getResp.Errors)
+	if hasGQLErrors(resp) {
+		t.Fatalf("unexpected GQL errors: %v", resp.Errors)
 	}
 
 	var dl attachmentDownloadResult
-	unmarshalField(t, getResp, "attachment", &dl)
+	unmarshalField(t, resp, "ownAttachment", &dl)
 
 	if dl.Filename != "note.txt" {
 		t.Errorf("expected filename=%q, got %q", "note.txt", dl.Filename)
@@ -292,6 +306,112 @@ func TestGetAttachment(t *testing.T) {
 		t.Errorf("expected mimeType=%q, got %q", "text/plain", dl.MimeType)
 	}
 	if dl.Data == "" {
-		t.Error("expected non-empty Base64 data in getAttachment response")
+		t.Error("expected non-empty Base64 data")
+	}
+}
+
+// TestOwnAttachment_CrossVolunteer verifies that a volunteer cannot download
+// an attachment belonging to a different volunteer's feedback.
+func TestOwnAttachment_CrossVolunteer(t *testing.T) {
+	ownerToken, ownerID := makeVolunteer(t)
+	otherToken, _ := makeVolunteer(t)
+
+	feedbackID := seedFeedback(t, ownerID)
+	attachmentID := attachFile(t, ownerToken, feedbackID, "secret.txt", "text/plain", []byte("secret"))
+
+	// The other volunteer tries to fetch it.
+	resp := gqlPost(t, "/graphql/volunteer", otherToken, qryOwnAttachment, map[string]any{
+		"id": attachmentID,
+	})
+
+	// Should get a GQL error (unauthorized).
+	if !hasGQLErrors(resp) {
+		t.Error("expected a GQL error when a volunteer fetches another's attachment, got none")
+	}
+}
+
+// TestAdminAttachment_AnyFeedback verifies that an administrator can retrieve
+// any attachment regardless of which volunteer submitted the feedback.
+func TestAdminAttachment_AnyFeedback(t *testing.T) {
+	volToken, volID := makeVolunteer(t)
+	adminToken, _ := makeAdmin(t)
+
+	feedbackID := seedFeedback(t, volID)
+	attachmentID := attachFile(t, volToken, feedbackID, "report.txt", "text/plain", []byte("data"))
+
+	resp := gqlPost(t, "/graphql/admin", adminToken, qryAdminAttachment, map[string]any{
+		"id": attachmentID,
+	})
+	if hasGQLErrors(resp) {
+		t.Fatalf("admin fetch: unexpected GQL errors: %v", resp.Errors)
+	}
+
+	var dl attachmentDownloadResult
+	unmarshalField(t, resp, "attachment", &dl)
+
+	if dl.Filename != "report.txt" {
+		t.Errorf("expected filename=%q, got %q", "report.txt", dl.Filename)
+	}
+	if dl.Data == "" {
+		t.Error("expected non-empty Base64 data from admin fetch")
+	}
+}
+
+// TestAttachFile_DisallowedMIMEType verifies that the server rejects a file
+// whose MIME type is not on the allowlist (e.g. application/javascript).
+func TestAttachFile_DisallowedMIMEType(t *testing.T) {
+	token, volID := makeVolunteer(t)
+	feedbackID := seedFeedback(t, volID)
+
+	resp := gqlFilePost(
+		t,
+		"/graphql/volunteer",
+		token,
+		mutAttachFile,
+		map[string]any{"feedbackId": fmt.Sprintf("%d", feedbackID)},
+		"script.js",
+		"application/javascript",
+		[]byte(`alert("xss")`),
+	)
+	if hasGQLErrors(resp) {
+		t.Fatalf("unexpected GQL errors: %v", resp.Errors)
+	}
+
+	var result mutationResult
+	unmarshalField(t, resp, "attachFileToFeedback", &result)
+
+	if result.Success {
+		t.Error("expected success=false for disallowed MIME type, got true")
+	}
+}
+
+// TestAttachFile_ContentMismatch verifies that the server rejects a file whose
+// actual byte content does not match the declared MIME type. The service uses
+// http.DetectContentType to sniff the real type regardless of the header.
+func TestAttachFile_ContentMismatch(t *testing.T) {
+	token, volID := makeVolunteer(t)
+	feedbackID := seedFeedback(t, volID)
+
+	// Declare image/png but send plain text bytes — DetectContentType will
+	// identify this as text/plain; charset=utf-8, not image/png.
+	resp := gqlFilePost(
+		t,
+		"/graphql/volunteer",
+		token,
+		mutAttachFile,
+		map[string]any{"feedbackId": fmt.Sprintf("%d", feedbackID)},
+		"notapng.png",
+		"image/png",
+		[]byte("this is definitely not a PNG"),
+	)
+	if hasGQLErrors(resp) {
+		t.Fatalf("unexpected GQL errors: %v", resp.Errors)
+	}
+
+	var result mutationResult
+	unmarshalField(t, resp, "attachFileToFeedback", &result)
+
+	if result.Success {
+		t.Error("expected success=false for MIME type mismatch, got true")
 	}
 }

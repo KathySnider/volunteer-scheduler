@@ -59,10 +59,19 @@ func (s *FeedbackService) AttachFileToFeedback(ctx context.Context, feedbackID i
 	detected := http.DetectContentType(data)
 	// DetectContentType can return "image/jpeg; charset=..." so strip params
 	detected = strings.SplitN(detected, ";", 2)[0]
+	detected = strings.TrimSpace(detected)
 	if !allowedMIMETypes[detected] {
 		return &models.MutationResult{
 			Success: false,
 			Message: ptrString("File type not allowed."),
+		}, nil
+	}
+	// Sniffed type must also match what the client declared — prevents
+	// uploading a text file disguised as image/png, etc.
+	if detected != mimeType {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("File content does not match the declared type."),
 		}, nil
 	}
 

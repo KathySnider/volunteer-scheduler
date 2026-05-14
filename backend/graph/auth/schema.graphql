@@ -9,7 +9,7 @@ type Mutation {
   requestMagicLink(email: String!): MagicLinkResult!
   consumeMagicLink(token: String!): AuthResult!
   requestAccount(email: String!, firstName: String!, lastName: String!): RequestResult!
-  logout(token: String!): LogoutResult!
+  logout: LogoutResult!
 }
 
 type MagicLinkResult {
@@ -22,7 +22,6 @@ type AuthResult {
   success: Boolean!
   message: String!
   email: String
-  sessionToken: String
 }
 
 type RequestResult {

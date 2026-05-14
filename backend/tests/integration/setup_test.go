@@ -109,6 +109,7 @@ func TestMain(m *testing.M) {
 	// -------------------------------------------------------------------------
 	authResolver := &auth.Resolver{
 		MagicLinkService: magicLinkService,
+		IsProd:           false, // tests run over plain HTTP; no Secure flag on cookies
 	}
 	volunteerResolver := &volunteer.Resolver{
 		DB:               db,
@@ -143,7 +144,9 @@ func TestMain(m *testing.M) {
 	}))
 
 	mux := http.NewServeMux()
-	mux.Handle("/graphql/auth", authSrv)
+	// Auth endpoint: inject ResponseWriter+Request so login/logout can set/clear cookies.
+	mux.Handle("/graphql/auth", middleware.WithHTTPContext(authSrv))
+	// Authenticated endpoints: RequireAuth already injects ResponseWriter+Request.
 	mux.Handle("/graphql/volunteer", middleware.RequireAuth(magicLinkService, volunteerSrv))
 	mux.Handle("/graphql/admin", middleware.RequireAdmin(magicLinkService, adminSrv))
 

@@ -46,10 +46,9 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	AuthResult struct {
-		Email        func(childComplexity int) int
-		Message      func(childComplexity int) int
-		SessionToken func(childComplexity int) int
-		Success      func(childComplexity int) int
+		Email   func(childComplexity int) int
+		Message func(childComplexity int) int
+		Success func(childComplexity int) int
 	}
 
 	LogoutResult struct {
@@ -64,7 +63,7 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		ConsumeMagicLink func(childComplexity int, token string) int
-		Logout           func(childComplexity int, token string) int
+		Logout           func(childComplexity int) int
 		RequestAccount   func(childComplexity int, email string, firstName string, lastName string) int
 		RequestMagicLink func(childComplexity int, email string) int
 	}
@@ -83,7 +82,7 @@ type MutationResolver interface {
 	RequestMagicLink(ctx context.Context, email string) (*MagicLinkResult, error)
 	ConsumeMagicLink(ctx context.Context, token string) (*AuthResult, error)
 	RequestAccount(ctx context.Context, email string, firstName string, lastName string) (*RequestResult, error)
-	Logout(ctx context.Context, token string) (*LogoutResult, error)
+	Logout(ctx context.Context) (*LogoutResult, error)
 }
 type QueryResolver interface {
 	AuthHealthCheck(ctx context.Context) (*bool, error)
@@ -120,12 +119,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.AuthResult.Message(childComplexity), true
-	case "AuthResult.sessionToken":
-		if e.complexity.AuthResult.SessionToken == nil {
-			break
-		}
-
-		return e.complexity.AuthResult.SessionToken(childComplexity), true
 	case "AuthResult.success":
 		if e.complexity.AuthResult.Success == nil {
 			break
@@ -175,12 +168,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			break
 		}
 
-		args, err := ec.field_Mutation_logout_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.Logout(childComplexity, args["token"].(string)), true
+		return e.complexity.Mutation.Logout(childComplexity), true
 	case "Mutation.requestAccount":
 		if e.complexity.Mutation.RequestAccount == nil {
 			break
@@ -339,7 +327,7 @@ type Mutation {
   requestMagicLink(email: String!): MagicLinkResult!
   consumeMagicLink(token: String!): AuthResult!
   requestAccount(email: String!, firstName: String!, lastName: String!): RequestResult!
-  logout(token: String!): LogoutResult!
+  logout: LogoutResult!
 }
 
 type MagicLinkResult {
@@ -352,7 +340,6 @@ type AuthResult {
   success: Boolean!
   message: String!
   email: String
-  sessionToken: String
 }
 
 type RequestResult {
@@ -372,17 +359,6 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // region    ***************************** args.gotpl *****************************
 
 func (ec *executionContext) field_Mutation_consumeMagicLink_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "token", ec.unmarshalNString2string)
-	if err != nil {
-		return nil, err
-	}
-	args["token"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_logout_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "token", ec.unmarshalNString2string)
@@ -563,35 +539,6 @@ func (ec *executionContext) _AuthResult_email(ctx context.Context, field graphql
 }
 
 func (ec *executionContext) fieldContext_AuthResult_email(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthResult",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthResult_sessionToken(ctx context.Context, field graphql.CollectedField, obj *AuthResult) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_AuthResult_sessionToken,
-		func(ctx context.Context) (any, error) {
-			return obj.SessionToken, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_AuthResult_sessionToken(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "AuthResult",
 		Field:      field,
@@ -800,8 +747,6 @@ func (ec *executionContext) fieldContext_Mutation_consumeMagicLink(ctx context.C
 				return ec.fieldContext_AuthResult_message(ctx, field)
 			case "email":
 				return ec.fieldContext_AuthResult_email(ctx, field)
-			case "sessionToken":
-				return ec.fieldContext_AuthResult_sessionToken(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResult", field.Name)
 		},
@@ -874,8 +819,7 @@ func (ec *executionContext) _Mutation_logout(ctx context.Context, field graphql.
 		field,
 		ec.fieldContext_Mutation_logout,
 		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().Logout(ctx, fc.Args["token"].(string))
+			return ec.resolvers.Mutation().Logout(ctx)
 		},
 		nil,
 		ec.marshalNLogoutResult2ᚖvolunteerᚑschedulerᚋgraphᚋauthᚋgeneratedᚐLogoutResult,
@@ -884,7 +828,7 @@ func (ec *executionContext) _Mutation_logout(ctx context.Context, field graphql.
 	)
 }
 
-func (ec *executionContext) fieldContext_Mutation_logout(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_logout(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -897,17 +841,6 @@ func (ec *executionContext) fieldContext_Mutation_logout(ctx context.Context, fi
 			}
 			return nil, fmt.Errorf("no field named %q was found under type LogoutResult", field.Name)
 		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_logout_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
 	}
 	return fc, nil
 }
@@ -2584,8 +2517,6 @@ func (ec *executionContext) _AuthResult(ctx context.Context, sel ast.SelectionSe
 			}
 		case "email":
 			out.Values[i] = ec._AuthResult_email(ctx, field, obj)
-		case "sessionToken":
-			out.Values[i] = ec._AuthResult_sessionToken(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

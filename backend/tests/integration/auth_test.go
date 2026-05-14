@@ -24,16 +24,11 @@ const mutConsumeMagicLink = `
 			success
 			message
 			email
-			sessionToken
 		}
 	}`
 
-const mutLogout = `
-	mutation Logout($token: String!) {
-		logout(token: $token) {
-			success
-		}
-	}`
+// mutLogout sends no token — the server reads it from the session cookie.
+const mutLogout = `mutation { logout { success } }`
 
 // ============================================================================
 // requestMagicLink
@@ -157,8 +152,8 @@ func TestRequestMagicLink_RateLimit(t *testing.T) {
 // consumeMagicLink
 // ============================================================================
 
-// TestConsumeMagicLink_Valid verifies the full happy path: a valid token
-// produces a session token and marks the magic link as used.
+// TestConsumeMagicLink_Valid verifies the full happy path: a valid token sets
+// an HttpOnly session cookie and marks the magic link as used.
 func TestConsumeMagicLink_Valid(t *testing.T) {
 	email := uniqueEmail(t)
 	seedVolunteer(t, email, "Alice", "Test", "VOLUNTEER")
@@ -166,7 +161,7 @@ func TestConsumeMagicLink_Valid(t *testing.T) {
 	token := "valid-token-" + email
 	seedMagicLink(t, email, token, time.Now().Add(15*time.Minute))
 
-	resp := gqlPost(t, "/graphql/auth", "", mutConsumeMagicLink, map[string]any{
+	resp, cookies := gqlPostFull(t, "/graphql/auth", "", mutConsumeMagicLink, map[string]any{
 		"token": token,
 	})
 
@@ -175,18 +170,14 @@ func TestConsumeMagicLink_Valid(t *testing.T) {
 	}
 
 	var result struct {
-		Success      bool   `json:"success"`
-		Message      string `json:"message"`
-		Email        string `json:"email"`
-		SessionToken string `json:"sessionToken"`
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+		Email   string `json:"email"`
 	}
 	unmarshalField(t, resp, "consumeMagicLink", &result)
 
 	if !result.Success {
 		t.Fatalf("expected success=true, got false; message: %s", result.Message)
-	}
-	if result.SessionToken == "" {
-		t.Error("expected a session token, got empty string")
 	}
 	if result.Email != email {
 		t.Errorf("expected email=%q, got %q", email, result.Email)
@@ -197,9 +188,56 @@ func TestConsumeMagicLink_Valid(t *testing.T) {
 		t.Error("expected magic link to be marked used, but it was not")
 	}
 
-	// A session should exist in the DB.
-	if !sessionExists(t, result.SessionToken) {
-		t.Error("expected session to exist in DB, but it does not")
+	// The response must set a session cookie.
+	sessionCookie := findCookie(cookies, "session")
+	if sessionCookie == nil {
+		t.Fatal("expected a Set-Cookie: session header in the login response")
+	}
+	if sessionCookie.Value == "" {
+		t.Error("session cookie value must not be empty")
+	}
+	if !sessionCookie.HttpOnly {
+		t.Error("session cookie must have HttpOnly attribute")
+	}
+
+	// A session should exist in the DB for that cookie value.
+	if !sessionExists(t, sessionCookie.Value) {
+		t.Error("expected session row in DB matching the cookie value")
+	}
+}
+
+// TestConsumeMagicLink_SessionExpiry verifies that the session created on
+// login has an expires_at matching SESSION_MAX_AGE (86400 s in tests).
+func TestConsumeMagicLink_SessionExpiry(t *testing.T) {
+	email := uniqueEmail(t)
+	seedVolunteer(t, email, "Expiry", "Test", "VOLUNTEER")
+
+	mlToken := "expiry-token-" + email
+	seedMagicLink(t, email, mlToken, time.Now().Add(15*time.Minute))
+
+	_, cookies := gqlPostFull(t, "/graphql/auth", "", mutConsumeMagicLink, map[string]any{
+		"token": mlToken,
+	})
+
+	sessionCookie := findCookie(cookies, "session")
+	if sessionCookie == nil {
+		t.Fatal("no session cookie set")
+	}
+
+	// Check the DB row's expires_at is roughly SESSION_MAX_AGE seconds away.
+	// The DB stores the SHA-256 hash of the token, so hash before querying.
+	var secondsRemaining float64
+	err := testDB.QueryRow(
+		`SELECT EXTRACT(EPOCH FROM (expires_at - NOW())) FROM sessions WHERE token = $1`,
+		hashSessionToken(sessionCookie.Value),
+	).Scan(&secondsRemaining)
+	if err != nil {
+		t.Fatalf("could not query session expiry: %v", err)
+	}
+
+	const sessionMaxAge = 86400 // matches SESSION_MAX_AGE env var in setup_test.go
+	if secondsRemaining < float64(sessionMaxAge)-60 || secondsRemaining > float64(sessionMaxAge)+60 {
+		t.Errorf("expected session to expire in ~%d seconds, got %.0f", sessionMaxAge, secondsRemaining)
 	}
 }
 
@@ -282,15 +320,15 @@ func TestConsumeMagicLink_AlreadyUsed(t *testing.T) {
 // logout
 // ============================================================================
 
-// TestLogout_Valid verifies that logging out deletes the session.
+// TestLogout_Valid verifies that logging out via cookie deletes the session
+// and returns a Set-Cookie that clears the browser cookie.
 func TestLogout_Valid(t *testing.T) {
 	email := uniqueEmail(t)
 	volID := seedVolunteer(t, email, "Dave", "Test", "VOLUNTEER")
-	token := seedSession(t, email, volID, "VOLUNTEER", "logout-test-token-"+email)
+	sessionToken := seedSession(t, email, volID, "VOLUNTEER", "logout-test-token-"+email)
 
-	resp := gqlPost(t, "/graphql/auth", "", mutLogout, map[string]any{
-		"token": token,
-	})
+	// Send the logout mutation with the session token in the Cookie header.
+	resp, cookies := gqlPostFullCookie(t, "/graphql/auth", sessionToken, mutLogout, nil)
 
 	if hasGQLErrors(resp) {
 		t.Fatalf("unexpected GraphQL errors: %v", resp.Errors)
@@ -305,9 +343,19 @@ func TestLogout_Valid(t *testing.T) {
 		t.Error("expected logout success=true, got false")
 	}
 
-	// Session should no longer exist.
-	if sessionExists(t, token) {
+	// Session should no longer exist in the DB.
+	if sessionExists(t, sessionToken) {
 		t.Error("expected session to be deleted after logout, but it still exists")
+	}
+
+	// The response should clear the session cookie.
+	cleared := findCookie(cookies, "session")
+	if cleared == nil {
+		t.Fatal("expected a Set-Cookie: session header clearing the cookie")
+	}
+	if cleared.MaxAge >= 0 && cleared.Expires.After(time.Now()) {
+		t.Errorf("expected cookie to be cleared (MaxAge<0 or past Expires), got MaxAge=%d Expires=%v",
+			cleared.MaxAge, cleared.Expires)
 	}
 }
 
@@ -411,12 +459,11 @@ func TestRequestAccount_NoAdmins(t *testing.T) {
 	}
 }
 
-// TestLogout_UnknownToken verifies that logging out with a non-existent token
-// does not error — it's a no-op from the user's perspective.
-func TestLogout_UnknownToken(t *testing.T) {
-	resp := gqlPost(t, "/graphql/auth", "", mutLogout, map[string]any{
-		"token": "token-that-never-existed",
-	})
+// TestLogout_UnknownCookie verifies that logging out with a non-existent
+// session cookie value is a no-op — it returns success and clears the cookie
+// without erroring.
+func TestLogout_UnknownCookie(t *testing.T) {
+	resp, cookies := gqlPostFullCookie(t, "/graphql/auth", "cookie-that-never-existed", mutLogout, nil)
 
 	if hasGQLErrors(resp) {
 		t.Fatalf("unexpected GraphQL errors: %v", resp.Errors)
@@ -427,8 +474,32 @@ func TestLogout_UnknownToken(t *testing.T) {
 	}
 	unmarshalField(t, resp, "logout", &result)
 
-	// Deleting a non-existent session is not an error.
 	if !result.Success {
-		t.Error("expected logout of unknown token to return success=true, got false")
+		t.Error("expected logout of unknown cookie to return success=true, got false")
+	}
+
+	// Cookie should still be cleared even though the session didn't exist.
+	cleared := findCookie(cookies, "session")
+	if cleared == nil {
+		t.Fatal("expected Set-Cookie clearing header even for unknown session")
+	}
+}
+
+// TestLogout_NoCookie verifies that calling logout with no cookie at all
+// still returns success (best-effort).
+func TestLogout_NoCookie(t *testing.T) {
+	resp := gqlPost(t, "/graphql/auth", "", mutLogout, nil)
+
+	if hasGQLErrors(resp) {
+		t.Fatalf("unexpected GraphQL errors: %v", resp.Errors)
+	}
+
+	var result struct {
+		Success bool `json:"success"`
+	}
+	unmarshalField(t, resp, "logout", &result)
+
+	if !result.Success {
+		t.Error("expected logout with no cookie to return success=true")
 	}
 }

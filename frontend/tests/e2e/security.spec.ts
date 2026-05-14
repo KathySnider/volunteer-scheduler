@@ -144,6 +144,18 @@ test.describe("Auth guard uses sessionActive, not authToken", () => {
     expect(page.url()).toContain("/login");
   });
 
+  test("unauthenticated request to admin route is redirected to /login by middleware", async ({
+    page,
+  }) => {
+    // No session cookie, no localStorage — middleware fires before any page renders.
+    await page.goto("/login");
+    await page.evaluate(() => localStorage.clear());
+
+    await page.goto("/admin/events");
+    await page.waitForURL("**/login", { timeout: 5_000 });
+    expect(page.url()).toContain("/login");
+  });
+
   test("admin page rejects volunteer cookie", async ({ volunteerPage }) => {
     // A volunteer's session cookie must not allow access to admin pages.
     // The page code checks authRole and redirects non-admins to /events.

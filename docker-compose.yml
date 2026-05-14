@@ -88,6 +88,11 @@ services:
       NEXT_PUBLIC_GRAPHQL_AUTH_URL: ${NEXT_PUBLIC_GRAPHQL_AUTH_URL:-http://localhost:8080/graphql/auth}
       NEXT_PUBLIC_GRAPHQL_VOLUNTEER_URL: ${NEXT_PUBLIC_GRAPHQL_VOLUNTEER_URL:-http://localhost:8080/graphql/volunteer}
       NEXT_PUBLIC_GRAPHQL_ADMIN_URL: ${NEXT_PUBLIC_GRAPHQL_ADMIN_URL:-http://localhost:8080/graphql/admin}
+      # Server-side URL for Next.js middleware — uses the internal Docker network
+      # name "api" rather than localhost (which resolves to the frontend container).
+      # Override this in production with your internal service URL (e.g. Railway
+      # private networking) to avoid the public internet hop.
+      GRAPHQL_VOLUNTEER_URL: ${GRAPHQL_VOLUNTEER_URL:-http://api:8080/graphql/volunteer}
     ports:
       - "3000:3000"
     depends_on:

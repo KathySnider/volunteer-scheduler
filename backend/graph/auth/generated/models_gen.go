@@ -3,10 +3,9 @@
 package generated
 
 type AuthResult struct {
-	Success      bool    `json:"success"`
-	Message      string  `json:"message"`
-	Email        *string `json:"email,omitempty"`
-	SessionToken *string `json:"sessionToken,omitempty"`
+	Success bool    `json:"success"`
+	Message string  `json:"message"`
+	Email   *string `json:"email,omitempty"`
 }
 
 type LogoutResult struct {

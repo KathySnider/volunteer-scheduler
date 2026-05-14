@@ -2,6 +2,8 @@ package integration
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +11,15 @@ import (
 	"testing"
 	"time"
 )
+
+// hashSessionToken computes the SHA-256 hash of the token string, matching
+// the storage representation used by CreateSessionToken, ValidateSessionToken,
+// and Logout in auth_magiclink.go.  The DB always stores the hash; callers
+// pass the raw (plaintext) token as cookie / Bearer value.
+func hashSessionToken(token string) string {
+	h := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(h[:])
+}
 
 // ============================================================================
 // GraphQL request helper
@@ -68,6 +79,141 @@ func gqlPost(t *testing.T, path, token, query string, variables map[string]any) 
 // hasGQLErrors returns true if the response contains any GraphQL errors.
 func hasGQLErrors(r gqlResponse) bool {
 	return len(r.Errors) > 0
+}
+
+// gqlPostFull sends a GraphQL POST and returns both the parsed response and
+// any Set-Cookie headers from the response. Use it when a test needs to
+// inspect cookies set by the server (e.g. after login or logout).
+func gqlPostFull(t *testing.T, path, token, query string, variables map[string]any) (gqlResponse, []*http.Cookie) {
+	t.Helper()
+
+	body := map[string]any{"query": query}
+	if variables != nil {
+		body["variables"] = variables
+	}
+	b, err := json.Marshal(body)
+	if err != nil {
+		t.Fatalf("gqlPostFull: marshal request: %v", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, testServer.URL+path, bytes.NewReader(b))
+	if err != nil {
+		t.Fatalf("gqlPostFull: create request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("gqlPostFull: do request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("gqlPostFull: read response: %v", err)
+	}
+
+	var result gqlResponse
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		t.Fatalf("gqlPostFull: unmarshal response: %v\nbody: %s", err, respBytes)
+	}
+	return result, resp.Cookies()
+}
+
+// gqlPostCookie sends a GraphQL POST with an HttpOnly session cookie instead
+// of an Authorization header. Use it to test cookie-based authentication.
+func gqlPostCookie(t *testing.T, path, cookieValue, query string, variables map[string]any) gqlResponse {
+	t.Helper()
+
+	body := map[string]any{"query": query}
+	if variables != nil {
+		body["variables"] = variables
+	}
+	b, err := json.Marshal(body)
+	if err != nil {
+		t.Fatalf("gqlPostCookie: marshal request: %v", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, testServer.URL+path, bytes.NewReader(b))
+	if err != nil {
+		t.Fatalf("gqlPostCookie: create request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if cookieValue != "" {
+		req.AddCookie(&http.Cookie{Name: "session", Value: cookieValue})
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("gqlPostCookie: do request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("gqlPostCookie: read response: %v", err)
+	}
+
+	var result gqlResponse
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		t.Fatalf("gqlPostCookie: unmarshal response: %v\nbody: %s", err, respBytes)
+	}
+	return result
+}
+
+// gqlPostFullCookie sends a GraphQL POST with a session cookie and returns
+// both the parsed response and any Set-Cookie headers. Use it for logout tests
+// where you need to send a cookie AND inspect the clearing Set-Cookie response.
+func gqlPostFullCookie(t *testing.T, path, cookieValue, query string, variables map[string]any) (gqlResponse, []*http.Cookie) {
+	t.Helper()
+
+	body := map[string]any{"query": query}
+	if variables != nil {
+		body["variables"] = variables
+	}
+	b, err := json.Marshal(body)
+	if err != nil {
+		t.Fatalf("gqlPostFullCookie: marshal request: %v", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, testServer.URL+path, bytes.NewReader(b))
+	if err != nil {
+		t.Fatalf("gqlPostFullCookie: create request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if cookieValue != "" {
+		req.AddCookie(&http.Cookie{Name: "session", Value: cookieValue})
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("gqlPostFullCookie: do request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("gqlPostFullCookie: read response: %v", err)
+	}
+
+	var result gqlResponse
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		t.Fatalf("gqlPostFullCookie: unmarshal response: %v\nbody: %s", err, respBytes)
+	}
+	return result, resp.Cookies()
+}
+
+// findCookie returns the named cookie from a Set-Cookie response, or nil.
+func findCookie(cookies []*http.Cookie, name string) *http.Cookie {
+	for _, c := range cookies {
+		if c.Name == name {
+			return c
+		}
+	}
+	return nil
 }
 
 // unmarshalField parses a named field from gqlResponse.Data into dest.
@@ -141,45 +287,57 @@ func seedMagicLink(t *testing.T, email, token string, expiresAt time.Time) {
 	})
 }
 
-// seedSession inserts a session token directly into the DB and returns the token.
+// seedSession inserts a session token directly into the DB and returns the
+// plaintext token.  The DB stores the SHA-256 hash of the token (matching
+// what CreateSessionToken does), while the plaintext is used by callers as
+// a cookie / Bearer value.
 // email must match the volunteer's email — the sessions table has a NOT NULL
 // unique constraint on email.
 func seedSession(t *testing.T, email string, volunteerID int, role, token string) string {
 	t.Helper()
+	hashed := hashSessionToken(token)
 	_, err := testDB.Exec(`
 		INSERT INTO sessions (email, volunteer_id, role, token, created_at, expires_at)
 		VALUES ($1, $2, $3, $4, NOW(), NOW() + INTERVAL '1 day')
-	`, email, volunteerID, role, token)
+	`, email, volunteerID, role, hashed)
 	if err != nil {
 		t.Fatalf("seedSession: %v", err)
 	}
 	t.Cleanup(func() {
-		testDB.Exec("DELETE FROM sessions WHERE token = $1", token)
+		testDB.Exec("DELETE FROM sessions WHERE token = $1", hashed)
 	})
-	return token
+	return token // return plaintext; caller sends this as cookie/Bearer
 }
 
 // seedExpiredSession inserts an already-expired session token into the DB.
+// The DB stores the SHA-256 hash; the plaintext token is returned for use
+// as a cookie / Bearer value in tests.
 func seedExpiredSession(t *testing.T, email string, volunteerID int, role, token string) string {
 	t.Helper()
+	hashed := hashSessionToken(token)
 	_, err := testDB.Exec(`
 		INSERT INTO sessions (email, volunteer_id, role, token, created_at, expires_at)
 		VALUES ($1, $2, $3, $4, NOW() - INTERVAL '2 days', NOW() - INTERVAL '1 day')
-	`, email, volunteerID, role, token)
+	`, email, volunteerID, role, hashed)
 	if err != nil {
 		t.Fatalf("seedExpiredSession: %v", err)
 	}
 	t.Cleanup(func() {
-		testDB.Exec("DELETE FROM sessions WHERE token = $1", token)
+		testDB.Exec("DELETE FROM sessions WHERE token = $1", hashed)
 	})
-	return token
+	return token // return plaintext; caller sends this as cookie/Bearer
 }
 
-// sessionExists returns true if a session with the given token exists in the DB.
+// sessionExists returns true if a session for the given plaintext token exists
+// in the DB.  It hashes the token before querying because the DB stores only
+// the SHA-256 hash (matching ValidateSessionToken / Logout behaviour).
 func sessionExists(t *testing.T, token string) bool {
 	t.Helper()
 	var count int
-	err := testDB.QueryRow("SELECT COUNT(*) FROM sessions WHERE token = $1", token).Scan(&count)
+	err := testDB.QueryRow(
+		"SELECT COUNT(*) FROM sessions WHERE token = $1",
+		hashSessionToken(token),
+	).Scan(&count)
 	if err != nil {
 		t.Fatalf("sessionExists: %v", err)
 	}
