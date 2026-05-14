@@ -11,11 +11,22 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
+	"net/http"
 	"strconv"
+	"strings"
 	"volunteer-scheduler/models"
 )
 
 const maxAttachmentBytes = 5 * 1024 * 1024 // 5 MB
+
+var allowedMIMETypes = map[string]bool{
+	"image/png":       true,
+	"image/jpeg":      true,
+	"image/gif":       true,
+	"image/webp":      true,
+	"application/pdf": true,
+	"text/plain":      true,
+}
 
 // AttachFileToFeedback stores a binary file in the feedback_attachments table
 // and returns a MutationResult with the new attachment_id.
@@ -33,6 +44,25 @@ func (s *FeedbackService) AttachFileToFeedback(ctx context.Context, feedbackID i
 			Message: ptrString(fmt.Sprintf(
 				"File is too large (%d bytes). Maximum allowed size is 5 MB.", len(data),
 			)),
+		}, nil
+	}
+
+	// Check the client-supplied content type against the allowlist
+	if !allowedMIMETypes[mimeType] {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("File type not allowed."),
+		}, nil
+	}
+
+	// Also sniff the actual bytes — don't trust the client alone
+	detected := http.DetectContentType(data)
+	// DetectContentType can return "image/jpeg; charset=..." so strip params
+	detected = strings.SplitN(detected, ";", 2)[0]
+	if !allowedMIMETypes[detected] {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("File type not allowed."),
 		}, nil
 	}
 
