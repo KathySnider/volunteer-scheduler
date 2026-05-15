@@ -36,6 +36,16 @@ async function gqlFetch(url, query, variables) {
     body: JSON.stringify({ query, variables }),
   });
 
+  // 401 means the session has expired or is invalid.
+  // Clean up local state and redirect to login with an explanation.
+  if (response.status === 401) {
+    clearAuthToken();
+    if (typeof window !== "undefined") {
+      window.location.href = "/login?expired=1";
+    }
+    return null;
+  }
+
   if (!response.ok) {
     throw new Error(`Server returned HTTP ${response.status}`);
   }

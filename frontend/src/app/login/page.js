@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { authGql } from "../lib/api";
 import styles from "./login.module.css";
 
@@ -29,7 +30,11 @@ const REQUEST_ACCOUNT = `
 //            → (server error) enterEmail with errorMsg
 // enterEmail → requestForm → requestSent
 
-export default function LoginPage() {
+// Inner component — reads search params (requires Suspense boundary below).
+function LoginPageContent() {
+  const searchParams = useSearchParams();
+  const sessionExpired = searchParams.get("expired") === "1";
+
   const [stage, setStage] = useState("enterEmail");
 
   // Form values
@@ -98,6 +103,12 @@ export default function LoginPage() {
         <div className={styles.appTagline}>Volunteer event management</div>
       </div>
 
+      {sessionExpired && (
+        <div className={styles.expiredBanner}>
+          Your session has expired. Please sign in again.
+        </div>
+      )}
+
       <div className={styles.card}>
         {stage === "enterEmail" && (
           <EnterEmailStage
@@ -133,6 +144,15 @@ export default function LoginPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// Suspense wrapper required by Next.js App Router when using useSearchParams.
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageContent />
+    </Suspense>
   );
 }
 
