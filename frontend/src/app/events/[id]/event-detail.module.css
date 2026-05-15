@@ -203,12 +203,63 @@
   overflow: hidden;
 }
 
-/* Header row: job name left, volunteer count right */
+/* Header row: job name (non-accordion, plain div) */
 .jobCardHeader {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   padding: 1rem 1.25rem 0.75rem;
+}
+
+/* Header button (accordion mode — same layout, adds interactivity) */
+.jobCardHeaderBtn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 1rem 1.25rem 0.875rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  transition: background-color 0.12s;
+}
+
+.jobCardHeaderBtn:hover {
+  background-color: var(--color-surface-alt);
+}
+
+/* Chevron indicator — points right when collapsed, down when open */
+.chevron {
+  display: inline-block;
+  font-size: 1.1rem;
+  color: var(--color-text-muted);
+  transform: rotate(-90deg);
+  transition: transform 0.22s ease;
+  flex-shrink: 0;
+  line-height: 1;
+  margin-left: 0.75rem;
+}
+
+.chevronOpen {
+  transform: rotate(0deg);
+}
+
+/* ----- Accordion collapsible panel (CSS grid trick for smooth height) ----- */
+
+.shiftList {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease;
+}
+
+.shiftListOpen {
+  grid-template-rows: 1fr;
+}
+
+.shiftListInner {
+  overflow: hidden;
 }
 
 .jobName {

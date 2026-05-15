@@ -30,7 +30,8 @@
   --color-text:          #111827;
   --color-text-muted:    #6b7280;
   --color-text-subtle:   #9ca3af;
-  --color-border:        #e5e7eb;
+  --color-border:        #c1c7d0;
+  --color-border-input:  #c1c7d0;   /* input field border — separate token for easy future tuning */
   --color-border-focus:  #93c5fd;
   --color-bg:            #f7f8fc;
   --color-surface:       #ffffff;
@@ -47,8 +48,8 @@
   --radius-xl: 16px;
 
   /* Shadows */
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.06);
-  --shadow-card-hover: 0 2px 6px rgba(0, 0, 0, 0.10), 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.14), 0 4px 16px rgba(0, 0, 0, 0.10);
+  --shadow-card-hover: 0 2px 8px rgba(0, 0, 0, 0.18), 0 8px 24px rgba(0, 0, 0, 0.13);
 }
 
 /* ----- Base ----- */

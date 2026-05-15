@@ -316,6 +316,20 @@ func (s *EventService) CreateEvent(ctx context.Context, newEvent models.NewEvent
 		venueIdPtr = &venueInt
 	}
 
+	// The event dates and times need some checking:
+	//  * There must be at least one date.
+	//  * An event should not end before it starts.
+	//  * Each day's end time should not be before it's start time.
+	// Do this checking before we start a transaction and have to roll back.
+	if len(newEvent.EventDates) == 0 {
+		return nil, fmt.Errorf("There must be at least one event date.")
+	}
+	for i := 0; i < len(newEvent.EventDates); i++ {
+		if newEvent.EventDates[i].EndDateTime <= newEvent.EventDates[i].StartDateTime {
+			return nil, fmt.Errorf("End time must be after start time for each date.")
+		}
+	}
+
 	// Add the event and it's dates inside a transaction.
 
 	// Get a Tx for making transaction requests.
@@ -412,6 +426,14 @@ func (s *EventService) AddServiceTypesToEvent(ctx context.Context, tx *sql.Tx, e
 
 // This function is to add a startdate and enddate to an extant event.
 func (s *EventService) CreateEventDate(ctx context.Context, dates models.AddEventDateInput) (*models.MutationResult, error) {
+	if dates.EndDateTime <= dates.StartDateTime {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("End time must be after start time."),
+			ID:      nil,
+		}, fmt.Errorf("end time must be after start time")
+	}
+
 	var startUTC, endUTC *string
 	startUTC, err := DateTimeToUTC(dates.StartDateTime, dates.IanaZone)
 	if err == nil {
@@ -521,6 +543,14 @@ func (s *EventService) UpdateEvent(ctx context.Context, event models.UpdateEvent
 }
 
 func (s *EventService) UpdateEventDate(ctx context.Context, evDate models.UpdateEventDateInput) (*models.MutationResult, error) {
+	if evDate.EndDateTime <= evDate.StartDateTime {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("End time must be after start time."),
+			ID:      nil,
+		}, fmt.Errorf("end time must be after start time")
+	}
+
 	var startUTC, endUTC *string
 	startUTC, err := DateTimeToUTC(evDate.StartDateTime, evDate.IanaZone)
 	if err == nil {

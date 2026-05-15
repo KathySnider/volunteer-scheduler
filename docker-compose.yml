@@ -100,9 +100,9 @@ services:
       - volunteer-network
     restart: unless-stopped
 
-  # Mailpit — local email testing only (modern Mailhog replacement)
+  # Mailhog — local email testing only
   mailhog:
-    image: axllent/mailpit
+    image: mailhog/mailhog
     container_name: volunteer-mailhog
     ports:
       - "1025:1025"  # SMTP

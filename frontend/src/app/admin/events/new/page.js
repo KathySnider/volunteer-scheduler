@@ -102,6 +102,26 @@ function joinDT(d, t) {
   return `${d}T${t || "00:00"}`;
 }
 
+/**
+ * When an event's start datetime changes (date or time), shift the end
+ * datetime by the same delta to preserve the event's duration.
+ * Accepts and returns "YYYY-MM-DDTHH:MM" strings.
+ * Falls back to oldEnd unchanged if inputs are missing or the existing
+ * interval is already negative (already broken — don't make it worse).
+ */
+function eventEndDT(oldStart, oldEnd, newStart) {
+  if (!newStart || !oldStart || !oldEnd) return oldEnd ?? "";
+  const oldMs = new Date(oldStart).getTime();
+  const endMs = new Date(oldEnd).getTime();
+  const newMs = new Date(newStart).getTime();
+  if (isNaN(oldMs) || isNaN(endMs) || isNaN(newMs)) return oldEnd;
+  const gap = endMs - oldMs;
+  if (gap < 0) return oldEnd;
+  const r   = new Date(newMs + gap);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${r.getFullYear()}-${pad(r.getMonth() + 1)}-${pad(r.getDate())}T${pad(r.getHours())}:${pad(r.getMinutes())}`;
+}
+
 function to12Hour(hhmm) {
   if (!hhmm || !hhmm.includes(":")) return { display: hhmm, period: "AM" };
   let [h, m] = hhmm.split(":");
@@ -508,6 +528,22 @@ export default function AddEventPage() {
       prev.map((d) => (d.id === id ? { ...d, [field]: value } : d))
     );
 
+  /** Update startTime and shift endDate/endTime to preserve the duration. */
+  const updateDateStartTime = (id, dateObj, t24) => {
+    const newEnd = splitDT(eventEndDT(
+      joinDT(dateObj.startDate, dateObj.startTime),
+      joinDT(dateObj.endDate,   dateObj.endTime),
+      joinDT(dateObj.startDate, t24),
+    ));
+    setEventDates((prev) =>
+      prev.map((d) =>
+        d.id === id
+          ? { ...d, startTime: t24, endDate: newEnd.d || d.endDate, endTime: newEnd.t || t24 }
+          : d
+      )
+    );
+  };
+
   /* Validation */
   const validate = () => {
     const errs = {};
@@ -781,13 +817,13 @@ export default function AddEventPage() {
                           value24={d.startTime}
                           period={to12Hour(d.startTime).period}
                           className={`${styles.input} ${errors.dates?.[i] ? styles.error : ""}`}
-                          onCommit={(t24) => updateDate(d.id, "startTime", t24)}
+                          onCommit={(t24) => updateDateStartTime(d.id, d, t24)}
                         />
                         <select
                           className={styles.ampmSelect}
                           value={to12Hour(d.startTime).period}
                           onChange={(e) => {
-                            updateDate(d.id, "startTime", to24Hour(to12Hour(d.startTime).display, e.target.value));
+                            updateDateStartTime(d.id, d, to24Hour(to12Hour(d.startTime).display, e.target.value));
                           }}
                         >
                           <option>AM</option>

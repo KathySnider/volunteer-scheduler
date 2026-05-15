@@ -107,7 +107,7 @@
 
 .filterSelect {
   padding: 0.4375rem 0.75rem;
-  border: 1.5px solid var(--color-border);
+  border: 1.5px solid var(--color-border-input);
   border-radius: var(--radius-md);
   font-size: 0.9375rem;
   color: var(--color-text);

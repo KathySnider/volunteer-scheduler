@@ -174,6 +174,26 @@ function shiftEndTime(oldStart, oldEnd, newStart) {
   return fromMinutes(toMinutes(newStart) + interval);
 }
 
+/**
+ * When an event's start datetime changes (date or time), shift the end
+ * datetime by the same delta to preserve the event's duration.
+ * Accepts and returns "YYYY-MM-DDTHH:MM" strings.
+ * Falls back to oldEnd unchanged if inputs are missing or the existing
+ * interval is already negative (already broken — don't make it worse).
+ */
+function eventEndDT(oldStart, oldEnd, newStart) {
+  if (!newStart || !oldStart || !oldEnd) return oldEnd ?? "";
+  const oldMs = new Date(oldStart).getTime();
+  const endMs = new Date(oldEnd).getTime();
+  const newMs = new Date(newStart).getTime();
+  if (isNaN(oldMs) || isNaN(endMs) || isNaN(newMs)) return oldEnd;
+  const gap = endMs - oldMs;
+  if (gap < 0) return oldEnd;
+  const r   = new Date(newMs + gap);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${r.getFullYear()}-${pad(r.getMonth() + 1)}-${pad(r.getDate())}T${pad(r.getHours())}:${pad(r.getMinutes())}`;
+}
+
 /** Convert UTC ISO string to datetime-local value in a given IANA timezone. */
 function toDatetimeLocal(utcString, ianaZone) {
   if (!utcString) return "";
@@ -638,6 +658,15 @@ export default function AdminEventDetailPage() {
   };
 
   const handleSaveDate = async () => {
+    if (!editDateForm.start || !editDateForm.end) {
+      setEditDateError("Start and end are required.");
+      return;
+    }
+    if (editDateForm.end <= editDateForm.start) {
+      setEditDateError("End must be after start.");
+      return;
+    }
+    setEditDateError("");
     await mutate(
       UPDATE_EVENT_DATE,
       { date: {
@@ -657,6 +686,15 @@ export default function AdminEventDetailPage() {
   };
 
   const handleAddDate = async () => {
+    if (!addDateForm.start || !addDateForm.end) {
+      setAddDateError("Start and end are required.");
+      return;
+    }
+    if (addDateForm.end <= addDateForm.start) {
+      setAddDateError("End must be after start.");
+      return;
+    }
+    setAddDateError("");
     await mutate(
       CREATE_EVENT_DATE,
       { newDate: {
@@ -689,6 +727,10 @@ export default function AdminEventDetailPage() {
     if (!oppForm.jobId) { setAddOppError("Please select a job type."); return; }
     if (!oppForm.shiftStartDate || !oppForm.shiftEndDate) {
       setAddOppError("First shift start and end dates are required.");
+      return;
+    }
+    if (`${oppForm.shiftEndDate}T${oppForm.shiftEndTime}` <= `${oppForm.shiftStartDate}T${oppForm.shiftStartTime}`) {
+      setAddOppError("First shift end must be after start.");
       return;
     }
     if (!oppForm.shiftMaxVols) {
@@ -760,6 +802,10 @@ export default function AdminEventDetailPage() {
       setAddShiftError("Shift start and end dates are required.");
       return;
     }
+    if (`${addShiftForm.endDate}T${addShiftForm.endTime}` <= `${addShiftForm.startDate}T${addShiftForm.startTime}`) {
+      setAddShiftError("Shift end must be after start.");
+      return;
+    }
     if (!addShiftForm.maxVolunteers) {
       setAddShiftError("Max Volunteers is required.");
       return;
@@ -799,6 +845,10 @@ export default function AdminEventDetailPage() {
   };
 
   const handleSaveEditShift = async () => {
+    if (`${editShiftForm.endDate}T${editShiftForm.endTime}` <= `${editShiftForm.startDate}T${editShiftForm.startTime}`) {
+      setEditShiftError("Shift end must be after start.");
+      return;
+    }
     if (!editShiftForm.maxVolunteers) {
       setEditShiftError("Max Volunteers is required.");
       return;
@@ -1001,14 +1051,20 @@ export default function AdminEventDetailPage() {
                         <label className={styles.label}>Start Date</label>
                         <input type="date" className={styles.input}
                           value={splitDT(editDateForm.start).d}
-                          onChange={(e) => setEditDateForm((p) => ({ ...p, start: joinDT(e.target.value, splitDT(p.start).t) }))} />
+                          onChange={(e) => setEditDateForm((p) => {
+                            const ns = joinDT(e.target.value, splitDT(p.start).t);
+                            return { start: ns, end: eventEndDT(p.start, p.end, ns) };
+                          })} />
                       </div>
                       <div className={styles.field}>
                         <label className={styles.label}>Start Time</label>
                         <input type="time" step="60" className={styles.input}
                           value={splitDT(editDateForm.start).t}
                           onFocus={(e) => e.target.select()}
-                          onChange={(e) => setEditDateForm((p) => ({ ...p, start: joinDT(splitDT(p.start).d, e.target.value) }))} />
+                          onChange={(e) => setEditDateForm((p) => {
+                            const ns = joinDT(splitDT(p.start).d, e.target.value);
+                            return { start: ns, end: eventEndDT(p.start, p.end, ns) };
+                          })} />
                       </div>
                       <div className={styles.field}>
                         <label className={styles.label}>End Date</label>
@@ -1046,14 +1102,20 @@ export default function AdminEventDetailPage() {
                         <label className={styles.label}>Start Date</label>
                         <input type="date" className={styles.input}
                           value={splitDT(addDateForm.start).d}
-                          onChange={(e) => setAddDateForm((p) => ({ ...p, start: joinDT(e.target.value, splitDT(p.start).t) }))} />
+                          onChange={(e) => setAddDateForm((p) => {
+                            const ns = joinDT(e.target.value, splitDT(p.start).t);
+                            return { start: ns, end: eventEndDT(p.start, p.end, ns) };
+                          })} />
                       </div>
                       <div className={styles.field}>
                         <label className={styles.label}>Start Time</label>
                         <input type="time" step="60" className={styles.input}
                           value={splitDT(addDateForm.start).t}
                           onFocus={(e) => e.target.select()}
-                          onChange={(e) => setAddDateForm((p) => ({ ...p, start: joinDT(splitDT(p.start).d, e.target.value) }))} />
+                          onChange={(e) => setAddDateForm((p) => {
+                            const ns = joinDT(splitDT(p.start).d, e.target.value);
+                            return { start: ns, end: eventEndDT(p.start, p.end, ns) };
+                          })} />
                       </div>
                       <div className={styles.field}>
                         <label className={styles.label}>End Date</label>

@@ -188,16 +188,21 @@ function ShiftRow({ shift, isSignedUp, busy, onSignUp, onCancel }) {
 
 /* ----- JobGroupCard — one card per job name, shifts listed inside -----
    IMPORTANT: Defined at module level to prevent React from remounting
-   this component on every render (which would reset state and lose focus). */
-function JobGroupCard({ jobName, shifts, serviceTypes, signedUpIds, actionBusy, onSignUp, onCancel }) {
-  return (
-    <div className={styles.jobCard}>
-      {/* Header: job name only */}
-      <div className={styles.jobCardHeader}>
-        <span className={styles.jobName}>{jobName}</span>
-      </div>
+   this component on every render (which would reset state and lose focus).
 
-      {/* Service type badges */}
+   accordion={true}  → collapsible; starts open if the volunteer already has
+                        a signed-up shift in this group, otherwise starts closed.
+   accordion={false} → always expanded (used when there is only one job type). */
+function JobGroupCard({ jobName, shifts, serviceTypes, signedUpIds, actionBusy, onSignUp, onCancel, accordion }) {
+  const [isOpen, setIsOpen] = useState(() => {
+    if (!accordion) return true;
+    // Auto-open any group the volunteer is already signed up for.
+    return shifts.some((s) => signedUpIds.has(s.id));
+  });
+
+  /* The badges + shift rows that are toggled in accordion mode */
+  const shiftContent = (
+    <>
       {serviceTypes && serviceTypes.length > 0 && (
         <div className={styles.jobBadges}>
           {serviceTypes.map((st) => (
@@ -205,8 +210,6 @@ function JobGroupCard({ jobName, shifts, serviceTypes, signedUpIds, actionBusy, 
           ))}
         </div>
       )}
-
-      {/* One shift row per shift */}
       {shifts.map((shift) => (
         <ShiftRow
           key={shift.id}
@@ -217,6 +220,36 @@ function JobGroupCard({ jobName, shifts, serviceTypes, signedUpIds, actionBusy, 
           onCancel={onCancel}
         />
       ))}
+    </>
+  );
+
+  return (
+    <div className={styles.jobCard}>
+      {/* Header — clickable button in accordion mode, plain div otherwise */}
+      {accordion ? (
+        <button
+          type="button"
+          className={styles.jobCardHeaderBtn}
+          onClick={() => setIsOpen((o) => !o)}
+          aria-expanded={isOpen}
+        >
+          <span className={styles.jobName}>{jobName}</span>
+          <span className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ""}`}>▾</span>
+        </button>
+      ) : (
+        <div className={styles.jobCardHeader}>
+          <span className={styles.jobName}>{jobName}</span>
+        </div>
+      )}
+
+      {/* Content — animated collapse when in accordion mode */}
+      {accordion ? (
+        <div className={`${styles.shiftList} ${isOpen ? styles.shiftListOpen : ""}`}>
+          <div className={styles.shiftListInner}>{shiftContent}</div>
+        </div>
+      ) : (
+        shiftContent
+      )}
     </div>
   );
 }
@@ -338,6 +371,10 @@ export default function EventDetailPage() {
 
   const handleSignOut = async () => { await signOut(); router.replace("/login"); };
 
+  /* ----- Derived render data ----- */
+  const jobs         = shifts.length > 0 ? groupByJob(shifts) : [];
+  const useAccordion = jobs.length > 1;
+
   /* ----- Render ----- */
   return (
     <div className={styles.page}>
@@ -442,7 +479,7 @@ export default function EventDetailPage() {
             {shifts.length === 0 ? (
               <p className={styles.noShifts}>No shifts have been added to this event yet.</p>
             ) : (
-              groupByJob(shifts).map(({ jobName, shifts: jobShifts }) => (
+              jobs.map(({ jobName, shifts: jobShifts }) => (
                 <JobGroupCard
                   key={jobName}
                   jobName={jobName}
@@ -452,6 +489,7 @@ export default function EventDetailPage() {
                   actionBusy={actionBusy}
                   onSignUp={handleSignUp}
                   onCancel={handleCancel}
+                  accordion={useAccordion}
                 />
               ))
             )}

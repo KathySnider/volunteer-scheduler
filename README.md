@@ -82,6 +82,13 @@ Admins can:
 - **Database**: PostgreSQL
 - **DB Access**: Standard library `database/sql`
 
+### Authentication & Security
+Passwordless magic-link login. On success the server issues a session stored in
+PostgreSQL and delivered as an HttpOnly cookie — no token ever touches localStorage
+or client-side JavaScript. Admin routes (`/admin/*`) are protected by Next.js Edge
+Middleware that validates the session server-side before any page renders, so
+client-side role manipulation has no effect.
+
 ### Database (in `backend/database/`)
 - **Type**: PostgreSQL
 - **Migrations**: golang-migrate
@@ -134,11 +141,16 @@ Note: the server **expects** the string `database_password` as a placeholder in 
 
 There are several environment variables that will be needed. Once you have checked out the files, copy `env.example` to `.env` in `volunteer-scheduler`. Make any local edits needed for development.
 
-In production, you will need to add the `PUBLIC_API_URL`:
+Key environment variables (set in `.env` or your hosting platform):
 
-```env
-PUBLIC_API_URL=https://your-api-domain.com/query
-```
+| Variable | Default | Description |
+|---|---|---|
+| `SESSION_MAX_AGE` | `2592000` | Session lifetime in seconds (default 30 days) |
+| `BACKEND_INTERNAL_URL` | `http://api:8080` | Internal URL the Next.js server uses to proxy GraphQL calls. Use the Docker service name locally; use your platform's private networking URL in production. |
+| `GRAPHQL_VOLUNTEER_URL` | `http://api:8080/graphql/volunteer` | Internal URL Next.js middleware uses to validate sessions server-side. Same host as `BACKEND_INTERNAL_URL`, different path. |
+| `ALLOWED_ORIGIN` | `http://localhost:3000` | CORS allowed origin for the backend — set to your frontend's public URL in production. |
+| `FRONTEND_BASE_URL` | `http://localhost:3000` | Base URL used when generating magic-link emails. |
+| `USE_RESEND` | `false` | Set to `true` to send real emails via Resend in production. |
 
 ### 3. Start the application
 
@@ -201,8 +213,8 @@ Docker will install dependencies, run gqlgen code generation, and start the serv
 
 ```bash
 cd frontend
-docker build -t volunteer-frontend .
-docker run -d -p 3000:3000 -e PUBLIC_API_URL="http://your-api:8080" volunteer-frontend
+docker build -t volunteer-frontend --build-arg BACKEND_INTERNAL_URL="http://your-api:8080" .
+docker run -d -p 3000:3000 -e BACKEND_INTERNAL_URL="http://your-api:8080" -e GRAPHQL_VOLUNTEER_URL="http://your-api:8080/graphql/volunteer" volunteer-frontend
 ```
 
 The web application will be available at `http://localhost:3000`.
@@ -316,6 +328,8 @@ npm run test:e2e:report   # open the last HTML report
 | `admin-event.spec.ts` | Admin creates/edits/deletes events, form validation, access control |
 | `admin-volunteers.spec.ts` | Admin views, edits, and deletes volunteers |
 | `profile.spec.ts` | View and edit volunteer profile |
+| `security.spec.ts` | HttpOnly cookie visibility, sessionActive flag, sign-out, auth guard |
+| `security-headers.spec.ts` | HTTP security response headers on public and protected routes |
 
 See `frontend/tests/e2e/README.md` for more details.
 

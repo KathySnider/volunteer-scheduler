@@ -104,7 +104,7 @@
 .input {
   width: 100%;
   padding: 0.625rem 0.875rem;
-  border: 1.5px solid var(--color-border);
+  border: 1.5px solid var(--color-border-input);
   border-radius: var(--radius-md);
   font-size: 1rem;
   color: var(--color-text);

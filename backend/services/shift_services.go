@@ -366,13 +366,16 @@ func (s *ShiftService) CreateShift(ctx context.Context, shift models.AddShiftInp
 	var startUTC, endUTC *string
 	var staffId, maxVols interface{}
 
-	// sConvert dates, times to UTC.
+	// Convert dates, times to UTC.
 	startUTC, err := DateTimeToUTC(shift.StartDateTime, shift.IanaZone)
 	if err == nil {
 		endUTC, err = DateTimeToUTC(shift.EndDateTime, shift.IanaZone)
 	}
 	if err != nil {
 		return nil, err
+	}
+	if *endUTC <= *startUTC {
+		return nil, fmt.Errorf("A shift must end after it starts.")
 	}
 
 	// Handle optional values.
@@ -487,6 +490,9 @@ func (s *ShiftService) UpdateShift(ctx context.Context, shift models.UpdateShift
 	}
 	if err != nil {
 		return nil, err
+	}
+	if *endUTC <= *startUTC {
+		return nil, fmt.Errorf("A shift must end after it starts.")
 	}
 
 	update := `
