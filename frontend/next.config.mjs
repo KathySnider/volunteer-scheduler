@@ -1,7 +1,30 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   outputFileTracingRoot: import.meta.dirname,
-  // Production API URLs are baked in at build time via NEXT_PUBLIC_ env vars
+
+  // ---------------------------------------------------------------------------
+  // GraphQL proxy rewrites
+  //
+  // All /graphql/* requests from the browser are proxied through this Next.js
+  // server to the backend.  This keeps cookies on a single domain so that:
+  //   - The session cookie set after login is readable by Next.js middleware
+  //     (which runs on the frontend server, not the backend).
+  //   - There is no cross-origin cookie mismatch between Railway services.
+  //
+  // BACKEND_INTERNAL_URL is a server-side-only env var (no NEXT_PUBLIC_ prefix):
+  //   Docker Compose : http://api:8080
+  //   Railway        : http://<backend-service>.railway.internal:8080
+  //   Local bare dev : http://localhost:8080  (default)
+  // ---------------------------------------------------------------------------
+  async rewrites() {
+    const backendUrl = process.env.BACKEND_INTERNAL_URL || 'http://localhost:8080'
+    return [
+      {
+        source: '/graphql/:path*',
+        destination: `${backendUrl}/graphql/:path*`,
+      },
+    ]
+  },
 
   async headers() {
     // Content-Security-Policy is assembled as an array of directives for
@@ -10,9 +33,9 @@ const nextConfig = {
     //   script-src 'unsafe-inline'  — Next.js injects inline scripts for
     //     hydration (__NEXT_DATA__). Remove if you add nonce-based CSP later.
     //
-    //   connect-src https: http://localhost:*  — GraphQL API calls go to the
-    //     backend, which may be on a different origin (Railway URL in prod,
-    //     localhost:8080 in dev). 'self' alone would block them.
+    //   connect-src 'self'  — GraphQL calls now go to /graphql/* on this
+    //     same origin (proxied to the backend via rewrites above), so
+    //     'self' is sufficient. http://localhost:* kept for bare local dev.
     //
     //   frame-ancestors 'none'  — prevents this app from being embedded in
     //     an iframe on any other site (clickjacking defence). Redundant with
@@ -27,7 +50,7 @@ const nextConfig = {
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
       "font-src 'self'",
-      "connect-src 'self' https: http://localhost:*",
+      "connect-src 'self' http://localhost:*",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",

@@ -20,14 +20,21 @@ COPY package*.json ./
 # Install dependencies
 RUN npm ci
 
-# Build args for NEXT_PUBLIC_ variables — must be declared before COPY/RUN
-# so they are available when Next.js bakes them into the bundle at build time.
+# Build args — must be declared before COPY/RUN so Next.js can bake them in.
+#
+# NEXT_PUBLIC_GRAPHQL_*_URL: no longer needed (api.js uses relative paths
+#   proxied via next.config.mjs rewrites), kept as an escape hatch.
+# BACKEND_INTERNAL_URL: rewrite destination baked into routes-manifest.json
+#   at build time. Must be the internal service URL reachable at runtime
+#   (e.g. http://api:8080 for Docker, http://<svc>.railway.internal:8080 for Railway).
 ARG NEXT_PUBLIC_GRAPHQL_AUTH_URL
 ARG NEXT_PUBLIC_GRAPHQL_VOLUNTEER_URL
 ARG NEXT_PUBLIC_GRAPHQL_ADMIN_URL
+ARG BACKEND_INTERNAL_URL
 ENV NEXT_PUBLIC_GRAPHQL_AUTH_URL=$NEXT_PUBLIC_GRAPHQL_AUTH_URL
 ENV NEXT_PUBLIC_GRAPHQL_VOLUNTEER_URL=$NEXT_PUBLIC_GRAPHQL_VOLUNTEER_URL
 ENV NEXT_PUBLIC_GRAPHQL_ADMIN_URL=$NEXT_PUBLIC_GRAPHQL_ADMIN_URL
+ENV BACKEND_INTERNAL_URL=$BACKEND_INTERNAL_URL
 
 # Copy source code
 COPY . .

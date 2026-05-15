@@ -11,17 +11,22 @@
  * from JavaScript.
  */
 
+// All GraphQL endpoints are proxied through the Next.js server via rewrites
+// in next.config.mjs (/graphql/* → backend).  Relative paths are used so the
+// browser always calls the same origin, keeping session cookies on one domain.
+// NEXT_PUBLIC_GRAPHQL_*_URL env vars are no longer needed and should be left
+// unset; they are kept here only as an escape hatch.
 const AUTH_URL =
   process.env.NEXT_PUBLIC_GRAPHQL_AUTH_URL ||
-  "http://localhost:8080/graphql/auth";
+  "/graphql/auth";
 
 const VOLUNTEER_URL =
   process.env.NEXT_PUBLIC_GRAPHQL_VOLUNTEER_URL ||
-  "http://localhost:8080/graphql/volunteer";
+  "/graphql/volunteer";
 
 const ADMIN_URL =
   process.env.NEXT_PUBLIC_GRAPHQL_ADMIN_URL ||
-  "http://localhost:8080/graphql/admin";
+  "/graphql/admin";
 
 async function gqlFetch(url, query, variables) {
   const response = await fetch(url, {

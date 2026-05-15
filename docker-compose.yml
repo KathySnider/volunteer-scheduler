@@ -80,18 +80,17 @@ services:
     build:
       context: ./frontend
       args:
-        NEXT_PUBLIC_GRAPHQL_AUTH_URL: ${NEXT_PUBLIC_GRAPHQL_AUTH_URL:-http://localhost:8080/graphql/auth}
-        NEXT_PUBLIC_GRAPHQL_VOLUNTEER_URL: ${NEXT_PUBLIC_GRAPHQL_VOLUNTEER_URL:-http://localhost:8080/graphql/volunteer}
-        NEXT_PUBLIC_GRAPHQL_ADMIN_URL: ${NEXT_PUBLIC_GRAPHQL_ADMIN_URL:-http://localhost:8080/graphql/admin}
+        # BACKEND_INTERNAL_URL is baked into next.config.mjs rewrites at build
+        # time — it must be passed as a build arg, not just a runtime env var.
+        BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://api:8080}
+        # NEXT_PUBLIC_GRAPHQL_*_URL are no longer needed (api.js uses relative
+        # paths) but kept here so the Dockerfile ARGs don't produce warnings.
     container_name: volunteer-frontend
     environment:
-      NEXT_PUBLIC_GRAPHQL_AUTH_URL: ${NEXT_PUBLIC_GRAPHQL_AUTH_URL:-http://localhost:8080/graphql/auth}
-      NEXT_PUBLIC_GRAPHQL_VOLUNTEER_URL: ${NEXT_PUBLIC_GRAPHQL_VOLUNTEER_URL:-http://localhost:8080/graphql/volunteer}
-      NEXT_PUBLIC_GRAPHQL_ADMIN_URL: ${NEXT_PUBLIC_GRAPHQL_ADMIN_URL:-http://localhost:8080/graphql/admin}
-      # Server-side URL for Next.js middleware — uses the internal Docker network
-      # name "api" rather than localhost (which resolves to the frontend container).
-      # Override this in production with your internal service URL (e.g. Railway
-      # private networking) to avoid the public internet hop.
+      # Server-side URL used by next.config.mjs rewrites to reach the backend.
+      # Uses the internal Docker network name so traffic stays off the public internet.
+      BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://api:8080}
+      # Server-side URL for Next.js middleware session validation.
       GRAPHQL_VOLUNTEER_URL: ${GRAPHQL_VOLUNTEER_URL:-http://api:8080/graphql/volunteer}
     ports:
       - "3000:3000"
@@ -101,9 +100,9 @@ services:
       - volunteer-network
     restart: unless-stopped
 
-  # Mailhog — local email testing only
+  # Mailpit — local email testing only (modern Mailhog replacement)
   mailhog:
-    image: mailhog/mailhog
+    image: axllent/mailpit
     container_name: volunteer-mailhog
     ports:
       - "1025:1025"  # SMTP
