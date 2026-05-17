@@ -497,3 +497,116 @@ test.describe("Events page — card display", () => {
     await expect(main.getByText(new RegExp(cardCity))).toBeVisible({ timeout: 5_000 });
   });
 });
+
+/* ------------------------------------------------------------------ */
+/*  Events page — distance filter mode                                  */
+/* ------------------------------------------------------------------ */
+
+test.describe("Events page — distance filter mode", () => {
+  test("city filter is shown when the volunteer has no zip code", async ({
+    volunteerPage,
+  }) => {
+    // Fresh volunteer has no zip — should see the city multi-select button.
+    await volunteerPage.goto("/events");
+    await expect(
+      volunteerPage.getByRole("heading", { name: /volunteer events/i })
+    ).toBeVisible({ timeout: 8_000 });
+
+    await expect(
+      volunteerPage.getByRole("button", { name: "All Cities" })
+    ).toBeVisible({ timeout: 5_000 });
+    await expect(volunteerPage.locator("#distanceFilter")).not.toBeVisible();
+  });
+
+  test("distance dropdown replaces city filter after saving a zip code", async ({
+    volunteerPage,
+  }) => {
+    // Save a zip on the profile first.
+    await volunteerPage.goto("/profile");
+    await volunteerPage.waitForSelector("input#firstName", { timeout: 5_000 });
+    await volunteerPage.getByLabel("Zip Code").fill("98101");
+    await volunteerPage.getByRole("button", { name: "Save Changes" }).click();
+    await expect(
+      volunteerPage.getByText("Profile updated.")
+    ).toBeVisible({ timeout: 5_000 });
+
+    // Events page should now show the distance dropdown, not the city button.
+    await volunteerPage.goto("/events");
+    await expect(
+      volunteerPage.getByRole("heading", { name: /volunteer events/i })
+    ).toBeVisible({ timeout: 8_000 });
+
+    await expect(volunteerPage.locator("#distanceFilter")).toBeVisible({ timeout: 5_000 });
+    await expect(
+      volunteerPage.getByRole("button", { name: "All Cities" })
+    ).not.toBeVisible();
+  });
+
+  test("distance dropdown pre-selects the volunteer's saved default and persists across reload", async ({
+    volunteerPage,
+  }) => {
+    // Save zip + a 25-mile default.
+    await volunteerPage.goto("/profile");
+    await volunteerPage.waitForSelector("input#firstName", { timeout: 5_000 });
+    await volunteerPage.getByLabel("Zip Code").fill("98101");
+    await volunteerPage.locator("#defaultDistance").selectOption("25");
+    await volunteerPage.getByRole("button", { name: "Save Changes" }).click();
+    await expect(
+      volunteerPage.getByText("Profile updated.")
+    ).toBeVisible({ timeout: 5_000 });
+
+    // Events page distance dropdown should default to 25 miles.
+    await volunteerPage.goto("/events");
+    await expect(
+      volunteerPage.getByRole("heading", { name: /volunteer events/i })
+    ).toBeVisible({ timeout: 8_000 });
+    await expect(
+      volunteerPage.locator("#distanceFilter")
+    ).toHaveValue("25", { timeout: 5_000 });
+
+    // Change to 100 miles, then reload — should remember 100, not revert to 25.
+    await volunteerPage.locator("#distanceFilter").selectOption("100");
+    await volunteerPage.reload();
+    await expect(
+      volunteerPage.getByRole("heading", { name: /volunteer events/i })
+    ).toBeVisible({ timeout: 8_000 });
+    await expect(
+      volunteerPage.locator("#distanceFilter")
+    ).toHaveValue("100", { timeout: 5_000 });
+  });
+
+  test("reset filters clears the distance selection and persists across reload", async ({
+    volunteerPage,
+  }) => {
+    // Save a zip with no default distance so the dropdown starts at "Any distance".
+    await volunteerPage.goto("/profile");
+    await volunteerPage.waitForSelector("input#firstName", { timeout: 5_000 });
+    await volunteerPage.getByLabel("Zip Code").fill("98101");
+    await volunteerPage.getByRole("button", { name: "Save Changes" }).click();
+    await expect(
+      volunteerPage.getByText("Profile updated.")
+    ).toBeVisible({ timeout: 5_000 });
+
+    await volunteerPage.goto("/events");
+    await expect(
+      volunteerPage.getByRole("heading", { name: /volunteer events/i })
+    ).toBeVisible({ timeout: 8_000 });
+
+    // Select a distance — Reset button should appear.
+    await volunteerPage.locator("#distanceFilter").selectOption("50");
+    await expect(
+      volunteerPage.getByRole("button", { name: "Reset filters" })
+    ).toBeVisible({ timeout: 3_000 });
+
+    // Click Reset — distance should go back to "" (Any distance).
+    await volunteerPage.getByRole("button", { name: "Reset filters" }).click();
+    await expect(volunteerPage.locator("#distanceFilter")).toHaveValue("");
+
+    // Reload — should still be "Any distance" (sessionStorage persisted the reset).
+    await volunteerPage.reload();
+    await expect(
+      volunteerPage.getByRole("heading", { name: /volunteer events/i })
+    ).toBeVisible({ timeout: 8_000 });
+    await expect(volunteerPage.locator("#distanceFilter")).toHaveValue("", { timeout: 5_000 });
+  });
+});

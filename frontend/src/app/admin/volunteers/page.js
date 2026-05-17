@@ -20,7 +20,7 @@ import styles from "./admin-volunteers.module.css";
 const ALL_VOLUNTEERS = `
   query {
     allVolunteers {
-      id firstName lastName email phone zipCode role
+      id firstName lastName email phone zipCode distance role
     }
   }
 `;
@@ -50,6 +50,12 @@ const DELETE_VOLUNTEER = `
     deleteVolunteer(volunteerId: $volunteerId) { success message }
   }
 `;
+
+/* =========================================================
+   Constants
+   ========================================================= */
+
+const DISTANCE_OPTIONS = [10, 25, 50, 100, 200];
 
 /* =========================================================
    Helpers
@@ -119,7 +125,14 @@ function VolunteerFormFields({ form, setForm }) {
           <input
             className={styles.input}
             value={form.zipCode}
-            onChange={(e) => setForm((p) => ({ ...p, zipCode: e.target.value }))}
+            onChange={(e) => {
+              const val = e.target.value;
+              setForm((p) => ({
+                ...p,
+                zipCode: val,
+                ...(val.trim() === "" ? { distance: "" } : {}),
+              }));
+            }}
           />
         </div>
         <div className={styles.field}>
@@ -135,7 +148,24 @@ function VolunteerFormFields({ form, setForm }) {
             <option value="ADMINISTRATOR">Administrator</option>
           </select>
         </div>
+
       </div>
+
+      {form.zipCode.trim() !== "" && (
+        <div className={styles.field}>
+          <label className={styles.label}>Default Distance Filter</label>
+          <select
+            className={styles.select}
+            value={form.distance ?? ""}
+            onChange={(e) => setForm((p) => ({ ...p, distance: e.target.value }))}
+          >
+            <option value="">No default (show all events)</option>
+            {DISTANCE_OPTIONS.map((mi) => (
+              <option key={mi} value={String(mi)}>{mi} miles</option>
+            ))}
+          </select>
+        </div>
+      )}
     </>
   );
 }
@@ -145,7 +175,7 @@ function VolunteerFormFields({ form, setForm }) {
    ========================================================= */
 
 const EMPTY_FORM = {
-  firstName: "", lastName: "", email: "", phone: "", zipCode: "", role: "VOLUNTEER",
+  firstName: "", lastName: "", email: "", phone: "", zipCode: "", distance: "", role: "VOLUNTEER",
 };
 
 export default function AdminVolunteersPage() {
@@ -238,9 +268,12 @@ export default function AdminVolunteersPage() {
         firstName: createForm.firstName.trim(),
         lastName:  createForm.lastName.trim(),
         email:     createForm.email.trim(),
-        phone:     createForm.phone.trim() || null,
-        zipCode:   createForm.zipCode.trim() || null,
-        role:      createForm.role,
+        phone:    createForm.phone.trim() || null,
+        zipCode:  createForm.zipCode.trim() || null,
+        distance: createForm.zipCode.trim() && createForm.distance !== ""
+          ? parseInt(createForm.distance, 10)
+          : null,
+        role:     createForm.role,
       }},
       "Volunteer created.",
       () => { setShowCreate(false); setCreateForm(EMPTY_FORM); setAddVolError(""); },
@@ -256,6 +289,7 @@ export default function AdminVolunteersPage() {
       email:     vol.email,
       phone:     vol.phone ?? "",
       zipCode:   vol.zipCode ?? "",
+      distance:  vol.distance != null ? String(vol.distance) : "",
       role:      vol.role,
     });
     setEditVolError("");
@@ -275,9 +309,12 @@ export default function AdminVolunteersPage() {
         firstName: editForm.firstName.trim(),
         lastName:  editForm.lastName.trim(),
         email:     editForm.email.trim(),
-        phone:     editForm.phone.trim() || null,
-        zipCode:   editForm.zipCode.trim() || null,
-        role:      editForm.role,
+        phone:    editForm.phone.trim() || null,
+        zipCode:  editForm.zipCode.trim() || null,
+        distance: editForm.zipCode.trim() && editForm.distance !== ""
+          ? parseInt(editForm.distance, 10)
+          : null,
+        role:     editForm.role,
       }},
       "Volunteer updated.",
       () => setEditingId(null),

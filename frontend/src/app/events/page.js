@@ -16,7 +16,9 @@ import styles from "./events.module.css";
 
 /* ----- Constants ----- */
 
-const CITY_STORAGE_KEY = "evtCityFilter";
+const CITY_STORAGE_KEY     = "evtCityFilter";
+const DISTANCE_STORAGE_KEY = "evtDistanceFilter";
+const DISTANCE_OPTIONS = [10, 25, 50, 100, 200];
 
 /* ----- GraphQL operations ----- */
 
@@ -28,6 +30,15 @@ const LOOKUP_VALUES = `
         id
         name
       }
+    }
+  }
+`;
+
+const GET_VOLUNTEER_PROFILE = `
+  query {
+    volunteerProfile {
+      zipCode
+      distance
     }
   }
 `;
@@ -286,6 +297,10 @@ export default function EventsPage() {
   const [selectedFormat, setSelectedFormat] = useState("");
   const [selectedTimeFrame, setSelectedTimeFrame] = useState("UPCOMING");
 
+  // Distance mode — active when the volunteer has a zip code on their profile.
+  const [hasZip, setHasZip] = useState(false);
+  const [selectedDistance, setSelectedDistance] = useState("");
+
   // Results
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -345,6 +360,32 @@ export default function EventsPage() {
       });
   }, [gql]);
 
+  /* ----- Fetch volunteer profile for distance mode (all roles) ----- */
+  useEffect(() => {
+    if (!gql) return;
+    volunteerGql(GET_VOLUNTEER_PROFILE, null)
+      .then((res) => {
+        const p = res.data?.volunteerProfile;
+        if (p?.zipCode) {
+          setHasZip(true);
+          // Restore from sessionStorage first; fall back to profile default.
+          try {
+            const saved = sessionStorage.getItem(DISTANCE_STORAGE_KEY);
+            if (saved !== null) {
+              setSelectedDistance(saved);
+              return;
+            }
+          } catch { /* sessionStorage unavailable */ }
+          if (p.distance != null) {
+            setSelectedDistance(String(p.distance));
+          }
+        }
+      })
+      .catch(() => {
+        // Non-fatal: distance mode simply won't activate.
+      });
+  }, [gql]);
+
   /* ----- Persist city selection to sessionStorage ----- */
   useEffect(() => {
     if (!lookupsReady) return;
@@ -355,6 +396,21 @@ export default function EventsPage() {
     }
   }, [selectedCities, lookupsReady]);
 
+  /* ----- Persist distance selection to sessionStorage ----- */
+  useEffect(() => {
+    if (!hasZip) return;
+    try {
+      if (selectedDistance !== "") {
+        sessionStorage.setItem(DISTANCE_STORAGE_KEY, selectedDistance);
+      } else {
+        // Remove the key so the next load falls back to the profile default.
+        sessionStorage.removeItem(DISTANCE_STORAGE_KEY);
+      }
+    } catch {
+      // ignore
+    }
+  }, [selectedDistance, hasZip]);
+
   /* ----- Auto-search whenever filter state or readiness changes ----- */
   useEffect(() => {
     if (!gql || !lookupsReady) return;
@@ -364,9 +420,13 @@ export default function EventsPage() {
     setSearchError("");
 
     const filter = {};
-    if (selectedCities.length > 0) filter.cities = selectedCities;
-    if (selectedJobs.length > 0)   filter.jobs = selectedJobs;
-    if (selectedFormat)            filter.eventType = selectedFormat;
+    if (hasZip && selectedDistance) {
+      filter.distance = parseInt(selectedDistance, 10);
+    } else if (!hasZip && selectedCities.length > 0) {
+      filter.cities = selectedCities;
+    }
+    if (selectedJobs.length > 0) filter.jobs = selectedJobs;
+    if (selectedFormat)          filter.eventType = selectedFormat;
     filter.timeFrame = selectedTimeFrame || "ALL";
 
     gql(FILTERED_EVENTS, { filter })
@@ -393,7 +453,7 @@ export default function EventsPage() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gql, lookupsReady, selectedCities, selectedJobs, selectedFormat, selectedTimeFrame]);
+  }, [gql, lookupsReady, hasZip, selectedDistance, selectedCities, selectedJobs, selectedFormat, selectedTimeFrame]);
 
   /* ----- Filter callbacks ----- */
 
@@ -410,11 +470,16 @@ export default function EventsPage() {
   }
 
   function handleReset() {
-    setSelectedCities([]);
+    if (hasZip) {
+      setSelectedDistance("");
+      // sessionStorage will be cleared by the persist effect above.
+    } else {
+      setSelectedCities([]);
+      // sessionStorage will be cleared by the persist effect above.
+    }
     setSelectedJobs([]);
     setSelectedFormat("");
     setSelectedTimeFrame("UPCOMING");
-    // sessionStorage will be cleared by the persist effect above.
   }
 
   const handleSignOut = async () => { await signOut(); router.replace("/login"); };
@@ -444,7 +509,7 @@ export default function EventsPage() {
   const jobItems  = jobTypes.map((j)  => ({ value: j.id, label: j.name }));
 
   const hasActiveFilters =
-    selectedCities.length > 0 ||
+    (hasZip ? selectedDistance !== "" : selectedCities.length > 0) ||
     selectedJobs.length > 0 ||
     selectedFormat !== "" ||
     selectedTimeFrame !== "UPCOMING";
@@ -477,18 +542,35 @@ export default function EventsPage() {
         <div className={styles.filterCard}>
         <div className={styles.filterBarInner}>
 
-          {/* Cities multi-select */}
-          <div className={styles.filterGroup}>
-            <span className={styles.filterLabel}>City</span>
-            <MultiSelectDropdown
-              buttonLabel={cityBtnLabel}
-              items={cityItems}
-              selected={selectedCities}
-              onToggle={toggleCity}
-              onSelectAll={() => setSelectedCities([...allCities])}
-              onClearAll={() => setSelectedCities([])}
-            />
-          </div>
+          {/* Distance select (when volunteer has zip) or city multi-select */}
+          {hasZip ? (
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel} htmlFor="distanceFilter">Within</label>
+              <select
+                id="distanceFilter"
+                className={styles.filterSelect}
+                value={selectedDistance}
+                onChange={(e) => setSelectedDistance(e.target.value)}
+              >
+                <option value="">Any distance</option>
+                {DISTANCE_OPTIONS.map((mi) => (
+                  <option key={mi} value={String(mi)}>{mi} miles</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className={styles.filterGroup}>
+              <span className={styles.filterLabel}>City</span>
+              <MultiSelectDropdown
+                buttonLabel={cityBtnLabel}
+                items={cityItems}
+                selected={selectedCities}
+                onToggle={toggleCity}
+                onSelectAll={() => setSelectedCities([...allCities])}
+                onClearAll={() => setSelectedCities([])}
+              />
+            </div>
+          )}
 
           {/* Jobs multi-select */}
           <div className={styles.filterGroup}>

@@ -26,6 +26,7 @@ const GET_PROFILE = `
       email
       phone
       zipCode
+      distance
       role
     }
   }
@@ -44,7 +45,9 @@ const UPDATE_PROFILE = `
    Page
    ========================================================= */
 
-const EMPTY_FORM = { firstName: "", lastName: "", email: "", phone: "", zipCode: "" };
+const DISTANCE_OPTIONS = [10, 25, 50, 100, 200];
+
+const EMPTY_FORM = { firstName: "", lastName: "", email: "", phone: "", zipCode: "", defaultDistanceMiles: "" };
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -71,11 +74,14 @@ export default function ProfilePage() {
         const p = res.data?.volunteerProfile;
         if (p) {
           setForm({
-            firstName: p.firstName ?? "",
-            lastName:  p.lastName  ?? "",
-            email:     p.email     ?? "",
-            phone:     p.phone     ?? "",
-            zipCode:   p.zipCode   ?? "",
+            firstName:            p.firstName ?? "",
+            lastName:             p.lastName  ?? "",
+            email:                p.email     ?? "",
+            phone:                p.phone     ?? "",
+            zipCode:              p.zipCode   ?? "",
+            defaultDistanceMiles: p.distance != null
+              ? String(p.distance)
+              : "",
           });
         }
         if (res.errors) {
@@ -102,8 +108,11 @@ export default function ProfilePage() {
           firstName: form.firstName.trim(),
           lastName:  form.lastName.trim(),
           email:     form.email.trim(),
-          phone:     form.phone.trim()   || null,
-          zipCode:   form.zipCode.trim() || null,
+          phone:                form.phone.trim()   || null,
+          zipCode:              form.zipCode.trim() || null,
+          distance: form.zipCode.trim() && form.defaultDistanceMiles !== ""
+            ? parseInt(form.defaultDistanceMiles, 10)
+            : null,
         },
       });
       const result = res.data?.updateOwnProfile;
@@ -213,7 +222,6 @@ export default function ProfilePage() {
                   type="tel"
                   value={form.phone}
                   placeholder="(555) 555-5555"
-                  onFocus={(e) => { const n = e.target.value.length; e.target.setSelectionRange(n, n); }}
                   onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
                 />
               </div>
@@ -227,10 +235,40 @@ export default function ProfilePage() {
                   className={styles.input}
                   value={form.zipCode}
                   placeholder="12345"
-                  onChange={(e) => setForm((p) => ({ ...p, zipCode: e.target.value }))}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setForm((p) => ({
+                      ...p,
+                      zipCode: val,
+                      ...(val.trim() === "" ? { defaultDistanceMiles: "" } : {}),
+                    }));
+                  }}
                 />
               </div>
             </div>
+
+            {/* Default distance — only shown when zip is set */}
+            {form.zipCode.trim() !== "" && (
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="defaultDistance">
+                  Default Distance Filter
+                </label>
+                <select
+                  id="defaultDistance"
+                  className={styles.input}
+                  value={form.defaultDistanceMiles}
+                  onChange={(e) => setForm((p) => ({ ...p, defaultDistanceMiles: e.target.value }))}
+                >
+                  <option value="">No default (show all events)</option>
+                  {DISTANCE_OPTIONS.map((mi) => (
+                    <option key={mi} value={String(mi)}>{mi} miles</option>
+                  ))}
+                </select>
+                <span className={styles.fieldHint}>
+                  Pre-selects the distance filter on the Events page.
+                </span>
+              </div>
+            )}
 
             <div className={styles.formActions}>
               <button className={styles.btnPrimary} type="submit" disabled={saving}>

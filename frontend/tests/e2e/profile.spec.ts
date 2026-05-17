@@ -115,6 +115,65 @@ test.describe("Profile page — validation", () => {
   });
 });
 
+test.describe("Profile page — distance filter field", () => {
+  test("distance dropdown is hidden when zip code is empty", async ({
+    volunteerPage,
+  }) => {
+    await volunteerPage.goto("/profile");
+    await volunteerPage.waitForSelector("input#firstName", { timeout: 5_000 });
+
+    // Fresh volunteer has no zip — distance select should not be present.
+    await expect(volunteerPage.locator("#defaultDistance")).not.toBeVisible();
+  });
+
+  test("distance dropdown appears as soon as a zip code is typed", async ({
+    volunteerPage,
+  }) => {
+    await volunteerPage.goto("/profile");
+    await volunteerPage.waitForSelector("input#firstName", { timeout: 5_000 });
+
+    await volunteerPage.getByLabel("Zip Code").fill("98101");
+
+    // No save needed — the dropdown should appear immediately.
+    await expect(volunteerPage.locator("#defaultDistance")).toBeVisible();
+  });
+
+  test("clearing the zip code hides the distance dropdown", async ({
+    volunteerPage,
+  }) => {
+    await volunteerPage.goto("/profile");
+    await volunteerPage.waitForSelector("input#firstName", { timeout: 5_000 });
+
+    await volunteerPage.getByLabel("Zip Code").fill("98101");
+    await expect(volunteerPage.locator("#defaultDistance")).toBeVisible();
+
+    await volunteerPage.getByLabel("Zip Code").fill("");
+    await expect(volunteerPage.locator("#defaultDistance")).not.toBeVisible();
+  });
+
+  test("saving zip + distance preference and reloading shows the saved values", async ({
+    volunteerPage,
+  }) => {
+    await volunteerPage.goto("/profile");
+    await volunteerPage.waitForSelector("input#firstName", { timeout: 5_000 });
+
+    await volunteerPage.getByLabel("Zip Code").fill("98101");
+    await volunteerPage.locator("#defaultDistance").selectOption("50");
+    await volunteerPage.getByRole("button", { name: "Save Changes" }).click();
+
+    await expect(
+      volunteerPage.getByText("Profile updated.")
+    ).toBeVisible({ timeout: 5_000 });
+
+    // Reload and verify both values come back.
+    await volunteerPage.goto("/profile");
+    await volunteerPage.waitForSelector("input#firstName", { timeout: 5_000 });
+
+    await expect(volunteerPage.getByLabel("Zip Code")).toHaveValue("98101", { timeout: 5_000 });
+    await expect(volunteerPage.locator("#defaultDistance")).toHaveValue("50");
+  });
+});
+
 test.describe("Profile page — access control", () => {
   test("unauthenticated user is redirected to /login", async ({ page }) => {
     await page.goto("/");
