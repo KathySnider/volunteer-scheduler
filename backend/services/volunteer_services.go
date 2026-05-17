@@ -39,6 +39,7 @@ func (s *VolunteerService) FetchAllVolunteers(ctx context.Context, filter *model
 			email, 
 			phone, 
 			zip_code,
+			default_distance_miles,
 			role
 		FROM volunteers
 		WHERE is_active = TRUE
@@ -54,6 +55,7 @@ func (s *VolunteerService) FetchAllVolunteers(ctx context.Context, filter *model
 		var v models.Volunteer
 		var volInt int
 		var phone, zip sql.NullString
+		var ddm sql.NullInt32
 
 		err := rows.Scan(
 			&volInt,
@@ -62,6 +64,7 @@ func (s *VolunteerService) FetchAllVolunteers(ctx context.Context, filter *model
 			&v.Email,
 			&phone,
 			&zip,
+			&ddm,
 			&v.Role)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning volunteer: %w", err)
@@ -75,6 +78,10 @@ func (s *VolunteerService) FetchAllVolunteers(ctx context.Context, filter *model
 			v.ZipCode = &zip.String
 		} else {
 			v.ZipCode = nil
+		}
+		if ddm.Valid {
+			dist := int(ddm.Int32)
+			v.Distance = &dist
 		}
 		v.ID = strconv.Itoa(volInt)
 		volunteers = append(volunteers, &v)
@@ -96,7 +103,20 @@ func (s *VolunteerService) FetchVolunteerProfileById(ctx context.Context, volId 
 	return fetchProfile(ctx, s.DB, volInt)
 }
 
+// Mutations.
+
 func (s *VolunteerService) UpdateOwnProfile(ctx context.Context, volId int, profile models.UpdateOwnProfileInput) (*models.VolunteerMutationResult, error) {
+
+	var lat, lng *float64
+	var err error
+	if profile.ZipCode != nil {
+		lat, lng, err = GeocodeZip(*profile.ZipCode)
+		if err != nil {
+			// Log this, but don't error out - lat and lng will just be nil.
+			log.Printf("Unable to get lat/lng for zip %v.", *profile.ZipCode)
+		}
+	}
+
 	query := `
 		UPDATE volunteers 
 		SET 
@@ -104,16 +124,16 @@ func (s *VolunteerService) UpdateOwnProfile(ctx context.Context, volId int, prof
 			last_name = $2, 
 			email = $3,
 			phone = $4,
-			zip_code = $5
-		WHERE volunteer_id = $6
+			zip_code = $5,
+			default_distance_miles = $6,
+			latitude = $7,
+			longitude = $8
+		WHERE volunteer_id = $9
 	`
-	_, err := s.DB.ExecContext(ctx, query, profile.FirstName, profile.LastName, profile.Email, profile.Phone, profile.ZipCode, volId)
+	_, err = s.DB.ExecContext(ctx, query, profile.FirstName, profile.LastName, profile.Email, profile.Phone, profile.ZipCode, profile.Distance, lat, lng, volId)
 
 	if err != nil {
-		return &models.VolunteerMutationResult{
-			Success: false,
-			Message: ptrString("Failed to update volunteer profile."),
-		}, err
+		return nil, fmt.Errorf("unable to update vol profile: %w", err)
 	}
 
 	return &models.VolunteerMutationResult{
@@ -122,10 +142,19 @@ func (s *VolunteerService) UpdateOwnProfile(ctx context.Context, volId int, prof
 	}, nil
 }
 
-// Mutations.
-
 // CreateVolunteer is the resolver for the createVolunteer field.
 func (s *VolunteerService) CreateVolunteer(ctx context.Context, creatorId int, newVol models.NewVolunteerInput) (*models.MutationResult, error) {
+
+	var lat, lng *float64
+	var err error
+	if newVol.ZipCode != nil {
+		lat, lng, err = GeocodeZip(*newVol.ZipCode)
+		if err != nil {
+			// Log this, but don't error out - lat and lng will just be nil.
+			log.Printf("Unable to get lat/lng for zip %v.", *newVol.ZipCode)
+		}
+	}
+
 	query := `
 		INSERT INTO volunteers (
 			first_name, 
@@ -133,14 +162,17 @@ func (s *VolunteerService) CreateVolunteer(ctx context.Context, creatorId int, n
 			email, 
 			phone, 
 			zip_code,
+			default_distance_miles,
+			latitude,
+			longitude,
 			role,
 			created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, NOW())
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
 		RETURNING volunteer_id
 	`
 
 	var volInt int
-	err := s.DB.QueryRowContext(ctx, query, newVol.FirstName, newVol.LastName, newVol.Email, newVol.Phone, newVol.ZipCode, newVol.Role).Scan(&volInt)
+	err = s.DB.QueryRowContext(ctx, query, newVol.FirstName, newVol.LastName, newVol.Email, newVol.Phone, newVol.ZipCode, newVol.Distance, lat, lng, newVol.Role).Scan(&volInt)
 	if err != nil {
 		friendly := friendlyDBError(err)
 		return &models.MutationResult{
@@ -150,7 +182,6 @@ func (s *VolunteerService) CreateVolunteer(ctx context.Context, creatorId int, n
 		}, friendly
 	}
 
-	// Temporary, until we fix role handling.
 	var role string
 	if newVol.Role == "VOLUNTEER" {
 		role = "volunteer"
@@ -194,11 +225,16 @@ func (s *VolunteerService) UpdateVolunteerProfile(ctx context.Context, profile m
 
 	volInt, err := strconv.Atoi(profile.ID)
 	if err != nil {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("Failed to update profile. Invalid Id."),
-			ID:      &profile.ID,
-		}, err
+		return nil, fmt.Errorf("failed to update profile - invalid id %s: %w", profile.ID, err)
+	}
+
+	var lat, lng *float64
+	if profile.ZipCode != nil {
+		lat, lng, err = GeocodeZip(*profile.ZipCode)
+		if err != nil {
+			// Log this, but don't error out - lat and lng will just be nil.
+			log.Printf("Unable to get lat/lng for zip %v.", *profile.ZipCode)
+		}
 	}
 
 	query := `
@@ -209,18 +245,16 @@ func (s *VolunteerService) UpdateVolunteerProfile(ctx context.Context, profile m
 			email = $3,
 			phone = $4,
 			zip_code = $5,
-			role = $6
-		WHERE volunteer_id = $7
+			default_distance_miles = $6,
+			latitude = $7,
+			longitude = $8,
+			role = $9
+		WHERE volunteer_id = $10
 	`
-	_, err = s.DB.ExecContext(ctx, query, profile.FirstName, profile.LastName, profile.Email, profile.Phone, profile.ZipCode, profile.Role, volInt)
+	_, err = s.DB.ExecContext(ctx, query, profile.FirstName, profile.LastName, profile.Email, profile.Phone, profile.ZipCode, profile.Distance, lat, lng, profile.Role, volInt)
 
 	if err != nil {
-		friendly := friendlyDBError(err)
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString(friendly.Error()),
-			ID:      &profile.ID,
-		}, friendly
+		return nil, friendlyDBError(err)
 	}
 
 	return &models.MutationResult{
@@ -237,21 +271,13 @@ func (s *VolunteerService) DeleteVolunteer(ctx context.Context, volId string) (*
 
 	volInt, err := strconv.Atoi(volId)
 	if err != nil {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("Invalid volunteer ID."),
-			ID:      &volId,
-		}, err
+		return nil, fmt.Errorf("unable to delete vol - invalid id %s: %w", volId, err)
 	}
 
 	_, err = s.DB.ExecContext(ctx, "UPDATE volunteers SET is_active = FALSE WHERE volunteer_id = $1", volInt)
 
 	if err != nil {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("Failed to deactivate volunteer."),
-			ID:      &volId,
-		}, err
+		return nil, fmt.Errorf("unable to deactivate volunteer with id %s: %w", volId, err)
 	}
 
 	return &models.MutationResult{

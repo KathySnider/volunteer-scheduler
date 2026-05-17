@@ -5,10 +5,10 @@ import (
 	"volunteer-scheduler/models"
 )
 
-// START OF DUPLICATE CODE
 // These functions are duplicated in graph/admin/converters.go
 // Keep both files in sync when making changes.
 
+// START OF DUPLICATE CODE
 // Convert models to generated types, e.g., results
 // coming back from services to the API.
 
@@ -128,6 +128,7 @@ func toGenVolunteerProfile(m *models.VolunteerProfile) *generated.VolunteerProfi
 		Email:     m.Email,
 		Phone:     m.Phone,
 		ZipCode:   m.ZipCode,
+		Distance:  m.Distance,
 		Role:      generated.Role(m.Role),
 	}
 }
@@ -246,6 +247,7 @@ func toModelEventFilterInput(g *generated.EventFilterInput) *models.EventFilterI
 	}
 	return &models.EventFilterInput{
 		Cities:    g.Cities,
+		Distance:  g.Distance,
 		EventType: eventType,
 		Jobs:      g.Jobs,
 		TimeFrame: timeframe,
@@ -364,6 +366,7 @@ func toModelUpdateOwnProfileInput(g *generated.UpdateOwnProfileInput) *models.Up
 		Email:     g.Email,
 		Phone:     g.Phone,
 		ZipCode:   g.ZipCode,
+		Distance:  g.Distance,
 	}
 }
 

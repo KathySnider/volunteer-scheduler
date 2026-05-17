@@ -92,7 +92,7 @@ func main() {
 	// In Docker the binary runs from /root/, so migrations are at /app/migrations.
 	// Locally, "file://migrations" works if you run from the project root.
 	migrationsPath := getEnvWithDefault("MIGRATIONS_PATH", "file:///app/migrations")
-	dbName := getEnvWithDefault("DB_NAME", "volunteer-scheduler")
+	dbName := getEnvWithDefault("DB_NAME", "railway")
 	if err = database.RunMigrations(db, dbName, migrationsPath); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}

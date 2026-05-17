@@ -221,12 +221,18 @@ func (s *FeedbackService) FetchFeedback(ctx context.Context, filter *models.Feed
 			fb.Status = models.FeedbackStatus(fbStatus)
 			if url.Valid {
 				fb.GithubIssueURL = &url.String
+			} else {
+				fb.GithubIssueURL = nil
 			}
 			if lastUpdateAt.Valid {
 				fb.LastUpdatedAt = &lastUpdateAt.String
+			} else {
+				fb.LastUpdatedAt = nil
 			}
 			if resolvedAt.Valid {
 				fb.ResolvedAt = &resolvedAt.String
+			} else {
+				fb.ResolvedAt = nil
 			}
 			feedbackMap[fbInt] = &fb
 
@@ -319,12 +325,18 @@ func (s *FeedbackService) FetchFeedbackById(ctx context.Context, feedbackId stri
 	feedback.Status = models.FeedbackStatus(fbStatus)
 	if url.Valid {
 		feedback.GithubIssueURL = &url.String
+	} else {
+		feedback.GithubIssueURL = nil
 	}
 	if lastUpdateAt.Valid {
 		feedback.LastUpdatedAt = &lastUpdateAt.String
+	} else {
+		feedback.LastUpdatedAt = nil
 	}
 	if resolvedAt.Valid {
 		feedback.ResolvedAt = &resolvedAt.String
+	} else {
+		feedback.ResolvedAt = nil
 	}
 	feedback.Notes = make([]*models.FeedbackNote, 0, 5) // If there are more than 5 notes (unlikely), the slice will increase by 5 slots.
 

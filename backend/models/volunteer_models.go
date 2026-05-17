@@ -9,6 +9,7 @@ type VolunteerProfile struct {
 	Email     string
 	Phone     *string
 	ZipCode   *string
+	Distance  *int
 	Role      Role
 }
 
@@ -36,6 +37,7 @@ type Volunteer struct {
 	Email     string
 	Phone     *string
 	ZipCode   *string
+	Distance  *int
 	Role      Role
 }
 
@@ -55,6 +57,7 @@ type NewVolunteerInput struct {
 	Email     string
 	Phone     *string
 	ZipCode   *string
+	Distance  *int
 	Role      Role
 }
 
@@ -67,6 +70,7 @@ type UpdateVolunteerInput struct {
 	Email     string
 	Phone     *string
 	ZipCode   *string
+	Distance  *int
 	Role      Role
 }
 
@@ -76,4 +80,5 @@ type UpdateOwnProfileInput struct {
 	Email     string
 	Phone     *string
 	ZipCode   *string
+	Distance  *int
 }

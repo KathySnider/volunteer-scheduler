@@ -57,6 +57,7 @@ input UpdateOwnProfileInput {
   email: String!
   phone: String
   zipCode: String
+  distance: Int
 }
 
 type VolunteerMutationResult {

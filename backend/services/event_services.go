@@ -112,18 +112,22 @@ func (s *EventService) FetchLookups(ctx context.Context) (*models.LookupValues, 
 	return &lookup, nil
 }
 
-// FetchFilteredEvents - with shifts for volunteers; no such criteria for admins.
+// FetchFilteredEventsWithShifts
+// There are 2 differences between this function and FetchManagedEvents:
+//  * This call does a second pass to make sure that it only has events with shifts.
+//  * This call must have the id of the volunteer who called it, in case distance is
+//    part of the criteria (the volunteers' lat/lng data is stored in their profiles)
 
-func (s *EventService) FetchFilteredEventsWithShifts(ctx context.Context, filter *models.EventFilterInput) ([]*models.Event, error) {
+func (s *EventService) FetchFilteredEventsWithShifts(ctx context.Context, filter *models.EventFilterInput, volId *int) ([]*models.Event, error) {
 
-	// Translate all of the filter stuff to a set of events that
-	// potentially meet all of the user's criteria. If there are
-	// no filters, the call to pass 1 returns all of the events.
+	// Translate all of the filter stuff to a set of events that potentially meet
+	// all of the user's criteria. If there are no filters, the call to pass 1 just
+	// returns all of the events.
 
 	// orderedIDs carries the ORDER BY from the SQL query (earliest event date ASC).
 	// We must use it when building the final slice — ranging over eventsMap directly
 	// would randomise the order because Go maps have no guaranteed iteration order.
-	eventsMap, orderedIDs, err := fetchFilteredPassOne(ctx, filter, s.DB)
+	eventsMap, orderedIDs, err := fetchFilteredPassOne(ctx, filter, s.DB, *volId)
 	if err != nil {
 		return nil, fmt.Errorf("error querying events: %w", err)
 	}
@@ -151,18 +155,14 @@ func (s *EventService) FetchFilteredEventsWithShifts(ctx context.Context, filter
 	}
 
 	return events, nil
-
 }
-func (s *EventService) FetchFilteredEvents(ctx context.Context, filter *models.EventFilterInput) ([]*models.Event, error) {
 
-	// Translate all of the filter stuff to a set of events that
-	// potentially meet all of the user's criteria. If there are
-	// no filters, the call to pass 1 returns all of the events.
+func (s *EventService) FetchManagedEvents(ctx context.Context, filter *models.EventFilterInput) ([]*models.Event, error) {
 
-	// orderedIDs carries the ORDER BY from the SQL query (earliest event date ASC).
-	// We must use it when building the final slice — ranging over eventsMap directly
-	// would randomise the order because Go maps have no guaranteed iteration order.
-	eventsMap, orderedIDs, err := fetchFilteredPassOne(ctx, filter, s.DB)
+	// Translate all of the filter stuff to a set of events that meet all of the
+	// caller's criteria. If there are no filters, return all events.
+
+	eventsMap, orderedIDs, err := filterManagedEvents(ctx, filter, s.DB)
 	if err != nil {
 		return nil, fmt.Errorf("error querying events: %w", err)
 	}
@@ -171,7 +171,11 @@ func (s *EventService) FetchFilteredEvents(ctx context.Context, filter *models.E
 		return []*models.Event{}, nil
 	}
 
+	// orderedIDs carries the ORDER BY from the SQL query (earliest event date ASC).
+	// We must use it when building the final slice — ranging over eventsMap directly
+	// would randomise the order because Go maps have no guaranteed iteration order.
 	// Build the result slice in the order the DB returned the events.
+
 	events := make([]*models.Event, 0, len(eventsMap))
 	for _, id := range orderedIDs {
 		event, _ := eventsMap[id]
@@ -237,21 +241,31 @@ func (s *EventService) FetchEventById(ctx context.Context, eventId string) (*mod
 
 	if eventDesc.Valid {
 		e.Description = &eventDesc.String
+	} else {
+		e.Description = nil
 	}
 	e.EventType = GetEventType(isVirtual, venueInt.Valid)
 
 	if venueInt.Valid {
 		// Since venueInt is valid, most of the strings are valid, because
 		// the fields are NOT NULL in the DB. The exceptions are venue name
-		// and zip code; since we use pointers in those cases, we're fine.
+		// and zip code.
 		var venue models.Venue
 		venue.ID = strconv.Itoa(int(venueInt.Int64))
-		venue.Name = &venueName.String
 		venue.Address = streetAddress.String
 		venue.City = city.String
 		venue.State = state.String
-		venue.ZipCode = &zip.String
 		venue.Timezone = timezone.String
+		if venueName.Valid {
+			venue.Name = &venueName.String
+		} else {
+			venue.Name = nil
+		}
+		if zip.Valid {
+			venue.ZipCode = &zip.String
+		} else {
+			venue.ZipCode = nil
+		}
 		e.Venue = &venue
 	} else {
 		e.Venue = nil
@@ -695,11 +709,7 @@ func (s *EventService) DeleteEvent(ctx context.Context, eventId string) (*models
 			&leadLast,
 		)
 		if err != nil {
-			return &models.MutationResult{
-				Success: false,
-				Message: ptrString("Failed to delete event; unable to scan rows."),
-				ID:      &eventId,
-			}, err
+			return nil, fmt.Errorf("unable to scan rows in delete event: %w", err)
 		}
 
 		// If shiftId is NULL the event has no shifts yet — nothing to email.
@@ -726,11 +736,7 @@ func (s *EventService) DeleteEvent(ctx context.Context, eventId string) (*models
 				}
 			}
 			if err != nil {
-				return &models.MutationResult{
-					Success: false,
-					Message: ptrString("Failed to delete event; unable to convert datetimes."),
-					ID:      &eventId,
-				}, err
+				return nil, fmt.Errorf("unable to convert datetimes in deletes event: %w", err)
 			}
 			shift.Start = *ss
 			shift.End = *se
@@ -751,8 +757,7 @@ func (s *EventService) DeleteEvent(ctx context.Context, eventId string) (*models
 				}
 			} else {
 				// Haven't seen this volunteer yet. Since volId is
-				// not NULL, the volunteer's e
-				// mail, first- and last-
+				// not NULL, the volunteer's email, first- and last-
 				// names are also not NULL.
 				var vol emailInfo
 				vol.shiftsMap = make(map[int]bool)
@@ -831,11 +836,7 @@ func (s *EventService) DeleteEvent(ctx context.Context, eventId string) (*models
 	// Finally, delete the event (which will cascade to the opportunities, shifts, and volunteer_shifts).
 	_, err = s.DB.ExecContext(ctx, "DELETE FROM events WHERE event_id = $1", eventInt)
 	if err != nil {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("Failed to delete event from DB."),
-			ID:      &eventId,
-		}, err
+		return nil, fmt.Errorf("failed to delete event with id %s: %w", eventId, err)
 	}
 
 	return &models.MutationResult{
@@ -848,22 +849,15 @@ func (s *EventService) DeleteEvent(ctx context.Context, eventId string) (*models
 func (s *EventService) DeleteEventDate(ctx context.Context, evDateId string) (*models.MutationResult, error) {
 	dateInt, err := strconv.Atoi(evDateId)
 	if err != nil {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("Failed to delete event date; invalid event_date_id."),
-			ID:      &evDateId,
-		}, err
+		return nil, fmt.Errorf("invalid event date id %s: %w", evDateId, err)
 	}
 
 	_, err = s.DB.ExecContext(ctx, "DELETE FROM event_dates WHERE event_date_id = $1", dateInt)
 
 	if err != nil {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("Failed to delete event date."),
-			ID:      &evDateId,
-		}, err
+		return nil, fmt.Errorf("failed to delete event date: %w", err)
 	}
+
 	return &models.MutationResult{
 		Success: true,
 		Message: ptrString("Successfully deleted event date."),

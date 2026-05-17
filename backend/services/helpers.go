@@ -40,12 +40,14 @@ func fetchProfile(ctx context.Context, DB *sql.DB, volId int) (*models.Volunteer
 			email, 
 			phone, 
 			zip_code,
+			default_distance_miles,
 			role
 		FROM volunteers 
 		WHERE volunteer_id = $1
 	`
 	var profile models.VolunteerProfile
 	var phone, zip sql.NullString
+	var ddm sql.NullInt32
 
 	err := DB.QueryRowContext(ctx, query, volId).Scan(
 		&volId,
@@ -54,6 +56,7 @@ func fetchProfile(ctx context.Context, DB *sql.DB, volId int) (*models.Volunteer
 		&profile.Email,
 		&phone,
 		&zip,
+		&ddm,
 		&profile.Role)
 
 	if err == sql.ErrNoRows {
@@ -72,6 +75,10 @@ func fetchProfile(ctx context.Context, DB *sql.DB, volId int) (*models.Volunteer
 		profile.ZipCode = &zip.String
 	} else {
 		profile.ZipCode = nil
+	}
+	if ddm.Valid {
+		dist := int(ddm.Int32)
+		profile.Distance = &dist
 	}
 
 	return &profile, nil
@@ -179,13 +186,19 @@ func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter mod
 		} else {
 			volShift.EventDescription = nil
 		}
-		if venueName.Valid {
+		if streetAddress.Valid {
+			// If we have one of these, we must have them all.
 			volShift.Venue = &models.Venue{
-				Name:     &venueName.String,
 				Address:  streetAddress.String,
 				City:     city.String,
 				State:    state.String,
 				Timezone: timezone.String,
+			}
+			// Name and zip are optional.
+			if venueName.Valid {
+				volShift.Venue.Name = &venueName.String
+			} else {
+				volShift.Venue.Name = nil
 			}
 			if zip.Valid {
 				volShift.Venue.ZipCode = &zip.String
@@ -370,12 +383,12 @@ func GetEventType(isVirtual bool, hasVenue bool) models.EventType {
 		// Either.
 		return "HYBRID"
 	}
-	if isVirtual {
-		// Virtual only event. No venue.
-		return "VIRTUAL"
+	if hasVenue {
+		// Not virtual.
+		return "IN_PERSON"
 	}
-	// Not virtual.
-	return "IN_PERSON"
+	// Virtual only event. No venue.
+	return "VIRTUAL"
 }
 
 func AddNewEventDate(ctx context.Context, dates *models.NewEventDateInput, eventId int, tx *sql.Tx) error {

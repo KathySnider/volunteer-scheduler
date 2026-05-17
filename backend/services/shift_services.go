@@ -99,8 +99,11 @@ func (s *ShiftService) FetchOpportunitiesForEvent(ctx context.Context, eventId s
 		}
 
 		opp.ID = strconv.Itoa(oppInt)
-		opp.PreEventInstructions = &instruct.String
-
+		if instruct.Valid {
+			opp.PreEventInstructions = &instruct.String
+		} else {
+			opp.PreEventInstructions = nil
+		}
 		// Fetch shifts for this opportunity
 		shifts, err := s.FetchShiftsForOpportunity(ctx, opp.ID)
 		if err != nil {

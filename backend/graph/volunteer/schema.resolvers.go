@@ -123,7 +123,12 @@ func (r *queryResolver) VolunteerProfile(ctx context.Context) (*generated.Volunt
 
 // FilteredEventsWithShifts is the resolver for the filteredEventsWithShifts field.
 func (r *queryResolver) FilteredEventsWithShifts(ctx context.Context, filter *generated.EventFilterInput) ([]*generated.Event, error) {
-	events, err := r.EventService.FetchFilteredEventsWithShifts(ctx, toModelEventFilterInput(filter))
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	events, err := r.EventService.FetchFilteredEventsWithShifts(ctx, toModelEventFilterInput(filter), &volId)
 	if err != nil {
 		return nil, fmt.Errorf("error calling FetchFilteredEvents: %w", err)
 	}

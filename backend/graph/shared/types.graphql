@@ -47,8 +47,10 @@ enum ShiftTimeFilter {
 ## The EventFilter reflects all of the fields on which 
 ## a user can filter the results. If you want to add
 ## more ways to filter, this is the place.
+
 input EventFilterInput {
   cities: [String!]
+  distance: Int
   eventType: EventType
   jobs: [Int!]
   timeFrame: ShiftTimeFilter
@@ -96,6 +98,7 @@ type VolunteerProfile {
   email: String!
   phone: String
   zipCode: String
+  distance: Int
   role: Role!
 }
 

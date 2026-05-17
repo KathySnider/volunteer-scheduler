@@ -44,6 +44,7 @@ type EventDate struct {
 
 type EventFilterInput struct {
 	Cities    []string
+	Distance  *int
 	EventType *EventType
 	Jobs      []int
 	TimeFrame *ShiftsTimeFilter
@@ -52,13 +53,13 @@ type EventFilterInput struct {
 //  Input types for new rows.
 
 type NewEventInput struct {
-	Name             string
-	Description      *string
-	EventType        EventType
-	VenueId          *string
-	FundingEntityID  int
-	ServiceTypes     []int
-	EventDates       []*NewEventDateInput
+	Name            string
+	Description     *string
+	EventType       EventType
+	VenueId         *string
+	FundingEntityID int
+	ServiceTypes    []int
+	EventDates      []*NewEventDateInput
 }
 
 type NewEventDateInput struct {

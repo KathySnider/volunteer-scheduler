@@ -56,9 +56,13 @@ func (s *StaffService) FetchAllStaff(ctx context.Context) ([]*models.Staff, erro
 		s.ID = strconv.Itoa(staffInt)
 		if phone.Valid {
 			s.Phone = &phone.String
+		} else {
+			s.Phone = nil
 		}
 		if position.Valid {
 			s.Position = &position.String
+		} else {
+			s.Position = nil
 		}
 		result = append(result, &s)
 	}

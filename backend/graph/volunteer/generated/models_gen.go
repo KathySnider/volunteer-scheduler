@@ -35,6 +35,7 @@ type EventDate struct {
 
 type EventFilterInput struct {
 	Cities    []string         `json:"cities,omitempty"`
+	Distance  *int             `json:"distance,omitempty"`
 	EventType *EventType       `json:"eventType,omitempty"`
 	Jobs      []int            `json:"jobs,omitempty"`
 	TimeFrame *ShiftTimeFilter `json:"timeFrame,omitempty"`
@@ -116,6 +117,7 @@ type UpdateOwnProfileInput struct {
 	Email     string  `json:"email"`
 	Phone     *string `json:"phone,omitempty"`
 	ZipCode   *string `json:"zipCode,omitempty"`
+	Distance  *int    `json:"distance,omitempty"`
 }
 
 type Venue struct {
@@ -159,6 +161,7 @@ type VolunteerProfile struct {
 	Email     string  `json:"email"`
 	Phone     *string `json:"phone,omitempty"`
 	ZipCode   *string `json:"zipCode,omitempty"`
+	Distance  *int    `json:"distance,omitempty"`
 	Role      Role    `json:"role"`
 }
 

@@ -53,7 +53,7 @@ func TestCreateVenue(t *testing.T) {
 	resp := gqlPost(t, "/graphql/admin", token, mutCreateVenue, map[string]any{
 		"input": map[string]any{
 			"name":     "CRUD Test Venue",
-			"address":  "100 Test Blvd",
+			"address":  "1221 SW 4th Ave",
 			"city":     "Portland",
 			"state":    "OR",
 			"ianaZone": "America/Los_Angeles",
@@ -100,7 +100,7 @@ func TestUpdateVenue(t *testing.T) {
 		"input": map[string]any{
 			"id":       fmt.Sprintf("%d", venueID),
 			"name":     "Post-Update Venue",
-			"address":  "2 New Ave",
+			"address":  "900 Court St NE",
 			"city":     "Salem",
 			"state":    "OR",
 			"ianaZone": "America/Los_Angeles",

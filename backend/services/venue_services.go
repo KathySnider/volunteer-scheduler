@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"strconv"
 
 	"volunteer-scheduler/models"
@@ -62,8 +63,16 @@ func (s *VenueService) FetchVenues(ctx context.Context) ([]*models.Venue, error)
 		venue.ID = strconv.Itoa(venueInt)
 
 		// Name and zip are nullable.
-		venue.Name = &name.String
-		venue.ZipCode = &zip.String
+		if name.Valid {
+			venue.Name = &name.String
+		} else {
+			venue.Name = nil
+		}
+		if zip.Valid {
+			venue.ZipCode = &zip.String
+		} else {
+			venue.ZipCode = nil
+		}
 
 		venues = append(venues, &venue)
 	}
@@ -75,6 +84,14 @@ func (s *VenueService) FetchVenues(ctx context.Context) ([]*models.Venue, error)
 
 func (s *VenueService) CreateVenue(ctx context.Context, newVenue models.NewVenueInput) (*models.MutationResult, error) {
 
+	zip := ""
+	if newVenue.ZipCode != nil {
+		zip = *newVenue.ZipCode
+	}
+	lat, lng, err := GeocodeAddress(newVenue.Address, newVenue.City, newVenue.State, zip)
+	if err != nil {
+		log.Printf("Unable to get lat/lng for venue address: %v", err)
+	}
 	query := `
 		INSERT INTO venues (
 			venue_name,
@@ -82,20 +99,17 @@ func (s *VenueService) CreateVenue(ctx context.Context, newVenue models.NewVenue
 			city,
 			state,
 			zip_code,
+			latitude,
+			longitude,
 			timezone)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING venue_id
 	`
 
 	var venueInt int
-	err := s.DB.QueryRowContext(ctx, query, newVenue.Name, newVenue.Address, newVenue.City, newVenue.State, newVenue.ZipCode, newVenue.IanaZone).Scan(&venueInt)
+	err = s.DB.QueryRowContext(ctx, query, newVenue.Name, newVenue.Address, newVenue.City, newVenue.State, newVenue.ZipCode, lat, lng, newVenue.IanaZone).Scan(&venueInt)
 	if err != nil {
-		friendly := friendlyDBError(err)
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString(friendly.Error()),
-			ID:      nil,
-		}, friendly
+		return nil, friendlyDBError(err)
 	}
 
 	return &models.MutationResult{
@@ -112,11 +126,16 @@ func (s *VenueService) UpdateVenue(ctx context.Context, venue models.UpdateVenue
 
 	venueId, err := strconv.Atoi(venue.ID)
 	if err != nil {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("Invalid venue.ID."),
-			ID:      &venue.ID,
-		}, err
+		return nil, fmt.Errorf("invalue venue id %s: %w", venue.ID, err)
+	}
+
+	zip := ""
+	if venue.ZipCode != nil {
+		zip = *venue.ZipCode
+	}
+	lat, lng, err := GeocodeAddress(venue.Address, venue.City, venue.State, zip)
+	if err != nil {
+		log.Printf("Unable to get lat/lng for venue address: %v", err)
 	}
 
 	update := `
@@ -127,18 +146,15 @@ func (s *VenueService) UpdateVenue(ctx context.Context, venue models.UpdateVenue
 			city = $3,
 			state = $4,
 			zip_code = $5,
-			timezone = $6
-		WHERE venue_id = $7
+			latitude = $6,
+			longitude = $7,
+			timezone = $8
+		WHERE venue_id = $9
 	`
-	_, err = s.DB.ExecContext(ctx, update, venue.Name, venue.Address, venue.City, venue.State, venue.ZipCode, venue.IanaZone, venueId)
+	_, err = s.DB.ExecContext(ctx, update, venue.Name, venue.Address, venue.City, venue.State, venue.ZipCode, lat, lng, venue.IanaZone, venueId)
 
 	if err != nil {
-		friendly := friendlyDBError(err)
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString(friendly.Error()),
-			ID:      &venue.ID,
-		}, friendly
+		return nil, friendlyDBError(err)
 	}
 
 	return &models.MutationResult{

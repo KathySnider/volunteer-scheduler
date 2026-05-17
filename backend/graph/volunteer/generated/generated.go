@@ -181,6 +181,7 @@ type ComplexityRoot struct {
 	}
 
 	VolunteerProfile struct {
+		Distance  func(childComplexity int) int
 		Email     func(childComplexity int) int
 		FirstName func(childComplexity int) int
 		LastName  func(childComplexity int) int
@@ -814,6 +815,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.VolunteerMutationResult.Success(childComplexity), true
 
+	case "VolunteerProfile.distance":
+		if e.complexity.VolunteerProfile.Distance == nil {
+			break
+		}
+
+		return e.complexity.VolunteerProfile.Distance(childComplexity), true
 	case "VolunteerProfile.email":
 		if e.complexity.VolunteerProfile.Email == nil {
 			break
@@ -1087,8 +1094,10 @@ enum ShiftTimeFilter {
 ## The EventFilter reflects all of the fields on which 
 ## a user can filter the results. If you want to add
 ## more ways to filter, this is the place.
+
 input EventFilterInput {
   cities: [String!]
+  distance: Int
   eventType: EventType
   jobs: [Int!]
   timeFrame: ShiftTimeFilter
@@ -1136,6 +1145,7 @@ type VolunteerProfile {
   email: String!
   phone: String
   zipCode: String
+  distance: Int
   role: Role!
 }
 
@@ -1271,6 +1281,7 @@ input UpdateOwnProfileInput {
   email: String!
   phone: String
   zipCode: String
+  distance: Int
 }
 
 type VolunteerMutationResult {
@@ -2949,6 +2960,8 @@ func (ec *executionContext) fieldContext_Query_volunteerProfile(_ context.Contex
 				return ec.fieldContext_VolunteerProfile_phone(ctx, field)
 			case "zipCode":
 				return ec.fieldContext_VolunteerProfile_zipCode(ctx, field)
+			case "distance":
+				return ec.fieldContext_VolunteerProfile_distance(ctx, field)
 			case "role":
 				return ec.fieldContext_VolunteerProfile_role(ctx, field)
 			}
@@ -4533,6 +4546,35 @@ func (ec *executionContext) fieldContext_VolunteerProfile_zipCode(_ context.Cont
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VolunteerProfile_distance(ctx context.Context, field graphql.CollectedField, obj *VolunteerProfile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VolunteerProfile_distance,
+		func(ctx context.Context) (any, error) {
+			return obj.Distance, nil
+		},
+		nil,
+		ec.marshalOInt2ᚖint,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_VolunteerProfile_distance(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VolunteerProfile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -6413,7 +6455,7 @@ func (ec *executionContext) unmarshalInputEventFilterInput(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"cities", "eventType", "jobs", "timeFrame"}
+	fieldsInOrder := [...]string{"cities", "distance", "eventType", "jobs", "timeFrame"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -6427,6 +6469,13 @@ func (ec *executionContext) unmarshalInputEventFilterInput(ctx context.Context, 
 				return it, err
 			}
 			it.Cities = data
+		case "distance":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("distance"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Distance = data
 		case "eventType":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("eventType"))
 			data, err := ec.unmarshalOEventType2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐEventType(ctx, v)
@@ -6509,7 +6558,7 @@ func (ec *executionContext) unmarshalInputUpdateOwnProfileInput(ctx context.Cont
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"firstName", "lastName", "email", "phone", "zipCode"}
+	fieldsInOrder := [...]string{"firstName", "lastName", "email", "phone", "zipCode", "distance"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -6551,6 +6600,13 @@ func (ec *executionContext) unmarshalInputUpdateOwnProfileInput(ctx context.Cont
 				return it, err
 			}
 			it.ZipCode = data
+		case "distance":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("distance"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Distance = data
 		}
 	}
 
@@ -7730,6 +7786,8 @@ func (ec *executionContext) _VolunteerProfile(ctx context.Context, sel ast.Selec
 			out.Values[i] = ec._VolunteerProfile_phone(ctx, field, obj)
 		case "zipCode":
 			out.Values[i] = ec._VolunteerProfile_zipCode(ctx, field, obj)
+		case "distance":
+			out.Values[i] = ec._VolunteerProfile_distance(ctx, field, obj)
 		case "role":
 			out.Values[i] = ec._VolunteerProfile_role(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
