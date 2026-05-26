@@ -15,6 +15,10 @@ import styles from "./add-event.module.css";
 
 /* ----- Constants ----- */
 
+const RECURRENCE_DEFAULTS = {
+  DAILY: "365", WEEKLY: "52", BIWEEKLY: "26", MONTHLY: "12", YEARLY: "",
+};
+
 const US_TIMEZONES = [
   { value: "America/New_York",    label: "Eastern (ET)" },
   { value: "America/Chicago",     label: "Central (CT)" },
@@ -41,7 +45,6 @@ const VENUES_AND_LOOKUPS = `
       city
       state
       zipCode
-      timezone
     }
     lookupValues {
       fundingEntities { id name }
@@ -193,8 +196,7 @@ function VenueSelector({ venues, selectedVenue, onSelect, onClear, gql }) {
   const [open, setOpen] = useState(false);
   const [showNewForm, setShowNewForm] = useState(false);
   const [newVenue, setNewVenue] = useState({
-    name: "", address: "", city: "", state: "WA",
-    zipCode: "", ianaZone: "America/Los_Angeles",
+    name: "", address: "", city: "", state: "WA", zipCode: "",
   });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
@@ -247,12 +249,11 @@ function VenueSelector({ venues, selectedVenue, onSelect, onClear, gql }) {
     try {
       const res = await gql(CREATE_VENUE, {
         newVenue: {
-          name:     newVenue.name     || null,
-          address:  newVenue.address,
-          city:     newVenue.city,
-          state:    newVenue.state,
-          zipCode:  newVenue.zipCode  || null,
-          ianaZone: newVenue.ianaZone,
+          name:    newVenue.name    || null,
+          address: newVenue.address,
+          city:    newVenue.city,
+          state:   newVenue.state,
+          zipCode: newVenue.zipCode || null,
         },
       });
       const result = res.data?.createVenue;
@@ -262,12 +263,11 @@ function VenueSelector({ venues, selectedVenue, onSelect, onClear, gql }) {
       }
       // Auto-select the newly created venue
       onSelect({
-        id:       result.id,
-        name:     newVenue.name,
-        address:  newVenue.address,
-        city:     newVenue.city,
-        state:    newVenue.state,
-        timezone: newVenue.ianaZone,
+        id:      result.id,
+        name:    newVenue.name,
+        address: newVenue.address,
+        city:    newVenue.city,
+        state:   newVenue.state,
       });
       setShowNewForm(false);
       setSearch("");
@@ -287,7 +287,7 @@ function VenueSelector({ venues, selectedVenue, onSelect, onClear, gql }) {
             {selectedVenue.name || selectedVenue.address}
           </div>
           <div className={styles.venueSelectedSub}>
-            {selectedVenue.city}, {selectedVenue.state} &middot; {selectedVenue.timezone}
+            {selectedVenue.city}, {selectedVenue.state}
           </div>
         </div>
         <button className={styles.venueClearBtn} onClick={onClear}>
@@ -383,20 +383,6 @@ function VenueSelector({ venues, selectedVenue, onSelect, onClear, gql }) {
                 onChange={(e) => setNewVenue((p) => ({ ...p, zipCode: e.target.value }))}
               />
             </div>
-            <div className={styles.field}>
-              <label className={styles.label}>
-                Timezone <span className={styles.required}>*</span>
-              </label>
-              <select
-                className={styles.select}
-                value={newVenue.ianaZone}
-                onChange={(e) => setNewVenue((p) => ({ ...p, ianaZone: e.target.value }))}
-              >
-                {US_TIMEZONES.map((tz) => (
-                  <option key={tz.value} value={tz.value}>{tz.label}</option>
-                ))}
-              </select>
-            </div>
           </div>
 
           {createError && <div className={styles.fieldError}>{createError}</div>}
@@ -453,6 +439,10 @@ export default function AddEventPage() {
   const [selectedVenue, setSelectedVenue] = useState(null);
   const [selectedServiceTypes, setSelectedServiceTypes] = useState([]);
   const [ianaZone, setIanaZone] = useState(browserZone.current);
+  const [recurring,         setRecurring]         = useState(false);
+  const [recurrencePattern, setRecurrencePattern] = useState("WEEKLY");
+  const [recurrenceMax,     setRecurrenceMax]     = useState(RECURRENCE_DEFAULTS.WEEKLY);
+  const [recurrenceOrdinal, setRecurrenceOrdinal] = useState("FIRST");
   const [eventDates, setEventDates] = useState([EMPTY_DATE()]);
 
   // Validation errors
@@ -498,10 +488,8 @@ export default function AddEventPage() {
     }
   }, [eventType]);
 
-  /* When venue is selected, adopt its timezone */
   const handleVenueSelect = useCallback((v) => {
     setSelectedVenue(v);
-    setIanaZone(v.timezone || browserZone.current);
     setErrors((prev) => ({ ...prev, venue: undefined }));
   }, []);
 
@@ -561,6 +549,9 @@ export default function AddEventPage() {
       return null;
     });
     if (dateErrs.some(Boolean)) errs.dates = dateErrs;
+    if (recurring && recurrencePattern === "YEARLY" && !recurrenceMax.trim()) {
+      errs.recurrenceMax = "Number of occurrences is required for yearly events.";
+    }
     return errs;
   };
 
@@ -580,11 +571,16 @@ export default function AddEventPage() {
       venueId:         selectedVenue?.id ?? null,
       fundingEntityId: parseInt(fundingEntityId, 10),
       serviceTypes:    selectedServiceTypes.map(Number),
+      timezone:        ianaZone,
       eventDates:      eventDates.map((d) => ({
         startDateTime: `${d.startDate} ${normalizeTime(d.startTime)}:00`,
         endDateTime:   `${d.endDate} ${normalizeTime(d.endTime)}:00`,
-        ianaZone,
       })),
+      recurrence: recurring ? {
+        pattern:        recurrencePattern,
+        maxOccurrences: recurrenceMax.trim() ? parseInt(recurrenceMax, 10) : null,
+        ...(recurrencePattern === "MONTHLY" ? { weekdayOrdinal: recurrenceOrdinal } : {}),
+      } : undefined,
     };
 
     try {
@@ -611,6 +607,10 @@ export default function AddEventPage() {
     setSelectedServiceTypes([]);
     setFundingEntityId(fundingEntities[0] ? String(fundingEntities[0].id) : "");
     setIanaZone(browserZone.current);
+    setRecurring(false);
+    setRecurrencePattern("WEEKLY");
+    setRecurrenceMax(RECURRENCE_DEFAULTS.WEEKLY);
+    setRecurrenceOrdinal("FIRST");
     setEventDates([EMPTY_DATE()]);
     setErrors({});
     setSubmitError("");
@@ -780,17 +780,109 @@ export default function AddEventPage() {
                     <option key={tz.value} value={tz.value}>{tz.label}</option>
                   ))}
                 </select>
-                {selectedVenue && (
-                  <span className={styles.timezoneNote}>
-                    Auto-set from venue · change if needed
-                  </span>
+              </div>
+            </div>
+
+            {/* Recurrence */}
+            <div className={styles.section}>
+              <div className={styles.sectionTitle}>Recurrence</div>
+              <div className={styles.field}>
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={recurring}
+                    onChange={(e) => {
+                      setRecurring(e.target.checked);
+                      setErrors((p) => ({ ...p, recurrenceMax: undefined }));
+                    }}
+                  />
+                  Repeat this event
+                </label>
+              </div>
+
+              <div className={`${styles.recurFields} ${!recurring ? styles.recurDisabled : ""}`}>
+                <div className={styles.grid2}>
+                  <div className={styles.field}>
+                    <label htmlFor="recurrencePattern" className={styles.label}>Pattern</label>
+                    <select
+                      id="recurrencePattern"
+                      className={styles.select}
+                      value={recurrencePattern}
+                      disabled={!recurring}
+                      onChange={(e) => {
+                        const p = e.target.value;
+                        setRecurrencePattern(p);
+                        setRecurrenceMax(RECURRENCE_DEFAULTS[p]);
+                      }}
+                    >
+                      <option value="DAILY">Daily</option>
+                      <option value="WEEKLY">Weekly</option>
+                      <option value="BIWEEKLY">Every 2 Weeks</option>
+                      <option value="MONTHLY">Monthly</option>
+                      <option value="YEARLY">Yearly</option>
+                    </select>
+                  </div>
+
+                  <div className={styles.field}>
+                    <label htmlFor="recurrenceMax" className={styles.label}>
+                      Occurrences
+                      {recurrencePattern === "YEARLY" && <span className={styles.required}>*</span>}
+                    </label>
+                    <input
+                      id="recurrenceMax"
+                      type="number"
+                      min="1"
+                      className={`${styles.input}${errors.recurrenceMax ? ` ${styles.error}` : ""}`}
+                      value={recurrenceMax}
+                      disabled={!recurring}
+                      onChange={(e) => {
+                        setRecurrenceMax(e.target.value);
+                        setErrors((p) => ({ ...p, recurrenceMax: undefined }));
+                      }}
+                      placeholder={recurrencePattern === "YEARLY" ? "Required" : "Default"}
+                    />
+                    {errors.recurrenceMax && (
+                      <div className={styles.fieldError}>{errors.recurrenceMax}</div>
+                    )}
+                  </div>
+                </div>
+
+                {recurrencePattern === "MONTHLY" && (
+                  <div className={styles.field}>
+                    <label className={styles.label}>Week of Month</label>
+                    <div className={styles.timezoneRow}>
+                      <select
+                        className={styles.select}
+                        style={{ width: "auto" }}
+                        value={recurrenceOrdinal}
+                        disabled={!recurring}
+                        onChange={(e) => setRecurrenceOrdinal(e.target.value)}
+                      >
+                        <option value="FIRST">1st</option>
+                        <option value="SECOND">2nd</option>
+                        <option value="THIRD">3rd</option>
+                        <option value="FOURTH">4th</option>
+                        <option value="LAST">Last</option>
+                      </select>
+                      <span className={styles.recurNote}>
+                        Derived from first occurrence date — adjust if needed.
+                      </span>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
 
             {/* Event dates */}
             <div className={styles.section}>
-              <div className={styles.sectionTitle}>Event Dates</div>
+              <div className={styles.sectionTitle}>
+                {recurring ? "First Occurrence Dates" : "Event Dates"}
+              </div>
+              {recurring && (
+                <p className={styles.recurNote}>
+                  Enter the dates for the first occurrence; the system will generate the rest.
+                </p>
+              )}
 
               {eventDates.map((d, i) => (
                 <div key={d.id}>

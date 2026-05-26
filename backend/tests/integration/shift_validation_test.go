@@ -34,7 +34,6 @@ func TestCreateShift_EndBeforeStart(t *testing.T) {
 			"opportunityId": fmt.Sprintf("%d", oppID),
 			"startDateTime": "2028-10-01 14:00:00",
 			"endDateTime":   "2028-10-01 09:00:00", // before start
-			"ianaZone":      "UTC",
 			"maxVolunteers": 5,
 		},
 	})
@@ -59,7 +58,6 @@ func TestCreateShift_EndEqualsStart(t *testing.T) {
 			"opportunityId": fmt.Sprintf("%d", oppID),
 			"startDateTime": "2028-10-02 10:00:00",
 			"endDateTime":   "2028-10-02 10:00:00", // same as start
-			"ianaZone":      "UTC",
 			"maxVolunteers": 5,
 		},
 	})
@@ -84,7 +82,6 @@ func TestCreateShift_ValidDates(t *testing.T) {
 			"opportunityId": fmt.Sprintf("%d", oppID),
 			"startDateTime": "2028-10-03 09:00:00",
 			"endDateTime":   "2028-10-03 17:00:00",
-			"ianaZone":      "UTC",
 			"maxVolunteers": 5,
 		},
 	})
@@ -130,7 +127,6 @@ func TestUpdateShift_EndBeforeStart(t *testing.T) {
 			"id":            fmt.Sprintf("%d", shiftID),
 			"startDateTime": "2028-11-01 14:00:00",
 			"endDateTime":   "2028-11-01 09:00:00", // before start
-			"ianaZone":      "UTC",
 			"maxVolunteers": 5,
 		},
 	})
@@ -169,7 +165,6 @@ func TestUpdateShift_EndEqualsStart(t *testing.T) {
 			"id":            fmt.Sprintf("%d", shiftID),
 			"startDateTime": "2028-11-02 10:00:00",
 			"endDateTime":   "2028-11-02 10:00:00", // same as start
-			"ianaZone":      "UTC",
 			"maxVolunteers": 5,
 		},
 	})
@@ -195,7 +190,6 @@ func TestUpdateShift_ValidDates(t *testing.T) {
 			"id":            fmt.Sprintf("%d", shiftID),
 			"startDateTime": "2028-11-03 10:00:00",
 			"endDateTime":   "2028-11-03 18:00:00",
-			"ianaZone":      "UTC",
 			"maxVolunteers": 8,
 		},
 	})

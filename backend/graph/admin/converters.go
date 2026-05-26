@@ -57,8 +57,9 @@ func toGenFundingEntity(m *models.FundingEntity) *generated.FundingEntity {
 		return nil
 	}
 	return &generated.FundingEntity{
-		ID:   m.ID,
-		Name: m.Name,
+		ID:          m.ID,
+		Name:        m.Name,
+		Description: m.Description,
 	}
 }
 
@@ -107,13 +108,12 @@ func toGenVenue(m *models.Venue) *generated.Venue {
 		return nil
 	}
 	return &generated.Venue{
-		ID:       m.ID,
-		Name:     m.Name,
-		Address:  m.Address,
-		City:     m.City,
-		State:    m.State,
-		ZipCode:  m.ZipCode,
-		Timezone: m.Timezone,
+		ID:      m.ID,
+		Name:    m.Name,
+		Address: m.Address,
+		City:    m.City,
+		State:   m.State,
+		ZipCode: m.ZipCode,
 	}
 }
 
@@ -181,10 +181,54 @@ func toGenEvent(m *models.Event) *generated.Event {
 		Description:    m.Description,
 		EventType:      generated.EventType(m.EventType),
 		Venue:          toGenVenue(m.Venue),
-		FundingEntity:  toGenFundingEntity(&m.FundingEntity),
 		EventDates:     toGenEventDates(m.EventDates),
 		ServiceTypes:   m.ServiceTypes,
 		ShiftSummaries: toGenEventShiftSummaries(m.ShiftSummaries),
+	}
+}
+
+func toGenManagedEvents(ms []*models.ManagedEvent) []*generated.ManagedEvent {
+	result := make([]*generated.ManagedEvent, len(ms))
+	for i, m := range ms {
+		result[i] = toGenManagedEvent(m)
+	}
+
+	return result
+}
+
+func toGenManagedEvent(m *models.ManagedEvent) *generated.ManagedEvent {
+	if m == nil {
+		return nil
+	}
+
+	var recurrenceID *string
+	var recurrenceOrder *int
+	var recurrencePattern *string
+	if m.RecurrenceId != "" {
+		recurrenceID = &m.RecurrenceId
+		order := m.RecurrenceOrder
+		recurrenceOrder = &order
+		if m.RecurrencePattern != "" {
+			recurrencePattern = &m.RecurrencePattern
+		}
+	}
+
+	return &generated.ManagedEvent{
+		ID:                       m.ID,
+		Name:                     m.Name,
+		Description:              m.Description,
+		EventType:                generated.EventType(m.EventType),
+		Venue:                    toGenVenue(m.Venue),
+		EventDates:               toGenEventDates(m.EventDates),
+		Timezone:                 m.Timezone,
+		FundingEntity:            toGenFundingEntity(&m.FundingEntity),
+		ServiceTypes:             m.ServiceTypes,
+		ShiftSummaries:           toGenEventShiftSummaries(m.ShiftSummaries),
+		RecurrenceID:             recurrenceID,
+		RecurrenceOrder:          recurrenceOrder,
+		RecurrencePattern:        recurrencePattern,
+		RecurrenceMaxOccurrences: m.RecurrenceMaxOccurrences,
+		RecurrenceOrdinal:        m.RecurrenceOrdinal,
 	}
 }
 
@@ -502,12 +546,11 @@ func toModelNewVolunteerInput(g generated.NewVolunteerInput) models.NewVolunteer
 func toModelNewVenueInput(g generated.NewVenueInput) models.NewVenueInput {
 
 	return models.NewVenueInput{
-		Name:     g.Name,
-		Address:  g.Address,
-		City:     g.City,
-		State:    g.State,
-		ZipCode:  g.ZipCode,
-		IanaZone: g.IanaZone,
+		Name:    g.Name,
+		Address: g.Address,
+		City:    g.City,
+		State:   g.State,
+		ZipCode: g.ZipCode,
 	}
 }
 
@@ -520,10 +563,27 @@ func toModelNewEventInput(g generated.NewEventInput) models.NewEventInput {
 		Description:     g.Description,
 		EventType:       eventType,
 		VenueId:         g.VenueID,
+		Timezone:        g.Timezone,
 		FundingEntityID: g.FundingEntityID,
 		ServiceTypes:    g.ServiceTypes,
 		EventDates:      toModelNewEventDates(g.EventDates),
+		Recurrence:      toModelRecurrenceInput(g.Recurrence),
 	}
+}
+
+func toModelRecurrenceInput(g *generated.RecurrenceInput) *models.RecurrenceInput {
+	if g == nil {
+		return nil
+	}
+	r := &models.RecurrenceInput{
+		Pattern:        models.RecurrencePattern(g.Pattern),
+		MaxOccurrences: g.MaxOccurrences,
+	}
+	if g.WeekdayOrdinal != nil {
+		wo := models.WeekdayOrdinal(*g.WeekdayOrdinal)
+		r.WeekdayOrdinal = &wo
+	}
+	return r
 }
 
 func toModelNewEventDates(gs []*generated.NewEventDateInput) []*models.NewEventDateInput {
@@ -540,7 +600,6 @@ func toModelNewEventDate(g *generated.NewEventDateInput) *models.NewEventDateInp
 	return &models.NewEventDateInput{
 		StartDateTime: g.StartDateTime,
 		EndDateTime:   g.EndDateTime,
-		IanaZone:      g.IanaZone,
 	}
 }
 
@@ -550,7 +609,6 @@ func toModelAddEventDate(g generated.AddEventDateInput) models.AddEventDateInput
 		EventID:       g.EventID,
 		StartDateTime: g.StartDateTime,
 		EndDateTime:   g.EndDateTime,
-		IanaZone:      g.IanaZone,
 	}
 }
 
@@ -596,7 +654,6 @@ func toModelNewShiftInput(g *generated.NewShiftInput) *models.NewShiftInput {
 	return &models.NewShiftInput{
 		StartDateTime:  g.StartDateTime,
 		EndDateTime:    g.EndDateTime,
-		IanaZone:       g.IanaZone,
 		MaxVolunteers:  g.MaxVolunteers,
 		StaffContactId: g.StaffContactID,
 	}
@@ -608,7 +665,6 @@ func toModelAddShiftInput(g generated.AddShiftInput) models.AddShiftInput {
 		OppId:          g.OpportunityID,
 		StartDateTime:  g.StartDateTime,
 		EndDateTime:    g.EndDateTime,
-		IanaZone:       g.IanaZone,
 		MaxVolunteers:  g.MaxVolunteers,
 		StaffContactId: g.StaffContactID,
 	}
@@ -641,14 +697,21 @@ func toModelUpdateVolunteerInput(g generated.UpdateVolunteerInput) models.Update
 
 func toModelUpdateVenue(g generated.UpdateVenueInput) models.UpdateVenueInput {
 	return models.UpdateVenueInput{
-		ID:       g.ID,
-		Name:     g.Name,
-		Address:  g.Address,
-		City:     g.City,
-		State:    g.State,
-		ZipCode:  g.ZipCode,
-		IanaZone: g.IanaZone,
+		ID:      g.ID,
+		Name:    g.Name,
+		Address: g.Address,
+		City:    g.City,
+		State:   g.State,
+		ZipCode: g.ZipCode,
 	}
+}
+
+func toModelScope(s *generated.RecurrenceUpdateScope) *models.RecurrenceUpdateScope {
+	if s == nil {
+		return nil
+	}
+	ms := models.RecurrenceUpdateScope(*s)
+	return &ms
 }
 
 func toModelUpdateEventInput(g generated.UpdateEventInput) models.UpdateEventInput {
@@ -659,8 +722,10 @@ func toModelUpdateEventInput(g generated.UpdateEventInput) models.UpdateEventInp
 		Description:     g.Description,
 		EventType:       models.EventType(g.EventType),
 		VenueId:         g.VenueID,
+		Timezone:        g.Timezone,
 		FundingEntityID: g.FundingEntityID,
 		ServiceTypes:    g.ServiceTypes,
+		RecurrenceScope: toModelScope(g.RecurrenceScope),
 	}
 }
 
@@ -669,7 +734,6 @@ func toModelUpdateEventDateInput(g generated.UpdateEventDateInput) models.Update
 		ID:            g.ID,
 		StartDateTime: g.StartDateTime,
 		EndDateTime:   g.EndDateTime,
-		IanaZone:      g.IanaZone,
 	}
 }
 
@@ -696,7 +760,6 @@ func toModelUpdateShift(g generated.UpdateShiftInput) models.UpdateShiftInput {
 		ID:             g.ID,
 		StartDateTime:  g.StartDateTime,
 		EndDateTime:    g.EndDateTime,
-		IanaZone:       g.IanaZone,
 		MaxVolunteers:  g.MaxVolunteers,
 		StaffContactId: g.StaffContactID,
 	}

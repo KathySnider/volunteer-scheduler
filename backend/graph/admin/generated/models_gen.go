@@ -13,14 +13,12 @@ type AddEventDateInput struct {
 	EventID       string `json:"eventId"`
 	StartDateTime string `json:"startDateTime"`
 	EndDateTime   string `json:"endDateTime"`
-	IanaZone      string `json:"ianaZone"`
 }
 
 type AddShiftInput struct {
 	OpportunityID  string  `json:"opportunityId"`
 	StartDateTime  string  `json:"startDateTime"`
 	EndDateTime    string  `json:"endDateTime"`
-	IanaZone       string  `json:"ianaZone"`
 	MaxVolunteers  *int    `json:"maxVolunteers,omitempty"`
 	StaffContactID *string `json:"staffContactId,omitempty"`
 }
@@ -37,7 +35,7 @@ type Event struct {
 	Description    *string              `json:"description,omitempty"`
 	EventType      EventType            `json:"eventType"`
 	Venue          *Venue               `json:"venue,omitempty"`
-	FundingEntity  *FundingEntity       `json:"fundingEntity"`
+	Timezone       string               `json:"timezone"`
 	ServiceTypes   []string             `json:"serviceTypes,omitempty"`
 	EventDates     []*EventDate         `json:"eventDates"`
 	ShiftSummaries []*EventShiftSummary `json:"shiftSummaries"`
@@ -121,6 +119,24 @@ type LookupValues struct {
 	Cities          []string         `json:"cities"`
 }
 
+type ManagedEvent struct {
+	ID                       string               `json:"id"`
+	Name                     string               `json:"name"`
+	Description              *string              `json:"description,omitempty"`
+	EventType                EventType            `json:"eventType"`
+	Venue                    *Venue               `json:"venue,omitempty"`
+	Timezone                 string               `json:"timezone"`
+	FundingEntity            *FundingEntity       `json:"fundingEntity"`
+	ServiceTypes             []string             `json:"serviceTypes,omitempty"`
+	EventDates               []*EventDate         `json:"eventDates"`
+	ShiftSummaries           []*EventShiftSummary `json:"shiftSummaries"`
+	RecurrenceID             *string              `json:"recurrenceId,omitempty"`
+	RecurrenceOrder          *int                 `json:"recurrenceOrder,omitempty"`
+	RecurrencePattern        *string              `json:"recurrencePattern,omitempty"`
+	RecurrenceMaxOccurrences *int                 `json:"recurrenceMaxOccurrences,omitempty"`
+	RecurrenceOrdinal        *string              `json:"recurrenceOrdinal,omitempty"`
+}
+
 type Mutation struct {
 }
 
@@ -133,7 +149,6 @@ type MutationResult struct {
 type NewEventDateInput struct {
 	StartDateTime string `json:"startDateTime"`
 	EndDateTime   string `json:"endDateTime"`
-	IanaZone      string `json:"ianaZone"`
 }
 
 type NewEventInput struct {
@@ -141,9 +156,11 @@ type NewEventInput struct {
 	Description     *string              `json:"description,omitempty"`
 	EventType       EventType            `json:"eventType"`
 	VenueID         *string              `json:"venueId,omitempty"`
+	EventDates      []*NewEventDateInput `json:"eventDates"`
+	Timezone        string               `json:"timezone"`
 	FundingEntityID int                  `json:"fundingEntityId"`
 	ServiceTypes    []int                `json:"serviceTypes"`
-	EventDates      []*NewEventDateInput `json:"eventDates"`
+	Recurrence      *RecurrenceInput     `json:"recurrence,omitempty"`
 }
 
 type NewFeedbackInput struct {
@@ -175,7 +192,6 @@ type NewOpportunityInput struct {
 type NewShiftInput struct {
 	StartDateTime  string  `json:"startDateTime"`
 	EndDateTime    string  `json:"endDateTime"`
-	IanaZone       string  `json:"ianaZone"`
 	MaxVolunteers  *int    `json:"maxVolunteers,omitempty"`
 	StaffContactID *string `json:"staffContactId,omitempty"`
 }
@@ -189,12 +205,11 @@ type NewStaffInput struct {
 }
 
 type NewVenueInput struct {
-	Name     *string `json:"name,omitempty"`
-	Address  string  `json:"address"`
-	City     string  `json:"city"`
-	State    string  `json:"state"`
-	ZipCode  *string `json:"zipCode,omitempty"`
-	IanaZone string  `json:"ianaZone"`
+	Name    *string `json:"name,omitempty"`
+	Address string  `json:"address"`
+	City    string  `json:"city"`
+	State   string  `json:"state"`
+	ZipCode *string `json:"zipCode,omitempty"`
 }
 
 type NewVolunteerInput struct {
@@ -222,6 +237,12 @@ type QuestionFeedbackInput struct {
 	ID        string `json:"id"`
 	EmailText string `json:"emailText"`
 	Note      string `json:"note"`
+}
+
+type RecurrenceInput struct {
+	Pattern        RecurrencePattern `json:"pattern"`
+	MaxOccurrences *int              `json:"maxOccurrences,omitempty"`
+	WeekdayOrdinal *WeekdayOrdinal   `json:"weekdayOrdinal,omitempty"`
 }
 
 type ResolveFeedbackInput struct {
@@ -258,17 +279,18 @@ type UpdateEventDateInput struct {
 	ID            string `json:"id"`
 	StartDateTime string `json:"startDateTime"`
 	EndDateTime   string `json:"endDateTime"`
-	IanaZone      string `json:"ianaZone"`
 }
 
 type UpdateEventInput struct {
-	ID              string    `json:"id"`
-	Name            string    `json:"name"`
-	Description     *string   `json:"description,omitempty"`
-	EventType       EventType `json:"eventType"`
-	VenueID         *string   `json:"venueId,omitempty"`
-	FundingEntityID int       `json:"fundingEntityId"`
-	ServiceTypes    []int     `json:"serviceTypes"`
+	ID              string                 `json:"id"`
+	Name            string                 `json:"name"`
+	Description     *string                `json:"description,omitempty"`
+	EventType       EventType              `json:"eventType"`
+	VenueID         *string                `json:"venueId,omitempty"`
+	Timezone        string                 `json:"timezone"`
+	FundingEntityID int                    `json:"fundingEntityId"`
+	ServiceTypes    []int                  `json:"serviceTypes"`
+	RecurrenceScope *RecurrenceUpdateScope `json:"recurrenceScope,omitempty"`
 }
 
 type UpdateFeedbackInput struct {
@@ -302,7 +324,6 @@ type UpdateShiftInput struct {
 	ID             string  `json:"id"`
 	StartDateTime  string  `json:"startDateTime"`
 	EndDateTime    string  `json:"endDateTime"`
-	IanaZone       string  `json:"ianaZone"`
 	MaxVolunteers  *int    `json:"maxVolunteers,omitempty"`
 	StaffContactID *string `json:"staffContactId,omitempty"`
 }
@@ -317,13 +338,12 @@ type UpdateStaffInput struct {
 }
 
 type UpdateVenueInput struct {
-	ID       string  `json:"id"`
-	Name     *string `json:"name,omitempty"`
-	Address  string  `json:"address"`
-	City     string  `json:"city"`
-	State    string  `json:"state"`
-	ZipCode  *string `json:"zipCode,omitempty"`
-	IanaZone string  `json:"ianaZone"`
+	ID      string  `json:"id"`
+	Name    *string `json:"name,omitempty"`
+	Address string  `json:"address"`
+	City    string  `json:"city"`
+	State   string  `json:"state"`
+	ZipCode *string `json:"zipCode,omitempty"`
 }
 
 type UpdateVolunteerInput struct {
@@ -338,13 +358,12 @@ type UpdateVolunteerInput struct {
 }
 
 type Venue struct {
-	ID       string  `json:"id"`
-	Name     *string `json:"name,omitempty"`
-	Address  string  `json:"address"`
-	City     string  `json:"city"`
-	State    string  `json:"state"`
-	ZipCode  *string `json:"zipCode,omitempty"`
-	Timezone string  `json:"timezone"`
+	ID      string  `json:"id"`
+	Name    *string `json:"name,omitempty"`
+	Address string  `json:"address"`
+	City    string  `json:"city"`
+	State   string  `json:"state"`
+	ZipCode *string `json:"zipCode,omitempty"`
 }
 
 type Volunteer struct {
@@ -622,6 +641,122 @@ func (e FeedbackType) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+type RecurrencePattern string
+
+const (
+	RecurrencePatternDaily    RecurrencePattern = "DAILY"
+	RecurrencePatternWeekly   RecurrencePattern = "WEEKLY"
+	RecurrencePatternBiweekly RecurrencePattern = "BIWEEKLY"
+	RecurrencePatternMonthly  RecurrencePattern = "MONTHLY"
+	RecurrencePatternYearly   RecurrencePattern = "YEARLY"
+)
+
+var AllRecurrencePattern = []RecurrencePattern{
+	RecurrencePatternDaily,
+	RecurrencePatternWeekly,
+	RecurrencePatternBiweekly,
+	RecurrencePatternMonthly,
+	RecurrencePatternYearly,
+}
+
+func (e RecurrencePattern) IsValid() bool {
+	switch e {
+	case RecurrencePatternDaily, RecurrencePatternWeekly, RecurrencePatternBiweekly, RecurrencePatternMonthly, RecurrencePatternYearly:
+		return true
+	}
+	return false
+}
+
+func (e RecurrencePattern) String() string {
+	return string(e)
+}
+
+func (e *RecurrencePattern) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = RecurrencePattern(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid RecurrencePattern", str)
+	}
+	return nil
+}
+
+func (e RecurrencePattern) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *RecurrencePattern) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e RecurrencePattern) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type RecurrenceUpdateScope string
+
+const (
+	RecurrenceUpdateScopeThisOnly      RecurrenceUpdateScope = "THIS_ONLY"
+	RecurrenceUpdateScopeThisAndFuture RecurrenceUpdateScope = "THIS_AND_FUTURE"
+)
+
+var AllRecurrenceUpdateScope = []RecurrenceUpdateScope{
+	RecurrenceUpdateScopeThisOnly,
+	RecurrenceUpdateScopeThisAndFuture,
+}
+
+func (e RecurrenceUpdateScope) IsValid() bool {
+	switch e {
+	case RecurrenceUpdateScopeThisOnly, RecurrenceUpdateScopeThisAndFuture:
+		return true
+	}
+	return false
+}
+
+func (e RecurrenceUpdateScope) String() string {
+	return string(e)
+}
+
+func (e *RecurrenceUpdateScope) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = RecurrenceUpdateScope(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid RecurrenceUpdateScope", str)
+	}
+	return nil
+}
+
+func (e RecurrenceUpdateScope) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *RecurrenceUpdateScope) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e RecurrenceUpdateScope) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
 type Role string
 
 const (
@@ -729,6 +864,67 @@ func (e *ShiftTimeFilter) UnmarshalJSON(b []byte) error {
 }
 
 func (e ShiftTimeFilter) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type WeekdayOrdinal string
+
+const (
+	WeekdayOrdinalFirst  WeekdayOrdinal = "FIRST"
+	WeekdayOrdinalSecond WeekdayOrdinal = "SECOND"
+	WeekdayOrdinalThird  WeekdayOrdinal = "THIRD"
+	WeekdayOrdinalFourth WeekdayOrdinal = "FOURTH"
+	WeekdayOrdinalLast   WeekdayOrdinal = "LAST"
+)
+
+var AllWeekdayOrdinal = []WeekdayOrdinal{
+	WeekdayOrdinalFirst,
+	WeekdayOrdinalSecond,
+	WeekdayOrdinalThird,
+	WeekdayOrdinalFourth,
+	WeekdayOrdinalLast,
+}
+
+func (e WeekdayOrdinal) IsValid() bool {
+	switch e {
+	case WeekdayOrdinalFirst, WeekdayOrdinalSecond, WeekdayOrdinalThird, WeekdayOrdinalFourth, WeekdayOrdinalLast:
+		return true
+	}
+	return false
+}
+
+func (e WeekdayOrdinal) String() string {
+	return string(e)
+}
+
+func (e *WeekdayOrdinal) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = WeekdayOrdinal(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid WeekdayOrdinal", str)
+	}
+	return nil
+}
+
+func (e WeekdayOrdinal) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *WeekdayOrdinal) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e WeekdayOrdinal) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

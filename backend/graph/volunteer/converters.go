@@ -107,13 +107,12 @@ func toGenVenue(m *models.Venue) *generated.Venue {
 		return nil
 	}
 	return &generated.Venue{
-		ID:       m.ID,
-		Name:     m.Name,
-		Address:  m.Address,
-		City:     m.City,
-		State:    m.State,
-		ZipCode:  m.ZipCode,
-		Timezone: m.Timezone,
+		ID:      m.ID,
+		Name:    m.Name,
+		Address: m.Address,
+		City:    m.City,
+		State:   m.State,
+		ZipCode: m.ZipCode,
 	}
 }
 
@@ -181,7 +180,6 @@ func toGenEvent(m *models.Event) *generated.Event {
 		Description:    m.Description,
 		EventType:      generated.EventType(m.EventType),
 		Venue:          toGenVenue(m.Venue),
-		FundingEntity:  toGenFundingEntity(&m.FundingEntity),
 		EventDates:     toGenEventDates(m.EventDates),
 		ServiceTypes:   m.ServiceTypes,
 		ShiftSummaries: toGenEventShiftSummaries(m.ShiftSummaries),

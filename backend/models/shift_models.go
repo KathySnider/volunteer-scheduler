@@ -50,7 +50,6 @@ type NewJobTypeInput struct {
 type NewShiftInput struct {
 	StartDateTime  string
 	EndDateTime    string
-	IanaZone       string
 	MaxVolunteers  *int
 	StaffContactId *string
 }
@@ -59,7 +58,6 @@ type AddShiftInput struct {
 	OppId          string
 	StartDateTime  string
 	EndDateTime    string
-	IanaZone       string
 	MaxVolunteers  *int
 	StaffContactId *string
 }
@@ -85,7 +83,6 @@ type UpdateShiftInput struct {
 	ID             string
 	StartDateTime  string
 	EndDateTime    string
-	IanaZone       string
 	MaxVolunteers  *int
 	StaffContactId *string
 }

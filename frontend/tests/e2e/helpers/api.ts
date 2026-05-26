@@ -144,7 +144,7 @@ export async function createVolunteer(
  */
 export async function createVenue(
   adminToken: string,
-  opts: { name: string; city: string; state: string; ianaZone?: string }
+  opts: { name: string; city: string; state: string }
 ): Promise<string> {
   const data = await gql(
     ADMIN_URL,
@@ -155,7 +155,6 @@ export async function createVenue(
         address: uniqueName("123 Test St "),
         city: opts.city,
         state: opts.state,
-        ianaZone: opts.ianaZone ?? "America/New_York",
       },
     },
     adminToken
@@ -199,14 +198,74 @@ export async function findEventIdByName(
   return events.find((e) => e.name === name)?.id ?? null;
 }
 
-/** Delete an event by ID. */
+/** Delete an event by ID (single occurrence). */
 export async function deleteEvent(adminToken: string, eventId: string): Promise<void> {
   await gql(
     ADMIN_URL,
-    `mutation DeleteEvent($id: ID!) { deleteEvent(eventId: $id) { success message } }`,
-    { id: eventId },
+    `mutation DeleteEvent($eventId: ID!, $scope: RecurrenceUpdateScope) { deleteEvent(eventId: $eventId, scope: $scope) { success message } }`,
+    { eventId },
     adminToken
   );
+}
+
+/**
+ * Find all events with the given name and delete them individually.
+ * Used to clean up recurring event series where every instance shares the same name.
+ */
+export async function deleteEventsByName(adminToken: string, name: string): Promise<void> {
+  const data = await gql(
+    ADMIN_URL,
+    `query { filteredEvents { id name } }`,
+    undefined,
+    adminToken
+  );
+  const events = data.filteredEvents as Array<{ id: string; name: string }>;
+  for (const ev of events.filter((e) => e.name === name)) {
+    try { await deleteEvent(adminToken, ev.id); } catch { /* ignore — may already be gone */ }
+  }
+}
+
+/**
+ * Create a virtual recurring event via the admin API.
+ * Returns the group UUID (the ID returned for recurring events).
+ */
+export async function createRecurringEvent(
+  adminToken: string,
+  opts: {
+    eventName: string;
+    occurrences: number;
+    pattern?: "DAILY" | "WEEKLY" | "BIWEEKLY" | "MONTHLY" | "YEARLY";
+    startDateTime?: string;
+    endDateTime?: string;
+  }
+): Promise<string> {
+  const data = await gql(
+    ADMIN_URL,
+    `mutation CreateEvent($e: NewEventInput!) { createEvent(newEvent: $e) { success message id } }`,
+    {
+      e: {
+        name: opts.eventName,
+        eventType: "VIRTUAL",
+        fundingEntityId: 1,
+        serviceTypes: [],
+        timezone: "America/New_York",
+        eventDates: [
+          {
+            startDateTime: opts.startDateTime ?? "2031-06-04 09:00:00",
+            endDateTime:   opts.endDateTime   ?? "2031-06-04 11:00:00",
+          },
+        ],
+        recurrence: {
+          pattern: opts.pattern ?? "WEEKLY",
+          maxOccurrences: opts.occurrences,
+        },
+      },
+    },
+    adminToken
+  );
+  const result = data.createEvent as { success: boolean; message: string; id?: string };
+  if (!result.success || !result.id) throw new Error(`createRecurringEvent failed: ${result.message}`);
+  return result.id; // group UUID
 }
 
 /** Delete a venue by ID. */
@@ -263,11 +322,11 @@ export async function createEventWithoutShifts(
         venueId: opts.venueId,
         fundingEntityId: 1,
         serviceTypes: [],
+        timezone: "America/New_York",
         eventDates: [
           {
             startDateTime: opts.startDateTime ?? "2027-11-01 09:00:00",
             endDateTime:   opts.endDateTime   ?? "2027-11-01 13:00:00",
-            ianaZone: "America/New_York",
           },
         ],
       },
@@ -302,11 +361,11 @@ export async function createEventWithShift(
         venueId: opts.venueId,
         fundingEntityId: 1,
         serviceTypes: [],
+        timezone: "America/New_York",
         eventDates: [
           {
             startDateTime: opts.startDateTime,
             endDateTime: opts.endDateTime,
-            ianaZone: "America/New_York",
           },
         ],
       },
@@ -339,7 +398,6 @@ export async function createEventWithShift(
           {
             startDateTime: opts.startDateTime,
             endDateTime: opts.endDateTime,
-            ianaZone: "America/New_York",
             maxVolunteers: opts.maxVolunteers ?? 5,
           },
         ],

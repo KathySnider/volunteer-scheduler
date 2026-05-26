@@ -56,7 +56,6 @@ func TestCreateVenue(t *testing.T) {
 			"address":  "1221 SW 4th Ave",
 			"city":     "Portland",
 			"state":    "OR",
-			"ianaZone": "America/Los_Angeles",
 		},
 	})
 
@@ -94,7 +93,7 @@ func TestCreateVenue(t *testing.T) {
 // is persisted to the DB.
 func TestUpdateVenue(t *testing.T) {
 	token := makeAdminToken(t)
-	venueID := seedVenue(t, "Pre-Update Venue", "1 Old St", "Salem", "OR", "America/Los_Angeles")
+	venueID := seedVenue(t, "Pre-Update Venue", "1 Old St", "Salem", "OR")
 
 	resp := gqlPost(t, "/graphql/admin", token, mutUpdateVenue, map[string]any{
 		"input": map[string]any{
@@ -103,7 +102,6 @@ func TestUpdateVenue(t *testing.T) {
 			"address":  "900 Court St NE",
 			"city":     "Salem",
 			"state":    "OR",
-			"ianaZone": "America/Los_Angeles",
 		},
 	})
 
@@ -136,7 +134,7 @@ func TestUpdateVenue(t *testing.T) {
 // TestDeleteVenue verifies that deleteVenue removes the venue row from the DB.
 func TestDeleteVenue(t *testing.T) {
 	token := makeAdminToken(t)
-	venueID := seedVenue(t, "Venue To Delete", "9 Gone Rd", "Eugene", "OR", "America/Los_Angeles")
+	venueID := seedVenue(t, "Venue To Delete", "9 Gone Rd", "Eugene", "OR")
 
 	resp := gqlPost(t, "/graphql/admin", token, mutDeleteVenue, map[string]any{
 		"id": fmt.Sprintf("%d", venueID),

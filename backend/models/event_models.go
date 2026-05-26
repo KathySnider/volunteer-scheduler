@@ -19,10 +19,28 @@ type Event struct {
 	Description    *string
 	EventType      EventType
 	Venue          *Venue
-	FundingEntity  FundingEntity
-	ServiceTypes   []string
 	EventDates     []*EventDate
+	Timezone       string
+	ServiceTypes   []string
 	ShiftSummaries []*EventShiftSummary
+}
+
+type ManagedEvent struct {
+	ID                       string
+	Name                     string
+	Description              *string
+	EventType                EventType
+	Venue                    *Venue
+	EventDates               []*EventDate
+	Timezone                 string
+	FundingEntity            FundingEntity
+	ServiceTypes             []string
+	ShiftSummaries           []*EventShiftSummary
+	RecurrenceId             string
+	RecurrenceOrder          int
+	RecurrencePattern        string
+	RecurrenceMaxOccurrences *int
+	RecurrenceOrdinal        *string
 }
 
 // EventShiftSummary holds the per-opportunity volunteer counts
@@ -37,7 +55,6 @@ type EventDate struct {
 	ID            string
 	StartDateTime string
 	EndDateTime   string
-	IanaZone      string
 }
 
 // Input types for queries (e.g., filters).
@@ -52,30 +69,35 @@ type EventFilterInput struct {
 
 //  Input types for new rows.
 
+type RecurrenceInput struct {
+	Pattern        RecurrencePattern
+	MaxOccurrences *int
+	WeekdayOrdinal *WeekdayOrdinal
+}
 type NewEventInput struct {
 	Name            string
 	Description     *string
 	EventType       EventType
 	VenueId         *string
+	Timezone        string
 	FundingEntityID int
 	ServiceTypes    []int
 	EventDates      []*NewEventDateInput
+	Recurrence      *RecurrenceInput
 }
 
 type NewEventDateInput struct {
 	StartDateTime string
 	EndDateTime   string
-	IanaZone      string
 }
 
 type AddEventDateInput struct {
 	EventID       string
 	StartDateTime string
 	EndDateTime   string
-	IanaZone      string
 }
 
-//  Input types for updates.
+//  Input types for updates/deletes.
 
 type UpdateEventInput struct {
 	ID              string
@@ -83,15 +105,16 @@ type UpdateEventInput struct {
 	Description     *string
 	EventType       EventType
 	VenueId         *string
+	Timezone        string
 	FundingEntityID int
 	ServiceTypes    []int
+	RecurrenceScope *RecurrenceUpdateScope
 }
 
 type UpdateEventDateInput struct {
 	ID            string
 	StartDateTime string
 	EndDateTime   string
-	IanaZone      string
 }
 
 // Enums
@@ -109,4 +132,31 @@ const (
 	ShiftsFilterUpcoming ShiftsTimeFilter = "UPCOMING"
 	ShiftsFilterPast     ShiftsTimeFilter = "PAST"
 	ShiftsFilterAll      ShiftsTimeFilter = "ALL"
+)
+
+type RecurrencePattern string
+
+const (
+	RecurrencePatternDaily    RecurrencePattern = "DAILY"
+	RecurrencePatternWeekly   RecurrencePattern = "WEEKLY"
+	RecurrencePatternBiweekly RecurrencePattern = "BIWEEKLY"
+	RecurrencePatternMonthly  RecurrencePattern = "MONTHLY"
+	RecurrencePatternYearly   RecurrencePattern = "YEARLY"
+)
+
+type WeekdayOrdinal string
+
+const (
+	WeekdayOrdinalFirst  WeekdayOrdinal = "FIRST"
+	WeekdayOrdinalSecond WeekdayOrdinal = "SECOND"
+	WeekdayOrdinalThird  WeekdayOrdinal = "THIRD"
+	WeekdayOrdinalFourth WeekdayOrdinal = "FOURTH"
+	WeekdayOrdinalLast   WeekdayOrdinal = "LAST"
+)
+
+type RecurrenceUpdateScope string
+
+const (
+	RecurrenceUpdateScopeThisOnly      RecurrenceUpdateScope = "THIS_ONLY"
+	RecurrenceUpdateScopeThisAndFuture RecurrenceUpdateScope = "THIS_AND_FUTURE"
 )

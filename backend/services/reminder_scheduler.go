@@ -55,7 +55,7 @@ func (s *ReminderScheduler) SendPendingReminders(ctx context.Context) error {
 			ven.city,
 			ven.state, 
 			ven.zip_code,
-			ven.timezone,
+			e.timezone,
 			opp.pre_event_instructions
 		FROM volunteer_shifts vs
 		JOIN volunteers v ON v.volunteer_id = vs.volunteer_id
@@ -80,7 +80,8 @@ func (s *ReminderScheduler) SendPendingReminders(ctx context.Context) error {
 		var volInt, shiftInt int
 		var email, firstName, eventName, start, end sql.NullString
 		var isVirtual bool
-		var venName, address, city, state, zip, timezone sql.NullString
+		var venName, address, city, state, zip sql.NullString
+		var timezone string
 		var instruct sql.NullString
 		var fmtStart, fmtEnd *string
 
@@ -105,16 +106,10 @@ func (s *ReminderScheduler) SendPendingReminders(ctx context.Context) error {
 			return fmt.Errorf("error scanning reminders data: %w", err)
 		}
 
-		// Since "" is okay for template data, not checking valid
-		// on each nullable field. Just need timezone to format the
-		// start and end times.
-		if !timezone.Valid && !isVirtual {
-			return fmt.Errorf("database corruption: non-virtual event has no venue timezone; event=%q shiftId=%d volId=%d", eventName.String, shiftInt, volInt)
-		}
-
-		fmtStart, fmtEnd, err = formatStartEnd(start.String, end.String, timezone)
-		if err != nil {
-			return fmt.Errorf("error formatting shift time: %w", err)
+		if start.Valid && end.Valid {
+			fmtStart, fmtEnd = formatStartEnd(start.String, end.String, timezone)
+		} else {
+			return fmt.Errorf("Shift start/end returned NULL from DB for shift: %d.", shiftInt)
 		}
 
 		reminder := &shiftReminderData{

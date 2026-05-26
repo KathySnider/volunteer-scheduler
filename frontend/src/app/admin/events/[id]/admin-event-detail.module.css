@@ -137,6 +137,12 @@
   line-height: 1.5;
 }
 
+.metaNote {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
 /* ----- Opportunity cards ----- */
 
 .oppCard {
@@ -481,6 +487,28 @@
 .btnSecondary:hover {
   border-color: var(--color-text-muted);
   color: var(--color-text);
+}
+
+.btnDanger {
+  padding: 0.5rem 1rem;
+  background: var(--color-danger, #dc2626);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.btnDanger:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.btnDanger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btnOutline {

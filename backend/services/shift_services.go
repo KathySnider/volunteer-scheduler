@@ -305,8 +305,7 @@ func (s *ShiftService) CreateOpportunity(ctx context.Context, opp models.NewOppo
 
 	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
-		err = fmt.Errorf("error starting transaction to create opportunity: %w", err)
-		return nil, err
+		return nil, fmt.Errorf("error starting transaction to create opportunity: %w", err)
 	}
 
 	// Defer a rollback in case anything fails.
@@ -368,11 +367,29 @@ func (s *ShiftService) CreateShift(ctx context.Context, shift models.AddShiftInp
 	var shiftInt int
 	var startUTC, endUTC *string
 	var staffId, maxVols interface{}
+	var timezone string
+
+	oppInt, err := strconv.Atoi(shift.OppId)
+	if err != nil {
+		return nil, fmt.Errorf("could not create shift; invalid opportunity id: %w", err)
+	}
+
+	query := `
+		SELECT
+			e.timezone 
+		FROM events e
+		JOIN opportunities opp ON opp.event_id = e.event_id
+		WHERE opp.opportunity_id = $1
+		`
+	err = s.DB.QueryRowContext(ctx, query, oppInt).Scan(&timezone)
+	if err != nil {
+		return nil, friendlyDBError(err)
+	}
 
 	// Convert dates, times to UTC.
-	startUTC, err := DateTimeToUTC(shift.StartDateTime, shift.IanaZone)
+	startUTC, err = DateTimeToUTC(shift.StartDateTime, timezone)
 	if err == nil {
-		endUTC, err = DateTimeToUTC(shift.EndDateTime, shift.IanaZone)
+		endUTC, err = DateTimeToUTC(shift.EndDateTime, timezone)
 	}
 	if err != nil {
 		return nil, err
@@ -399,15 +416,9 @@ func (s *ShiftService) CreateShift(ctx context.Context, shift models.AddShiftInp
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING shift_id
 	`
-	err = s.DB.QueryRowContext(ctx, insert, shift.OppId, *startUTC, *endUTC, staffId, maxVols).Scan(&shiftInt)
-
+	err = s.DB.QueryRowContext(ctx, insert, oppInt, *startUTC, *endUTC, staffId, maxVols).Scan(&shiftInt)
 	if err != nil {
-		friendly := friendlyDBError(err)
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString(friendly.Error()),
-			ID:      nil,
-		}, friendly
+		return nil, friendlyDBError(err)
 	}
 
 	shiftStr := strconv.Itoa(shiftInt)
@@ -485,11 +496,30 @@ func (s *ShiftService) UpdateOpportunity(ctx context.Context, opp models.UpdateO
 
 func (s *ShiftService) UpdateShift(ctx context.Context, shift models.UpdateShiftInput) (*models.MutationResult, error) {
 	var startUTC, endUTC *string
+	var timezone string
+
+	shiftInt, err := strconv.Atoi(shift.ID)
+	if err != nil {
+		return nil, fmt.Errorf("could not update shift; invalid id: %w", err)
+	}
+
+	query := `
+		SELECT
+			e.timezone 
+		FROM events e
+		JOIN opportunities opp ON opp.event_id = e.event_id
+		JOIN shifts s ON s.opportunity_id = opp.opportunity_id
+		WHERE s.shift_id = $1
+		`
+	err = s.DB.QueryRowContext(ctx, query, shiftInt).Scan(&timezone)
+	if err != nil {
+		return nil, friendlyDBError(err)
+	}
 
 	// Convert to datetimes used in the DB.
-	startUTC, err := DateTimeToUTC(shift.StartDateTime, shift.IanaZone)
+	startUTC, err = DateTimeToUTC(shift.StartDateTime, timezone)
 	if err == nil {
-		endUTC, err = DateTimeToUTC(shift.EndDateTime, shift.IanaZone)
+		endUTC, err = DateTimeToUTC(shift.EndDateTime, timezone)
 	}
 	if err != nil {
 		return nil, err
@@ -507,15 +537,10 @@ func (s *ShiftService) UpdateShift(ctx context.Context, shift models.UpdateShift
 			staff_contact_id = $4
 		WHERE shift_id = $5
 	`
-	_, err = s.DB.ExecContext(ctx, update, startUTC, endUTC, shift.MaxVolunteers, shift.StaffContactId, shift.ID)
+	_, err = s.DB.ExecContext(ctx, update, startUTC, endUTC, shift.MaxVolunteers, shift.StaffContactId, shiftInt)
 
 	if err != nil {
-		friendly := friendlyDBError(err)
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString(friendly.Error()),
-			ID:      nil,
-		}, friendly
+		return nil, friendlyDBError(err)
 	}
 
 	return &models.MutationResult{

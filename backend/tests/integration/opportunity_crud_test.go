@@ -46,7 +46,6 @@ func TestCreateOpportunity(t *testing.T) {
 				{
 					"startDateTime": "2027-01-10 09:00:00",
 					"endDateTime":   "2027-01-10 17:00:00",
-					"ianaZone":      "UTC",
 					"maxVolunteers": 10,
 				},
 			},

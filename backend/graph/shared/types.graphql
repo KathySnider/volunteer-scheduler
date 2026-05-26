@@ -5,6 +5,7 @@
 scalar Upload
 
 #-- ENUMS --
+
 enum Role {
   VOLUNTEER
   ADMINISTRATOR
@@ -125,7 +126,6 @@ type Venue {
   city: String!
   state: String!
   zipCode: String
-  timezone: String!
 }
 
 type Event {
@@ -134,7 +134,7 @@ type Event {
   description: String
   eventType: EventType!
   venue: Venue
-  fundingEntity: FundingEntity!
+  timezone: String!
   serviceTypes: [String!]
   eventDates: [EventDate!]!
   shiftSummaries: [EventShiftSummary!]!

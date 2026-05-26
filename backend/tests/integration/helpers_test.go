@@ -397,14 +397,15 @@ func seedFundingEntity(t *testing.T, name string) int {
 }
 
 // seedVenue inserts a venue (no zip code) and returns its venue_id.
-func seedVenue(t *testing.T, name, address, city, state, timezone string) int {
+// Note: timezone was removed from venues in migration 000006; it now lives on events.
+func seedVenue(t *testing.T, name, address, city, state string) int {
 	t.Helper()
 	var id int
 	err := testDB.QueryRow(`
-		INSERT INTO venues (venue_name, street_address, city, state, timezone)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO venues (venue_name, street_address, city, state)
+		VALUES ($1, $2, $3, $4)
 		RETURNING venue_id
-	`, name, address, city, state, timezone).Scan(&id)
+	`, name, address, city, state).Scan(&id)
 	if err != nil {
 		t.Fatalf("seedVenue: %v", err)
 	}

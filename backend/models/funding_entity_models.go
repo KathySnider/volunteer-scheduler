@@ -3,7 +3,7 @@ package models
 type FundingEntity struct {
 	ID          int
 	Name        string
-	Description string
+	Description *string
 }
 
 type FundingEntityFilter struct {

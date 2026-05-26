@@ -21,7 +21,7 @@ type Event struct {
 	Description    *string              `json:"description,omitempty"`
 	EventType      EventType            `json:"eventType"`
 	Venue          *Venue               `json:"venue,omitempty"`
-	FundingEntity  *FundingEntity       `json:"fundingEntity"`
+	Timezone       string               `json:"timezone"`
 	ServiceTypes   []string             `json:"serviceTypes,omitempty"`
 	EventDates     []*EventDate         `json:"eventDates"`
 	ShiftSummaries []*EventShiftSummary `json:"shiftSummaries"`
@@ -121,13 +121,12 @@ type UpdateOwnProfileInput struct {
 }
 
 type Venue struct {
-	ID       string  `json:"id"`
-	Name     *string `json:"name,omitempty"`
-	Address  string  `json:"address"`
-	City     string  `json:"city"`
-	State    string  `json:"state"`
-	ZipCode  *string `json:"zipCode,omitempty"`
-	Timezone string  `json:"timezone"`
+	ID      string  `json:"id"`
+	Name    *string `json:"name,omitempty"`
+	Address string  `json:"address"`
+	City    string  `json:"city"`
+	State   string  `json:"state"`
+	ZipCode *string `json:"zipCode,omitempty"`
 }
 
 type VolunteerFeedback struct {

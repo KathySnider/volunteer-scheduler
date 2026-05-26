@@ -288,7 +288,7 @@ export default function EventDetailPage() {
     setIsAdmin(role === "ADMINISTRATOR");
 
     Promise.all([
-      boundGql(EVENT_DETAIL, { eventId }),
+      volunteerGql(EVENT_DETAIL, { eventId }),
       boundVolGql(SHIFTS_FOR_EVENT, { eventId }),
       boundVolGql(OWN_SHIFTS, null),
     ])

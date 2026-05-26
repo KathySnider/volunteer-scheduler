@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"strconv"
-	"time"
 	"volunteer-scheduler/models"
 )
 
@@ -21,6 +21,8 @@ func ptrString(s string) *string {
 // This allows us to get things that shouldn't necessarily be
 // exposed through services, as well as reduce duplicate code.
 
+// This allows us to get things that shouldn't necessarily be
+// exposed through services, as well as reduce duplicate code.
 func fetchEmailByVolId(ctx context.Context, DB *sql.DB, volId int) (string, error) {
 	var email string
 	err := DB.QueryRowContext(ctx,
@@ -34,7 +36,6 @@ func fetchEmailByVolId(ctx context.Context, DB *sql.DB, volId int) (string, erro
 func fetchProfile(ctx context.Context, DB *sql.DB, volId int) (*models.VolunteerProfile, error) {
 	query := `
 		SELECT 
-			volunteer_id, 
 			first_name, 
 			last_name, 
 			email, 
@@ -50,7 +51,6 @@ func fetchProfile(ctx context.Context, DB *sql.DB, volId int) (*models.Volunteer
 	var ddm sql.NullInt32
 
 	err := DB.QueryRowContext(ctx, query, volId).Scan(
-		&volId,
 		&profile.FirstName,
 		&profile.LastName,
 		&profile.Email,
@@ -105,7 +105,7 @@ func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter mod
             v.city,
             v.state,
             v.zip_code,
-			v.timezone
+			e.timezone
     	FROM volunteer_shifts sv
 		LEFT JOIN shifts s ON s.shift_id = sv.shift_id
 		LEFT JOIN opportunities opp ON opp.opportunity_id = s.opportunity_id
@@ -135,8 +135,8 @@ func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter mod
 	for shiftRows.Next() {
 		var volShift models.VolunteerShift
 		var shiftInt, eventInt int
-		var cancelledAt, preEventInst, eventDesc sql.NullString
-		var venueName, streetAddress, city, state, zip, timezone sql.NullString
+		var cancelledAt, preEventInst, eventDesc, timezone sql.NullString
+		var venueName, streetAddress, city, state, zip sql.NullString
 		var maxVols sql.NullInt64
 
 		err := shiftRows.Scan(
@@ -189,10 +189,9 @@ func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter mod
 		if streetAddress.Valid {
 			// If we have one of these, we must have them all.
 			volShift.Venue = &models.Venue{
-				Address:  streetAddress.String,
-				City:     city.String,
-				State:    state.String,
-				Timezone: timezone.String,
+				Address: streetAddress.String,
+				City:    city.String,
+				State:   state.String,
 			}
 			// Name and zip are optional.
 			if venueName.Valid {
@@ -272,7 +271,6 @@ func FetchEventDates(ctx context.Context, DB *sql.DB, eventId int) ([]*models.Ev
 
 	for rows.Next() {
 		var date models.EventDate
-		date.IanaZone = "UTC"
 
 		err = rows.Scan(
 			&date.ID,
@@ -290,91 +288,6 @@ func FetchEventDates(ctx context.Context, DB *sql.DB, eventId int) ([]*models.Ev
 	return dates, nil
 }
 
-// ** Handling datetimes **
-// We store all dates and times in the DB as UTC with RFC-3339 format.
-func DateTimeToUTC(dateTimeStr string, ianaZone string) (*string, error) {
-	loc, err := time.LoadLocation(ianaZone)
-	if err != nil {
-		return nil, fmt.Errorf("invalid timezone %s: %w", ianaZone, err)
-	}
-
-	const Layout = "2006-01-02 15:04:05"
-	datetime, err := time.ParseInLocation(Layout, dateTimeStr, loc)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing %s: %w", dateTimeStr, err)
-	}
-
-	rfc := datetime.UTC().Format(time.RFC3339)
-	return &rfc, nil
-}
-
-func UTCToTimeZone(utcTime string, ianaZone string) (*string, error) {
-
-	dateTime, err := time.Parse(time.RFC3339, utcTime)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing %s: %w", utcTime, err)
-	}
-
-	loc, err := time.LoadLocation(ianaZone)
-	if err != nil {
-		return nil, fmt.Errorf("invalid timezone %s: %w", ianaZone, err)
-	}
-	strTime := dateTime.In(loc).Format("01-02-2006 15:04 MST")
-
-	return &strTime, nil
-}
-
-func UTCToDateTime(utcTime string) (*string, error) {
-
-	dateTime, err := time.Parse(time.RFC3339, utcTime)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing %s: %w", utcTime, err)
-	}
-
-	strTime := dateTime.Format("01-02-2006 15:04 MST")
-	return &strTime, nil
-}
-
-// These "AddNew" functions are called internally, when creating a new event. The dates must be added
-// within a transaction, and the event id must be provided, since, when the date elements were populated,
-// the client didn't know the event Id.
-func AddNewEventDates(ctx context.Context, dates []*models.NewEventDateInput, eventId int, tx *sql.Tx) error {
-	for i := 0; i < len(dates); i++ {
-		err := AddNewEventDate(ctx, dates[i], eventId, tx)
-		if err != nil {
-			return fmt.Errorf("error inserting date with index %d: %w", i, err)
-		}
-	}
-
-	// No errors.
-	return nil
-}
-
-func formatStartEnd(start string, end string, timezone sql.NullString) (*string, *string, error) {
-	var fmtStart, fmtEnd *string
-	var err error
-
-	if timezone.Valid {
-		fmtStart, err = UTCToTimeZone(start, timezone.String)
-		if err == nil {
-			fmtEnd, err = UTCToTimeZone(end, timezone.String)
-		}
-		if err != nil {
-			return nil, nil, fmt.Errorf("unable to format shift times: %w", err)
-		}
-	} else {
-		fmtStart, err = UTCToDateTime(start)
-		if err == nil {
-			fmtEnd, err = UTCToDateTime(end)
-		}
-		if err != nil {
-			return nil, nil, fmt.Errorf("unable to format shift times: %w", err)
-		}
-	}
-
-	return fmtStart, fmtEnd, nil
-}
-
 // ** Converting event types **
 func GetEventType(isVirtual bool, hasVenue bool) models.EventType {
 	// Determine if event is virtual, in person, or both.
@@ -389,32 +302,6 @@ func GetEventType(isVirtual bool, hasVenue bool) models.EventType {
 	}
 	// Virtual only event. No venue.
 	return "VIRTUAL"
-}
-
-func AddNewEventDate(ctx context.Context, dates *models.NewEventDateInput, eventId int, tx *sql.Tx) error {
-	var startUTC, endUTC *string
-	startUTC, err := DateTimeToUTC(dates.StartDateTime, dates.IanaZone)
-	if err == nil {
-		endUTC, err = DateTimeToUTC(dates.EndDateTime, dates.IanaZone)
-	}
-	if err != nil {
-		return err
-	}
-
-	insert := `
-		INSERT INTO event_dates (event_id, start_date_time, end_date_time)
-		VALUES ($1, $2, $3)
-		RETURNING event_date_id
-	`
-
-	var eventDateInt int
-	err = tx.QueryRowContext(ctx, insert, eventId, startUTC, endUTC).Scan(&eventDateInt)
-	if err != nil {
-		return fmt.Errorf("error inserting datetimes: %w", err)
-	}
-
-	// No errors.
-	return nil
 }
 
 // ** Handling shift assignments **
@@ -555,13 +442,13 @@ func FetchAssignedVolunteersForShift(ctx context.Context, shiftId int, DB *sql.D
 	var assignedVols []*models.Volunteer
 	for volRows.Next() {
 		var vol models.Volunteer
-		var volID int
-		err := volRows.Scan(&volID, &vol.FirstName, &vol.LastName)
+		var volId int
+		err := volRows.Scan(&volId, &vol.FirstName, &vol.LastName)
 		if err != nil {
 			return nil, fmt.Errorf("Error scanning assigned volunteers: %w", err)
 		}
 
-		vol.ID = fmt.Sprintf("%d", volID)
+		vol.ID = fmt.Sprintf("%d", volId)
 		assignedVols = append(assignedVols, &vol)
 	}
 
@@ -593,11 +480,24 @@ func addNewOpportunityShift(ctx context.Context, shift *models.NewShiftInput, op
 	var shiftId int
 	var startUTC, endUTC *string
 	var staffId, maxVols interface{}
+	var timezone string
+
+	query := `
+		SELECT
+			e.timezone 
+		FROM events e
+		JOIN opportunities opp ON opp.event_id = e.event_id
+		WHERE opp.opportunity_id = $1
+		`
+	err := tx.QueryRowContext(ctx, query, oppId).Scan(&timezone)
+	if err != nil {
+		return friendlyDBError(err)
+	}
 
 	// Convert dates, times to UTC.
-	startUTC, err := DateTimeToUTC(shift.StartDateTime, shift.IanaZone)
+	startUTC, err = DateTimeToUTC(shift.StartDateTime, timezone)
 	if err == nil {
-		endUTC, err = DateTimeToUTC(shift.EndDateTime, shift.IanaZone)
+		endUTC, err = DateTimeToUTC(shift.EndDateTime, timezone)
 	}
 	if err != nil {
 		return err
@@ -656,4 +556,207 @@ func addNoteToFeedback(ctx context.Context, DB *sql.DB, feedbackId int, adminId 
 
 	// All good.
 	return nil
+}
+
+// When sending emails about cancelled shifts, there is a "standard" set
+// of data we need for volunteers or leads (email address, name, shifts)
+// to avoid sending multiple emails to each of them.
+type emailInfo struct {
+	email     string
+	firstName string
+	shifts    []int
+}
+
+func makeEmailMapForShifts(ctx context.Context, DB *sql.DB, query string, args []any, sMap map[int]*ShiftSummary) (*map[int]*emailInfo, map[int]*ShiftSummary, error) {
+
+	// The key to the shifts map is the shift id.
+	// The key to the email map will be the id of the email recipient.
+	eMap := map[int]*emailInfo{}
+
+	rows, err := DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		log.Printf("DB err: %v", err)
+		return nil, sMap, friendlyDBError(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var eId, sId int
+		var email, fname string
+		var ss, se string
+
+		err := rows.Scan(
+			&eId,
+			&sId,
+			&email,
+			&fname,
+			&ss,
+			&se,
+		)
+		if err != nil {
+			return nil, sMap, fmt.Errorf("unable to scan rows in delete event: %w", err)
+		}
+
+		// If we haven't seen this shift before, add it to the map.
+		_, shiftExists := sMap[sId]
+		if !shiftExists {
+			var summ ShiftSummary
+			summ.Start = ss
+			summ.End = se
+
+			sMap[sId] = &summ
+		}
+
+		_, emailExists := eMap[eId]
+		if emailExists {
+			// Recipient is already in the map. Just add the shift.
+			eMap[eId].shifts = append(eMap[eId].shifts, sId)
+		} else {
+			// Add the recipient to the map.
+			var e emailInfo
+
+			e.email = email
+			e.firstName = fname
+			e.shifts = append(e.shifts, sId)
+
+			eMap[eId] = &e
+		}
+	}
+
+	return &eMap, sMap, nil
+}
+
+func formatShiftTimes(dbShiftsMap map[int]*ShiftSummary, timezone string) map[int]*ShiftSummary {
+
+	sMap := map[int]*ShiftSummary{}
+
+	for id, dbSumm := range dbShiftsMap {
+		var summ ShiftSummary
+		var start, end *string
+		start, err := UTCToTimeZone(dbSumm.Start, timezone)
+		if err == nil {
+			end, err = UTCToTimeZone(dbSumm.End, timezone)
+		}
+		if err == nil {
+			summ.Start = *start
+			summ.End = *end
+		} else {
+			// It's more important to send the emails than to format them exactly right.
+			// We did the best we could. Show the strings in the log; the shift will be gone.
+			log.Printf("error formatting shift times (%v and %v): %v", dbSumm.Start, dbSumm.End, err)
+			summ.Start = dbSumm.Start
+			summ.End = dbSumm.End
+		}
+		sMap[id] = &summ
+	}
+	return sMap
+}
+
+func sendDeleteEventEmailsForShifts(ctx context.Context, mailer *Mailer, volMap *map[int]*emailInfo, leadMap *map[int]*emailInfo, sMap map[int]*ShiftSummary, evName string) {
+	var err error
+	unsent := []string{}
+
+	for _, emailInfo := range *volMap {
+		// Get all of the shift start and end times for this one email.
+		shiftSummaries := []ShiftSummary{}
+		for _, shiftKey := range emailInfo.shifts {
+			shiftSummaries = append(shiftSummaries, *sMap[shiftKey])
+		}
+		err = sendEventCancelledToVolunteer(ctx, mailer, emailInfo.firstName, evName, shiftSummaries, emailInfo.email)
+		if err != nil {
+			// Not being able to send an email is not fatal. Just "note"
+			// the email, and try to notify the rest of the list.
+			unsent = append(unsent, emailInfo.email)
+			continue
+		}
+	}
+	for _, emailInfo := range *leadMap {
+		// Get all of the shift start and end times for this email.
+		shiftSummaries := []ShiftSummary{}
+		for _, shiftKey := range emailInfo.shifts {
+			shiftSummaries = append(shiftSummaries, *sMap[shiftKey])
+		}
+		err = sendEventCancelledToStaff(ctx, mailer, emailInfo.firstName, evName, shiftSummaries, emailInfo.email)
+		if err != nil {
+			unsent = append(unsent, emailInfo.email)
+			continue
+		}
+	}
+
+	if len(unsent) > 0 {
+		log.Println("Unable to send the event cancelled message to the following emails:")
+		for _, emailStr := range unsent {
+			log.Println(emailStr)
+		}
+	}
+}
+
+func getQueriesForSingleEvent() (string, string) {
+	volQuery := `
+		SELECT
+			v.volunteer_id,
+			s.shift_id,
+			v.email,
+			v.first_name,
+    		s.shift_start,
+    		s.shift_end
+		FROM volunteer_shifts vs
+		JOIN volunteers v  ON v.volunteer_id = vs.volunteer_id
+		JOIN shifts s ON s.shift_id = vs.shift_id
+		JOIN opportunities o ON o.opportunity_id = s.opportunity_id
+		JOIN events e ON e.event_id = o.event_id
+		WHERE e.event_id = $1 AND vs.cancelled_at IS NULL
+	`
+
+	leadQuery := `
+		SELECT
+			st.staff_id,
+			s.shift_id,
+			st.email,
+			st.first_name,
+			s.shift_start,
+			s.shift_end
+		FROM events e
+		JOIN opportunities opp ON opp.event_id = e.event_id
+		JOIN shifts s ON s.opportunity_id = opp.opportunity_id
+		JOIN staff st ON st.staff_id = s.staff_contact_id
+		WHERE e.event_id = $1
+	`
+
+	return volQuery, leadQuery
+}
+
+func getQueriesForRecurringEvent() (string, string) {
+	volQuery := `
+		SELECT
+			v.volunteer_id,
+			s.shift_id,
+			v.email,
+			v.first_name,
+    		s.shift_start,
+    		s.shift_end
+		FROM volunteer_shifts vs
+		JOIN volunteers v ON v.volunteer_id  = vs.volunteer_id
+		JOIN shifts s ON s.shift_id = vs.shift_id
+		JOIN opportunities o ON o.opportunity_id = s.opportunity_id
+		JOIN events e ON e.event_id = o.event_id
+		WHERE e.recurrence_group_id = $1::uuid AND e.recurrence_order >= $2
+		   AND vs.cancelled_at IS NULL
+		ORDER BY v.volunteer_id, s.shift_start
+	`
+	leadQuery := `
+		SELECT
+			st.staff_id,
+			s.shift_id,
+			st.email,
+			st.first_name,
+			s.shift_start,
+			s.shift_end
+		FROM events e
+		JOIN opportunities opp ON opp.event_id = e.event_id
+		JOIN shifts s ON s.opportunity_id = opp.opportunity_id
+		JOIN staff st ON st.staff_id = s.staff_contact_id
+		WHERE e.recurrence_group_id = $1::uuid AND e.recurrence_order >= $2
+	`
+	return volQuery, leadQuery
 }

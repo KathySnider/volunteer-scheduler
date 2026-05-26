@@ -29,8 +29,7 @@ func (s *VenueService) FetchVenues(ctx context.Context) ([]*models.Venue, error)
             street_address,
             city,
             state,
-            zip_code,
-			timezone
+            zip_code
         FROM venues
     `
 
@@ -53,9 +52,7 @@ func (s *VenueService) FetchVenues(ctx context.Context) ([]*models.Venue, error)
 			&venue.Address,
 			&venue.City,
 			&venue.State,
-			&zip,
-			&venue.Timezone,
-		)
+			&zip)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning venue: %w", err)
 		}
@@ -100,14 +97,13 @@ func (s *VenueService) CreateVenue(ctx context.Context, newVenue models.NewVenue
 			state,
 			zip_code,
 			latitude,
-			longitude,
-			timezone)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			longitude)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING venue_id
 	`
 
 	var venueInt int
-	err = s.DB.QueryRowContext(ctx, query, newVenue.Name, newVenue.Address, newVenue.City, newVenue.State, newVenue.ZipCode, lat, lng, newVenue.IanaZone).Scan(&venueInt)
+	err = s.DB.QueryRowContext(ctx, query, newVenue.Name, newVenue.Address, newVenue.City, newVenue.State, newVenue.ZipCode, lat, lng).Scan(&venueInt)
 	if err != nil {
 		return nil, friendlyDBError(err)
 	}
@@ -147,11 +143,10 @@ func (s *VenueService) UpdateVenue(ctx context.Context, venue models.UpdateVenue
 			state = $4,
 			zip_code = $5,
 			latitude = $6,
-			longitude = $7,
-			timezone = $8
-		WHERE venue_id = $9
+			longitude = $7
+		WHERE venue_id = $8
 	`
-	_, err = s.DB.ExecContext(ctx, update, venue.Name, venue.Address, venue.City, venue.State, venue.ZipCode, lat, lng, venue.IanaZone, venueId)
+	_, err = s.DB.ExecContext(ctx, update, venue.Name, venue.Address, venue.City, venue.State, venue.ZipCode, lat, lng, venueId)
 
 	if err != nil {
 		return nil, friendlyDBError(err)

@@ -19,12 +19,17 @@ import styles from "./admin-event-detail.module.css";
 
 const ADMIN_EVENT_DETAIL = `
   query AdminEventDetail($eventId: ID!) {
-    eventById(eventId: $eventId) {
-      id name description eventType
-      venue { id name city state timezone }
+    managedEventById(eventId: $eventId) {
+      id name description eventType timezone
+      venue { id name city state }
       fundingEntity { id name }
       eventDates { id startDateTime endDateTime }
       serviceTypes
+      recurrenceId
+      recurrenceOrder
+      recurrencePattern
+      recurrenceMaxOccurrences
+      recurrenceOrdinal
     }
     opportunitiesForEvent(eventId: $eventId) {
       id jobId isVirtual preEventInstructions
@@ -35,7 +40,7 @@ const ADMIN_EVENT_DETAIL = `
       jobTypes { id name }
       fundingEntities { id name }
     }
-    venues { id name city state timezone }
+    venues { id name city state }
     staff { id firstName lastName position }
   }
 `;
@@ -57,7 +62,7 @@ const VOLUNTEER_SHIFTS_FOR_ROSTER = `
 `;
 
 const UPDATE_EVENT      = `mutation UpdateEvent($event: UpdateEventInput!) { updateEvent(event: $event) { success message } }`;
-const DELETE_EVENT      = `mutation DeleteEvent($eventId: ID!) { deleteEvent(eventId: $eventId) { success message } }`;
+const DELETE_EVENT      = `mutation DeleteEvent($eventId: ID!, $scope: RecurrenceUpdateScope) { deleteEvent(eventId: $eventId, scope: $scope) { success message } }`;
 const CREATE_EVENT_DATE = `mutation CreateEventDate($newDate: AddEventDateInput!) { createEventDate(newDate: $newDate) { success message id } }`;
 const UPDATE_EVENT_DATE = `mutation UpdateEventDate($date: UpdateEventDateInput!) { updateEventDate(date: $date) { success message } }`;
 const DELETE_EVENT_DATE = `mutation DeleteEventDate($eventDateId: ID!) { deleteEventDate(eventDateId: $eventDateId) { success message } }`;
@@ -223,6 +228,22 @@ function formatDisplay(utcString, ianaZone) {
 
 const FORMAT_LABEL = { VIRTUAL: "Virtual", IN_PERSON: "In Person", HYBRID: "Hybrid" };
 
+const PATTERN_LABELS = {
+  DAILY:    "Daily",
+  WEEKLY:   "Weekly",
+  BIWEEKLY: "Every 2 Weeks",
+  MONTHLY:  "Monthly",
+  YEARLY:   "Yearly",
+};
+
+const ORDINAL_LABELS = {
+  FIRST:  "1st",
+  SECOND: "2nd",
+  THIRD:  "3rd",
+  FOURTH: "4th",
+  LAST:   "Last",
+};
+
 const US_TIMEZONES = [
   { value: "America/New_York",    label: "Eastern (ET)" },
   { value: "America/Chicago",     label: "Central (CT)" },
@@ -233,7 +254,7 @@ const US_TIMEZONES = [
 ];
 
 function eventIanaZone(event) {
-  return event?.venue?.timezone
+  return event?.timezone
     || Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
@@ -283,7 +304,7 @@ function TimeInput({ value24, period, onCommit, className }) {
 const EMPTY_SHIFT_FORM = {
   startDate: "", startTime: "00:00",
   endDate:   "", endTime:   "00:00",
-  ianaZone: "", maxVolunteers: "", staffContactId: "",
+  maxVolunteers: "", staffContactId: "",
 };
 
 /* =========================================================
@@ -432,7 +453,9 @@ export default function AdminEventDetailPage() {
   const [busy, setBusy]           = useState(false);
 
   /* --- Edit event form --- */
-  const [editingEvent, setEditingEvent] = useState(false);
+  const [editingEvent, setEditingEvent]   = useState(false);
+  const [recurrenceScope, setRecurrenceScope] = useState("THIS_ONLY");
+  const [deletingEvent, setDeletingEvent] = useState(false);
   const [evForm, setEvForm] = useState({
     name: "", description: "", eventType: "IN_PERSON",
     venueId: "", serviceTypes: [],
@@ -519,7 +542,7 @@ export default function AdminEventDetailPage() {
       .then((res) => {
         if (res.errors) { setPageError(res.errors[0]?.message ?? "Error loading data."); return; }
         const loadedOpps = res.data?.opportunitiesForEvent ?? [];
-        const loadedEvent = res.data?.eventById ?? null;
+        const loadedEvent = res.data?.managedEventById ?? null;
         setEvent(loadedEvent);
         setOpps(loadedOpps);
         setJobTypes(res.data?.lookupValues?.jobTypes ?? []);
@@ -616,6 +639,7 @@ export default function AdminEventDetailPage() {
       venueId: event.venue?.id ?? "",
       serviceTypes: svcIds,
     });
+    setRecurrenceScope("THIS_ONLY");
     setEditEventError("");
     setEditingEvent(true);
     setAddingOpp(false);
@@ -632,19 +656,40 @@ export default function AdminEventDetailPage() {
         description: evForm.description.trim() || null,
         eventType: evForm.eventType,
         venueId: evForm.venueId || null,
+        timezone: tz,
         fundingEntityId: parseInt(fundingEntityId, 10),
         serviceTypes: evForm.serviceTypes.map(Number),
+        ...(event.recurrenceId ? {
+          recurrenceId:    event.recurrenceId,
+          recurrenceOrder: event.recurrenceOrder,
+          recurrenceScope,
+        } : {}),
       }},
       "Event updated.",
       () => setEditingEvent(false),
     );
   };
 
-  const handleDeleteEvent = async () => {
+  const handleDeleteEvent = () => {
+    if (event.recurrenceId) {
+      // Recurring — show inline scope picker instead of a basic confirm
+      setRecurrenceScope("THIS_ONLY");
+      setDeletingEvent(true);
+      return;
+    }
     if (!window.confirm(`Delete "${event?.name}"? This cannot be undone.`)) return;
-    await mutate(DELETE_EVENT, { eventId }, "Event deleted.", () => {
+    mutate(DELETE_EVENT, { eventId }, "Event deleted.", () => {
       router.replace("/admin/events");
     });
+  };
+
+  const handleConfirmDelete = async () => {
+    await mutate(
+      DELETE_EVENT,
+      { eventId, scope: recurrenceScope },
+      "Event deleted.",
+      () => router.replace("/admin/events"),
+    );
   };
 
   /* --- Event Dates --- */
@@ -673,7 +718,6 @@ export default function AdminEventDetailPage() {
         id: editingDateId,
         startDateTime: toBackendDateTime(editDateForm.start),
         endDateTime:   toBackendDateTime(editDateForm.end),
-        ianaZone: tz,
       }},
       "Date updated.",
       () => setEditingDateId(null),
@@ -701,7 +745,6 @@ export default function AdminEventDetailPage() {
         eventId,
         startDateTime: toBackendDateTime(addDateForm.start),
         endDateTime:   toBackendDateTime(addDateForm.end),
-        ianaZone: tz,
       }},
       "Date added.",
       () => { setAddingDate(false); setAddDateForm({ start: "", end: "" }); },
@@ -748,7 +791,6 @@ export default function AdminEventDetailPage() {
         shifts: [{
           startDateTime: `${oppForm.shiftStartDate} ${normalizeTime(oppForm.shiftStartTime)}:00`,
           endDateTime:   `${oppForm.shiftEndDate} ${normalizeTime(oppForm.shiftEndTime)}:00`,
-          ianaZone: tz,
           maxVolunteers: oppForm.shiftMaxVols ? parseInt(oppForm.shiftMaxVols, 10) : null,
           staffContactId: oppForm.shiftStaffId || null,
         }],
@@ -792,7 +834,7 @@ export default function AdminEventDetailPage() {
   /* --- Shifts --- */
   const openAddShift = (oppId) => {
     setAddingShiftOppId(oppId);
-    setAddShiftForm({ ...EMPTY_SHIFT_FORM, ianaZone: tz });
+    setAddShiftForm({ ...EMPTY_SHIFT_FORM });
     setAddShiftError("");
     setEditingShiftId(null);
   };
@@ -817,7 +859,6 @@ export default function AdminEventDetailPage() {
         opportunityId: addingShiftOppId,
         startDateTime: `${addShiftForm.startDate} ${normalizeTime(addShiftForm.startTime)}:00`,
         endDateTime:   `${addShiftForm.endDate} ${normalizeTime(addShiftForm.endTime)}:00`,
-        ianaZone: tz,
         maxVolunteers: addShiftForm.maxVolunteers ? parseInt(addShiftForm.maxVolunteers, 10) : null,
         staffContactId: addShiftForm.staffContactId || null,
       }},
@@ -837,7 +878,6 @@ export default function AdminEventDetailPage() {
       startTime:      splitDT(startLocal).t || "00:00",
       endDate:        splitDT(endLocal).d,
       endTime:        splitDT(endLocal).t   || "00:00",
-      ianaZone:       tz,
       maxVolunteers:  shift.maxVolunteers != null ? String(shift.maxVolunteers) : "",
       staffContactId: shift.staffContactId ?? "",
     });
@@ -860,7 +900,6 @@ export default function AdminEventDetailPage() {
         id: editingShiftId,
         startDateTime: `${editShiftForm.startDate} ${normalizeTime(editShiftForm.startTime)}:00`,
         endDateTime:   `${editShiftForm.endDate} ${normalizeTime(editShiftForm.endTime)}:00`,
-        ianaZone: tz,
         maxVolunteers: editShiftForm.maxVolunteers ? parseInt(editShiftForm.maxVolunteers, 10) : null,
         staffContactId: editShiftForm.staffContactId || null,
       }},
@@ -973,11 +1012,13 @@ export default function AdminEventDetailPage() {
             <div className={styles.oppActions}>
               <button
                 className={`${styles.iconBtn} ${styles.iconBtnEdit}`}
+                aria-label="Edit event"
                 title="Edit event"
                 onClick={openEditEvent}
               >✏</button>
               <button
                 className={`${styles.iconBtn} ${styles.iconBtnDelete}`}
+                aria-label="Delete event"
                 title="Delete event"
                 onClick={handleDeleteEvent}
                 disabled={busy}
@@ -1013,6 +1054,21 @@ export default function AdminEventDetailPage() {
                 <>
                   <span className={styles.metaLabel}>Service Types</span>
                   <span className={styles.metaValue}>{event.serviceTypes.join(", ")}</span>
+                </>
+              )}
+
+              {event.recurrenceId && (
+                <>
+                  <span className={styles.metaLabel}>Recurrence</span>
+                  <span className={styles.metaValue}>
+                    {PATTERN_LABELS[event.recurrencePattern] ?? event.recurrencePattern}
+                    {event.recurrenceMaxOccurrences != null && ` · occurrence ${event.recurrenceOrder ?? "?"} of ${event.recurrenceMaxOccurrences}`}
+                    {event.recurrenceOrdinal && ` · ${ORDINAL_LABELS[event.recurrenceOrdinal] ?? event.recurrenceOrdinal} of month`}
+                    <br />
+                    <span className={styles.metaNote}>
+                      To change the schedule, delete this and future occurrences and create a new series.
+                    </span>
+                  </span>
                 </>
               )}
 
@@ -1212,10 +1268,61 @@ export default function AdminEventDetailPage() {
                   ))}
                 </select>
               </div>
+              {event.recurrenceId && (
+                <div className={styles.field}>
+                  <label className={styles.label}>Apply changes to</label>
+                  <div className={styles.radioGroup}>
+                    <label className={styles.radioLabel}>
+                      <input type="radio" name="updateScope" value="THIS_ONLY"
+                        checked={recurrenceScope === "THIS_ONLY"}
+                        onChange={() => setRecurrenceScope("THIS_ONLY")} />
+                      Just this occurrence
+                    </label>
+                    <label className={styles.radioLabel}>
+                      <input type="radio" name="updateScope" value="THIS_AND_FUTURE"
+                        checked={recurrenceScope === "THIS_AND_FUTURE"}
+                        onChange={() => setRecurrenceScope("THIS_AND_FUTURE")} />
+                      This and all future occurrences
+                    </label>
+                  </div>
+                </div>
+              )}
               {editEventError && <div className={styles.inlineError}>{editEventError}</div>}
               <div className={styles.formActions}>
                 <button className={styles.btnPrimary} onClick={handleSaveEvent} disabled={busy}>Save Changes</button>
                 <button className={styles.btnSecondary} onClick={() => { setEditingEvent(false); setEditEventError(""); }}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+          {/* Inline delete confirmation for recurring events */}
+          {deletingEvent && (
+            <div className={styles.inlineForm}>
+              <div className={styles.inlineFormTitle}>Delete Recurring Event</div>
+              <p style={{ marginBottom: "0.75rem", fontSize: "0.9rem" }}>
+                Which occurrences of <strong>{event.name}</strong> should be deleted?
+              </p>
+              <div className={styles.radioGroup} style={{ marginBottom: "1rem" }}>
+                <label className={styles.radioLabel}>
+                  <input type="radio" name="deleteScope" value="THIS_ONLY"
+                    checked={recurrenceScope === "THIS_ONLY"}
+                    onChange={() => setRecurrenceScope("THIS_ONLY")} />
+                  Just this occurrence
+                </label>
+                <label className={styles.radioLabel}>
+                  <input type="radio" name="deleteScope" value="THIS_AND_FUTURE"
+                    checked={recurrenceScope === "THIS_AND_FUTURE"}
+                    onChange={() => setRecurrenceScope("THIS_AND_FUTURE")} />
+                  This and all future occurrences
+                </label>
+              </div>
+              <div className={styles.formActions}>
+                <button className={styles.btnDanger} onClick={handleConfirmDelete} disabled={busy}>
+                  {busy ? "Deleting…" : "Delete"}
+                </button>
+                <button className={styles.btnSecondary} onClick={() => setDeletingEvent(false)}>
+                  Cancel
+                </button>
               </div>
             </div>
           )}

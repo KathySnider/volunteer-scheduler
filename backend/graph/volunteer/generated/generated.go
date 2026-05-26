@@ -55,11 +55,11 @@ type ComplexityRoot struct {
 		Description    func(childComplexity int) int
 		EventDates     func(childComplexity int) int
 		EventType      func(childComplexity int) int
-		FundingEntity  func(childComplexity int) int
 		ID             func(childComplexity int) int
 		Name           func(childComplexity int) int
 		ServiceTypes   func(childComplexity int) int
 		ShiftSummaries func(childComplexity int) int
+		Timezone       func(childComplexity int) int
 		Venue          func(childComplexity int) int
 	}
 
@@ -146,13 +146,12 @@ type ComplexityRoot struct {
 	}
 
 	Venue struct {
-		Address  func(childComplexity int) int
-		City     func(childComplexity int) int
-		ID       func(childComplexity int) int
-		Name     func(childComplexity int) int
-		State    func(childComplexity int) int
-		Timezone func(childComplexity int) int
-		ZipCode  func(childComplexity int) int
+		Address func(childComplexity int) int
+		City    func(childComplexity int) int
+		ID      func(childComplexity int) int
+		Name    func(childComplexity int) int
+		State   func(childComplexity int) int
+		ZipCode func(childComplexity int) int
 	}
 
 	VolunteerFeedback struct {
@@ -281,12 +280,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Event.EventType(childComplexity), true
-	case "Event.fundingEntity":
-		if e.complexity.Event.FundingEntity == nil {
-			break
-		}
-
-		return e.complexity.Event.FundingEntity(childComplexity), true
 	case "Event.id":
 		if e.complexity.Event.ID == nil {
 			break
@@ -311,6 +304,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Event.ShiftSummaries(childComplexity), true
+	case "Event.timezone":
+		if e.complexity.Event.Timezone == nil {
+			break
+		}
+
+		return e.complexity.Event.Timezone(childComplexity), true
 	case "Event.venue":
 		if e.complexity.Event.Venue == nil {
 			break
@@ -703,12 +702,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Venue.State(childComplexity), true
-	case "Venue.timezone":
-		if e.complexity.Venue.Timezone == nil {
-			break
-		}
-
-		return e.complexity.Venue.Timezone(childComplexity), true
 	case "Venue.zipCode":
 		if e.complexity.Venue.ZipCode == nil {
 			break
@@ -1052,6 +1045,7 @@ var sources = []*ast.Source{
 scalar Upload
 
 #-- ENUMS --
+
 enum Role {
   VOLUNTEER
   ADMINISTRATOR
@@ -1172,7 +1166,6 @@ type Venue {
   city: String!
   state: String!
   zipCode: String
-  timezone: String!
 }
 
 type Event {
@@ -1181,7 +1174,7 @@ type Event {
   description: String
   eventType: EventType!
   venue: Venue
-  fundingEntity: FundingEntity!
+  timezone: String!
   serviceTypes: [String!]
   eventDates: [EventDate!]!
   shiftSummaries: [EventShiftSummary!]!
@@ -1713,8 +1706,6 @@ func (ec *executionContext) fieldContext_Event_venue(_ context.Context, field gr
 				return ec.fieldContext_Venue_state(ctx, field)
 			case "zipCode":
 				return ec.fieldContext_Venue_zipCode(ctx, field)
-			case "timezone":
-				return ec.fieldContext_Venue_timezone(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Venue", field.Name)
 		},
@@ -1722,38 +1713,30 @@ func (ec *executionContext) fieldContext_Event_venue(_ context.Context, field gr
 	return fc, nil
 }
 
-func (ec *executionContext) _Event_fundingEntity(ctx context.Context, field graphql.CollectedField, obj *Event) (ret graphql.Marshaler) {
+func (ec *executionContext) _Event_timezone(ctx context.Context, field graphql.CollectedField, obj *Event) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Event_fundingEntity,
+		ec.fieldContext_Event_timezone,
 		func(ctx context.Context) (any, error) {
-			return obj.FundingEntity, nil
+			return obj.Timezone, nil
 		},
 		nil,
-		ec.marshalNFundingEntity2ᚖvolunteerᚑschedulerᚋgraphᚋvolunteerᚋgeneratedᚐFundingEntity,
+		ec.marshalNString2string,
 		true,
 		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Event_fundingEntity(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Event_timezone(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Event",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_FundingEntity_id(ctx, field)
-			case "name":
-				return ec.fieldContext_FundingEntity_name(ctx, field)
-			case "description":
-				return ec.fieldContext_FundingEntity_description(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type FundingEntity", field.Name)
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3006,8 +2989,8 @@ func (ec *executionContext) fieldContext_Query_filteredEventsWithShifts(ctx cont
 				return ec.fieldContext_Event_eventType(ctx, field)
 			case "venue":
 				return ec.fieldContext_Event_venue(ctx, field)
-			case "fundingEntity":
-				return ec.fieldContext_Event_fundingEntity(ctx, field)
+			case "timezone":
+				return ec.fieldContext_Event_timezone(ctx, field)
 			case "serviceTypes":
 				return ec.fieldContext_Event_serviceTypes(ctx, field)
 			case "eventDates":
@@ -3067,8 +3050,8 @@ func (ec *executionContext) fieldContext_Query_eventById(ctx context.Context, fi
 				return ec.fieldContext_Event_eventType(ctx, field)
 			case "venue":
 				return ec.fieldContext_Event_venue(ctx, field)
-			case "fundingEntity":
-				return ec.fieldContext_Event_fundingEntity(ctx, field)
+			case "timezone":
+				return ec.fieldContext_Event_timezone(ctx, field)
 			case "serviceTypes":
 				return ec.fieldContext_Event_serviceTypes(ctx, field)
 			case "eventDates":
@@ -3879,35 +3862,6 @@ func (ec *executionContext) _Venue_zipCode(ctx context.Context, field graphql.Co
 }
 
 func (ec *executionContext) fieldContext_Venue_zipCode(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Venue",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Venue_timezone(ctx context.Context, field graphql.CollectedField, obj *Venue) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Venue_timezone,
-		func(ctx context.Context) (any, error) {
-			return obj.Timezone, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Venue_timezone(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Venue",
 		Field:      field,
@@ -4993,8 +4947,6 @@ func (ec *executionContext) fieldContext_VolunteerShift_venue(_ context.Context,
 				return ec.fieldContext_Venue_state(ctx, field)
 			case "zipCode":
 				return ec.fieldContext_Venue_zipCode(ctx, field)
-			case "timezone":
-				return ec.fieldContext_Venue_timezone(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Venue", field.Name)
 		},
@@ -6700,8 +6652,8 @@ func (ec *executionContext) _Event(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "venue":
 			out.Values[i] = ec._Event_venue(ctx, field, obj)
-		case "fundingEntity":
-			out.Values[i] = ec._Event_fundingEntity(ctx, field, obj)
+		case "timezone":
+			out.Values[i] = ec._Event_timezone(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -7552,11 +7504,6 @@ func (ec *executionContext) _Venue(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "zipCode":
 			out.Values[i] = ec._Venue_zipCode(ctx, field, obj)
-		case "timezone":
-			out.Values[i] = ec._Venue_timezone(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

@@ -7,15 +7,15 @@ type Query {
   # Shared queries:
   lookupValues: LookupValues!
   volunteerProfile: VolunteerProfile!
-  eventById(eventId: ID!): Event!
+  filteredEventsWithShifts(filter: EventFilterInput): [Event!]!
 
   # Admin-only queries:
   venues: [Venue!]!
   staff: [Staff!]!
   allVolunteers(filter: VolunteerFilterInput): [Volunteer!]!
   volunteerShifts(volunteerId: ID!, filter: ShiftTimeFilter!): [VolunteerShift!]!
-  filteredEvents(filter: EventFilterInput): [Event!]!
-  filteredEventsWithShifts(filter: EventFilterInput): [Event!]!
+  filteredEvents(filter: EventFilterInput): [ManagedEvent!]!
+  managedEventById(eventId: ID!): ManagedEvent!
   opportunitiesForEvent(eventId: ID!): [Opportunity!]!
   feedback(filter: FeedbackFilterInput): [Feedback!]!
   feedbackById(feedbackId: ID!): Feedback
@@ -59,7 +59,7 @@ type Mutation {
 
   deleteVolunteer(volunteerId: ID!): MutationResult!
   deleteVenue(venueId: ID!): MutationResult!
-  deleteEvent(eventId: ID!): MutationResult!
+  deleteEvent(eventId: ID!, scope: RecurrenceUpdateScope): MutationResult!
   deleteJobType(JobId: Int!): MutationResult!
   deleteOpportunity(oppId: ID!): MutationResult!
   deleteShift(shiftId: ID!): MutationResult!
@@ -70,7 +70,50 @@ type Mutation {
   resolveFeedback(resolution: ResolveFeedbackInput!): MutationResult!
 }
 
+
+#-- ENUMS --
+
+enum RecurrencePattern {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY    # always means nth weekday, derived from start date
+  YEARLY
+}
+
+
+enum WeekdayOrdinal {
+  FIRST
+  SECOND
+  THIRD
+  FOURTH
+  LAST
+}
+
+enum RecurrenceUpdateScope {
+  THIS_ONLY
+  THIS_AND_FUTURE
+}
+
 #-- Outputs (for queries) --
+
+type ManagedEvent {
+  id: ID!
+  name: String!
+  description: String
+  eventType: EventType!
+  venue: Venue
+  timezone: String!
+  fundingEntity: FundingEntity!
+  serviceTypes: [String!]
+  eventDates: [EventDate!]!
+  shiftSummaries: [EventShiftSummary!]!
+  recurrenceId: String
+  recurrenceOrder: Int
+  recurrencePattern: String
+  recurrenceMaxOccurrences: Int
+  recurrenceOrdinal: String
+}
 
 type Staff {
   id: ID!
@@ -178,7 +221,6 @@ input NewVenueInput {
   city: String!
   state: String!
   zipCode: String
-  ianaZone: String!
 }
 
 input UpdateVenueInput {
@@ -188,7 +230,13 @@ input UpdateVenueInput {
   city: String!
   state: String!
   zipCode: String
-  ianaZone: String!
+}
+
+
+input RecurrenceInput {
+  pattern:          RecurrencePattern!
+  maxOccurrences:   Int            # backend defaults to 1 year's worth unless yearly; then required.
+  weekdayOrdinal:   WeekdayOrdinal # for monthly only
 }
 
 input NewEventInput {
@@ -196,9 +244,11 @@ input NewEventInput {
   description: String
   eventType: EventType!
   venueId: ID
+  eventDates: [NewEventDateInput!]! # a new event must have at least one date.
+  timezone: String!
   fundingEntityId: Int!
   serviceTypes: [Int!]!
-  eventDates: [NewEventDateInput!]! # a new event must have at least one date.
+  recurrence: RecurrenceInput 
 }
 
 input UpdateEventInput {
@@ -207,28 +257,27 @@ input UpdateEventInput {
   description: String
   eventType: EventType!
   venueId: ID
+  timezone: String!
   fundingEntityId: Int!
   serviceTypes: [Int!]!
+  recurrenceScope: RecurrenceUpdateScope  # required iff recurrenceId is set
 }
 
 input NewEventDateInput {
   startDateTime: String!
   endDateTime: String!
-  ianaZone: String!
 }
 
 input AddEventDateInput {
   eventId: ID!
   startDateTime: String!
   endDateTime: String!
-  ianaZone: String!
 }
 
 input UpdateEventDateInput {
   id: ID!
   startDateTime: String!
   endDateTime: String!
-  ianaZone: String!
 }
 
 input NewJobTypeInput {
@@ -262,7 +311,6 @@ input UpdateOpportunityInput {
 input NewShiftInput {
   startDateTime: String!
   endDateTime: String!
-  ianaZone: String!
   maxVolunteers: Int
   staffContactId: ID
 }
@@ -271,7 +319,6 @@ input AddShiftInput {
   opportunityId: ID!
   startDateTime: String!
   endDateTime: String!
-  ianaZone: String!
   maxVolunteers: Int
   staffContactId: ID
 }
@@ -280,7 +327,6 @@ input UpdateShiftInput {
   id: ID!
   startDateTime: String!
   endDateTime: String!
-  ianaZone: String!
   maxVolunteers: Int
   staffContactId: ID
 }

@@ -61,8 +61,8 @@ func setupEventFixture(t *testing.T) eventTestFixture {
 	jobAdvocacyID := getJobTypeID(t, "advocacy")
 
 	// ── venues ──────────────────────────────────────────────────────────────
-	venue1ID := seedVenue(t, "Seattle Venue", "100 Pike St", "Seattle", "WA", "America/Los_Angeles")
-	venue2ID := seedVenue(t, "Spokane Venue", "200 Monroe St", "Spokane", "WA", "America/Los_Angeles")
+	venue1ID := seedVenue(t, "Seattle Venue", "100 Pike St", "Seattle", "WA")
+	venue2ID := seedVenue(t, "Spokane Venue", "200 Monroe St", "Spokane", "WA")
 
 	// ── events ──────────────────────────────────────────────────────────────
 	eventAName := "Virtual Event Apr-" + suffix

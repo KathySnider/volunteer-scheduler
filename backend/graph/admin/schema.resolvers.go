@@ -284,8 +284,8 @@ func (r *mutationResolver) DeleteVenue(ctx context.Context, venueID string) (*ge
 }
 
 // DeleteEvent is the resolver for the deleteEvent field.
-func (r *mutationResolver) DeleteEvent(ctx context.Context, eventID string) (*generated.MutationResult, error) {
-	result, err := r.EventService.DeleteEvent(ctx, eventID)
+func (r *mutationResolver) DeleteEvent(ctx context.Context, eventID string, scope *generated.RecurrenceUpdateScope) (*generated.MutationResult, error) {
+	result, err := r.EventService.DeleteEvent(ctx, eventID, toModelScope(scope))
 	if err != nil {
 		return nil, err
 	}
@@ -383,13 +383,18 @@ func (r *queryResolver) VolunteerProfile(ctx context.Context) (*generated.Volunt
 	return toGenVolunteerProfile(profile), nil
 }
 
-// EventByID is the resolver for the eventById field.
-func (r *queryResolver) EventByID(ctx context.Context, eventID string) (*generated.Event, error) {
-	event, err := r.EventService.FetchEventById(ctx, eventID)
-	if err != nil {
-		return nil, fmt.Errorf("error calling FetchEventById: %w", err)
+// FilteredEventsWithShifts is the resolver for the filteredEventsWithShifts field.
+func (r *queryResolver) FilteredEventsWithShifts(ctx context.Context, filter *generated.EventFilterInput) ([]*generated.Event, error) {
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
 	}
-	return toGenEvent(event), nil
+
+	events, err := r.EventService.FetchFilteredEventsWithShifts(ctx, toModelEventFilterInput(filter), &volId)
+	if err != nil {
+		return nil, err
+	}
+	return toGenEvents(events), nil
 }
 
 // Venues is the resolver for the venues field.
@@ -429,26 +434,21 @@ func (r *queryResolver) VolunteerShifts(ctx context.Context, volunteerID string,
 }
 
 // FilteredEvents is the resolver for the filteredEvents field.
-func (r *queryResolver) FilteredEvents(ctx context.Context, filter *generated.EventFilterInput) ([]*generated.Event, error) {
+func (r *queryResolver) FilteredEvents(ctx context.Context, filter *generated.EventFilterInput) ([]*generated.ManagedEvent, error) {
 	events, err := r.EventService.FetchManagedEvents(ctx, toModelEventFilterInput(filter))
 	if err != nil {
 		return nil, err
 	}
-	return toGenEvents(events), nil
+	return toGenManagedEvents(events), nil
 }
 
-// FilteredEventsWithShifts is the resolver for the filteredEventsWithShifts field.
-func (r *queryResolver) FilteredEventsWithShifts(ctx context.Context, filter *generated.EventFilterInput) ([]*generated.Event, error) {
-	volId, ok := middleware.VolunteerIdFromContext(ctx)
-	if !ok {
-		return nil, fmt.Errorf("unauthorized")
-	}
-
-	events, err := r.EventService.FetchFilteredEventsWithShifts(ctx, toModelEventFilterInput(filter), &volId)
+// ManagedEventByID is the resolver for the ManagedEventById field.
+func (r *queryResolver) ManagedEventByID(ctx context.Context, eventID string) (*generated.ManagedEvent, error) {
+	me, err := r.EventService.FetchManagedEventById(ctx, eventID)
 	if err != nil {
 		return nil, err
 	}
-	return toGenEvents(events), nil
+	return toGenManagedEvent(me), nil
 }
 
 // OpportunitiesForEvent is the resolver for the opportunitiesForEvent field.

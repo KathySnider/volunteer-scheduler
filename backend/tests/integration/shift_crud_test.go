@@ -47,7 +47,6 @@ func TestCreateShift(t *testing.T) {
 			"opportunityId": fmt.Sprintf("%d", oppID),
 			"startDateTime": "2027-04-15 09:00:00",
 			"endDateTime":   "2027-04-15 17:00:00",
-			"ianaZone":      "UTC",
 			"maxVolunteers": 8,
 		},
 	})
@@ -88,7 +87,6 @@ func TestUpdateShift(t *testing.T) {
 			"id":            fmt.Sprintf("%d", shiftID),
 			"startDateTime": "2027-05-10 10:00:00",
 			"endDateTime":   "2027-05-10 18:00:00",
-			"ianaZone":      "UTC",
 			"maxVolunteers": 12,
 		},
 	})

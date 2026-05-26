@@ -1,4 +1,4 @@
-package services
+﻿package services
 
 import (
 	"context"
@@ -8,6 +8,8 @@ import (
 	"strconv"
 
 	"volunteer-scheduler/models"
+
+	"github.com/google/uuid"
 )
 
 // services/event_service.go
@@ -113,8 +115,9 @@ func (s *EventService) FetchLookups(ctx context.Context) (*models.LookupValues, 
 }
 
 // FetchFilteredEventsWithShifts
-// There are 2 differences between this function and FetchManagedEvents:
+// There *are* significant differences between this function and FetchManagedEvents:
 //  * This call does a second pass to make sure that it only has events with shifts.
+//  * This call returns volunteer events (no recurrence stuff that admins need).
 //  * This call must have the id of the volunteer who called it, in case distance is
 //    part of the criteria (the volunteers' lat/lng data is stored in their profiles)
 
@@ -157,33 +160,6 @@ func (s *EventService) FetchFilteredEventsWithShifts(ctx context.Context, filter
 	return events, nil
 }
 
-func (s *EventService) FetchManagedEvents(ctx context.Context, filter *models.EventFilterInput) ([]*models.Event, error) {
-
-	// Translate all of the filter stuff to a set of events that meet all of the
-	// caller's criteria. If there are no filters, return all events.
-
-	eventsMap, orderedIDs, err := filterManagedEvents(ctx, filter, s.DB)
-	if err != nil {
-		return nil, fmt.Errorf("error querying events: %w", err)
-	}
-	if len(eventsMap) == 0 {
-		// Return an empty set of events. Nothing matched.
-		return []*models.Event{}, nil
-	}
-
-	// orderedIDs carries the ORDER BY from the SQL query (earliest event date ASC).
-	// We must use it when building the final slice — ranging over eventsMap directly
-	// would randomise the order because Go maps have no guaranteed iteration order.
-	// Build the result slice in the order the DB returned the events.
-
-	events := make([]*models.Event, 0, len(eventsMap))
-	for _, id := range orderedIDs {
-		event, _ := eventsMap[id]
-		events = append(events, event)
-	}
-	return events, nil
-}
-
 func (s *EventService) FetchEventById(ctx context.Context, eventId string) (*models.Event, error) {
 	eventInt, err := strconv.Atoi(eventId)
 	if err != nil {
@@ -201,12 +177,9 @@ func (s *EventService) FetchEventById(ctx context.Context, eventId string) (*mod
             v.city,
             v.state,
             v.zip_code,
-			v.timezone,
-			e.funding_entity_id,
-			fe.name
+			e.timezone
         FROM events e
         LEFT JOIN venues v ON e.venue_id = v.venue_id
-		LEFT JOIN funding_entities fe ON e.funding_entity_id = fe.id
 		WHERE e.event_id = $1
     `
 
@@ -217,9 +190,7 @@ func (s *EventService) FetchEventById(ctx context.Context, eventId string) (*mod
 
 	var isVirtual bool
 	var venueInt sql.NullInt64
-	var eventDesc, venueName, streetAddress, city, state, zip, timezone sql.NullString
-	var fundingEntityId int
-	var fundingEntityName string
+	var eventDesc, venueName, streetAddress, city, state, zip sql.NullString
 
 	err = row.Scan(
 		&e.Name,
@@ -231,9 +202,7 @@ func (s *EventService) FetchEventById(ctx context.Context, eventId string) (*mod
 		&city,
 		&state,
 		&zip,
-		&timezone,
-		&fundingEntityId,
-		&fundingEntityName,
+		&e.Timezone,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error scanning event: %w", err)
@@ -255,7 +224,6 @@ func (s *EventService) FetchEventById(ctx context.Context, eventId string) (*mod
 		venue.Address = streetAddress.String
 		venue.City = city.String
 		venue.State = state.String
-		venue.Timezone = timezone.String
 		if venueName.Valid {
 			venue.Name = &venueName.String
 		} else {
@@ -270,8 +238,6 @@ func (s *EventService) FetchEventById(ctx context.Context, eventId string) (*mod
 	} else {
 		e.Venue = nil
 	}
-
-	e.FundingEntity = models.FundingEntity{ID: fundingEntityId, Name: fundingEntityName}
 
 	stPtrs, err := FetchEventServiceTypes(ctx, s.DB, eventInt)
 	if err != nil {
@@ -293,20 +259,193 @@ func (s *EventService) FetchEventById(ctx context.Context, eventId string) (*mod
 	return &e, nil
 }
 
-// Mutations: create.
+func (s *EventService) FetchManagedEvents(ctx context.Context, filter *models.EventFilterInput) ([]*models.ManagedEvent, error) {
+
+	// Translate all of the filter stuff to a set of events that meet all of the
+	// caller's criteria. If there are no filters, return all events.
+
+	eventsMap, orderedIDs, err := filterManagedEvents(ctx, filter, s.DB)
+	if err != nil {
+		return nil, fmt.Errorf("error querying events: %w", err)
+	}
+	if len(eventsMap) == 0 {
+		// Return an empty set of events. Nothing matched.
+		return []*models.ManagedEvent{}, nil
+	}
+
+	// orderedIDs carries the ORDER BY from the SQL query (earliest event date ASC).
+	// We must use it when building the final slice — ranging over eventsMap directly
+	// would randomise the order because Go maps have no guaranteed iteration order.
+	// Build the result slice in the order the DB returned the events.
+
+	events := make([]*models.ManagedEvent, 0, len(eventsMap))
+	for _, id := range orderedIDs {
+		event, _ := eventsMap[id]
+		events = append(events, event)
+	}
+	return events, nil
+}
+
+func (s *EventService) FetchManagedEventById(ctx context.Context, eventId string) (*models.ManagedEvent, error) {
+	eventInt, err := strconv.Atoi(eventId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid event id: %w", err)
+	}
+
+	query := `
+        SELECT
+            e.event_name,
+            e.description,
+            e.event_is_virtual,
+            e.venue_id,
+            v.venue_name,
+            v.street_address,
+            v.city,
+            v.state,
+            v.zip_code,
+			e.timezone,
+			fe.id,
+			fe.name,
+			fe.description,
+			e.recurrence_group_id,
+			e.recurrence_order,
+			rg.pattern,
+			rg.max_occurrences,
+			rg.weekday_ordinal
+        FROM events e
+        LEFT JOIN venues v ON e.venue_id = v.venue_id
+		JOIN funding_entities fe ON fe.id = e.funding_entity_id
+		LEFT JOIN recurrence_groups rg ON rg.id = e.recurrence_group_id
+		WHERE e.event_id = $1
+    `
+
+	row := s.DB.QueryRowContext(ctx, query, eventInt)
+
+	var e models.ManagedEvent
+	var fe models.FundingEntity
+
+	e.ID = eventId
+
+	var isVirtual bool
+	var venueInt sql.NullInt64
+	var eventDesc sql.NullString
+	var venueName, streetAddress, city, state, zip sql.NullString
+	var feDesc, recurGrpId sql.NullString
+	var recurOrder sql.NullInt32
+	var recurPattern, recurOrdinal sql.NullString
+	var recurMax sql.NullInt32
+
+	err = row.Scan(
+		&e.Name,
+		&eventDesc,
+		&isVirtual,
+		&venueInt,
+		&venueName,
+		&streetAddress,
+		&city,
+		&state,
+		&zip,
+		&e.Timezone,
+		&fe.ID,
+		&fe.Name,
+		&feDesc,
+		&recurGrpId,
+		&recurOrder,
+		&recurPattern,
+		&recurMax,
+		&recurOrdinal,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error scanning event: %w", err)
+	}
+
+	if eventDesc.Valid {
+		e.Description = &eventDesc.String
+	} else {
+		e.Description = nil
+	}
+	e.EventType = GetEventType(isVirtual, venueInt.Valid)
+
+	if venueInt.Valid {
+		// Since venueInt is valid, most of the strings are valid, because
+		// the fields are NOT NULL in the DB. The exceptions are venue name
+		// and zip code.
+		var venue models.Venue
+		venue.ID = strconv.Itoa(int(venueInt.Int64))
+		venue.Address = streetAddress.String
+		venue.City = city.String
+		venue.State = state.String
+		if venueName.Valid {
+			venue.Name = &venueName.String
+		} else {
+			venue.Name = nil
+		}
+		if zip.Valid {
+			venue.ZipCode = &zip.String
+		} else {
+			venue.ZipCode = nil
+		}
+		e.Venue = &venue
+	} else {
+		e.Venue = nil
+	}
+
+	if feDesc.Valid {
+		fe.Description = &feDesc.String
+	}
+	e.FundingEntity = fe
+
+	if recurGrpId.Valid {
+		e.RecurrenceId = recurGrpId.String
+		if recurOrder.Valid {
+			e.RecurrenceOrder = int(recurOrder.Int32)
+		} else {
+			return nil, fmt.Errorf("recurrence_order is required when recurrence_group_id is not null.")
+		}
+		if recurPattern.Valid {
+			e.RecurrencePattern = recurPattern.String
+		}
+		if recurMax.Valid {
+			v := int(recurMax.Int32)
+			e.RecurrenceMaxOccurrences = &v
+		}
+		if recurOrdinal.Valid {
+			e.RecurrenceOrdinal = &recurOrdinal.String
+		}
+	}
+
+	stPtrs, err := FetchEventServiceTypes(ctx, s.DB, eventInt)
+	if err != nil {
+		return nil, fmt.Errorf("error getting event's service types: %w", err)
+	}
+	// Convert the pointers to the actual strings.
+	e.ServiceTypes = make([]string, len(stPtrs))
+	for i, strPtr := range stPtrs {
+		e.ServiceTypes[i] = *strPtr
+	}
+
+	dates, err := FetchEventDates(ctx, s.DB, eventInt)
+	if err != nil {
+		return nil, fmt.Errorf("error getting event's dates: %w", err)
+	}
+	e.EventDates = dates
+
+	// All good.
+	return &e, nil
+}
+
+// Mutations: Create.
 
 // CreateEvent
-// Creates the DB entry for the events table.
+// Creates the DB entry for the events table, and the entries in
+// the associated tables.
 func (s *EventService) CreateEvent(ctx context.Context, newEvent models.NewEventInput) (*models.MutationResult, error) {
-	var query string
-	var virtualEvent bool
 	var venueIdPtr *int
-	var eventInt int
 
 	// Determine whether or not the event will be virtual.
 	// Both virtual and hybrid events have a virtual
 	// component, so only in-person events are *not* vitual.
-	virtualEvent = true
+	virtualEvent := true
 	if newEvent.EventType == models.EventTypeInPerson {
 		virtualEvent = false
 	}
@@ -344,12 +483,31 @@ func (s *EventService) CreateEvent(ctx context.Context, newEvent models.NewEvent
 		}
 	}
 
-	// Add the event and it's dates inside a transaction.
+	// This function is about to split. We *might* be creating a
+	// recurring event, or we might be creating a single event.
+	// If single, call createEventInstance and return the result.
+	if newEvent.Recurrence == nil {
+		// Create a single event.
+		return s.createSingleEvent(ctx, newEvent, virtualEvent, venueIdPtr)
+	}
 
-	// Get a Tx for making transaction requests.
+	// To create reucurring events, everything starts with the dates.
+	evDatesMap, err := createDatesForPattern(newEvent.EventDates, newEvent.Timezone, *newEvent.Recurrence)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create dates for recurring event: %w", err)
+	}
+	if evDatesMap == nil {
+		return nil, fmt.Errorf("unable to create dates map for recurring event.")
+	}
+
+	// Get a UUID for the whole group.
+	groupId := uuid.New()
+
+	// Now we're ready to create all of these events.
+	// Put this whole thing into a transaction.
 	var tx *sql.Tx
 
-	tx, err := s.DB.BeginTx(ctx, nil)
+	tx, err = s.DB.BeginTx(ctx, nil)
 	if err != nil {
 		err = fmt.Errorf("error starting transaction: %w", err)
 		return nil, err
@@ -357,133 +515,95 @@ func (s *EventService) CreateEvent(ctx context.Context, newEvent models.NewEvent
 	// Defer a rollback in case anything fails.
 	defer tx.Rollback()
 
-	// The rollback is for insurance. The rollback will occur if we
-	// leave the scope of the transaction before it has ended. For
-	// good DB practice, DO NOT RETURN while inside of a transaction.
-
-	// Create the event first. We need the id to continue.
-	if venueIdPtr == nil {
-		query = `
-		INSERT INTO events (event_name, description, event_is_virtual, funding_entity_id)
-		VALUES ($1, $2, $3, $4)
-		RETURNING event_id
-	`
-		err = tx.QueryRowContext(ctx, query, newEvent.Name, newEvent.Description, virtualEvent, newEvent.FundingEntityID).Scan(&eventInt)
-
-	} else {
-		query = `
-		INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING event_id
-	`
-		err = tx.QueryRowContext(ctx, query, newEvent.Name, newEvent.Description, virtualEvent, *venueIdPtr, newEvent.FundingEntityID).Scan(&eventInt)
+	// Save the recurrence settings so they can be displayed later.
+	var ordinalStr *string
+	if newEvent.Recurrence.WeekdayOrdinal != nil {
+		s := string(*newEvent.Recurrence.WeekdayOrdinal)
+		ordinalStr = &s
 	}
-
-	if err == nil {
-		// Event was inserted. Add the dates.
-		err = AddNewEventDates(ctx, newEvent.EventDates, eventInt, tx)
-	} else {
-		// Save all of the information about what failed.
-		err = fmt.Errorf("error inserting the event: %w", err)
-	}
-
-	if err == nil {
-		err = s.AddServiceTypesToEvent(ctx, tx, eventInt, newEvent.ServiceTypes)
-	} else {
-		err = fmt.Errorf("error adding dates to the event: %w", err)
-	}
-
+	_, err = tx.ExecContext(ctx,
+		`INSERT INTO recurrence_groups (id, pattern, max_occurrences, weekday_ordinal)
+		 VALUES ($1, $2, $3, $4)`,
+		groupId.String(),
+		string(newEvent.Recurrence.Pattern),
+		newEvent.Recurrence.MaxOccurrences,
+		ordinalStr,
+	)
 	if err != nil {
-		tx.Rollback()
-
-		// NOW return an error ...
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("transaction failed and was rolled back."),
-			ID:      nil,
-		}, err
+		return nil, fmt.Errorf("error saving recurrence group: %w", err)
 	}
 
-	// All good. Commit and return the new event ID.
+	// The map doesn't guarantee in what order the dates will be served.
+	// That's fine - we've saved the event's order (within the group) as
+	// the key to the map. We don't care which instance is created first
+	// or last, just that we know what events to change or delete if asked
+	// to do so to all "future" events.
+	for key, evDates := range *evDatesMap {
+
+		// Create one instance of this group of events.
+		mut, err := s.createEventRecurrence(ctx, tx, newEvent, virtualEvent, venueIdPtr, evDates, groupId, key)
+		if err != nil {
+			tx.Rollback() // Overkill by an OLD developer - would rollback when I exit this scope.
+			return nil, fmt.Errorf("transaction failed to create instance with order %v: %w", key, err)
+		}
+
+		log.Printf("created event instance with order %v and id %v", key, *mut.ID)
+	}
+
+	// All good. Commit the transaction.
 	err = tx.Commit()
 	if err != nil {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("error committing transaction"),
-			ID:      nil,
-		}, err
-	}
-	return &models.MutationResult{
-		Success: true,
-		Message: ptrString("Event successfully created."),
-		ID:      ptrString(strconv.Itoa(eventInt)),
-	}, nil
-}
-
-func (s *EventService) AddServiceTypesToEvent(ctx context.Context, tx *sql.Tx, eventId int, serviceTypes []int) error {
-
-	query := `
-		INSERT INTO event_service_types (event_id, service_type_id)
-		VALUES ($1, $2)
-		`
-	for _, serviceTypeId := range serviceTypes {
-		_, err := tx.ExecContext(ctx, query, eventId, serviceTypeId)
-
-		if err != nil {
-			return fmt.Errorf("error adding service type to event: %w", err)
-		}
+		return nil, fmt.Errorf("error committing transaction: %w", err)
 	}
 
 	// No errors.
-	return nil
+	strGroupId := groupId.String()
+	return &models.MutationResult{
+		Success: true,
+		Message: ptrString("Successfully created a group of events."),
+		ID:      &strGroupId,
+	}, nil
 }
 
-// This function is to add a startdate and enddate to an extant event.
+// This function is to add a startdate and enddate to an extant event. Event id is known and
+// is supplied in the input struct.
 func (s *EventService) CreateEventDate(ctx context.Context, dates models.AddEventDateInput) (*models.MutationResult, error) {
-	if dates.EndDateTime <= dates.StartDateTime {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("End time must be after start time."),
-			ID:      nil,
-		}, fmt.Errorf("end time must be after start time")
-	}
-
-	var startUTC, endUTC *string
-	startUTC, err := DateTimeToUTC(dates.StartDateTime, dates.IanaZone)
-	if err == nil {
-		endUTC, err = DateTimeToUTC(dates.EndDateTime, dates.IanaZone)
-	}
-	if err != nil {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("Failed to create event date. Invalid datetimes or IANA zone."),
-			ID:      nil,
-		}, err
-	}
 
 	eventInt, err := strconv.Atoi(dates.EventID)
 	if err != nil {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("Failed to create event date. Invalid event Id."),
-			ID:      nil,
-		}, err
+		return nil, fmt.Errorf("failed to add dates; invalid event id: %w", err)
 	}
 
-	create := `
+	var timezone string
+	err = s.DB.QueryRowContext(ctx, "SELECT timezone FROM events WHERE event_id = $1", eventInt).Scan(&timezone)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get timezone from event: %w", err)
+	}
+
+	if dates.EndDateTime <= dates.StartDateTime {
+		return nil, fmt.Errorf("end time must be after start time")
+	}
+
+	var startUTC, endUTC *string
+	startUTC, err = DateTimeToUTC(dates.StartDateTime, timezone)
+	if err == nil {
+		endUTC, err = DateTimeToUTC(dates.EndDateTime, timezone)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to add dates; invalid datetimes or timezone: %w", err)
+	}
+
+	insert := `
 		INSERT INTO event_dates (event_id, start_date_time, end_date_time)
 		VALUES ($1, $2, $3)
 		RETURNING event_date_id
 	`
 	var eventDateInt int
-	err = s.DB.QueryRowContext(ctx, create, eventInt, startUTC, endUTC).Scan(&eventDateInt)
+	err = s.DB.QueryRowContext(ctx, insert, eventInt, startUTC, endUTC).Scan(&eventDateInt)
 	if err != nil {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("Failed to insert event date."),
-			ID:      nil,
-		}, err
+		return nil, fmt.Errorf("failed to insert event date: %w", err)
 	}
+
 	return &models.MutationResult{
 		Success: true,
 		Message: ptrString("Successfully created event date."),
@@ -497,11 +617,7 @@ func (s *EventService) UpdateEvent(ctx context.Context, event models.UpdateEvent
 
 	eventInt, err := strconv.Atoi(event.ID)
 	if err != nil {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("Failed to update event; invalid event Id."),
-			ID:      &event.ID,
-		}, err
+		return nil, fmt.Errorf("failed to update event; invalid event id: %w", err)
 	}
 
 	isVirtual := (event.EventType == models.EventTypeVirtual || event.EventType == models.EventTypeHybrid)
@@ -512,19 +628,11 @@ func (s *EventService) UpdateEvent(ctx context.Context, event models.UpdateEvent
 	} else {
 		// Other types require a venue.
 		if event.VenueId == nil {
-			return &models.MutationResult{
-				Success: false,
-				Message: ptrString("Failed to update event; event must have a venue id."),
-				ID:      &event.ID,
-			}, err
+			return nil, fmt.Errorf("failed to update event; non-virtual event must have a venue id")
 		}
 		idInt, err := strconv.Atoi(*event.VenueId)
 		if err != nil {
-			return &models.MutationResult{
-				Success: false,
-				Message: ptrString("Failed to update event; event must have a valid venue id."),
-				ID:      &event.ID,
-			}, err
+			return nil, fmt.Errorf("failed to update event; invalid venue id: %w", err)
 		}
 		venueInt = &idInt
 	}
@@ -536,17 +644,14 @@ func (s *EventService) UpdateEvent(ctx context.Context, event models.UpdateEvent
 			description = $2,
 			event_is_virtual = $3,
 			venue_id = $4,
-			funding_entity_id = $5
-		WHERE event_id = $6
+			timezone = $5,
+			funding_entity_id = $6
+		WHERE event_id = $7
 	`
-	_, err = s.DB.ExecContext(ctx, query, event.Name, event.Description, isVirtual, venueInt, event.FundingEntityID, eventInt)
+	_, err = s.DB.ExecContext(ctx, query, event.Name, event.Description, isVirtual, venueInt, event.Timezone, event.FundingEntityID, eventInt)
 
 	if err != nil {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("Failed to update event."),
-			ID:      &event.ID,
-		}, err
+		return nil, fmt.Errorf("failed to update event: %w", err)
 	}
 
 	return &models.MutationResult{
@@ -557,51 +662,52 @@ func (s *EventService) UpdateEvent(ctx context.Context, event models.UpdateEvent
 }
 
 func (s *EventService) UpdateEventDate(ctx context.Context, evDate models.UpdateEventDateInput) (*models.MutationResult, error) {
-	if evDate.EndDateTime <= evDate.StartDateTime {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("End time must be after start time."),
-			ID:      nil,
-		}, fmt.Errorf("end time must be after start time")
-	}
-
-	var startUTC, endUTC *string
-	startUTC, err := DateTimeToUTC(evDate.StartDateTime, evDate.IanaZone)
-	if err == nil {
-		endUTC, err = DateTimeToUTC(evDate.EndDateTime, evDate.IanaZone)
-	}
-	if err != nil {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("Failed to update event date; invalid datetimes or IANA zone."),
-			ID:      nil,
-		}, err
-	}
 
 	dateInt, err := strconv.Atoi(evDate.ID)
 	if err != nil {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("Failed to update event date; invalid event_date_id."),
-			ID:      &evDate.ID,
-		}, err
+		return nil, fmt.Errorf("failed to update event date; invalid event_date_id: %w", err)
 	}
 
+	var eventId int
+	var timezone string
 	query := `
+		SELECT
+			ed.event_id,
+			e.timezone
+		FROM event_dates ed
+		JOIN events e ON e.event_id = ed.event_id
+		WHERE ed.event_date_id = $1	
+		`
+
+	err = s.DB.QueryRowContext(ctx, query, dateInt).Scan(&eventId, &timezone)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get timezone from events: %w", err)
+	}
+
+	if evDate.EndDateTime <= evDate.StartDateTime {
+		return nil, fmt.Errorf("end time must be after start time")
+	}
+
+	var startUTC, endUTC *string
+	startUTC, err = DateTimeToUTC(evDate.StartDateTime, timezone)
+	if err == nil {
+		endUTC, err = DateTimeToUTC(evDate.EndDateTime, timezone)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to update event date; invalid datetimes or timezone: %w", err)
+	}
+
+	update := `
 		UPDATE event_dates 
 		SET 
 			start_date_time = $1,
 			end_date_time = $2
 		WHERE event_date_id = $3
 	`
-	_, err = s.DB.ExecContext(ctx, query, startUTC, endUTC, dateInt)
+	_, err = s.DB.ExecContext(ctx, update, startUTC, endUTC, dateInt)
 
 	if err != nil {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("Failed to update event date."),
-			ID:      &evDate.ID,
-		}, err
+		return nil, fmt.Errorf("failed to update event date; invalid datetimes or timezone: %w", err)
 	}
 
 	return &models.MutationResult{
@@ -612,232 +718,109 @@ func (s *EventService) UpdateEventDate(ctx context.Context, evDate models.Update
 }
 
 // Send emails to all affected volunteers and staff, THEN delete the event.
-func (s *EventService) DeleteEvent(ctx context.Context, eventId string) (*models.MutationResult, error) {
+func (s *EventService) DeleteEvent(ctx context.Context, eventId string, scope *models.RecurrenceUpdateScope) (*models.MutationResult, error) {
+
 	eventInt, err := strconv.Atoi(eventId)
 	if err != nil {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("Failed to delete event; invalid event ID."),
-			ID:      &eventId,
-		}, err
+		return nil, fmt.Errorf("Failed to delete event; invalid event ID (%s): %w", eventId, err)
 	}
 
-	// Get all of the information out of the DB that we'll need
-	// to send coherent emails.
-	query := `
+	// Get information from the current event that will be the same for all of the
+	// emails. We'll need the timezone of the event to format shift datetimes.
+	// Note: if this is a "group delete", assume that the name and timezone is the
+	// same for all events in the group, even if an admin has modified one or more.
+	// We don't want the emails to be overly complex.
+	evQuery := `
 		SELECT
-		  e.event_name,
-		  ven.timezone,
-		  vs.shift_id,
-		  s.shift_start,
-		  s.shift_end,
-		  vol.volunteer_id,
-		  vol.email,
-		  vol.first_name,
-		  vol.last_name,
-		  staff.staff_id,
-		  staff.email,
-		  staff.first_name,
-		  staff.last_name
-		FROM events e
-		LEFT JOIN opportunities opp ON opp.event_id = e.event_id
-		LEFT JOIN shifts s ON s.opportunity_id = opp.opportunity_id
-		LEFT JOIN volunteer_shifts vs ON vs.shift_id = s.shift_id AND vs.cancelled_at IS NULL
-		LEFT JOIN volunteers vol ON vol.volunteer_id = vs.volunteer_id
-		LEFT JOIN staff ON staff.staff_id = s.staff_contact_id
-		LEFT JOIN venues ven ON ven.venue_id = e.venue_id
-	WHERE e.event_id = $1
+			event_name,
+			timezone,
+			recurrence_group_id,
+			recurrence_order
+		FROM events
+		WHERE event_id = $1
 	`
-	rows, err := s.DB.QueryContext(ctx, query, eventInt)
+	var evName, timezone string
+	var recurGrpId sql.NullString
+	var recurOrder sql.NullInt32
+	err = s.DB.QueryRowContext(ctx, evQuery, eventInt).Scan(&evName, &timezone, &recurGrpId, &recurOrder)
 	if err != nil {
-		return &models.MutationResult{
-			Success: false,
-			Message: ptrString("Failed to delete event; unable to query DB."),
-			ID:      &eventId,
-		}, err
+		// If we didn't even get this far, we won't be able to delete the event(s).
+		log.Printf("DB error: %v", err)
+		return nil, friendlyDBError(err)
 	}
-	defer rows.Close()
 
-	// Create some structures to handle the information needed for an email
-	// for each user affected by the cancellation.
-	type emailInfo struct {
-		email     string
-		firstName string
-		lastName  string
-		shiftsMap map[int]bool
-	}
-	// Make a map of volunteers to email, and a map for staff
-	// leads. We'll gather all of the information from the
-	// subsequent calls, and, finally send all of the emails.
-	volMap := make(map[int]*emailInfo)
-	leadMap := make(map[int]*emailInfo)
-	shiftMap := make(map[int]*ShiftSummary)
-
-	var eventName string
-	var venueZone sql.NullString
-
-	for rows.Next() {
-		// This is a little tricky, since we could have a row for a
-		// shift that has a staff lead, but no volunteers have yet
-		// signed up, or a row with volunteers, but no staff lead.
-		// So a lot of this information may be NULLs coming from
-		// the DB.
-		// Also, since there is only one event Id, and
-		// either 0 or 1 venues, the eventName and venueZone s/b
-		// the same in every row. I don't bother to check for that.
-
-		var shiftId sql.NullInt32
-		var shiftStart, shiftEnd sql.NullString
-		var volId sql.NullInt32
-		var volEmail, volFirst, volLast sql.NullString
-		var leadId sql.NullInt32
-		var leadEmail, leadFirst, leadLast sql.NullString
-
-		err := rows.Scan(
-			&eventName,
-			&venueZone,
-			&shiftId,
-			&shiftStart,
-			&shiftEnd,
-			&volId,
-			&volEmail,
-			&volFirst,
-			&volLast,
-			&leadId,
-			&leadEmail,
-			&leadFirst,
-			&leadLast,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("unable to scan rows in delete event: %w", err)
-		}
-
-		// If shiftId is NULL the event has no shifts yet — nothing to email.
-		if !shiftId.Valid {
-			continue
-		}
-		shiftIdInt := int(shiftId.Int32)
-
-		_, shiftExists := shiftMap[shiftIdInt]
-		if !shiftExists {
-			var ss, se *string
-			var shift ShiftSummary
-
-			// Convert the dates and times once and save them.
-			if venueZone.Valid {
-				ss, err = UTCToTimeZone(shiftStart.String, venueZone.String)
-				if err == nil {
-					se, err = UTCToTimeZone(shiftEnd.String, venueZone.String)
-				}
-			} else {
-				ss, err = UTCToDateTime(shiftStart.String)
-				if err == nil {
-					se, err = UTCToDateTime(shiftEnd.String)
-				}
-			}
-			if err != nil {
-				return nil, fmt.Errorf("unable to convert datetimes in deletes event: %w", err)
-			}
-			shift.Start = *ss
-			shift.End = *se
-
-			shiftMap[shiftIdInt] = &shift
-		}
-		if volId.Valid {
-			volInt := int(volId.Int32)
-			_, volExists := volMap[volInt]
-			if volExists {
-				// Is this a new shift for this vol?
-				_, shiftExists := volMap[volInt].shiftsMap[shiftIdInt]
-				if shiftExists {
-					// Due to multiple-multiple joins, and possible
-					// situations, don't worry about this.
-				} else {
-					volMap[volInt].shiftsMap[shiftIdInt] = true
-				}
-			} else {
-				// Haven't seen this volunteer yet. Since volId is
-				// not NULL, the volunteer's email, first- and last-
-				// names are also not NULL.
-				var vol emailInfo
-				vol.shiftsMap = make(map[int]bool)
-
-				vol.email = volEmail.String
-				vol.firstName = volFirst.String
-				vol.lastName = volLast.String
-				vol.shiftsMap[shiftIdInt] = true
-				volMap[volInt] = &vol
-			}
-		}
-		if leadId.Valid {
-			leadInt := int(leadId.Int32)
-			_, leadExists := leadMap[leadInt]
-			if leadExists {
-				_, shiftExists := leadMap[leadInt].shiftsMap[shiftIdInt]
-				if shiftExists {
-					// Do nothing
-				} else {
-					leadMap[leadInt].shiftsMap[shiftIdInt] = true
-				}
-			} else {
-				// Haven't processed this staff lead.
-				var lead emailInfo
-				lead.shiftsMap = make(map[int]bool)
-
-				lead.email = leadEmail.String
-				lead.firstName = leadFirst.String
-				lead.lastName = leadLast.String
-				lead.shiftsMap[shiftIdInt] = true
-				leadMap[leadInt] = &lead
-			}
+	// The differences between getting the email info for one event v many is in the queries.
+	var volQuery, leadQuery string
+	args := []any{}
+	if scope == nil || *scope == models.RecurrenceUpdateScopeThisOnly {
+		// Only deleting this event.
+		volQuery, leadQuery = getQueriesForSingleEvent()
+		args = append(args, eventInt)
+	} else {
+		// If we are deleting recurring events, the UUID and order are required.
+		if recurGrpId.Valid && recurOrder.Valid {
+			volQuery, leadQuery = getQueriesForRecurringEvent()
+			args = append(args, recurGrpId)
+			args = append(args, recurOrder)
+		} else {
+			return nil, fmt.Errorf("RecurrenceID and RecurrenceOrder are required to delete this recurring event.")
 		}
 	}
+
+	// Start with an empty map of shift times. We will add to it with each query.
+	// Note: calling this "dbTimesMap", because the summaries will have datetimes
+	// as they appear in the DB (RFC3339 format). Will format later.
+	dbTimesMap := map[int]*ShiftSummary{}
+	volMap, dbTimesMap, err := makeEmailMapForShifts(ctx, s.DB, volQuery, args, dbTimesMap)
+	if err != nil {
+		return nil, err
+	}
+	leadMap, dbTimesMap, err := makeEmailMapForShifts(ctx, s.DB, leadQuery, args, dbTimesMap)
+	if err != nil {
+		return nil, err
+	}
+
+	// Use the timezone (acquired above) to format the DB times.
+	// Note - formatShiftTimes doesn't throw any erros. If there is a problem,
+	// we get back the DB times, so we can still send an email.
+	shiftsMap := formatShiftTimes(dbTimesMap, timezone)
 
 	// Our maps now have a single entry for each volunteer and staff
 	// lead contact. We also have the event name, and the formatted
-	// dates/times for each shift.
+	// dates/times for each shift. SEND the emails.
+	sendDeleteEventEmailsForShifts(ctx, s.Mailer, volMap, leadMap, shiftsMap, evName)
 
-	unsent := make([]*string, 0, len(volMap)+len(leadMap))
-
-	for _, emailInfo := range volMap {
-		// Get all of the shift start and end times for this email.
-		shiftSummaries := make([]ShiftSummary, 0, len(emailInfo.shiftsMap))
-		for shiftKey := range emailInfo.shiftsMap {
-			shiftSummaries = append(shiftSummaries, *shiftMap[shiftKey])
-		}
-		err = sendEventCancelledToVolunteer(ctx, s.Mailer, emailInfo.firstName, eventName, shiftSummaries, emailInfo.email)
+	// Finally, delete the event(s) (which will cascade to the opportunities, shifts, and volunteer_shifts).
+	if scope == nil || *scope == models.RecurrenceUpdateScopeThisOnly {
+		_, err = s.DB.ExecContext(ctx, "DELETE FROM events WHERE event_id = $1", eventInt)
 		if err != nil {
-			// Not being able to send an email is not fatal.
-			// Try to notify the others.
-			unsent = append(unsent, &emailInfo.email)
-			continue
+			log.Printf("DB error: %v", err)
+			return nil, friendlyDBError(err)
 		}
-	}
-	for _, emailInfo := range leadMap {
-		// Get all of the shift start and end times for this email.
-		shiftSummaries := make([]ShiftSummary, 0, len(emailInfo.shiftsMap))
-		for shiftKey := range emailInfo.shiftsMap {
-			shiftSummaries = append(shiftSummaries, *shiftMap[shiftKey])
-		}
-		err = sendEventCancelledToStaff(ctx, s.Mailer, emailInfo.firstName, eventName, shiftSummaries, emailInfo.email)
+	} else {
+		_, err = s.DB.ExecContext(ctx, "DELETE FROM events WHERE recurrence_group_id = $1::uuid AND recurrence_order >= $2", recurGrpId, recurOrder)
 		if err != nil {
-			unsent = append(unsent, &emailInfo.email)
-			continue
+			log.Printf("DB error: %v", err)
+			return nil, friendlyDBError(err)
+		}
+	}
+	// Whether or not the scope was THIS_AND_FUTURE, we might not have any events left
+	// with the UUID. If that's the case, get rid of the row from the table.
+	if recurGrpId.Valid {
+		delete := `
+			DELETE FROM recurrence_groups
+         	WHERE id = $1::uuid
+				AND NOT EXISTS (
+             		SELECT 1 FROM events WHERE recurrence_group_id = $1::uuid)
+		`
+		_, err = s.DB.ExecContext(ctx, delete, recurGrpId.String)
+		if err != nil {
+			// Non-fatal — log it but don't fail the delete
+			log.Printf("warning: failed to clean up recurrence_groups row %s: %v", recurGrpId.String, err)
 		}
 	}
 
-	if len(unsent) > 0 {
-		log.Println("Unable to send the event (" + eventName + ") cancelled message to the following emails:")
-		for _, emailStr := range unsent {
-			log.Println(emailStr)
-		}
-	}
-
-	// Finally, delete the event (which will cascade to the opportunities, shifts, and volunteer_shifts).
-	_, err = s.DB.ExecContext(ctx, "DELETE FROM events WHERE event_id = $1", eventInt)
-	if err != nil {
-		return nil, fmt.Errorf("failed to delete event with id %s: %w", eventId, err)
-	}
+	// All good!
 
 	return &models.MutationResult{
 		Success: true,

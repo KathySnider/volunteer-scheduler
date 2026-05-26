@@ -12,6 +12,7 @@
 *.swp
 *.swo
 *~
+*.tmp
 
 # OS
 .DS_Store

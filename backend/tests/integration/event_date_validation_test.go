@@ -82,11 +82,11 @@ func virtualEventInput(feID, stID int, start, end string) map[string]any {
 		"eventType":       "VIRTUAL",
 		"fundingEntityId": feID,
 		"serviceTypes":    []int{stID},
+		"timezone":        "UTC",
 		"eventDates": []map[string]any{
 			{
 				"startDateTime": start,
 				"endDateTime":   end,
-				"ianaZone":      "UTC",
 			},
 		},
 	}
@@ -236,7 +236,6 @@ func TestCreateEventDate_EndBeforeStart(t *testing.T) {
 			"eventId":       fmt.Sprintf("%d", eventID),
 			"startDateTime": "2028-08-10 14:00:00",
 			"endDateTime":   "2028-08-10 09:00:00", // before start
-			"ianaZone":      "UTC",
 		},
 	}
 
@@ -260,7 +259,6 @@ func TestCreateEventDate_EndEqualsStart(t *testing.T) {
 			"eventId":       fmt.Sprintf("%d", eventID),
 			"startDateTime": "2028-08-11 10:00:00",
 			"endDateTime":   "2028-08-11 10:00:00", // same as start
-			"ianaZone":      "UTC",
 		},
 	}
 
@@ -284,7 +282,6 @@ func TestCreateEventDate_ValidDates(t *testing.T) {
 			"eventId":       fmt.Sprintf("%d", eventID),
 			"startDateTime": "2028-08-12 09:00:00",
 			"endDateTime":   "2028-08-12 17:00:00",
-			"ianaZone":      "UTC",
 		},
 	}
 
@@ -331,7 +328,6 @@ func TestUpdateEventDate_EndBeforeStart(t *testing.T) {
 			"id":            fmt.Sprintf("%d", dateID),
 			"startDateTime": "2028-09-01 14:00:00",
 			"endDateTime":   "2028-09-01 09:00:00", // before start
-			"ianaZone":      "UTC",
 		},
 	}
 
@@ -371,7 +367,6 @@ func TestUpdateEventDate_EndEqualsStart(t *testing.T) {
 			"id":            fmt.Sprintf("%d", dateID),
 			"startDateTime": "2028-09-02 10:00:00",
 			"endDateTime":   "2028-09-02 10:00:00", // same as start
-			"ianaZone":      "UTC",
 		},
 	}
 
@@ -396,7 +391,6 @@ func TestUpdateEventDate_ValidDates(t *testing.T) {
 			"id":            fmt.Sprintf("%d", dateID),
 			"startDateTime": "2028-09-03 10:00:00",
 			"endDateTime":   "2028-09-03 18:00:00",
-			"ianaZone":      "UTC",
 		},
 	}
 

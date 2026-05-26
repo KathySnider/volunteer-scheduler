@@ -64,7 +64,7 @@ func TestAdminFilteredEvents_IncludesNoShiftEvents(t *testing.T) {
 	volToken, _ := makeVolunteer(t)
 
 	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
-	venueID := seedVenue(t, "Admin Test Venue "+suffix, "1 Admin St", "Tacoma", "WA", "America/Los_Angeles")
+	venueID := seedVenue(t, "Admin Test Venue "+suffix, "1 Admin St", "Tacoma", "WA")
 	jobID := getJobTypeID(t, "event_support")
 
 	// Event WITH shifts — should appear for both admin and volunteer.
@@ -125,8 +125,8 @@ func TestAdminFilteredEvents_CityFilter(t *testing.T) {
 	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
 	jobID := getJobTypeID(t, "event_support")
 
-	olyVenueID := seedVenue(t, "Olympia Venue "+suffix, "1 Capitol Way", "Olympia", "WA", "America/Los_Angeles")
-	belVenueID := seedVenue(t, "Bellingham Venue "+suffix, "2 State St", "Bellingham", "WA", "America/Los_Angeles")
+	olyVenueID := seedVenue(t, "Olympia Venue "+suffix, "1 Capitol Way", "Olympia", "WA")
+	belVenueID := seedVenue(t, "Bellingham Venue "+suffix, "2 State St", "Bellingham", "WA")
 
 	olyName := "OlympiaEvent-" + suffix
 	belName := "BellinghamEvent-" + suffix
@@ -169,7 +169,7 @@ func TestAdminFilteredEvents_TimeFrameUpcoming(t *testing.T) {
 	adminToken, _ := makeAdmin(t)
 	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
 	jobID := getJobTypeID(t, "event_support")
-	venueID := seedVenue(t, "TF Admin Venue "+suffix, "3 Time St", "Yakima", "WA", "America/Los_Angeles")
+	venueID := seedVenue(t, "TF Admin Venue "+suffix, "3 Time St", "Yakima", "WA")
 
 	futureName := "AdminFuture-" + suffix
 	pastName := "AdminPast-" + suffix
@@ -210,7 +210,7 @@ func TestAdminFilteredEvents_TimeFrameAll(t *testing.T) {
 	adminToken, _ := makeAdmin(t)
 	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
 	jobID := getJobTypeID(t, "event_support")
-	venueID := seedVenue(t, "TF Admin ALL Venue "+suffix, "4 All St", "Walla Walla", "WA", "America/Los_Angeles")
+	venueID := seedVenue(t, "TF Admin ALL Venue "+suffix, "4 All St", "Walla Walla", "WA")
 
 	futureName := "AdminAllFuture-" + suffix
 	pastName := "AdminAllPast-" + suffix

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"testing"
+	"time"
 )
 
 // ============================================================================
@@ -21,7 +22,7 @@ const (
 
 	qryVenues = `query Venues {
 		venues {
-			id name address city state timezone
+			id name address city state
 		}
 	}`
 
@@ -69,6 +70,18 @@ const (
 			notes { note creator createdAt }
 		}
 	}`
+
+	qryManagedEventById = `query ManagedEventById($eventId: ID!) {
+		managedEventById(eventId: $eventId) {
+			id name eventType timezone
+			fundingEntity { id name }
+			recurrenceId
+			recurrenceOrder
+			recurrencePattern
+			recurrenceMaxOccurrences
+			recurrenceOrdinal
+		}
+	}`
 )
 
 // ============================================================================
@@ -88,12 +101,11 @@ type lookupValuesResult struct {
 }
 
 type venueResult struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Address  string `json:"address"`
-	City     string `json:"city"`
-	State    string `json:"state"`
-	Timezone string `json:"timezone"`
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Address string `json:"address"`
+	City    string `json:"city"`
+	State   string `json:"state"`
 }
 
 type staffResult struct {
@@ -147,6 +159,22 @@ type feedbackDetailResult struct {
 	Notes         []feedbackNoteResult `json:"notes"`
 }
 
+type managedEventResult struct {
+	ID                       string  `json:"id"`
+	Name                     string  `json:"name"`
+	EventType                string  `json:"eventType"`
+	Timezone                 string  `json:"timezone"`
+	FundingEntity            struct {
+		ID   int    `json:"id"`
+		Name string `json:"name"`
+	} `json:"fundingEntity"`
+	RecurrenceID             *string `json:"recurrenceId"`
+	RecurrenceOrder          *int    `json:"recurrenceOrder"`
+	RecurrencePattern        *string `json:"recurrencePattern"`
+	RecurrenceMaxOccurrences *int    `json:"recurrenceMaxOccurrences"`
+	RecurrenceOrdinal        *string `json:"recurrenceOrdinal"`
+}
+
 // ============================================================================
 // Tests
 // ============================================================================
@@ -177,7 +205,7 @@ func TestLookupValues(t *testing.T) {
 // appears in the results.
 func TestVenues(t *testing.T) {
 	adminToken := makeAdminToken(t)
-	venueID := seedVenue(t, "Admin Query Test Venue", "123 Main St", "Springfield", "IL", "America/Chicago")
+	venueID := seedVenue(t, "Admin Query Test Venue", "123 Main St", "Springfield", "IL")
 
 	resp := gqlPost(t, "/graphql/admin", adminToken, qryVenues, nil)
 
@@ -470,5 +498,112 @@ func TestFeedbackById(t *testing.T) {
 	// Notes should be an empty slice (not nil) for a freshly seeded feedback row.
 	if fb.Notes == nil {
 		t.Error("expected notes to be a non-nil slice (empty is fine), got nil")
+	}
+}
+
+// TestManagedEventById verifies that an admin can fetch a single non-recurring
+// event by ID and that the basic fields are returned correctly.
+func TestManagedEventById(t *testing.T) {
+	adminToken := makeAdminToken(t)
+	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
+	venueID := seedVenue(t, "MEB Venue "+suffix, "1 Query Ln", "Tacoma", "WA")
+	eventName := "MEB-Event-" + suffix
+	eventID := seedEvent(t, eventName, false, &venueID)
+
+	resp := gqlPost(t, "/graphql/admin", adminToken, qryManagedEventById, map[string]any{
+		"eventId": strconv.Itoa(eventID),
+	})
+
+	if hasGQLErrors(resp) {
+		t.Fatalf("unexpected GQL errors: %v", resp.Errors)
+	}
+
+	var ev managedEventResult
+	unmarshalField(t, resp, "managedEventById", &ev)
+
+	if ev.ID != strconv.Itoa(eventID) {
+		t.Errorf("id: want %q, got %q", strconv.Itoa(eventID), ev.ID)
+	}
+	if ev.Name != eventName {
+		t.Errorf("name: want %q, got %q", eventName, ev.Name)
+	}
+	if ev.EventType != "IN_PERSON" {
+		t.Errorf("eventType: want %q, got %q", "IN_PERSON", ev.EventType)
+	}
+	if ev.FundingEntity.Name == "" {
+		t.Error("fundingEntity.name should be non-empty")
+	}
+	// Non-recurring event should have nil recurrence fields.
+	if ev.RecurrenceID != nil {
+		t.Errorf("recurrenceId: want nil for non-recurring, got %q", *ev.RecurrenceID)
+	}
+	if ev.RecurrencePattern != nil {
+		t.Errorf("recurrencePattern: want nil for non-recurring, got %q", *ev.RecurrencePattern)
+	}
+}
+
+// TestManagedEventById_RecurringFields verifies that managedEventById returns
+// the correct recurrence pattern, max occurrences, and order for a recurring
+// event instance.
+func TestManagedEventById_RecurringFields(t *testing.T) {
+	adminToken, _ := makeAdmin(t)
+	feID := seattleFeID(t)
+	stID := getServiceTypeID(t, "outreach")
+
+	const wantPattern = "WEEKLY"
+	const wantMax = 3
+
+	vars := map[string]any{
+		"newEvent": weeklyVirtualInput(feID, stID, wantMax,
+			"2031-03-04 09:00:00", "2031-03-04 11:00:00"),
+	}
+
+	createResp := gqlPost(t, "/graphql/admin", adminToken, mutCreateRecurringEvent, vars)
+	if hasGQLErrors(createResp) {
+		t.Fatalf("createEvent errors: %v", createResp.Errors)
+	}
+	var created mutationResult
+	unmarshalField(t, createResp, "createEvent", &created)
+	if created.ID == nil {
+		t.Fatal("createEvent returned nil group ID")
+	}
+	cleanupRecurrenceGroup(t, *created.ID)
+
+	// Get the event_id of the first occurrence from the DB.
+	var firstEventID int
+	if err := testDB.QueryRow(
+		"SELECT event_id FROM events WHERE recurrence_group_id = $1::uuid ORDER BY recurrence_order LIMIT 1",
+		*created.ID,
+	).Scan(&firstEventID); err != nil {
+		t.Fatalf("could not find first recurring event: %v", err)
+	}
+
+	resp := gqlPost(t, "/graphql/admin", adminToken, qryManagedEventById, map[string]any{
+		"eventId": strconv.Itoa(firstEventID),
+	})
+	if hasGQLErrors(resp) {
+		t.Fatalf("managedEventById errors: %v", resp.Errors)
+	}
+
+	var ev managedEventResult
+	unmarshalField(t, resp, "managedEventById", &ev)
+
+	if ev.RecurrenceID == nil {
+		t.Fatal("recurrenceId: want non-nil for recurring event, got nil")
+	}
+	if *ev.RecurrenceID != *created.ID {
+		t.Errorf("recurrenceId: want %q, got %q", *created.ID, *ev.RecurrenceID)
+	}
+	if ev.RecurrenceOrder == nil || *ev.RecurrenceOrder != 1 {
+		t.Errorf("recurrenceOrder: want 1, got %v", ev.RecurrenceOrder)
+	}
+	if ev.RecurrencePattern == nil || *ev.RecurrencePattern != wantPattern {
+		t.Errorf("recurrencePattern: want %q, got %v", wantPattern, ev.RecurrencePattern)
+	}
+	if ev.RecurrenceMaxOccurrences == nil || *ev.RecurrenceMaxOccurrences != wantMax {
+		t.Errorf("recurrenceMaxOccurrences: want %d, got %v", wantMax, ev.RecurrenceMaxOccurrences)
+	}
+	if ev.RecurrenceOrdinal != nil {
+		t.Errorf("recurrenceOrdinal: want nil for weekly, got %q", *ev.RecurrenceOrdinal)
 	}
 }

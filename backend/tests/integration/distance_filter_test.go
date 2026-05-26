@@ -65,8 +65,8 @@ func setupDistanceFixture(t *testing.T) distanceTestFixture {
 	}
 
 	// ── venues ───────────────────────────────────────────────────────────────
-	nearVenueID := seedVenue(t, "Tacoma Venue "+suffix, "1 Commerce St", "Tacoma", "WA", "America/Los_Angeles")
-	farVenueID  := seedVenue(t, "Spokane Venue "+suffix, "1 Riverside Ave", "Spokane", "WA", "America/Los_Angeles")
+	nearVenueID := seedVenue(t, "Tacoma Venue "+suffix, "1 Commerce St", "Tacoma", "WA")
+	farVenueID  := seedVenue(t, "Spokane Venue "+suffix, "1 Riverside Ave", "Spokane", "WA")
 
 	_, err = testDB.Exec(
 		"UPDATE venues SET latitude = $1, longitude = $2 WHERE venue_id = $3",
@@ -225,8 +225,8 @@ func TestDistanceFilter_NoVolunteerCoords_FilterIgnored(t *testing.T) {
 
 	jobID := getJobTypeID(t, "event_support")
 
-	nearVenueID := seedVenue(t, "NoCoord Near "+suffix, "1 Main St", "Tacoma", "WA", "America/Los_Angeles")
-	farVenueID  := seedVenue(t, "NoCoord Far "+suffix,  "2 Main St", "Spokane", "WA", "America/Los_Angeles")
+	nearVenueID := seedVenue(t, "NoCoord Near "+suffix, "1 Main St", "Tacoma", "WA")
+	farVenueID  := seedVenue(t, "NoCoord Far "+suffix,  "2 Main St", "Spokane", "WA")
 
 	// Set venue coords so the distance calc would work if it ran.
 	testDB.Exec("UPDATE venues SET latitude = $1, longitude = $2 WHERE venue_id = $3", tacomaLat, tacomaLng, nearVenueID)

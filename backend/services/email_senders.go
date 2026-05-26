@@ -46,7 +46,7 @@ func sendAssignmentConfirmation(ctx context.Context, DB *sql.DB, mailer *Mailer,
 			v.city,
 			v.state,
 			v.zip_code,
-			v.timezone
+			e.timezone
 		FROM shifts s
 		LEFT JOIN opportunities opp ON opp.opportunity_id = s.opportunity_id
 		LEFT JOIN events e ON e.event_id = opp.event_id
@@ -55,8 +55,8 @@ func sendAssignmentConfirmation(ctx context.Context, DB *sql.DB, mailer *Mailer,
 		WHERE s.shift_id = $1
 	`
 
-	var firstName, eventName, shiftStart, shiftEnd string
-	var venueName, address, city, state, zip, timezone, instruct sql.NullString
+	var firstName, eventName, timezone, shiftStart, shiftEnd string
+	var venueName, address, city, state, zip, instruct sql.NullString
 	var isVirtual bool
 
 	err = DB.QueryRowContext(ctx, query, shiftId, volId).Scan(
@@ -81,10 +81,7 @@ func sendAssignmentConfirmation(ctx context.Context, DB *sql.DB, mailer *Mailer,
 		return fmt.Errorf("non-virtual shift has no venue address")
 	}
 
-	fmtStart, fmtEnd, err := formatStartEnd(shiftStart, shiftEnd, timezone)
-	if err != nil {
-		return fmt.Errorf("error formatting shift times: %w", err)
-	}
+	fmtStart, fmtEnd := formatStartEnd(shiftStart, shiftEnd, timezone)
 
 	data := signupConfirmedData{
 		FirstName:    firstName,
@@ -125,29 +122,24 @@ func sendCancellationConfirmation(ctx context.Context, DB *sql.DB, mailer *Maile
 			e.event_name,
 			s.shift_start,
 			s.shift_end,
-			v.timezone
+			e.timezone
 		FROM shifts s
 		LEFT JOIN opportunities opp ON opp.opportunity_id = s.opportunity_id
 		LEFT JOIN events e ON e.event_id = opp.event_id
-		LEFT JOIN venues v ON v.venue_id = e.venue_id
 		LEFT JOIN volunteers vol ON vol.volunteer_id = $2
 		WHERE s.shift_id = $1
 	`
 
-	var firstName, eventName, shiftStart, shiftEnd string
-	var timezone sql.NullString
+	var firstName, eventName, timezone, shiftStart, shiftEnd string
 
 	err = DB.QueryRowContext(ctx, query, shiftId, volId).Scan(
 		&firstName, &eventName, &shiftStart, &shiftEnd, &timezone,
 	)
 	if err != nil {
-		return fmt.Errorf("error scanning shift information: %w", err)
+		return friendlyDBError(err)
 	}
 
-	fmtStart, fmtEnd, err := formatStartEnd(shiftStart, shiftEnd, timezone)
-	if err != nil {
-		return fmt.Errorf("error formatting shift times: %w", err)
-	}
+	fmtStart, fmtEnd := formatStartEnd(shiftStart, shiftEnd, timezone)
 
 	data := signupCancelledData{
 		FirstName: firstName,

@@ -31,8 +31,8 @@ import (
 // ============================================================================
 
 const mutationDeleteEvent = `
-	mutation DeleteEvent($eventId: ID!) {
-		deleteEvent(eventId: $eventId) {
+	mutation DeleteEvent($eventId: ID!, $scope: RecurrenceUpdateScope) {
+		deleteEvent(eventId: $eventId, scope: $scope) {
 			success
 			message
 		}
@@ -48,7 +48,7 @@ func TestDeleteEvent_WithShiftsAndVolunteer(t *testing.T) {
 	_ = volToken
 
 	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
-	venueID := seedVenue(t, "Delete Venue "+suffix, "1 Main St", "Portland", "OR", "America/Los_Angeles")
+	venueID := seedVenue(t, "Delete Venue "+suffix, "1 Main St", "Portland", "OR")
 	jobID := getJobTypeID(t, "event_support")
 
 	eventName := "DeleteMe-" + suffix
@@ -109,7 +109,7 @@ func TestDeleteEvent_NoOpportunitiesOrShifts(t *testing.T) {
 	adminToken, _ := makeAdmin(t)
 
 	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
-	venueID := seedVenue(t, "Empty Venue "+suffix, "2 Empty Rd", "Boise", "ID", "America/Boise")
+	venueID := seedVenue(t, "Empty Venue "+suffix, "2 Empty Rd", "Boise", "ID")
 
 	eventName := "EmptyEvent-" + suffix
 	eventID := seedEvent(t, eventName, false, &venueID)
@@ -188,9 +188,9 @@ func setupCityFilterFixture(t *testing.T) cityFilterFixture {
 
 	jobID := getJobTypeID(t, "event_support")
 
-	seattleVenueID  := seedVenue(t, "Seattle Lib "+suffix, "100 4th Ave", "Seattle", "WA", "America/Los_Angeles")
-	spokaneVenueID  := seedVenue(t, "Spokane Hall "+suffix, "200 Monroe", "Spokane", "WA", "America/Los_Angeles")
-	portlandVenueID := seedVenue(t, "Portland Ctr "+suffix, "300 SW 5th", "Portland", "OR", "America/Los_Angeles")
+	seattleVenueID  := seedVenue(t, "Seattle Lib "+suffix, "100 4th Ave", "Seattle", "WA")
+	spokaneVenueID  := seedVenue(t, "Spokane Hall "+suffix, "200 Monroe", "Spokane", "WA")
+	portlandVenueID := seedVenue(t, "Portland Ctr "+suffix, "300 SW 5th", "Portland", "OR")
 
 	seattleName  := "SeattleEvent-"  + suffix
 	spokaneName  := "SpokaneEvent-"  + suffix
@@ -310,7 +310,7 @@ func setupTimeFrameFixture(t *testing.T) timeFrameFixture {
 	token := seedSession(t, email, volID, "VOLUNTEER", "tf-"+suffix)
 
 	jobID := getJobTypeID(t, "event_support")
-	venueID := seedVenue(t, "TF Venue "+suffix, "1 Clock St", "Reno", "NV", "America/Los_Angeles")
+	venueID := seedVenue(t, "TF Venue "+suffix, "1 Clock St", "Reno", "NV")
 
 	upcomingName := "UpcomingEvent-" + suffix
 	pastName     := "PastEvent-"     + suffix

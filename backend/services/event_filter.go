@@ -20,7 +20,7 @@ import (
 // the order, because Go maps have no guaranteed iteration order.
 
 // ** Filtering for Managing Events **
-func filterManagedEvents(ctx context.Context, filter *models.EventFilterInput, db *sql.DB) (map[int]*models.Event, []int, error) {
+func filterManagedEvents(ctx context.Context, filter *models.EventFilterInput, db *sql.DB) (map[int]*models.ManagedEvent, []int, error) {
 	query := `
         SELECT DISTINCT
             e.event_id,
@@ -33,16 +33,17 @@ func filterManagedEvents(ctx context.Context, filter *models.EventFilterInput, d
             v.city,
             v.state,
             v.zip_code,
-			v.timezone,
-			earliest.first_date,
+			e.timezone,
 			e.funding_entity_id,
-			fe.name
+			fe.name,
+			e.recurrence_group_id,
+			e.recurrence_order,
+			earliest.first_date
         FROM events e
         LEFT JOIN venues v ON e.venue_id = v.venue_id
         LEFT JOIN funding_entities fe ON e.funding_entity_id = fe.id
         LEFT JOIN opportunities opp ON e.event_id = opp.event_id
 		LEFT JOIN job_types jt ON jt.job_type_id = opp.job_type_id
-	    LEFT JOIN shifts s_filter ON opp.opportunity_id = s_filter.opportunity_id
 		LEFT JOIN (
 			SELECT event_id, MIN(start_date_time) as first_date
 			FROM event_dates
@@ -51,7 +52,7 @@ func filterManagedEvents(ctx context.Context, filter *models.EventFilterInput, d
 		WHERE 1=1
     `
 
-	args := []interface{}{}
+	args := []any{}
 	argCount := 1
 
 	if filter != nil {
@@ -113,20 +114,22 @@ func filterManagedEvents(ctx context.Context, filter *models.EventFilterInput, d
 
 	// Each row represents an event that *might* meet the
 	// criteria. Turn each row into an event.
-	eventsMap := make(map[int]*models.Event)
+	eventsMap := make(map[int]*models.ManagedEvent)
 	// orderedIDs preserves the ORDER BY from the SQL query so the caller
 	// can reassemble the slice in the correct order after map operations.
 	orderedIDs := make([]int, 0)
 
 	for rows.Next() {
-		var e models.Event
+		var e models.ManagedEvent
 		var eventInt int
 		var venueInt sql.NullInt64
 		var isVirtual bool
 		var firstDate *time.Time
-		var eventDesc, venueName, streetAddress, city, state, zip, timezone sql.NullString
+		var eventDesc, venueName, streetAddress, city, state, zip sql.NullString
 		var fundingEntityId int
 		var fundingEntityName string
+		var recurGrpId sql.NullString
+		var recurOrder sql.NullInt32
 
 		err := rows.Scan(
 			&eventInt,
@@ -139,10 +142,12 @@ func filterManagedEvents(ctx context.Context, filter *models.EventFilterInput, d
 			&city,
 			&state,
 			&zip,
-			&timezone,
-			&firstDate,
+			&e.Timezone,
 			&fundingEntityId,
 			&fundingEntityName,
+			&recurGrpId,
+			&recurOrder,
+			&firstDate,
 		)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error scanning event: %w", err)
@@ -163,7 +168,6 @@ func filterManagedEvents(ctx context.Context, filter *models.EventFilterInput, d
 			venue.Address = streetAddress.String
 			venue.City = city.String
 			venue.State = state.String
-			venue.Timezone = timezone.String
 			if venueName.Valid {
 				venue.Name = &venueName.String
 			} else {
@@ -181,12 +185,17 @@ func filterManagedEvents(ctx context.Context, filter *models.EventFilterInput, d
 
 		e.FundingEntity = models.FundingEntity{ID: fundingEntityId, Name: fundingEntityName}
 
+		if recurGrpId.Valid {
+			e.RecurrenceId = recurGrpId.String
+			e.RecurrenceOrder = int(recurOrder.Int32)
+		}
+
 		stPtrs, err := FetchEventServiceTypes(ctx, db, eventInt)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error getting event's service types: %w", err)
 		}
 		e.ServiceTypes = make([]string, len(stPtrs))
-		for i := 0; i < len(stPtrs); i++ {
+		for i := range stPtrs {
 			e.ServiceTypes[i] = *stPtrs[i]
 		}
 
@@ -258,12 +267,6 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 				}
 			}
 		}
-	} else {
-		if filter == nil {
-			log.Printf("We have a nil filter.")
-		} else {
-			log.Printf("We have a non-nil filter, but no distance.")
-		}
 	}
 
 	// This first assignment to the query var has no filtering, but that will get added below.
@@ -281,16 +284,12 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
             v.zip_code,
 			v.latitude,
 			v.longitude,
-			v.timezone,
-			earliest.first_date,
-			e.funding_entity_id,
-			fe.name
+			e.timezone,
+			earliest.first_date
         FROM events e
         LEFT JOIN venues v ON e.venue_id = v.venue_id
-        LEFT JOIN funding_entities fe ON e.funding_entity_id = fe.id
         LEFT JOIN opportunities opp ON e.event_id = opp.event_id
 		LEFT JOIN job_types jt ON jt.job_type_id = opp.job_type_id
-	    LEFT JOIN shifts s_filter ON opp.opportunity_id = s_filter.opportunity_id
 		LEFT JOIN (
 			SELECT event_id, MIN(start_date_time) as first_date
 			FROM event_dates
@@ -307,6 +306,7 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 
 		// Filter by cities.
 		if filter.Distance == nil && len(filter.Cities) > 0 {
+
 			placeholders := []string{}
 			for _, city := range filter.Cities {
 				placeholders = append(placeholders, fmt.Sprintf("$%d", argCount))
@@ -375,10 +375,8 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 		var venueInt sql.NullInt64
 		var isVirtual bool
 		var firstDate *time.Time
-		var eventDesc, venueName, streetAddress, city, state, zip, timezone sql.NullString
+		var eventDesc, venueName, streetAddress, city, state, zip sql.NullString
 		var vLat, vLng sql.NullFloat64
-		var fundingEntityId int
-		var fundingEntityName string
 
 		err := rows.Scan(
 			&eventInt,
@@ -393,10 +391,8 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 			&zip,
 			&vLat,
 			&vLng,
-			&timezone,
+			&e.Timezone,
 			&firstDate,
-			&fundingEntityId,
-			&fundingEntityName,
 		)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error scanning event: %w", err)
@@ -417,7 +413,6 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 			venue.Address = streetAddress.String
 			venue.City = city.String
 			venue.State = state.String
-			venue.Timezone = timezone.String
 			if venueName.Valid {
 				venue.Name = &venueName.String
 			} else {
@@ -435,7 +430,7 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 
 		// Get distance if user wants it and all values are "go".
 		// Note: virtual events are always "within the distance" unless the user has
-		// filtered them out above.
+		// filtered them out above. Also events with no lat/lng information.
 		var venLat, venLng *float64
 
 		if !isVirtual && filter != nil && filter.Distance != nil && e.Venue != nil && volLat != nil && volLng != nil {
@@ -460,19 +455,20 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 					}
 				} else {
 					log.Printf("unable to get geo info for venue %v: %v", e.Venue.Address, err)
+					// Since there was an error, don't count on geocoder: make sure both lat and lng are still nil.
+					venLat = nil
+					venLng = nil
 				}
 			}
 
 			if venLat != nil && venLng != nil {
 				dist := fetchDistance(*volLat, *volLng, *venLat, *venLng)
 				if dist > float64(*filter.Distance) {
-					// This event is outside of the specified boundaries.
+					// This event is outside of the specified boundaries. Jump to next row.
 					continue
 				}
 			}
 		}
-
-		e.FundingEntity = models.FundingEntity{ID: fundingEntityId, Name: fundingEntityName}
 
 		stPtrs, err := FetchEventServiceTypes(ctx, db, eventInt)
 		if err != nil {

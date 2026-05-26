@@ -18,7 +18,7 @@ import styles from "./admin-venues.module.css";
 const VENUES_QUERY = `
   query {
     venues {
-      id name address city state zipCode timezone
+      id name address city state zipCode
     }
   }
 `;
@@ -43,18 +43,8 @@ const CREATE_VENUE = `
 
 /* ----- Constants ----- */
 
-const US_TIMEZONES = [
-  { value: "America/New_York",    label: "Eastern (ET)" },
-  { value: "America/Chicago",     label: "Central (CT)" },
-  { value: "America/Denver",      label: "Mountain (MT)" },
-  { value: "America/Los_Angeles", label: "Pacific (PT)" },
-  { value: "America/Anchorage",   label: "Alaska (AKT)" },
-  { value: "Pacific/Honolulu",    label: "Hawaii (HT)" },
-];
-
 const EMPTY_VENUE_FORM = {
-  name: "", address: "", city: "", state: "WA",
-  zipCode: "", ianaZone: "America/Los_Angeles",
+  name: "", address: "", city: "", state: "WA", zipCode: "",
 };
 
 /* ----- VenueFormFields -----
@@ -91,15 +81,6 @@ function VenueFormFields({ form, setForm }) {
         <label className={styles.label}>Zip Code</label>
         <input className={styles.input} value={form.zipCode}
           onChange={(e) => setForm((p) => ({ ...p, zipCode: e.target.value }))} />
-      </div>
-      <div className={styles.field}>
-        <label className={styles.label}>Timezone <span className={styles.required}>*</span></label>
-        <select className={styles.select} value={form.ianaZone}
-          onChange={(e) => setForm((p) => ({ ...p, ianaZone: e.target.value }))}>
-          {US_TIMEZONES.map((tz) => (
-            <option key={tz.value} value={tz.value}>{tz.label}</option>
-          ))}
-        </select>
       </div>
     </div>
   );
@@ -179,12 +160,11 @@ export default function AdminVenuesPage() {
   const openEdit = (venue) => {
     setEditingId(venue.id);
     setEditForm({
-      name:     venue.name ?? "",
-      address:  venue.address,
-      city:     venue.city,
-      state:    venue.state,
-      zipCode:  venue.zipCode ?? "",
-      ianaZone: venue.timezone,
+      name:    venue.name ?? "",
+      address: venue.address,
+      city:    venue.city,
+      state:   venue.state,
+      zipCode: venue.zipCode ?? "",
     });
     setEditVenueError("");
     setAdding(false);
@@ -198,13 +178,12 @@ export default function AdminVenuesPage() {
     await mutate(
       UPDATE_VENUE,
       { venue: {
-        id:       editingId,
-        name:     editForm.name.trim() || null,
-        address:  editForm.address.trim(),
-        city:     editForm.city.trim(),
-        state:    editForm.state.trim(),
-        zipCode:  editForm.zipCode.trim() || null,
-        ianaZone: editForm.ianaZone,
+        id:      editingId,
+        name:    editForm.name.trim() || null,
+        address: editForm.address.trim(),
+        city:    editForm.city.trim(),
+        state:   editForm.state.trim(),
+        zipCode: editForm.zipCode.trim() || null,
       }},
       "Venue updated.",
       () => setEditingId(null),
@@ -226,12 +205,11 @@ export default function AdminVenuesPage() {
     await mutate(
       CREATE_VENUE,
       { newVenue: {
-        name:     addForm.name.trim() || null,
-        address:  addForm.address.trim(),
-        city:     addForm.city.trim(),
-        state:    addForm.state.trim(),
-        zipCode:  addForm.zipCode.trim() || null,
-        ianaZone: addForm.ianaZone,
+        name:    addForm.name.trim() || null,
+        address: addForm.address.trim(),
+        city:    addForm.city.trim(),
+        state:   addForm.state.trim(),
+        zipCode: addForm.zipCode.trim() || null,
       }},
       "Venue created.",
       () => { setAdding(false); setAddForm(EMPTY_VENUE_FORM); setAddVenueError(""); },
@@ -302,9 +280,6 @@ export default function AdminVenuesPage() {
                   {venue.name && <div className={styles.venueName}>{venue.name}</div>}
                   <div className={styles.venueAddress}>
                     {venue.address}, {venue.city}, {venue.state}{venue.zipCode ? ` ${venue.zipCode}` : ""}
-                  </div>
-                  <div className={styles.venueMeta}>
-                    {venue.timezone}
                   </div>
                 </div>
                 <div className={styles.venueActions}>

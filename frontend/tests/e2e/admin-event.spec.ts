@@ -51,7 +51,6 @@ test.describe("Admin event creation — happy path", () => {
       name: venueName,
       city: "Washington",
       state: "DC",
-      ianaZone: "America/New_York",
     });
 
     await adminPage.goto("/admin/events/new");

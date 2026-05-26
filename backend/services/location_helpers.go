@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 )
 
 // ============================================================================
@@ -143,4 +145,73 @@ func fetchDistance(latA float64, lngA float64, latB float64, lngB float64) float
 	a := math.Pow(math.Sin(dLatHalf), 2) + math.Cos(rLatA)*math.Cos(rLatB)*math.Pow(math.Sin(dLngHalf), 2)
 	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
 	return R * c
+}
+
+// ** Handling datetimes **
+// We store all dates and times in the DB as UTC with RFC-3339 format.
+
+const Layout = "2006-01-02 15:04:05" // expected layout of dates in input from client.
+
+func DateTimeToUTC(dateTimeStr string, ianaZone string) (*string, error) {
+	loc, err := time.LoadLocation(ianaZone)
+	if err != nil {
+		return nil, fmt.Errorf("invalid timezone %s: %w", ianaZone, err)
+	}
+
+	datetime, err := time.ParseInLocation(Layout, dateTimeStr, loc)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing %s: %w", dateTimeStr, err)
+	}
+
+	rfc := datetime.UTC().Format(time.RFC3339)
+	return &rfc, nil
+}
+
+func UTCToTimeZone(utcTime string, ianaZone string) (*string, error) {
+
+	dateTime, err := time.Parse(time.RFC3339, utcTime)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing %s: %w", utcTime, err)
+	}
+
+	loc, err := time.LoadLocation(ianaZone)
+	if err != nil {
+		return nil, fmt.Errorf("invalid timezone %s: %w", ianaZone, err)
+	}
+	strTime := dateTime.In(loc).Format("01-02-2006 15:04 MST")
+
+	return &strTime, nil
+}
+
+func UTCToDateTime(utcTime string) (*string, error) {
+
+	dateTime, err := time.Parse(time.RFC3339, utcTime)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing %s: %w", utcTime, err)
+	}
+
+	strTime := dateTime.Format("01-02-2006 15:04 MST")
+	return &strTime, nil
+}
+
+// formatStartEnd is used to format start and end times for emails. If we cannot format
+// the times (unlikely), use the DB time (formatted in RFC3339).
+func formatStartEnd(start string, end string, timezone string) (*string, *string) {
+	var fmtStart, fmtEnd *string
+	var err error
+
+	fmtStart, err = UTCToTimeZone(start, timezone)
+	if err != nil {
+		log.Printf("unable to format shift start time: %v", err)
+		// An unformatted string is better than nothing.
+		fmtStart = &start
+	}
+
+	fmtEnd, err = UTCToTimeZone(end, timezone)
+	if err != nil {
+		log.Printf("unable to format shift end time: %v", err)
+		fmtEnd = &end
+	}
+
+	return fmtStart, fmtEnd
 }
