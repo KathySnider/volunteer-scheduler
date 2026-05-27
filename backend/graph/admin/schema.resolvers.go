@@ -359,6 +359,19 @@ func (r *mutationResolver) ResolveFeedback(ctx context.Context, resolution gener
 	return toGenMutationResult(result), nil
 }
 
+// DeleteFeedback is the resolver for the deleteFeedback field.
+func (r *mutationResolver) DeleteFeedback(ctx context.Context, feedbackID string) (*generated.MutationResult, error) {
+	_, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+	result, err := r.FeedbackService.DeleteFeedback(ctx, feedbackID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
 // LookupValues is the resolver for the lookupValues field.
 func (r *queryResolver) LookupValues(ctx context.Context) (*generated.LookupValues, error) {
 	lookup, err := r.EventService.FetchLookups(ctx)

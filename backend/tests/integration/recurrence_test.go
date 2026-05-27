@@ -11,7 +11,7 @@ package integration
 //   - Service types are copied to every instance
 //   - Virtual event (no venue) does not panic
 //   - YEARLY pattern without maxOccurrences returns a GraphQL error
-//   - The returned ID on success is a UUID string (not a plain integer)
+//   - The returned ID on success is the integer event_id of occurrence #1 (not a UUID)
 
 import (
 	"encoding/json"
@@ -108,6 +108,22 @@ func isUUID(s string) bool {
 	return len(s) == 36 && s[8] == '-' && s[13] == '-' && s[18] == '-' && s[23] == '-'
 }
 
+// groupIDFromEventID resolves the recurrence_group_id UUID for the given
+// integer event_id (returned by createRecurringEvent after the API change
+// to return the first-occurrence event ID instead of the group UUID).
+func groupIDFromEventID(t *testing.T, eventID string) string {
+	t.Helper()
+	var groupID string
+	err := testDB.QueryRow(
+		"SELECT recurrence_group_id FROM events WHERE event_id = $1",
+		eventID,
+	).Scan(&groupID)
+	if err != nil {
+		t.Fatalf("groupIDFromEventID(%q): %v", eventID, err)
+	}
+	return groupID
+}
+
 // weeklyVirtualInput builds a NewEventInput map for a WEEKLY virtual recurring
 // event. start/end are in "YYYY-MM-DD HH:MM:SS" format.
 func weeklyVirtualInput(feID, stID, occurrences int, start, end string) map[string]any {
@@ -160,9 +176,10 @@ func TestCreateRecurringEvent_Weekly_CorrectCount(t *testing.T) {
 		t.Fatal("createEvent returned nil ID")
 	}
 
-	cleanupRecurrenceGroup(t, *result.ID)
+	groupID := groupIDFromEventID(t, *result.ID)
+	cleanupRecurrenceGroup(t, groupID)
 
-	if got := recurringEventCount(t, *result.ID); got != wantInstances {
+	if got := recurringEventCount(t, groupID); got != wantInstances {
 		t.Errorf("want %d events in group, got %d", wantInstances, got)
 	}
 }
@@ -187,16 +204,17 @@ func TestCreateRecurringEvent_Weekly_SharedGroupID(t *testing.T) {
 		t.Fatal("no group ID returned")
 	}
 
-	cleanupRecurrenceGroup(t, *result.ID)
+	groupID := groupIDFromEventID(t, *result.ID)
+	cleanupRecurrenceGroup(t, groupID)
 
-	// Every event in the group should have recurrence_group_id = returned ID.
+	// Every event in the group should have recurrence_group_id = groupID.
 	var count int
 	err := testDB.QueryRow(`
 		SELECT COUNT(*)
 		FROM events
 		WHERE recurrence_group_id = $1::uuid
 		  AND recurrence_group_id IS NOT NULL
-	`, *result.ID).Scan(&count)
+	`, groupID).Scan(&count)
 	if err != nil {
 		t.Fatalf("query: %v", err)
 	}
@@ -226,9 +244,10 @@ func TestCreateRecurringEvent_Weekly_SequentialOrder(t *testing.T) {
 		t.Fatal("no group ID returned")
 	}
 
-	cleanupRecurrenceGroup(t, *result.ID)
+	groupID := groupIDFromEventID(t, *result.ID)
+	cleanupRecurrenceGroup(t, groupID)
 
-	orders := recurringEventOrders(t, *result.ID)
+	orders := recurringEventOrders(t, groupID)
 	if len(orders) != n {
 		t.Fatalf("want %d orders, got %d", n, len(orders))
 	}
@@ -260,10 +279,11 @@ func TestCreateRecurringEvent_ServiceTypesCopied(t *testing.T) {
 		t.Fatal("no group ID returned")
 	}
 
-	cleanupRecurrenceGroup(t, *result.ID)
+	groupID := groupIDFromEventID(t, *result.ID)
+	cleanupRecurrenceGroup(t, groupID)
 
 	// Each instance should have exactly 1 service_type row (we passed 1 stID).
-	got := serviceTypeCountForGroup(t, *result.ID)
+	got := serviceTypeCountForGroup(t, groupID)
 	if got != n {
 		t.Errorf("want %d service_type rows (1 per instance), got %d", n, got)
 	}
@@ -290,7 +310,7 @@ func TestCreateRecurringEvent_Virtual_Succeeds(t *testing.T) {
 		t.Fatalf("expected success for virtual recurring event")
 	}
 	if result.ID != nil {
-		cleanupRecurrenceGroup(t, *result.ID)
+		cleanupRecurrenceGroup(t, groupIDFromEventID(t, *result.ID))
 	}
 }
 
@@ -322,7 +342,7 @@ func TestCreateRecurringEvent_Yearly_NoMax_Fails(t *testing.T) {
 	}
 }
 
-func TestCreateRecurringEvent_ReturnedID_IsUUID(t *testing.T) {
+func TestCreateRecurringEvent_ReturnedID_IsFirstOccurrenceEventID(t *testing.T) {
 	adminToken, _ := makeAdmin(t)
 	feID := seattleFeID(t)
 	stID := getServiceTypeID(t, "outreach")
@@ -342,10 +362,25 @@ func TestCreateRecurringEvent_ReturnedID_IsUUID(t *testing.T) {
 		t.Fatal("no ID returned")
 	}
 
-	cleanupRecurrenceGroup(t, *result.ID)
+	groupID := groupIDFromEventID(t, *result.ID)
+	cleanupRecurrenceGroup(t, groupID)
 
-	if !isUUID(*result.ID) {
-		t.Errorf("expected UUID for recurring event ID, got %q", *result.ID)
+	// The returned ID must be parseable as an integer (it is the event_id of the
+	// first occurrence, not a UUID).
+	if _, err := strconv.Atoi(*result.ID); err != nil {
+		t.Errorf("expected integer event_id for recurring event ID, got %q", *result.ID)
+	}
+
+	// That event must have recurrence_order = 1 in the DB.
+	var order int
+	if err := testDB.QueryRow(
+		"SELECT recurrence_order FROM events WHERE event_id = $1",
+		*result.ID,
+	).Scan(&order); err != nil {
+		t.Fatalf("could not look up recurrence_order: %v", err)
+	}
+	if order != 1 {
+		t.Errorf("expected recurrence_order=1 for first-occurrence event, got %d", order)
 	}
 }
 
@@ -415,7 +450,8 @@ func TestCreateRecurringEvent_RecurrenceGroupSaved(t *testing.T) {
 		t.Fatal("createEvent returned nil ID")
 	}
 
-	cleanupRecurrenceGroup(t, *result.ID)
+	groupID := groupIDFromEventID(t, *result.ID)
+	cleanupRecurrenceGroup(t, groupID)
 
 	// Verify the recurrence_groups row was created.
 	var gotPattern string
@@ -423,7 +459,7 @@ func TestCreateRecurringEvent_RecurrenceGroupSaved(t *testing.T) {
 	var gotOrdinal *string
 	err := testDB.QueryRow(
 		"SELECT pattern, max_occurrences, weekday_ordinal FROM recurrence_groups WHERE id = $1::uuid",
-		*result.ID,
+		groupID,
 	).Scan(&gotPattern, &gotMax, &gotOrdinal)
 	if err != nil {
 		t.Fatalf("recurrence_groups row not found: %v", err)

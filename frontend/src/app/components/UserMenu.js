@@ -86,8 +86,6 @@ export default function UserMenu({ name, isAdmin, onSignOut }) {
         </div>
       )}
 
-      <a href="/profile" className={styles.profileLink}>My Profile</a>
-
       <button className={styles.signOutButton} onClick={onSignOut}>
         Sign out
       </button>

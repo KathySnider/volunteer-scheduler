@@ -567,19 +567,12 @@ func TestManagedEventById_RecurringFields(t *testing.T) {
 	if created.ID == nil {
 		t.Fatal("createEvent returned nil group ID")
 	}
-	cleanupRecurrenceGroup(t, *created.ID)
+	groupID := groupIDFromEventID(t, *created.ID)
+	cleanupRecurrenceGroup(t, groupID)
 
-	// Get the event_id of the first occurrence from the DB.
-	var firstEventID int
-	if err := testDB.QueryRow(
-		"SELECT event_id FROM events WHERE recurrence_group_id = $1::uuid ORDER BY recurrence_order LIMIT 1",
-		*created.ID,
-	).Scan(&firstEventID); err != nil {
-		t.Fatalf("could not find first recurring event: %v", err)
-	}
-
+	// The returned ID is the event_id of the first occurrence; use it directly.
 	resp := gqlPost(t, "/graphql/admin", adminToken, qryManagedEventById, map[string]any{
-		"eventId": strconv.Itoa(firstEventID),
+		"eventId": *created.ID,
 	})
 	if hasGQLErrors(resp) {
 		t.Fatalf("managedEventById errors: %v", resp.Errors)
@@ -591,8 +584,8 @@ func TestManagedEventById_RecurringFields(t *testing.T) {
 	if ev.RecurrenceID == nil {
 		t.Fatal("recurrenceId: want non-nil for recurring event, got nil")
 	}
-	if *ev.RecurrenceID != *created.ID {
-		t.Errorf("recurrenceId: want %q, got %q", *created.ID, *ev.RecurrenceID)
+	if *ev.RecurrenceID != groupID {
+		t.Errorf("recurrenceId: want %q, got %q", groupID, *ev.RecurrenceID)
 	}
 	if ev.RecurrenceOrder == nil || *ev.RecurrenceOrder != 1 {
 		t.Errorf("recurrenceOrder: want 1, got %v", ev.RecurrenceOrder)

@@ -485,7 +485,7 @@ func (s *EventService) CreateEvent(ctx context.Context, newEvent models.NewEvent
 
 	// This function is about to split. We *might* be creating a
 	// recurring event, or we might be creating a single event.
-	// If single, call createEventInstance and return the result.
+	// If single, call createSingleEvent and return the result.
 	if newEvent.Recurrence == nil {
 		// Create a single event.
 		return s.createSingleEvent(ctx, newEvent, virtualEvent, venueIdPtr)
@@ -502,6 +502,8 @@ func (s *EventService) CreateEvent(ctx context.Context, newEvent models.NewEvent
 
 	// Get a UUID for the whole group.
 	groupId := uuid.New()
+
+	var eventOneId *string
 
 	// Now we're ready to create all of these events.
 	// Put this whole thing into a transaction.
@@ -537,7 +539,8 @@ func (s *EventService) CreateEvent(ctx context.Context, newEvent models.NewEvent
 	// That's fine - we've saved the event's order (within the group) as
 	// the key to the map. We don't care which instance is created first
 	// or last, just that we know what events to change or delete if asked
-	// to do so to all "future" events.
+	// to do so to all "future" events. However, we *do* want to save the
+	// event id of event #1 when we find it.
 	for key, evDates := range *evDatesMap {
 
 		// Create one instance of this group of events.
@@ -545,6 +548,10 @@ func (s *EventService) CreateEvent(ctx context.Context, newEvent models.NewEvent
 		if err != nil {
 			tx.Rollback() // Overkill by an OLD developer - would rollback when I exit this scope.
 			return nil, fmt.Errorf("transaction failed to create instance with order %v: %w", key, err)
+		}
+
+		if key == 1 {
+			eventOneId = mut.ID
 		}
 
 		log.Printf("created event instance with order %v and id %v", key, *mut.ID)
@@ -556,17 +563,20 @@ func (s *EventService) CreateEvent(ctx context.Context, newEvent models.NewEvent
 		return nil, fmt.Errorf("error committing transaction: %w", err)
 	}
 
+	if eventOneId == nil {
+		log.Printf("Unable to get the id of the first event ?!")
+	}
+
 	// No errors.
-	strGroupId := groupId.String()
 	return &models.MutationResult{
 		Success: true,
 		Message: ptrString("Successfully created a group of events."),
-		ID:      &strGroupId,
+		ID:      eventOneId,
 	}, nil
 }
 
 // This function is to add a startdate and enddate to an extant event. Event id is known and
-// is supplied in the input struct.
+// is supplied in the input struct. Note that this is not available to recurring events.
 func (s *EventService) CreateEventDate(ctx context.Context, dates models.AddEventDateInput) (*models.MutationResult, error) {
 
 	eventInt, err := strconv.Atoi(dates.EventID)
@@ -575,9 +585,13 @@ func (s *EventService) CreateEventDate(ctx context.Context, dates models.AddEven
 	}
 
 	var timezone string
-	err = s.DB.QueryRowContext(ctx, "SELECT timezone FROM events WHERE event_id = $1", eventInt).Scan(&timezone)
+	var recurGrpId sql.NullString
+	err = s.DB.QueryRowContext(ctx, "SELECT timezone, recurrence_group_id FROM events WHERE event_id = $1", eventInt).Scan(&timezone, &recurGrpId)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get timezone from event: %w", err)
+	}
+	if recurGrpId.Valid {
+		return nil, fmt.Errorf("Adding dates to an existing recurring event is not allowed.")
 	}
 
 	if dates.EndDateTime <= dates.StartDateTime {
@@ -626,7 +640,6 @@ func (s *EventService) UpdateEvent(ctx context.Context, event models.UpdateEvent
 	if event.EventType == models.EventTypeVirtual {
 		venueInt = nil
 	} else {
-		// Other types require a venue.
 		if event.VenueId == nil {
 			return nil, fmt.Errorf("failed to update event; non-virtual event must have a venue id")
 		}
@@ -637,21 +650,108 @@ func (s *EventService) UpdateEvent(ctx context.Context, event models.UpdateEvent
 		venueInt = &idInt
 	}
 
-	query := `
-		UPDATE events
-		SET
-			event_name = $1,
-			description = $2,
-			event_is_virtual = $3,
-			venue_id = $4,
-			timezone = $5,
-			funding_entity_id = $6
-		WHERE event_id = $7
-	`
-	_, err = s.DB.ExecContext(ctx, query, event.Name, event.Description, isVirtual, venueInt, event.Timezone, event.FundingEntityID, eventInt)
-
+	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update event: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Collect the IDs of every row we actually update so we can sync service types.
+	var affectedIDs []int
+
+	isThisAndFuture := event.RecurrenceScope != nil &&
+		*event.RecurrenceScope == models.RecurrenceUpdateScopeThisAndFuture
+
+	if isThisAndFuture {
+		// Look up recurrence group and order for the target event.
+		var recurGrpId sql.NullString
+		var recurOrder sql.NullInt32
+		err = tx.QueryRowContext(ctx,
+			"SELECT recurrence_group_id, recurrence_order FROM events WHERE event_id = $1",
+			eventInt,
+		).Scan(&recurGrpId, &recurOrder)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update event: %w", err)
+		}
+
+		if recurGrpId.Valid && recurOrder.Valid {
+			rows, err := tx.QueryContext(ctx, `
+				UPDATE events
+				SET
+					event_name        = $1,
+					description       = $2,
+					event_is_virtual  = $3,
+					venue_id          = $4,
+					timezone          = $5,
+					funding_entity_id = $6
+				WHERE recurrence_group_id = $7::uuid
+				  AND recurrence_order    >= $8
+				RETURNING event_id`,
+				event.Name, event.Description, isVirtual, venueInt,
+				event.Timezone, event.FundingEntityID,
+				recurGrpId.String, int(recurOrder.Int32),
+			)
+			if err != nil {
+				return nil, fmt.Errorf("failed to update recurring events: %w", err)
+			}
+			defer rows.Close()
+			for rows.Next() {
+				var id int
+				if err := rows.Scan(&id); err != nil {
+					return nil, fmt.Errorf("failed to read updated event id: %w", err)
+				}
+				affectedIDs = append(affectedIDs, id)
+			}
+			if err := rows.Err(); err != nil {
+				return nil, fmt.Errorf("failed to update recurring events: %w", err)
+			}
+		} else {
+			// recurrenceScope was THIS_AND_FUTURE but the event isn't actually
+			// in a group — fall through to a single-row update.
+			isThisAndFuture = false
+		}
+	}
+
+	if !isThisAndFuture {
+		// THIS_ONLY (or no scope, or non-recurring): update just this one row.
+		_, err = tx.ExecContext(ctx, `
+			UPDATE events
+			SET
+				event_name        = $1,
+				description       = $2,
+				event_is_virtual  = $3,
+				venue_id          = $4,
+				timezone          = $5,
+				funding_entity_id = $6
+			WHERE event_id = $7`,
+			event.Name, event.Description, isVirtual, venueInt,
+			event.Timezone, event.FundingEntityID, eventInt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update event: %w", err)
+		}
+		affectedIDs = []int{eventInt}
+	}
+
+	// Sync service types for every affected event.
+	for _, id := range affectedIDs {
+		if _, err = tx.ExecContext(ctx,
+			"DELETE FROM event_service_types WHERE event_id = $1", id,
+		); err != nil {
+			return nil, fmt.Errorf("failed to update service types for event %d: %w", id, err)
+		}
+		for _, stID := range event.ServiceTypes {
+			if _, err = tx.ExecContext(ctx,
+				"INSERT INTO event_service_types (event_id, service_type_id) VALUES ($1, $2)",
+				id, stID,
+			); err != nil {
+				return nil, fmt.Errorf("failed to insert service type for event %d: %w", id, err)
+			}
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit event update: %w", err)
 	}
 
 	return &models.MutationResult{
@@ -670,18 +770,23 @@ func (s *EventService) UpdateEventDate(ctx context.Context, evDate models.Update
 
 	var eventId int
 	var timezone string
+	var recurGrpId sql.NullString
 	query := `
 		SELECT
 			ed.event_id,
-			e.timezone
+			e.timezone,
+			e.recurrence_group_id
 		FROM event_dates ed
 		JOIN events e ON e.event_id = ed.event_id
 		WHERE ed.event_date_id = $1	
 		`
 
-	err = s.DB.QueryRowContext(ctx, query, dateInt).Scan(&eventId, &timezone)
+	err = s.DB.QueryRowContext(ctx, query, dateInt).Scan(&eventId, &timezone, &recurGrpId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get timezone from events: %w", err)
+	}
+	if recurGrpId.Valid {
+		return nil, fmt.Errorf("Changing dates for an existing recurring event is not allowed.")
 	}
 
 	if evDate.EndDateTime <= evDate.StartDateTime {

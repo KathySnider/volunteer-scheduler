@@ -599,3 +599,40 @@ func (s *FeedbackService) ResolveFeedback(ctx context.Context, adminId int, reso
 	}, err
 
 }
+
+func (s *FeedbackService) DeleteFeedback(ctx context.Context, feedbackId string) (*models.MutationResult, error) {
+	fbInt, err := strconv.Atoi(feedbackId)
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Invalid feedback ID."),
+			ID:      &feedbackId,
+		}, nil
+	}
+
+	// Delete attachments first (no CASCADE on the FK).
+	_, err = s.DB.ExecContext(ctx, "DELETE FROM feedback_attachments WHERE feedback_id = $1", fbInt)
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to delete feedback attachments."),
+			ID:      &feedbackId,
+		}, err
+	}
+
+	// Notes cascade via ON DELETE CASCADE, so we only need to delete the parent.
+	_, err = s.DB.ExecContext(ctx, "DELETE FROM feedback WHERE feedback_id = $1", fbInt)
+	if err != nil {
+		return &models.MutationResult{
+			Success: false,
+			Message: ptrString("Failed to delete feedback."),
+			ID:      &feedbackId,
+		}, err
+	}
+
+	return &models.MutationResult{
+		Success: true,
+		Message: ptrString("Feedback deleted."),
+		ID:      &feedbackId,
+	}, nil
+}

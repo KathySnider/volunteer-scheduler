@@ -30,6 +30,7 @@ const FILTERED_EVENTS = `
       id
       name
       eventType
+      recurrenceId
       venue { city state }
       fundingEntity { name }
       eventDates { startDateTime }
@@ -39,8 +40,8 @@ const FILTERED_EVENTS = `
 `;
 
 const DELETE_EVENT = `
-  mutation DeleteEvent($eventId: ID!) {
-    deleteEvent(eventId: $eventId) {
+  mutation DeleteEvent($eventId: ID!, $scope: RecurrenceUpdateScope) {
+    deleteEvent(eventId: $eventId, scope: $scope) {
       success
       message
     }
@@ -177,6 +178,10 @@ export default function AdminEventsPage() {
   const [pageError, setPageError] = useState("");
   const [actionMsg, setActionMsg] = useState(null);
 
+  // Delete scope modal
+  const [pendingDelete, setPendingDelete] = useState(null); // event object awaiting confirmation
+  const [deleteScope, setDeleteScope]     = useState("THIS_ONLY");
+
   /* ----- Auth check ----- */
   useEffect(() => {
     if (!isAuthenticated()) { router.replace("/login"); return; }
@@ -268,21 +273,37 @@ export default function AdminEventsPage() {
   }
 
   /* ----- Delete ----- */
-  const handleDelete = async (event) => {
-    if (!window.confirm(`Delete "${event.name}"? This cannot be undone.`)) return;
+  const handleDelete = (event) => {
     setActionMsg(null);
+    if (event.recurrenceId) {
+      // Recurring — show scope picker modal instead of a bare confirm
+      setDeleteScope("THIS_ONLY");
+      setPendingDelete(event);
+      return;
+    }
+    if (!window.confirm(`Delete "${event.name}"? This cannot be undone.`)) return;
+    executeDelete(event.id, null);
+  };
+
+  const executeDelete = async (eventId, scope) => {
     try {
-      const res = await gql(DELETE_EVENT, { eventId: event.id });
+      const res = await gql(DELETE_EVENT, { eventId, scope });
       const result = res.data?.deleteEvent;
       if (result?.success) {
-        setEvents((prev) => prev.filter((e) => e.id !== event.id));
-        setActionMsg({ type: "success", text: `"${event.name}" was deleted.` });
+        setEvents((prev) => prev.filter((e) => e.id !== eventId));
+        setActionMsg({ type: "success", text: "Event deleted." });
       } else {
         setActionMsg({ type: "error", text: result?.message ?? "Failed to delete event." });
       }
     } catch {
       setActionMsg({ type: "error", text: "Unable to reach the server." });
     }
+  };
+
+  const handleConfirmDelete = async () => {
+    const event = pendingDelete;
+    setPendingDelete(null);
+    await executeDelete(event.id, deleteScope);
   };
 
   const handleSignOut = async () => { await signOut(); router.replace("/login"); };
@@ -527,6 +548,54 @@ export default function AdminEventsPage() {
         )}
       </div>
       <FeedbackButton />
+
+      {/* Delete scope modal — shown only for recurring events */}
+      {pendingDelete && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalCard}>
+            <div className={styles.modalTitle}>Delete "{pendingDelete.name}"?</div>
+            <div className={styles.modalSubtitle}>
+              This is part of a recurring series. Choose what to delete:
+            </div>
+            <div className={styles.radioGroup}>
+              <label className={styles.radioLabel}>
+                <input
+                  type="radio"
+                  name="deleteScope"
+                  value="THIS_ONLY"
+                  checked={deleteScope === "THIS_ONLY"}
+                  onChange={() => setDeleteScope("THIS_ONLY")}
+                />
+                Just this occurrence
+              </label>
+              <label className={styles.radioLabel}>
+                <input
+                  type="radio"
+                  name="deleteScope"
+                  value="THIS_AND_FUTURE"
+                  checked={deleteScope === "THIS_AND_FUTURE"}
+                  onChange={() => setDeleteScope("THIS_AND_FUTURE")}
+                />
+                This and all future occurrences
+              </label>
+            </div>
+            <div className={styles.modalActions}>
+              <button
+                className={styles.btnCancel}
+                onClick={() => setPendingDelete(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className={styles.btnDanger}
+                onClick={handleConfirmDelete}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

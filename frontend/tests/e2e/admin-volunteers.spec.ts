@@ -11,7 +11,7 @@
  */
 
 import { test, expect } from "./helpers/fixtures";
-import { createVolunteer, deleteVolunteer, uniqueEmail, uniqueName } from "./helpers/api";
+import { createVolunteer, deleteVolunteer, uniqueEmail, uniqueName, findVolunteerIdByEmail } from "./helpers/api";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -130,6 +130,18 @@ test.describe("Manage Volunteers — search", () => {
 });
 
 test.describe("Manage Volunteers — create", () => {
+  // Track emails of volunteers created through the UI so afterAll can clean them up.
+  const createdEmails: string[] = [];
+
+  test.afterAll(async ({ adminToken }) => {
+    for (const email of createdEmails) {
+      try {
+        const id = await findVolunteerIdByEmail(adminToken, email);
+        if (id) await deleteVolunteer(adminToken, id);
+      } catch { /* ignore */ }
+    }
+  });
+
   test("admin can open the New Volunteer panel", async ({ adminPage }) => {
     await adminPage.goto("/admin/volunteers");
     await adminPage.getByRole("button", { name: /new volunteer/i }).click();
@@ -157,6 +169,7 @@ test.describe("Manage Volunteers — create", () => {
     const firstName = uniqueName("NewFirst");
     const lastName  = uniqueName("NewLast");
     const email     = uniqueEmail("create-vol");
+    createdEmails.push(email); // track for cleanup even if test fails mid-way
 
     await adminPage.goto("/admin/volunteers");
     await adminPage.getByRole("button", { name: /new volunteer/i }).click();
@@ -259,21 +272,26 @@ test.describe("Manage Volunteers — edit", () => {
 test.describe("Manage Volunteers — delete", () => {
   let deleteFirstName: string;
   let deleteLastName: string;
+  let deleteVolId: string;   // safety net if "can delete" test fails before deleting
   let keepVolId: string;
 
   test.beforeAll(async ({ adminToken }) => {
     deleteFirstName = uniqueName("DeleteFirst");
     deleteLastName  = uniqueName("DeleteLast");
-    await createVolunteer(adminToken, {
+    const deleteEmail = uniqueEmail("vol-delete");
+    deleteVolId = await createVolunteer(adminToken, {
       firstName: deleteFirstName,
       lastName:  deleteLastName,
-      email:     uniqueEmail("vol-delete"),
+      email:     deleteEmail,
       role:      "VOLUNTEER",
     });
-    // deleteFirstName/deleteLastName volunteer is deleted by the test itself.
   });
 
   test.afterAll(async ({ adminToken }) => {
+    // Safety net: delete the "to-be-deleted" volunteer if the test failed before it could.
+    if (deleteVolId) {
+      try { await deleteVolunteer(adminToken, deleteVolId); } catch { /* ignore — already deleted */ }
+    }
     // The "dismissing confirm" volunteer is not deleted by any test.
     if (keepVolId) {
       try { await deleteVolunteer(adminToken, keepVolId); } catch { /* ignore */ }

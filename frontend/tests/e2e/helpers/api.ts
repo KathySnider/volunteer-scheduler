@@ -198,6 +198,32 @@ export async function findEventIdByName(
   return events.find((e) => e.name === name)?.id ?? null;
 }
 
+/**
+ * Find all occurrences of a recurring event by name.
+ * Returns every matching event sorted by recurrenceOrder ascending.
+ * Useful for tests that need to navigate to individual occurrences in a series.
+ */
+export async function findAllEventsByName(
+  adminToken: string,
+  name: string
+): Promise<Array<{ id: string; recurrenceOrder: number }>> {
+  const data = await gql(
+    ADMIN_URL,
+    `query { filteredEvents { id name recurrenceOrder } }`,
+    undefined,
+    adminToken
+  );
+  const events = data.filteredEvents as Array<{
+    id: string;
+    name: string;
+    recurrenceOrder?: number | null;
+  }>;
+  return events
+    .filter((e) => e.name === name)
+    .map((e) => ({ id: e.id, recurrenceOrder: e.recurrenceOrder ?? 0 }))
+    .sort((a, b) => a.recurrenceOrder - b.recurrenceOrder);
+}
+
 /** Delete an event by ID (single occurrence). */
 export async function deleteEvent(adminToken: string, eventId: string): Promise<void> {
   await gql(
@@ -227,7 +253,7 @@ export async function deleteEventsByName(adminToken: string, name: string): Prom
 
 /**
  * Create a virtual recurring event via the admin API.
- * Returns the group UUID (the ID returned for recurring events).
+ * Returns the event ID of the first occurrence (recurrenceOrder = 1).
  */
 export async function createRecurringEvent(
   adminToken: string,
@@ -265,7 +291,7 @@ export async function createRecurringEvent(
   );
   const result = data.createEvent as { success: boolean; message: string; id?: string };
   if (!result.success || !result.id) throw new Error(`createRecurringEvent failed: ${result.message}`);
-  return result.id; // group UUID
+  return result.id; // ID of the first occurrence (recurrenceOrder = 1)
 }
 
 /** Delete a venue by ID. */
@@ -284,6 +310,34 @@ export async function deleteJobType(adminToken: string, jobTypeId: number): Prom
     ADMIN_URL,
     `mutation DeleteJobType($id: Int!) { deleteJobType(JobId: $id) { success message } }`,
     { id: jobTypeId },
+    adminToken
+  );
+}
+
+/**
+ * Look up a volunteer ID by exact email address.
+ * Returns null if no volunteer with that email exists.
+ */
+export async function findVolunteerIdByEmail(
+  adminToken: string,
+  email: string
+): Promise<string | null> {
+  const data = await gql(
+    ADMIN_URL,
+    `query FindVol($f: VolunteerFilterInput) { allVolunteers(filter: $f) { id email } }`,
+    { f: { email } },
+    adminToken
+  );
+  const vols = data.allVolunteers as Array<{ id: string; email: string }>;
+  return vols.find((v) => v.email === email)?.id ?? null;
+}
+
+/** Delete a feedback item by ID (removes attachments and notes too). */
+export async function deleteFeedback(adminToken: string, feedbackId: string): Promise<void> {
+  await gql(
+    ADMIN_URL,
+    `mutation DeleteFeedback($id: ID!) { deleteFeedback(feedbackId: $id) { success message } }`,
+    { id: feedbackId },
     adminToken
   );
 }

@@ -12,7 +12,7 @@
  */
 
 import { test, expect } from "./helpers/fixtures";
-import { submitFeedback, attachFileToFeedback, uniqueName } from "./helpers/api";
+import { submitFeedback, attachFileToFeedback, deleteFeedback, uniqueName } from "./helpers/api";
 
 const ADMIN_URL =
   process.env.NEXT_PUBLIC_GRAPHQL_ADMIN_URL ||
@@ -41,6 +41,15 @@ async function adminGql(
 }
 
 test.describe("Feedback — volunteer submits feedback", () => {
+  // Collect IDs of feedback created via API so afterAll can clean them up.
+  const createdFeedbackIds: string[] = [];
+
+  test.afterAll(async ({ adminToken }) => {
+    for (const id of createdFeedbackIds) {
+      try { await deleteFeedback(adminToken, id); } catch { /* ignore */ }
+    }
+  });
+
   test("FeedbackButton modal opens, volunteer submits, sees confirmation", async ({
     volunteerPage,
   }) => {
@@ -73,10 +82,11 @@ test.describe("Feedback — volunteer submits feedback", () => {
     volunteerToken,
   }) => {
     const subject = uniqueName("E2EFeedback");
-    await submitFeedback(volunteerToken, {
+    const id = await submitFeedback(volunteerToken, {
       subject,
       text: "Feedback body for E2E test",
     });
+    createdFeedbackIds.push(id);
 
     await volunteerPage.goto("/my-feedback");
     await expect(volunteerPage.getByText(subject)).toBeVisible({ timeout: 5_000 });
@@ -91,6 +101,7 @@ test.describe("Feedback — volunteer submits feedback", () => {
       subject,
       text: "Detail view body text",
     });
+    createdFeedbackIds.push(feedbackId);
 
     await volunteerPage.goto(`/my-feedback/${feedbackId}`);
     await expect(volunteerPage.getByText("Detail view body text")).toBeVisible({ timeout: 5_000 });
@@ -110,6 +121,12 @@ test.describe("Feedback — admin workflow", () => {
       subject: feedbackSubject,
       text: "Please help me understand this feature.",
     });
+  });
+
+  test.afterAll(async ({ adminToken }) => {
+    if (feedbackId) {
+      try { await deleteFeedback(adminToken, feedbackId); } catch { /* ignore */ }
+    }
   });
 
   test("admin sees submitted feedback in admin feedback list", async ({
@@ -270,6 +287,30 @@ test.describe("Feedback — error cases", () => {
 /* ------------------------------------------------------------------ */
 
 test.describe("FeedbackButton — attachments", () => {
+  // Subjects of feedback submitted via the UI — used in afterAll to locate and
+  // delete via the admin API (which can see all feedback regardless of owner).
+  const uiSubmittedSubjects: string[] = [];
+
+  test.afterAll(async ({ adminToken }) => {
+    if (uiSubmittedSubjects.length === 0) return;
+    try {
+      const res = await fetch(
+        process.env.NEXT_PUBLIC_GRAPHQL_ADMIN_URL || "http://localhost:8080/graphql/admin",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminToken}` },
+          body: JSON.stringify({ query: `query { feedback { id subject } }` }),
+        }
+      );
+      const json = (await res.json()) as { data?: { feedback?: Array<{ id: string; subject: string }> } };
+      for (const fb of json.data?.feedback ?? []) {
+        if (uiSubmittedSubjects.includes(fb.subject)) {
+          try { await deleteFeedback(adminToken, fb.id); } catch { /* ignore */ }
+        }
+      }
+    } catch { /* ignore */ }
+  });
+
   /** Open the feedback modal and return the dialog locator. */
   async function openFeedbackModal(page: { goto: Function; getByRole: Function }) {
     await page.goto("/events");
@@ -309,6 +350,7 @@ test.describe("FeedbackButton — attachments", () => {
     volunteerPage,
   }) => {
     const subject = uniqueName("AttachSubmit");
+    uiSubmittedSubjects.push(subject);
     const dialog = await openFeedbackModal(volunteerPage);
 
     // Fill in the required fields
@@ -349,6 +391,12 @@ test.describe("Feedback — attachment Download buttons", () => {
       text: "Testing download button visibility.",
     });
     await attachFileToFeedback(volunteerToken, feedbackId, "evidence.txt", "evidence content");
+  });
+
+  test.afterAll(async ({ adminToken }) => {
+    if (feedbackId) {
+      try { await deleteFeedback(adminToken, feedbackId); } catch { /* ignore */ }
+    }
   });
 
   test("volunteer detail page shows Download button for attachments", async ({

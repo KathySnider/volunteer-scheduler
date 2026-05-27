@@ -228,6 +228,22 @@ function formatDisplay(utcString, ianaZone) {
 
 const FORMAT_LABEL = { VIRTUAL: "Virtual", IN_PERSON: "In Person", HYBRID: "Hybrid" };
 
+/**
+ * Return the earliest event date as { date: "YYYY-MM-DD", time: "HH:MM" }
+ * in the event's local timezone, or null when no dates exist.
+ * Used to pre-fill new shift forms so the default matches occurrence N's start.
+ */
+function firstEventDateTime(eventDates, tz) {
+  if (!eventDates?.length) return null;
+  const sorted = [...eventDates].sort(
+    (a, b) => new Date(a.startDateTime) - new Date(b.startDateTime)
+  );
+  const local = toDatetimeLocal(sorted[0].startDateTime, tz);
+  const { d, t } = splitDT(local);
+  if (!d) return null;
+  return { date: d, time: t || "00:00" };
+}
+
 const PATTERN_LABELS = {
   DAILY:    "Daily",
   WEEKLY:   "Weekly",
@@ -536,8 +552,10 @@ export default function AdminEventDetailPage() {
   }, []);
 
   /* ---- Auth + data load ---- */
-  const loadPage = useCallback((bound, eid, refreshRoster = false) => {
-    setLoading(true);
+  // silent=true skips the loading-spinner so post-mutation refreshes don't
+  // hide the success banner while the data quietly reloads in the background.
+  const loadPage = useCallback((bound, eid, refreshRoster = false, silent = false) => {
+    if (!silent) setLoading(true);
     bound(ADMIN_EVENT_DETAIL, { eventId: eid })
       .then((res) => {
         if (res.errors) { setPageError(res.errors[0]?.message ?? "Error loading data."); return; }
@@ -559,7 +577,7 @@ export default function AdminEventDetailPage() {
         }
       })
       .catch(() => setPageError("Unable to reach the server."))
-      .finally(() => setLoading(false));
+      .finally(() => { if (!silent) setLoading(false); });
   }, [loadRoster]);
 
   useEffect(() => {
@@ -612,7 +630,7 @@ export default function AdminEventDetailPage() {
       }
       showMsg("success", successMsg);
       if (onSuccess) onSuccess(result);
-      loadPage(gql, eventId, true);
+      loadPage(gql, eventId, true, true /* silent — keep banner visible during refresh */);
       return result;
     } catch {
       const msg = "Unable to reach the server.";
@@ -659,11 +677,7 @@ export default function AdminEventDetailPage() {
         timezone: tz,
         fundingEntityId: parseInt(fundingEntityId, 10),
         serviceTypes: evForm.serviceTypes.map(Number),
-        ...(event.recurrenceId ? {
-          recurrenceId:    event.recurrenceId,
-          recurrenceOrder: event.recurrenceOrder,
-          recurrenceScope,
-        } : {}),
+        ...(event.recurrenceId ? { recurrenceScope } : {}),
       }},
       "Event updated.",
       () => setEditingEvent(false),
@@ -753,12 +767,13 @@ export default function AdminEventDetailPage() {
 
   /* --- Opportunities --- */
   const openAddOpp = () => {
+    const dt = firstEventDateTime(event?.eventDates, tz);
     setOppForm({
       jobId: jobTypes[0]?.id ? String(jobTypes[0].id) : "",
       isVirtual: event?.eventType === "VIRTUAL",
       preEventInstructions: "",
-      shiftStartDate: "", shiftStartTime: "00:00",
-      shiftEndDate:   "", shiftEndTime:   "00:00",
+      shiftStartDate: dt?.date ?? "", shiftStartTime: dt?.time ?? "00:00",
+      shiftEndDate:   dt?.date ?? "", shiftEndTime:   dt ? addOneHour(dt.time) : "00:00",
       shiftMaxVols: "", shiftStaffId: "",
     });
     setAddOppError("");
@@ -833,8 +848,13 @@ export default function AdminEventDetailPage() {
 
   /* --- Shifts --- */
   const openAddShift = (oppId) => {
+    const dt = firstEventDateTime(event?.eventDates, tz);
     setAddingShiftOppId(oppId);
-    setAddShiftForm({ ...EMPTY_SHIFT_FORM });
+    setAddShiftForm(dt ? {
+      startDate: dt.date, startTime: dt.time,
+      endDate:   dt.date, endTime:   addOneHour(dt.time),
+      maxVolunteers: "", staffContactId: "",
+    } : { ...EMPTY_SHIFT_FORM });
     setAddShiftError("");
     setEditingShiftId(null);
   };
@@ -1082,23 +1102,26 @@ export default function AdminEventDetailPage() {
                       <div className={styles.shiftInfo}>{formatDisplay(date.startDateTime, tz)}</div>
                       <div className={styles.shiftSub}>to {formatDisplay(date.endDateTime, tz)}</div>
                     </div>
-                    <div className={styles.oppActions}>
-                      <button
-                        className={`${styles.iconBtn} ${styles.iconBtnEdit}`}
-                        title="Edit date"
-                        onClick={() => openEditDate(date)}
-                      >✏</button>
-                      <button
-                        className={`${styles.iconBtn} ${styles.iconBtnDelete}`}
-                        title="Remove date"
-                        onClick={() => handleDeleteDate(date.id)}
-                        disabled={busy}
-                      >🗑</button>
-                    </div>
+                    {/* Date edit/delete is locked for recurring events — dates define the series. */}
+                    {!event.recurrenceId && (
+                      <div className={styles.oppActions}>
+                        <button
+                          className={`${styles.iconBtn} ${styles.iconBtnEdit}`}
+                          title="Edit date"
+                          onClick={() => openEditDate(date)}
+                        >✏</button>
+                        <button
+                          className={`${styles.iconBtn} ${styles.iconBtnDelete}`}
+                          title="Remove date"
+                          onClick={() => handleDeleteDate(date.id)}
+                          disabled={busy}
+                        >🗑</button>
+                      </div>
+                    )}
                   </div>
                 ))}
 
-                {/* Edit date inline form */}
+                {/* Edit date inline form — only reachable for non-recurring events */}
                 {editingDateId && (
                   <div className={styles.inlineForm}>
                     <div className={styles.inlineFormTitle}>Edit Date</div>
@@ -1144,11 +1167,16 @@ export default function AdminEventDetailPage() {
                   </div>
                 )}
 
-                {/* Add date */}
-                {!addingDate && !editingDateId && (
+                {/* Add date — hidden for recurring events */}
+                {!event.recurrenceId && !addingDate && !editingDateId && (
                   <button className={styles.btnOutline} style={{ marginTop: "0.5rem" }} onClick={() => setAddingDate(true)}>
                     + Add Date
                   </button>
+                )}
+                {event.recurrenceId && (
+                  <p className={styles.metaNote} style={{ marginTop: "0.4rem" }}>
+                    Dates are managed by the recurrence schedule. To change a date, delete this occurrence and create a new event.
+                  </p>
                 )}
                 {addingDate && (
                   <div className={styles.inlineForm}>
@@ -1334,6 +1362,15 @@ export default function AdminEventDetailPage() {
             <div className={styles.sectionTitle}>Volunteer Opportunities</div>
             <button className={styles.btnOutline} onClick={openAddOpp}>+ Add Opportunity</button>
           </div>
+
+          {/* Recurring-series propagation notice */}
+          {event?.recurrenceId && (
+            <div className={styles.propagateNote}>
+              ℹ Occurrence {event.recurrenceOrder ?? "?"} of a{" "}
+              {(PATTERN_LABELS[event.recurrencePattern] ?? "recurring").toLowerCase()} series —
+              adding, editing, or removing opportunities and shifts applies to this and all future occurrences.
+            </div>
+          )}
 
           {/* Add opportunity form */}
           {addingOpp && (

@@ -7,6 +7,7 @@
  *  - Error: submit with missing required fields shows validation errors
  *  - Non-admin (volunteer) cannot reach admin pages — redirect to /events
  *  - Manage Events listing page filters (cities, timeframe, format, reset, "No shifts" badge)
+ *  - Event detail page: admin can save changes to a non-recurring event (smoke test)
  */
 
 import { test, expect } from "./helpers/fixtures";
@@ -517,6 +518,81 @@ test.describe("Manage Events listing — 'No shifts' badge", () => {
     const row = adminPage.locator("tr").filter({ hasText: noShiftsName });
     await expect(row).toBeVisible({ timeout: 5_000 });
     await expect(row.getByText("No shifts")).toBeVisible();
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  Event detail page — save smoke test                                 */
+/* ------------------------------------------------------------------ */
+
+test.describe("Admin event detail page — save event", () => {
+  let saveEventName: string;
+  let saveEventId: string;
+  let saveVenueId: string;
+  let saveJobTypeId: number;
+
+  test.beforeAll(async ({ adminToken }) => {
+    saveEventName = uniqueName("SaveDetailEvent");
+    saveVenueId   = await createVenue(adminToken, {
+      name: uniqueName("SaveDetailVenue"),
+      city: "Portland",
+      state: "OR",
+    });
+    saveJobTypeId = await createJobType(
+      adminToken,
+      uniqueName("sdet"),
+      uniqueName("Save Detail Role"),
+    );
+    ({ eventId: saveEventId } = await createEventWithShift(adminToken, {
+      eventName:     saveEventName,
+      venueId:       saveVenueId,
+      jobTypeId:     saveJobTypeId,
+      startDateTime: "2028-03-10 09:00:00",
+      endDateTime:   "2028-03-10 12:00:00",
+    }));
+  });
+
+  test.afterAll(async ({ adminToken }) => {
+    if (saveEventId) {
+      try { await deleteEvent(adminToken, saveEventId); } catch { /* ignore */ }
+    }
+    if (saveVenueId) {
+      try { await deleteVenue(adminToken, saveVenueId); } catch { /* ignore */ }
+    }
+    if (saveJobTypeId) {
+      try { await deleteJobType(adminToken, saveJobTypeId); } catch { /* ignore */ }
+    }
+  });
+
+  test("admin can save changes to a non-recurring event from the detail page", async ({
+    adminPage,
+  }) => {
+    test.skip(!saveEventId, "beforeAll did not seed event");
+
+    const newDesc = uniqueName("SavedDesc");
+
+    await adminPage.goto(`/admin/events/${saveEventId}`);
+    await expect(adminPage.getByText(saveEventName)).toBeVisible({ timeout: 10_000 });
+
+    // Open the edit form.
+    await adminPage.getByRole("button", { name: /edit/i }).first().click();
+
+    // Non-recurring events must NOT show the "Apply changes to" scope picker.
+    await expect(adminPage.getByText(/apply changes to/i)).not.toBeVisible();
+
+    // Fill in a description.
+    await adminPage.locator("textarea").first().fill(newDesc);
+
+    // Save.
+    await adminPage.getByRole("button", { name: /save changes/i }).click();
+
+    // Success banner must appear — this is the key assertion that would have
+    // caught the recurrenceId/recurrenceOrder unknown-field bug if it had
+    // affected non-recurring events too.
+    await expect(adminPage.getByText("Event updated.")).toBeVisible({ timeout: 15_000 });
+
+    // The new description must be visible in the refreshed detail view.
+    await expect(adminPage.getByText(newDesc)).toBeVisible();
   });
 });
 

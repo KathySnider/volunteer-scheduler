@@ -462,3 +462,101 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ----- Delete scope modal ----- */
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.modalCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 0.5rem);
+  padding: 1.5rem 1.75rem;
+  width: min(440px, 90vw);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+}
+
+.modalTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 0.375rem;
+}
+
+.modalSubtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1.25rem;
+}
+
+.radioGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin-bottom: 1.5rem;
+}
+
+.radioLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.radioLabel input[type="radio"] {
+  accent-color: var(--color-primary);
+  width: 1rem;
+  height: 1rem;
+}
+
+.modalActions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.btnDanger {
+  padding: 0.5rem 1.25rem;
+  background: var(--color-danger, #dc2626);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm, 0.375rem);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btnDanger:hover:not(:disabled) {
+  background: var(--color-danger-dark, #b91c1c);
+}
+
+.btnDanger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btnCancel {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, 0.375rem);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.btnCancel:hover {
+  border-color: var(--color-text-muted);
+  color: var(--color-text);
+}

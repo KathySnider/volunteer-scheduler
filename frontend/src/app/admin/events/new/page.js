@@ -71,7 +71,25 @@ const CREATE_EVENT = `
       id
     }
   }
-`;
+`
+
+// Used to resolve the group UUID returned by createEvent (recurring) into the
+// first occurrence's numeric event ID, so the "Add Opportunities" link works.
+const FIRST_IN_GROUP = `
+  query {
+    filteredEvents {
+      id
+      recurrenceId
+      recurrenceOrder
+    }
+  }
+`
+
+/** Returns true when s is a UUID (36 chars, hyphens at positions 8/13/18/23). */
+function isUUID(s) {
+  return typeof s === "string" && s.length === 36 &&
+    s[8] === "-" && s[13] === "-" && s[18] === "-" && s[23] === "-";
+};
 
 /* ----- Helpers ----- */
 
@@ -590,7 +608,24 @@ export default function AddEventPage() {
         setSubmitError(result?.message ?? res.errors?.[0]?.message ?? "Failed to create event.");
         return;
       }
-      setCreatedEvent({ id: result.id, name: name.trim() });
+
+      // For recurring events, createEvent returns the recurrence group UUID.
+      // Resolve it to the first occurrence's numeric ID for the "Add Opportunities" link.
+      let targetId = result.id;
+      if (isUUID(result.id)) {
+        try {
+          const listRes = await gql(FIRST_IN_GROUP, null);
+          const events = listRes.data?.filteredEvents ?? [];
+          const first = events
+            .filter((e) => e.recurrenceId === result.id)
+            .sort((a, b) => (a.recurrenceOrder ?? 0) - (b.recurrenceOrder ?? 0))[0];
+          if (first?.id) targetId = first.id;
+        } catch {
+          // leave targetId as the UUID; the link will gracefully degrade
+        }
+      }
+
+      setCreatedEvent({ id: targetId, name: name.trim() });
     } catch {
       setSubmitError("Unable to reach the server. Please try again.");
     } finally {

@@ -43,9 +43,30 @@ export async function getAdminSession(): Promise<{ token: string; email: string 
  * invalidated (e.g. a browser-based magic-link login created a new session
  * and the backend uses single-session-per-user semantics).
  */
-async function refreshAdminSession(): Promise<{ token: string; email: string }> {
+export async function refreshAdminSession(): Promise<{ token: string; email: string }> {
   cachedAdminSession = null;
   return getAdminSession();
+}
+
+/**
+ * Run `fn` with the current admin token, retrying once with a fresh session
+ * on 401.  Use this in `beforeAll` blocks that call API helpers directly —
+ * the `adminToken` fixture uses a module-level cache that can be invalidated
+ * by mid-suite browser logins (single-session-per-user backend semantics).
+ */
+export async function withAdminRetry<T>(
+  token: string,
+  fn: (token: string) => Promise<T>,
+): Promise<T> {
+  try {
+    return await fn(token);
+  } catch (err) {
+    if (String(err).includes("401")) {
+      const { token: fresh } = await refreshAdminSession();
+      return fn(fresh);
+    }
+    throw err;
+  }
 }
 
 /**
