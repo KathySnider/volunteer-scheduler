@@ -29,16 +29,18 @@ ON CONFLICT (name) DO NOTHING;
 
 -- ============================================================================
 -- VENUES
+-- Note: timezone is no longer on venues — it moved to the events table so
+-- that virtual events can carry their own timezone.
 -- ============================================================================
 
-INSERT INTO venues (venue_name, street_address, city, state, zip_code, timezone) VALUES
-    ('Seattle Central Library',     '1000 4th Ave',             'Seattle',        'WA', '98104', 'America/Los_Angeles'),
-    ('Spokane Convention Center',   '334 W Spokane Falls Blvd', 'Spokane',        'WA', '99201', 'America/Los_Angeles'),
-    ('Tacoma Convention Center',    '1500 Broadway',            'Tacoma',         'WA', '98402', 'America/Los_Angeles'),
-    ('Vancouver Community Library', '901 C St',                 'Vancouver',      'WA', '98660', 'America/Los_Angeles'),
-    ('Bellevue City Hall',          '450 110th Ave NE',         'Bellevue',       'WA', '98004', 'America/Los_Angeles'),
-    ('Spokane Valley Library',      '12004 E Main Ave',         'Spokane Valley', 'WA', '99206', 'America/Los_Angeles'),
-    ('Olympia Center',              '222 Columbia St NW',       'Olympia',        'WA', '98501', 'America/Los_Angeles');
+INSERT INTO venues (venue_name, street_address, city, state, zip_code) VALUES
+    ('Seattle Central Library',     '1000 4th Ave',             'Seattle',        'WA', '98104'),
+    ('Spokane Convention Center',   '334 W Spokane Falls Blvd', 'Spokane',        'WA', '99201'),
+    ('Tacoma Convention Center',    '1500 Broadway',            'Tacoma',         'WA', '98402'),
+    ('Vancouver Community Library', '901 C St',                 'Vancouver',      'WA', '98660'),
+    ('Bellevue City Hall',          '450 110th Ave NE',         'Bellevue',       'WA', '98004'),
+    ('Spokane Valley Library',      '12004 E Main Ave',         'Spokane Valley', 'WA', '99206'),
+    ('Olympia Center',              '222 Columbia St NW',       'Olympia',        'WA', '98501');
 
 
 -- ============================================================================
@@ -59,7 +61,7 @@ INSERT INTO volunteers (first_name, last_name, email, phone, zip_code, role, is_
     ('Henry',   'Thompson',  'henry.thompson@example.com', '360-555-0108', '98501', 'VOLUNTEER',     TRUE),
     ('Isabel',  'Chen',      'isabel.chen@example.com',    '206-555-0109', '98104', 'VOLUNTEER',     TRUE),
     ('James',   'Robinson',  'james.robinson@example.com', '509-555-0110', '99201', 'VOLUNTEER',     TRUE),
-    ('Test',    'Admin',     'kathy.snider@icloud.com', NULL,           NULL,    'ADMINISTRATOR', TRUE);
+    ('Test',    'Admin',     'kathy.snider@tuta.com',      NULL,           NULL,    'ADMINISTRATOR', TRUE);
 
 
 -- ============================================================================
@@ -95,7 +97,7 @@ INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding
      (SELECT id FROM funding_entities WHERE name = 'Seattle Area' LIMIT 1));
 
 INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id) VALUES
-    ('Tax Aide Preparation - Spring Session',
+    ('Tax Aide Preparation - Summer Session',
      'Free tax preparation assistance for low-to-moderate income seniors. Training provided.',
      FALSE,
      (SELECT venue_id FROM venues WHERE city = 'Bellevue'),
@@ -162,7 +164,7 @@ WHERE e.event_name = 'Medicare Q&A Workshop'
 INSERT INTO event_service_types (event_id, service_type_id)
 SELECT e.event_id, st.service_type_id
 FROM events e, service_types st
-WHERE e.event_name = 'Tax Aide Preparation - Spring Session'
+WHERE e.event_name = 'Tax Aide Preparation - Summer Session'
   AND st.code = 'office_support';
 
 INSERT INTO event_service_types (event_id, service_type_id)
@@ -204,38 +206,39 @@ WHERE e.event_name = 'Caregiver Support Forum'
 
 -- ============================================================================
 -- EVENT DATES
+-- All events are scheduled in the future (relative to mid-2026 baseline).
 -- ============================================================================
 
 INSERT INTO event_dates (event_id, start_date_time, end_date_time)
-SELECT event_id, '2026-05-10 09:00:00', '2026-05-10 15:00:00'
+SELECT event_id, '2026-07-12 09:00:00', '2026-07-12 15:00:00'
 FROM events WHERE event_name = 'Medicare Q&A Workshop';
 
 INSERT INTO event_dates (event_id, start_date_time, end_date_time)
-SELECT event_id, '2026-05-17 10:00:00', '2026-05-17 16:00:00'
-FROM events WHERE event_name = 'Tax Aide Preparation - Spring Session';
+SELECT event_id, '2026-07-19 10:00:00', '2026-07-19 16:00:00'
+FROM events WHERE event_name = 'Tax Aide Preparation - Summer Session';
 
 INSERT INTO event_dates (event_id, start_date_time, end_date_time)
-SELECT event_id, '2026-04-30 13:00:00', '2026-04-30 15:00:00'
+SELECT event_id, '2026-07-07 13:00:00', '2026-07-07 15:00:00'
 FROM events WHERE event_name = 'Virtual Fraud Prevention Seminar';
 
 INSERT INTO event_dates (event_id, start_date_time, end_date_time)
-SELECT event_id, '2026-05-03 09:00:00', '2026-05-03 16:00:00'
+SELECT event_id, '2026-07-26 09:00:00', '2026-07-26 16:00:00'
 FROM events WHERE event_name = 'Hybrid Benefits Counseling Day';
 
 INSERT INTO event_dates (event_id, start_date_time, end_date_time)
-SELECT event_id, '2026-06-07 09:00:00', '2026-06-07 14:00:00'
+SELECT event_id, '2026-08-02 09:00:00', '2026-08-02 14:00:00'
 FROM events WHERE event_name = 'Spokane Senior Health Fair';
 
 INSERT INTO event_dates (event_id, start_date_time, end_date_time)
-SELECT event_id, '2026-05-24 08:30:00', '2026-05-24 12:30:00'
+SELECT event_id, '2026-07-11 08:30:00', '2026-07-11 12:30:00'
 FROM events WHERE event_name = 'Driver Safety Course';
 
 INSERT INTO event_dates (event_id, start_date_time, end_date_time)
-SELECT event_id, '2026-06-14 10:00:00', '2026-06-14 13:00:00'
+SELECT event_id, '2026-08-09 10:00:00', '2026-08-09 13:00:00'
 FROM events WHERE event_name = 'Social Security Benefits Workshop';
 
 INSERT INTO event_dates (event_id, start_date_time, end_date_time)
-SELECT event_id, '2026-06-21 13:00:00', '2026-06-21 16:00:00'
+SELECT event_id, '2026-08-16 13:00:00', '2026-08-16 16:00:00'
 FROM events WHERE event_name = 'Caregiver Support Forum';
 
 
@@ -252,14 +255,14 @@ WHERE e.event_name = 'Medicare Q&A Workshop'
   AND jt.code = 'event_support';
 
 INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-05-10 08:30:00', '2026-05-10 12:00:00', 4,
+SELECT o.opportunity_id, '2026-07-12 08:30:00', '2026-07-12 12:00:00', 4,
     (SELECT staff_id FROM staff WHERE last_name = 'Sullivan')
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
 WHERE e.event_name = 'Medicare Q&A Workshop';
 
 INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-05-10 12:00:00', '2026-05-10 15:30:00', 4,
+SELECT o.opportunity_id, '2026-07-12 12:00:00', '2026-07-12 15:30:00', 4,
     (SELECT staff_id FROM staff WHERE last_name = 'Sullivan')
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
@@ -274,7 +277,7 @@ WHERE e.event_name = 'Medicare Q&A Workshop'
   AND jt.code = 'advocacy';
 
 INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-05-10 09:00:00', '2026-05-10 15:00:00', 2,
+SELECT o.opportunity_id, '2026-07-12 09:00:00', '2026-07-12 15:00:00', 2,
     (SELECT staff_id FROM staff WHERE last_name = 'Sullivan')
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
@@ -286,22 +289,22 @@ INSERT INTO opportunities (event_id, job_type_id, opportunity_is_virtual, pre_ev
 SELECT e.event_id, jt.job_type_id, FALSE,
     'IRS certification required before volunteering. Contact coordinator for training dates.'
 FROM events e, job_types jt
-WHERE e.event_name = 'Tax Aide Preparation - Spring Session'
+WHERE e.event_name = 'Tax Aide Preparation - Summer Session'
   AND jt.code = 'event_support';
 
 INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-05-17 09:30:00', '2026-05-17 13:00:00', 6,
+SELECT o.opportunity_id, '2026-07-19 09:30:00', '2026-07-19 13:00:00', 6,
     (SELECT staff_id FROM staff WHERE last_name = 'Sullivan')
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
-WHERE e.event_name = 'Tax Aide Preparation - Spring Session';
+WHERE e.event_name = 'Tax Aide Preparation - Summer Session';
 
 INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-05-17 13:00:00', '2026-05-17 16:30:00', 6,
+SELECT o.opportunity_id, '2026-07-19 13:00:00', '2026-07-19 16:30:00', 6,
     (SELECT staff_id FROM staff WHERE last_name = 'Sullivan')
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
-WHERE e.event_name = 'Tax Aide Preparation - Spring Session';
+WHERE e.event_name = 'Tax Aide Preparation - Summer Session';
 
 -- Virtual Fraud Prevention - speaker
 INSERT INTO opportunities (event_id, job_type_id, opportunity_is_virtual, pre_event_instructions)
@@ -312,7 +315,7 @@ WHERE e.event_name = 'Virtual Fraud Prevention Seminar'
   AND jt.code = 'speaker';
 
 INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers)
-SELECT o.opportunity_id, '2026-04-30 12:45:00', '2026-04-30 15:15:00', 3
+SELECT o.opportunity_id, '2026-07-07 12:45:00', '2026-07-07 15:15:00', 3
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
 WHERE e.event_name = 'Virtual Fraud Prevention Seminar';
@@ -326,7 +329,7 @@ WHERE e.event_name = 'Hybrid Benefits Counseling Day'
   AND jt.code = 'event_support';
 
 INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-05-03 08:30:00', '2026-05-03 16:30:00', 3,
+SELECT o.opportunity_id, '2026-07-26 08:30:00', '2026-07-26 16:30:00', 3,
     (SELECT staff_id FROM staff WHERE last_name = 'Sullivan')
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
@@ -342,7 +345,7 @@ WHERE e.event_name = 'Hybrid Benefits Counseling Day'
   AND jt.code = 'volunteer_lead';
 
 INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-05-03 08:45:00', '2026-05-03 16:15:00', 2,
+SELECT o.opportunity_id, '2026-07-26 08:45:00', '2026-07-26 16:15:00', 2,
     (SELECT staff_id FROM staff WHERE last_name = 'Sullivan')
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
@@ -358,14 +361,14 @@ WHERE e.event_name = 'Spokane Senior Health Fair'
   AND jt.code = 'event_support';
 
 INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-06-07 08:00:00', '2026-06-07 11:30:00', 5,
+SELECT o.opportunity_id, '2026-08-02 08:00:00', '2026-08-02 11:30:00', 5,
     (SELECT staff_id FROM staff WHERE last_name = 'Tanaka')
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
 WHERE e.event_name = 'Spokane Senior Health Fair';
 
 INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-06-07 11:30:00', '2026-06-07 14:30:00', 5,
+SELECT o.opportunity_id, '2026-08-02 11:30:00', '2026-08-02 14:30:00', 5,
     (SELECT staff_id FROM staff WHERE last_name = 'Tanaka')
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
@@ -380,7 +383,7 @@ WHERE e.event_name = 'Driver Safety Course'
   AND jt.code = 'volunteer_lead';
 
 INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-05-24 08:00:00', '2026-05-24 13:00:00', 2,
+SELECT o.opportunity_id, '2026-07-11 08:00:00', '2026-07-11 13:00:00', 2,
     (SELECT staff_id FROM staff WHERE last_name = 'Tanaka')
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
@@ -395,7 +398,7 @@ WHERE e.event_name = 'Social Security Benefits Workshop'
   AND jt.code = 'event_support';
 
 INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-06-14 09:30:00', '2026-06-14 13:30:00', 4,
+SELECT o.opportunity_id, '2026-08-09 09:30:00', '2026-08-09 13:30:00', 4,
     (SELECT staff_id FROM staff WHERE last_name = 'Flores')
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
@@ -410,7 +413,7 @@ WHERE e.event_name = 'Caregiver Support Forum'
   AND jt.code = 'event_support';
 
 INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-06-21 12:30:00', '2026-06-21 16:30:00', 3,
+SELECT o.opportunity_id, '2026-08-16 12:30:00', '2026-08-16 16:30:00', 3,
     (SELECT staff_id FROM staff WHERE last_name = 'Flores')
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
@@ -431,7 +434,7 @@ JOIN job_types jt ON o.job_type_id = jt.job_type_id
 WHERE v.first_name = 'Carol'
   AND e.event_name = 'Medicare Q&A Workshop'
   AND jt.code = 'event_support'
-  AND s.shift_start = '2026-05-10 08:30:00';
+  AND s.shift_start = '2026-07-12 08:30:00';
 
 INSERT INTO volunteer_shifts (volunteer_id, shift_id, assigned_at)
 SELECT v.volunteer_id, s.shift_id, NOW()
@@ -442,7 +445,7 @@ JOIN job_types jt ON o.job_type_id = jt.job_type_id
 WHERE v.first_name = 'Frank'
   AND e.event_name = 'Medicare Q&A Workshop'
   AND jt.code = 'event_support'
-  AND s.shift_start = '2026-05-10 08:30:00';
+  AND s.shift_start = '2026-07-12 08:30:00';
 
 -- Isabel and James: Medicare Q&A advocacy slot (fully fills that 2-person opportunity)
 INSERT INTO volunteer_shifts (volunteer_id, shift_id, assigned_at)
@@ -473,7 +476,7 @@ JOIN opportunities o ON s.opportunity_id = o.opportunity_id
 JOIN events e ON o.event_id = e.event_id
 WHERE v.first_name = 'David'
   AND e.event_name = 'Spokane Senior Health Fair'
-  AND s.shift_start = '2026-06-07 08:00:00';
+  AND s.shift_start = '2026-08-02 08:00:00';
 
 INSERT INTO volunteer_shifts (volunteer_id, shift_id, assigned_at)
 SELECT v.volunteer_id, s.shift_id, NOW()
@@ -482,7 +485,7 @@ JOIN opportunities o ON s.opportunity_id = o.opportunity_id
 JOIN events e ON o.event_id = e.event_id
 WHERE v.first_name = 'Grace'
   AND e.event_name = 'Spokane Senior Health Fair'
-  AND s.shift_start = '2026-06-07 08:00:00';
+  AND s.shift_start = '2026-08-02 08:00:00';
 
 -- Ellen: Social Security Workshop (signs up then cancels)
 INSERT INTO volunteer_shifts (volunteer_id, shift_id, assigned_at, cancelled_at)
@@ -504,6 +507,75 @@ WHERE v.first_name = 'Henry'
 
 
 -- ============================================================================
+-- SAMPLE RECURRING EVENT (Monthly Volunteer Orientation — 3 occurrences)
+-- Uses a DO block so we can share a single recurrence_group_id UUID across
+-- all three event rows without hard-coding a literal UUID.
+-- ============================================================================
+
+DO $$
+DECLARE
+  grp_id   UUID;
+  evt1_id  INT;
+  evt2_id  INT;
+  evt3_id  INT;
+BEGIN
+  grp_id := gen_random_uuid();
+
+  INSERT INTO recurrence_groups (id, pattern, max_occurrences, weekday_ordinal)
+  VALUES (grp_id, 'MONTHLY', 3, NULL);
+
+  -- Occurrence 1 — first Tuesday of August 2026
+  INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id,
+                      recurrence_group_id, recurrence_order, timezone)
+  VALUES (
+    'Monthly Volunteer Orientation',
+    'Introduction for new AARP volunteers. Covers mission, policies, and upcoming events.',
+    FALSE,
+    (SELECT venue_id FROM venues WHERE city = 'Seattle'),
+    (SELECT id FROM funding_entities WHERE name = 'Statewide' LIMIT 1),
+    grp_id, 1, 'America/Los_Angeles'
+  )
+  RETURNING event_id INTO evt1_id;
+
+  INSERT INTO event_dates (event_id, start_date_time, end_date_time)
+  VALUES (evt1_id, '2026-08-04 09:00:00', '2026-08-04 11:00:00');
+
+  -- Occurrence 2 — first Tuesday of September 2026
+  INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id,
+                      recurrence_group_id, recurrence_order, timezone)
+  VALUES (
+    'Monthly Volunteer Orientation',
+    'Introduction for new AARP volunteers. Covers mission, policies, and upcoming events.',
+    FALSE,
+    (SELECT venue_id FROM venues WHERE city = 'Seattle'),
+    (SELECT id FROM funding_entities WHERE name = 'Statewide' LIMIT 1),
+    grp_id, 2, 'America/Los_Angeles'
+  )
+  RETURNING event_id INTO evt2_id;
+
+  INSERT INTO event_dates (event_id, start_date_time, end_date_time)
+  VALUES (evt2_id, '2026-09-01 09:00:00', '2026-09-01 11:00:00');
+
+  -- Occurrence 3 — first Tuesday of October 2026
+  INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id,
+                      recurrence_group_id, recurrence_order, timezone)
+  VALUES (
+    'Monthly Volunteer Orientation',
+    'Introduction for new AARP volunteers. Covers mission, policies, and upcoming events.',
+    FALSE,
+    (SELECT venue_id FROM venues WHERE city = 'Seattle'),
+    (SELECT id FROM funding_entities WHERE name = 'Statewide' LIMIT 1),
+    grp_id, 3, 'America/Los_Angeles'
+  )
+  RETURNING event_id INTO evt3_id;
+
+  INSERT INTO event_dates (event_id, start_date_time, end_date_time)
+  VALUES (evt3_id, '2026-10-06 09:00:00', '2026-10-06 11:00:00');
+END;
+$$;
+
+
+-- ============================================================================
 -- SAMPLE FEEDBACK
 -- ============================================================================
 
@@ -511,7 +583,7 @@ INSERT INTO feedback (volunteer_id, feedback_type, status, subject, app_page_nam
 SELECT volunteer_id, 'BUG', 'OPEN',
     'Event date not showing correctly',
     'Event Detail',
-    'When I click on the Medicare workshop, the date shows as January instead of May. Might be a timezone issue.',
+    'When I click on the Medicare workshop, the date shows as January instead of July. Might be a timezone issue.',
     NOW() - INTERVAL '3 days'
 FROM volunteers WHERE first_name = 'Carol';
 

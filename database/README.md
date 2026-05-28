@@ -24,7 +24,8 @@ erDiagram
     text city
     text state
     varchar zip_code
-    text timezone
+    numeric latitude
+    numeric longitude
   }
   funding_entities {
     serial id PK
@@ -32,6 +33,12 @@ erDiagram
     text description
     boolean is_active
     timestamptz created_at
+  }
+  recurrence_groups {
+    uuid id PK
+    text pattern
+    int max_occurrences
+    text weekday_ordinal
   }
   volunteers {
     serial volunteer_id PK
@@ -44,6 +51,9 @@ erDiagram
     boolean is_active
     timestamp created_at
     timestamp last_login_at
+    numeric latitude
+    numeric longitude
+    int default_distance_miles
   }
   staff {
     serial staff_id PK
@@ -80,6 +90,9 @@ erDiagram
     boolean event_is_virtual
     int venue_id FK
     int funding_entity_id FK
+    uuid recurrence_group_id FK
+    int recurrence_order
+    text timezone
   }
   event_dates {
     serial event_date_id PK
@@ -109,6 +122,7 @@ erDiagram
     int job_type_id FK
     boolean opportunity_is_virtual
     text pre_event_instructions
+    uuid recurrence_template_id
   }
   shifts {
     serial shift_id PK
@@ -117,12 +131,14 @@ erDiagram
     timestamp shift_end
     int staff_contact_id FK
     int max_volunteers
+    uuid recurrence_template_id
   }
   volunteer_shifts {
     int volunteer_id FK
     int shift_id FK
     timestamp assigned_at
     timestamp cancelled_at
+    timestamptz reminder_sent_at
   }
   feedback {
     serial feedback_id PK
@@ -155,6 +171,7 @@ erDiagram
     timestamp created_at
   }
 
+  recurrence_groups ||--o{ events : "groups"
   funding_entities ||--o{ events : "funds"
   venues ||--o{ events : "hosts"
   volunteers ||--o{ sessions : "has"

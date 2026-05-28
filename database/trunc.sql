@@ -17,6 +17,7 @@ TRUNCATE TABLE
   event_service_types,
   event_dates,
   events,
+  recurrence_groups,
   venues,
   volunteers,
   staff,

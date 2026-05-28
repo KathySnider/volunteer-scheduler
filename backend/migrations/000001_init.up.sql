@@ -1,5 +1,6 @@
 -- ============================================================================
 -- VOLUNTEER SCHEDULER - FULL SCHEMA INITIALIZATION
+-- Consolidated from migrations 000001 – 000008.
 -- ============================================================================
 
 
@@ -38,16 +39,19 @@ CREATE TYPE feedback_note_type AS ENUM (
 -- ============================================================================
 
 CREATE TABLE volunteers (
-    volunteer_id  SERIAL PRIMARY KEY,
-    first_name    TEXT NOT NULL,
-    last_name     TEXT NOT NULL,
-    email         TEXT UNIQUE,
-    phone         VARCHAR(20),
-    zip_code      VARCHAR(10),
-    role          volunteer_role NOT NULL DEFAULT 'VOLUNTEER',
-    is_active     BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    last_login_at TIMESTAMP
+    volunteer_id           SERIAL PRIMARY KEY,
+    first_name             TEXT NOT NULL,
+    last_name              TEXT NOT NULL,
+    email                  TEXT UNIQUE,
+    phone                  VARCHAR(20),
+    zip_code               VARCHAR(10),
+    role                   volunteer_role NOT NULL DEFAULT 'VOLUNTEER',
+    is_active              BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at             TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login_at          TIMESTAMP,
+    latitude               NUMERIC(9,6),
+    longitude              NUMERIC(9,6),
+    default_distance_miles INT
 );
 
 CREATE INDEX idx_volunteers_email  ON volunteers(email);
@@ -107,6 +111,8 @@ CREATE INDEX idx_sessions_volunteer_id ON sessions(volunteer_id);
 
 -- ============================================================================
 -- VENUES
+-- timezone was removed in migration 000006 (moved to events so virtual events
+-- can carry their own timezone).
 -- ============================================================================
 
 CREATE TABLE venues (
@@ -116,7 +122,8 @@ CREATE TABLE venues (
     city           TEXT NOT NULL,
     state          TEXT NOT NULL,
     zip_code       VARCHAR(10),
-    timezone       TEXT NOT NULL DEFAULT 'America/Los_Angeles',
+    latitude       NUMERIC(9,6),
+    longitude      NUMERIC(9,6),
     UNIQUE(street_address, city, state)
 );
 
@@ -140,20 +147,39 @@ INSERT INTO funding_entities (name) VALUES
 
 
 -- ============================================================================
+-- RECURRENCE GROUPS
+-- Stores the pattern settings used to generate a recurring event series.
+-- One row per recurrence_group_id; linked to events.recurrence_group_id.
+-- ============================================================================
+
+CREATE TABLE recurrence_groups (
+    id               UUID NOT NULL PRIMARY KEY,
+    pattern          TEXT NOT NULL,
+    max_occurrences  INT  NULL,
+    weekday_ordinal  TEXT NULL
+);
+
+
+-- ============================================================================
 -- EVENTS
 -- ============================================================================
 
 CREATE TABLE events (
-    event_id          SERIAL PRIMARY KEY,
-    event_name        TEXT NOT NULL,
-    description       TEXT,
-    event_is_virtual  BOOLEAN DEFAULT FALSE,
-    venue_id          INT REFERENCES venues(venue_id) ON DELETE RESTRICT,
-    funding_entity_id INT NOT NULL REFERENCES funding_entities(id) ON DELETE RESTRICT
+    event_id            SERIAL PRIMARY KEY,
+    event_name          TEXT NOT NULL,
+    description         TEXT,
+    event_is_virtual    BOOLEAN DEFAULT FALSE,
+    venue_id            INT REFERENCES venues(venue_id) ON DELETE RESTRICT,
+    funding_entity_id   INT NOT NULL REFERENCES funding_entities(id) ON DELETE RESTRICT,
+    recurrence_group_id UUID    NULL REFERENCES recurrence_groups(id) ON DELETE SET NULL,
+    recurrence_order    INTEGER NULL,
+    timezone            TEXT    NOT NULL DEFAULT 'America/Los_Angeles'
 );
 
-CREATE INDEX idx_events_venue          ON events(venue_id);
-CREATE INDEX idx_events_funding_entity ON events(funding_entity_id);
+CREATE INDEX idx_events_venue            ON events(venue_id);
+CREATE INDEX idx_events_funding_entity   ON events(funding_entity_id);
+CREATE INDEX idx_events_recurrence_group ON events(recurrence_group_id)
+    WHERE recurrence_group_id IS NOT NULL;
 
 CREATE TABLE event_dates (
     event_date_id   SERIAL PRIMARY KEY,
@@ -208,22 +234,24 @@ INSERT INTO job_types (code, name, sort_order) VALUES
 -- ============================================================================
 
 CREATE TABLE opportunities (
-    opportunity_id         SERIAL PRIMARY KEY,
-    event_id               INT NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
-    job_type_id            INT NOT NULL REFERENCES job_types(job_type_id) ON DELETE RESTRICT,
-    opportunity_is_virtual BOOLEAN DEFAULT FALSE,
-    pre_event_instructions TEXT
+    opportunity_id          SERIAL PRIMARY KEY,
+    event_id                INT NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
+    job_type_id             INT NOT NULL REFERENCES job_types(job_type_id) ON DELETE RESTRICT,
+    opportunity_is_virtual  BOOLEAN DEFAULT FALSE,
+    pre_event_instructions  TEXT,
+    recurrence_template_id  UUID NULL
 );
 
 CREATE INDEX idx_opportunities_event ON opportunities(event_id);
 
 CREATE TABLE shifts (
-    shift_id         SERIAL PRIMARY KEY,
-    opportunity_id   INT NOT NULL REFERENCES opportunities(opportunity_id) ON DELETE CASCADE,
-    shift_start      TIMESTAMP NOT NULL,
-    shift_end        TIMESTAMP NOT NULL,
-    staff_contact_id INT REFERENCES staff(staff_id) ON DELETE SET NULL,
-    max_volunteers   INT NOT NULL,
+    shift_id                SERIAL PRIMARY KEY,
+    opportunity_id          INT NOT NULL REFERENCES opportunities(opportunity_id) ON DELETE CASCADE,
+    shift_start             TIMESTAMP NOT NULL,
+    shift_end               TIMESTAMP NOT NULL,
+    staff_contact_id        INT REFERENCES staff(staff_id) ON DELETE SET NULL,
+    max_volunteers          INT NOT NULL,
+    recurrence_template_id  UUID NULL,
     CHECK (shift_end > shift_start),
     CHECK (max_volunteers > 0)
 );
@@ -232,16 +260,23 @@ CREATE INDEX idx_shifts_opportunity   ON shifts(opportunity_id);
 CREATE INDEX idx_shifts_staff_contact ON shifts(staff_contact_id);
 
 CREATE TABLE volunteer_shifts (
-    volunteer_id INT REFERENCES volunteers(volunteer_id) ON DELETE CASCADE,
-    shift_id     INT REFERENCES shifts(shift_id) ON DELETE CASCADE,
-    assigned_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    cancelled_at TIMESTAMP,
+    volunteer_id    INT REFERENCES volunteers(volunteer_id) ON DELETE CASCADE,
+    shift_id        INT REFERENCES shifts(shift_id) ON DELETE CASCADE,
+    assigned_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    cancelled_at    TIMESTAMP,
+    reminder_sent_at TIMESTAMPTZ,
     PRIMARY KEY (volunteer_id, shift_id)
 );
 
 CREATE INDEX idx_volunteer_shifts_volunteer ON volunteer_shifts(volunteer_id);
 CREATE INDEX idx_volunteer_shifts_shift     ON volunteer_shifts(shift_id);
 CREATE INDEX idx_volunteer_shifts_cancelled ON volunteer_shifts(cancelled_at) WHERE cancelled_at IS NULL;
+
+-- Partial index for efficient reminder queries: only rows still needing a reminder.
+CREATE INDEX idx_volunteer_shifts_reminder
+    ON volunteer_shifts(shift_id)
+    WHERE reminder_sent_at IS NULL
+      AND cancelled_at IS NULL;
 
 
 -- ============================================================================

@@ -16,6 +16,8 @@ DROP TABLE IF EXISTS service_types;
 DROP TABLE IF EXISTS event_dates;
 DROP TABLE IF EXISTS events;
 
+DROP TABLE IF EXISTS recurrence_groups;
+
 DROP TABLE IF EXISTS funding_entities;
 DROP TABLE IF EXISTS venues;
 

@@ -16,7 +16,7 @@ This application allows organizations to:
 - Track and display volunteer assignments.
 
 Volunteers can:
-- See events and filter on dates, cities, event format, and job types.
+- See events and filter on dates, distance, cities, event format, and job types.
 - See available jobs and shifts for an event, grouped by job.
 - Sign up for a shift.
 - See their own shift assignments on the My Shifts page.
@@ -27,6 +27,7 @@ Volunteers can:
 Admins can:
 - Do everything volunteers can do, including sign up for shifts.
 - Add/edit/delete events (dates, opportunities, and shifts).
+- Create/edit/delete recurring events (by day, week(s), month or year).
 - Add/edit/delete venues.
 - Add/edit/delete volunteers and view their shift history.
 - View the volunteer roster for each event.
@@ -34,6 +35,7 @@ Admins can:
 #### Events Listing Page
 - Filter events by:
   - City
+  - Distance from the volunteer's zip code
   - Job type
   - Event format (Virtual, In-Person, Hybrid)
   - Date timeframe (defaults to today forward)
@@ -89,7 +91,7 @@ or client-side JavaScript. Admin routes (`/admin/*`) are protected by Next.js Ed
 Middleware that validates the session server-side before any page renders, so
 client-side role manipulation has no effect.
 
-### Database (in `backend/database/`)
+### Database (in `backend/migrations/`)
 - **Type**: PostgreSQL
 - **Migrations**: golang-migrate
 - **Schema**: Fully normalized (3NF)
@@ -238,13 +240,15 @@ docker-compose down -v
 
 The database is normalized to Third Normal Form (3NF) with the following main entities:
 
-- **Events**: Organization events that need volunteers, with dates and locations.
-- **Venues**: Reusable venue information (address, timezone).
-- **Opportunities**: Volunteer roles within events (job type, instructions).
-- **Shifts**: Time slots within an opportunity, with max volunteer capacity.
-- **Volunteers**: Registered volunteers. Administrators are also stored here with `role = 'ADMINISTRATOR'`.
+- **Events**: Organization events that need volunteers. Carries its own `timezone` field so virtual events aren't tied to a venue's timezone. Recurring events share a `recurrence_group_id` and are numbered by `recurrence_order`.
+- **Event Dates** (`event_dates`): One or more date/time ranges per event (supports multi-day events).
+- **Recurrence Groups** (`recurrence_groups`): Stores the pattern (daily, weekly, monthly, yearly), max occurrences, and weekday-ordinal settings used to generate a recurring event series.
+- **Venues**: Reusable venue information (address, coordinates). Timezone is on the event, not the venue.
+- **Opportunities**: Volunteer roles within events (job type, virtual flag, instructions). Linked to a `recurrence_template_id` so edits can fan out to future occurrences.
+- **Shifts**: Time slots within an opportunity, with max volunteer capacity. Also carries `recurrence_template_id` for the same reason.
+- **Volunteers**: Registered volunteers. Administrators are also stored here with `role = 'ADMINISTRATOR'`. Stores zip code, latitude/longitude, and a default distance preference for the distance filter.
 - **Staff**: Staff members who serve as shift contacts.
-- **Assignments** (`volunteer_shifts`): Junction table linking volunteers to shifts, with sign-up and cancellation timestamps.
+- **Assignments** (`volunteer_shifts`): Junction table linking volunteers to shifts, with sign-up, cancellation, and reminder-sent timestamps.
 
 See `database/README.md` for the full ERD.
 
@@ -326,6 +330,7 @@ npm run test:e2e:report   # open the last HTML report
 | `shift-signup.spec.ts` | Sign up for a shift, cancel, full shift, access control |
 | `feedback.spec.ts` | Submit feedback, admin Q&A workflow, note visibility |
 | `admin-event.spec.ts` | Admin creates/edits/deletes events, form validation, access control |
+| `admin-recurring-event.spec.ts` | Admin creates/edits/deletes recurring events; THIS_ONLY vs THIS_AND_FUTURE scope |
 | `admin-volunteers.spec.ts` | Admin views, edits, and deletes volunteers |
 | `profile.spec.ts` | View and edit volunteer profile |
 | `security.spec.ts` | HttpOnly cookie visibility, sessionActive flag, sign-out, auth guard |
