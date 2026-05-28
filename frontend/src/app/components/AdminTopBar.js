@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import UserMenu from "./UserMenu";
 import styles from "./admin-top-bar.module.css";
+import { getVenues } from "../lib/api";
 
 /**
  * Persistent header bar used on every page (volunteer and admin).
@@ -20,6 +22,14 @@ import styles from "./admin-top-bar.module.css";
  *   isAdmin        {boolean}  — show admin section links (default false)
  */
 export default function AdminTopBar({ userName, onSignOut, onFeedbackOpen, isAdmin = false }) {
+  // Warm the venue cache in the background whenever an admin is on any page,
+  // so Create/Edit Event forms don't need to wait for a separate venue fetch.
+  useEffect(() => {
+    if (isAdmin) {
+      getVenues().catch(() => {}); // fire-and-forget; non-critical
+    }
+  }, [isAdmin]);
+
   return (
     <div className={styles.topBar}>
       <div className={styles.topBarLeft}>

@@ -8,6 +8,7 @@
  *  - Non-admin (volunteer) cannot reach admin pages — redirect to /events
  *  - Manage Events listing page filters (cities, timeframe, format, reset, "No shifts" badge)
  *  - Event detail page: admin can save changes to a non-recurring event (smoke test)
+ *  - Venue cache: venue added via Venues admin page immediately appears in Create Event picker
  */
 
 import { test, expect } from "./helpers/fixtures";
@@ -18,6 +19,7 @@ import {
   createEventWithShift,
   createEventWithoutShifts,
   findEventIdByName,
+  findVenueIdByName,
   deleteEvent,
   deleteVenue,
   deleteJobType,
@@ -653,5 +655,78 @@ test.describe("Manage Events listing — Region column", () => {
     const row = adminPage.locator("tr").filter({ hasText: regionEventName });
     await expect(row).toBeVisible({ timeout: 5_000 });
     await expect(row.getByText("Seattle Area")).toBeVisible();
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  Venue cache — invalidation after Venues admin page mutation         */
+/* ------------------------------------------------------------------ */
+
+test.describe("Venue cache — invalidation", () => {
+  /**
+   * Verifies the end-to-end invalidation path:
+   *   1. Admin warms the venue cache by landing on an admin page.
+   *   2. Admin adds a venue on the Venues management page (UI mutation
+   *      triggers invalidateVenueCache() in the frontend).
+   *   3. Admin navigates to Create Event.
+   *   4. The new venue is immediately searchable in the venue picker —
+   *      confirming the cache was cleared and re-fetched after the mutation.
+   */
+  test("venue added on Venues page appears in the Create Event picker", async ({
+    adminPage,
+    adminToken,
+  }) => {
+    const venueName = uniqueName("CacheInvalidVenue");
+
+    // Step 1 — warm the cache by visiting an admin page (AdminTopBar calls
+    // getVenues() on mount for admins).
+    await adminPage.goto("/admin/events");
+    await expect(
+      adminPage.getByRole("heading", { name: /manage events/i })
+    ).toBeVisible({ timeout: 8_000 });
+
+    // Step 2 — add a new venue via the Venues admin page UI.
+    await adminPage.goto("/admin/venues");
+    await expect(
+      adminPage.getByRole("heading", { name: /venues/i })
+    ).toBeVisible({ timeout: 8_000 });
+
+    await adminPage.getByRole("button", { name: "+ Add Venue" }).click();
+
+    // Fill the inline add-venue form.  The venue name field has a distinctive
+    // placeholder; address/city/state are positional (no htmlFor associations).
+    await adminPage.getByPlaceholder(/central library/i).fill(venueName);
+    const formInputs = adminPage.locator('input');
+    await formInputs.nth(1).fill("1 Cache St"); // Address
+    await formInputs.nth(2).fill("Olympia");     // City
+    await formInputs.nth(3).fill("WA");          // State
+
+    await adminPage.getByRole("button", { name: "Create Venue" }).click();
+
+    // Success message confirms the venue was persisted (and invalidateVenueCache
+    // was called by the frontend).
+    await expect(
+      adminPage.getByText("Venue created.")
+    ).toBeVisible({ timeout: 5_000 });
+
+    // Step 3 — navigate to Create Event and expand all sections.
+    await adminPage.goto("/admin/events/new");
+    await expect(
+      adminPage.getByPlaceholder(/medicare|workshop/i)
+    ).toBeVisible({ timeout: 10_000 });
+    await expandAllSections(adminPage);
+
+    // Step 4 — type the venue name in the picker; it must appear in results,
+    // proving the cache was re-fetched with the new venue included.
+    await adminPage.getByRole("radio", { name: /in.person/i }).check();
+    const venueSearch = adminPage.getByPlaceholder(/search venues/i);
+    await venueSearch.fill(venueName);
+    await expect(adminPage.getByText(venueName).first()).toBeVisible({ timeout: 5_000 });
+
+    // Cleanup — look up the venue ID by name and delete it.
+    const venueId = await findVenueIdByName(adminToken, venueName);
+    if (venueId) {
+      try { await deleteVenue(adminToken, venueId); } catch { /* ignore */ }
+    }
   });
 });

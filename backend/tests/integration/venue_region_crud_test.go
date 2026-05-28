@@ -46,16 +46,18 @@ const (
 // ============================================================================
 
 // TestCreateVenue verifies that a new venue can be created via the admin
-// mutation and that the returned ID maps to a row in the DB.
+// mutation and that the returned ID maps to a row in the DB with the correct
+// fields, including the optional zipCode used by the frontend venue cache.
 func TestCreateVenue(t *testing.T) {
 	token := makeAdminToken(t)
 
 	resp := gqlPost(t, "/graphql/admin", token, mutCreateVenue, map[string]any{
 		"input": map[string]any{
-			"name":     "CRUD Test Venue",
-			"address":  "1221 SW 4th Ave",
-			"city":     "Portland",
-			"state":    "OR",
+			"name":    "CRUD Test Venue",
+			"address": "1221 SW 4th Ave",
+			"city":    "Portland",
+			"state":   "OR",
+			"zipCode": "97204",
 		},
 	})
 
@@ -83,6 +85,17 @@ func TestCreateVenue(t *testing.T) {
 	if !rowExists(t, "SELECT COUNT(*) FROM venues WHERE venue_id = $1", venueID) {
 		t.Errorf("expected venue row in DB for id=%s", venueID)
 	}
+
+	// Verify zipCode was persisted — it's a field the frontend cache queries.
+	var zip string
+	if err := testDB.QueryRow(
+		"SELECT COALESCE(zip_code, '') FROM venues WHERE venue_id = $1", venueID,
+	).Scan(&zip); err != nil {
+		t.Fatalf("querying zip_code: %v", err)
+	}
+	if zip != "97204" {
+		t.Errorf("zip_code: want %q, got %q", "97204", zip)
+	}
 }
 
 // ============================================================================
@@ -97,11 +110,11 @@ func TestUpdateVenue(t *testing.T) {
 
 	resp := gqlPost(t, "/graphql/admin", token, mutUpdateVenue, map[string]any{
 		"input": map[string]any{
-			"id":       fmt.Sprintf("%d", venueID),
-			"name":     "Post-Update Venue",
-			"address":  "900 Court St NE",
-			"city":     "Salem",
-			"state":    "OR",
+			"id":      fmt.Sprintf("%d", venueID),
+			"name":    "Post-Update Venue",
+			"address": "900 Court St NE",
+			"city":    "Salem",
+			"state":   "OR",
 		},
 	})
 
@@ -124,6 +137,73 @@ func TestUpdateVenue(t *testing.T) {
 	}
 	if name != "Post-Update Venue" {
 		t.Errorf("expected venue_name='Post-Update Venue', got %q", name)
+	}
+}
+
+// TestUpdateVenue_ZipCode verifies that zipCode can be set and later changed
+// via updateVenue — it is an optional field used by the frontend venue cache.
+func TestUpdateVenue_ZipCode(t *testing.T) {
+	token := makeAdminToken(t)
+	// Seed a venue without a zip code.
+	venueID := seedVenue(t, "Zip Update Venue", "10 Pine St", "Bend", "OR")
+
+	// First update: set a zip code.
+	resp := gqlPost(t, "/graphql/admin", token, mutUpdateVenue, map[string]any{
+		"input": map[string]any{
+			"id":      fmt.Sprintf("%d", venueID),
+			"name":    "Zip Update Venue",
+			"address": "10 Pine St",
+			"city":    "Bend",
+			"state":   "OR",
+			"zipCode": "97701",
+		},
+	})
+	if hasGQLErrors(resp) {
+		t.Fatalf("set zipCode: unexpected errors: %v", resp.Errors)
+	}
+	var r1 mutationResult
+	unmarshalField(t, resp, "updateVenue", &r1)
+	if !r1.Success {
+		t.Fatalf("set zipCode: updateVenue returned success=false: %v", r1.Message)
+	}
+
+	var zip string
+	if err := testDB.QueryRow(
+		"SELECT COALESCE(zip_code, '') FROM venues WHERE venue_id = $1", venueID,
+	).Scan(&zip); err != nil {
+		t.Fatalf("querying zip_code after set: %v", err)
+	}
+	if zip != "97701" {
+		t.Errorf("after set: zip_code want %q, got %q", "97701", zip)
+	}
+
+	// Second update: change the zip code.
+	resp2 := gqlPost(t, "/graphql/admin", token, mutUpdateVenue, map[string]any{
+		"input": map[string]any{
+			"id":      fmt.Sprintf("%d", venueID),
+			"name":    "Zip Update Venue",
+			"address": "10 Pine St",
+			"city":    "Bend",
+			"state":   "OR",
+			"zipCode": "97702",
+		},
+	})
+	if hasGQLErrors(resp2) {
+		t.Fatalf("change zipCode: unexpected errors: %v", resp2.Errors)
+	}
+	var r2 mutationResult
+	unmarshalField(t, resp2, "updateVenue", &r2)
+	if !r2.Success {
+		t.Fatalf("change zipCode: updateVenue returned success=false: %v", r2.Message)
+	}
+
+	if err := testDB.QueryRow(
+		"SELECT COALESCE(zip_code, '') FROM venues WHERE venue_id = $1", venueID,
+	).Scan(&zip); err != nil {
+		t.Fatalf("querying zip_code after change: %v", err)
+	}
+	if zip != "97702" {
+		t.Errorf("after change: zip_code want %q, got %q", "97702", zip)
 	}
 }
 

@@ -8,6 +8,7 @@ import {
   getAuthName,
   signOut,
   adminGql,
+  getVenues,
 } from "../../../lib/api";
 import AdminTopBar from "../../../components/AdminTopBar";
 import FeedbackButton from "../../../components/FeedbackButton";
@@ -40,7 +41,6 @@ const ADMIN_EVENT_DETAIL = `
       jobTypes { id name }
       fundingEntities { id name }
     }
-    venues { id name city state }
     staff { id firstName lastName position }
   }
 `;
@@ -557,8 +557,11 @@ export default function AdminEventDetailPage() {
   // hide the success banner while the data quietly reloads in the background.
   const loadPage = useCallback((bound, eid, refreshRoster = false, silent = false) => {
     if (!silent) setLoading(true);
-    bound(ADMIN_EVENT_DETAIL, { eventId: eid })
-      .then((res) => {
+    Promise.all([
+      bound(ADMIN_EVENT_DETAIL, { eventId: eid }),
+      getVenues().catch(() => []),
+    ])
+      .then(([res, venueList]) => {
         if (res.errors) { setPageError(res.errors[0]?.message ?? "Error loading data."); return; }
         const loadedOpps = res.data?.opportunitiesForEvent ?? [];
         const loadedEvent = res.data?.managedEventById ?? null;
@@ -568,7 +571,7 @@ export default function AdminEventDetailPage() {
         setSvcTypes(res.data?.lookupValues?.serviceTypes ?? []);
         setFundingEntities(res.data?.lookupValues?.fundingEntities ?? []);
         setFundingEntityId(String(loadedEvent?.fundingEntity?.id ?? ""));
-        setVenues(res.data?.venues ?? []);
+        setVenues(venueList);
         setStaff(res.data?.staff ?? []);
         if (refreshRoster) {
           const shiftIdSet = new Set(

@@ -415,6 +415,24 @@ func seedVenue(t *testing.T, name, address, city, state string) int {
 	return id
 }
 
+// seedVenueWithZip inserts a venue that includes a zip code and returns its ID.
+func seedVenueWithZip(t *testing.T, name, address, city, state, zipCode string) int {
+	t.Helper()
+	var id int
+	err := testDB.QueryRow(`
+		INSERT INTO venues (venue_name, street_address, city, state, zip_code)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING venue_id
+	`, name, address, city, state, zipCode).Scan(&id)
+	if err != nil {
+		t.Fatalf("seedVenueWithZip: %v", err)
+	}
+	t.Cleanup(func() {
+		testDB.Exec("DELETE FROM venues WHERE venue_id = $1", id)
+	})
+	return id
+}
+
 // seedEvent inserts an event and returns its event_id.
 //
 //	isVirtual=true,  venueID=nil  → VIRTUAL

@@ -8,6 +8,7 @@ import {
   getAuthName,
   signOut,
   adminGql,
+  invalidateVenueCache,
 } from "../../lib/api";
 import AdminTopBar from "../../components/AdminTopBar";
 import FeedbackButton from "../../components/FeedbackButton";
@@ -147,6 +148,7 @@ export default function AdminVenuesPage() {
       }
       showMsg("success", successMsg);
       if (onSuccess) onSuccess(result);
+      invalidateVenueCache(); // so Create/Edit Event pages re-fetch fresh data
       loadData(gql);
       return result;
     } catch {

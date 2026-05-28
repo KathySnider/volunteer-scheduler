@@ -8,6 +8,8 @@ import {
   getAuthName,
   signOut,
   adminGql,
+  getVenues,
+  addVenueToCache,
 } from "../../../lib/api";
 import AdminTopBar from "../../../components/AdminTopBar";
 import FeedbackButton from "../../../components/FeedbackButton";
@@ -36,16 +38,8 @@ function timezoneOptions(browserZone) {
 
 /* ----- GraphQL operations ----- */
 
-const VENUES_AND_LOOKUPS = `
+const LOOKUPS_QUERY = `
   query {
-    venues {
-      id
-      name
-      address
-      city
-      state
-      zipCode
-    }
     lookupValues {
       fundingEntities { id name }
       serviceTypes { id name }
@@ -279,14 +273,18 @@ function VenueSelector({ venues, selectedVenue, onSelect, onClear, gql }) {
         setCreateError(result?.message ?? "Failed to create venue.");
         return;
       }
-      // Auto-select the newly created venue
-      onSelect({
+      // Add to module cache so other admin pages see it immediately.
+      const created = {
         id:      result.id,
         name:    newVenue.name,
         address: newVenue.address,
         city:    newVenue.city,
         state:   newVenue.state,
-      });
+        zipCode: newVenue.zipCode || null,
+      };
+      addVenueToCache(created);
+      // Auto-select the newly created venue
+      onSelect(created);
       setShowNewForm(false);
       setSearch("");
     } catch {
@@ -511,17 +509,21 @@ export default function AddEventPage() {
     setUserName(getAuthName() ?? "");
     setIsAdmin(true);
 
-    boundGql(VENUES_AND_LOOKUPS, null)
-      .then((res) => {
-        // Use whatever data came back even if one field errored.
-        if (res.data?.venues)                             setVenues(res.data.venues);
+    Promise.all([
+      boundGql(LOOKUPS_QUERY, null),
+      getVenues().catch(() => []),
+    ])
+      .then(([res, venueList]) => {
+        // Venues come from the module-level cache (shared across admin pages).
+        setVenues(venueList);
+        // Use whatever lookup data came back even if one field errored.
         if (res.data?.lookupValues?.fundingEntities) {
           setFundingEntities(res.data.lookupValues.fundingEntities);
           if (res.data.lookupValues.fundingEntities.length > 0 && !fundingEntityId) {
             setFundingEntityId(String(res.data.lookupValues.fundingEntities[0].id));
           }
         }
-        if (res.data?.lookupValues?.serviceTypes)         setServiceTypes(res.data.lookupValues.serviceTypes);
+        if (res.data?.lookupValues?.serviceTypes) setServiceTypes(res.data.lookupValues.serviceTypes);
         if (res.errors) setLoadError(res.errors[0]?.message ?? "Error loading some data.");
       })
       .catch(() => setLoadError("Unable to reach the server."));

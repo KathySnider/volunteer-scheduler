@@ -294,6 +294,25 @@ export async function createRecurringEvent(
   return result.id; // ID of the first occurrence (recurrenceOrder = 1)
 }
 
+/**
+ * Return the string ID of the first venue whose name exactly matches, or null
+ * if none is found.  Used for post-test cleanup when the venue was created
+ * through the UI (so we never held the ID in a variable).
+ */
+export async function findVenueIdByName(
+  adminToken: string,
+  name: string
+): Promise<string | null> {
+  const data = await gql(
+    ADMIN_URL,
+    `query { venues { id name } }`,
+    undefined,
+    adminToken
+  );
+  const venues = data.venues as Array<{ id: string; name: string }> | undefined;
+  return venues?.find((v) => v.name === name)?.id ?? null;
+}
+
 /** Delete a venue by ID. */
 export async function deleteVenue(adminToken: string, venueId: string): Promise<void> {
   await gql(

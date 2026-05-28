@@ -175,6 +175,51 @@ export function clearAuthToken() {
   localStorage.removeItem("authName");
 }
 
+/* =========================================================
+   Venue cache
+   =========================================================
+   Module-level cache so admin pages (Create Event, Edit Event)
+   share a single venue fetch for the browser session instead of
+   each issuing their own request.
+
+   Usage:
+     getVenues()            — returns cached list; fetches on first call
+     invalidateVenueCache() — call after any venue mutation so the next
+                              navigation re-fetches fresh data
+     addVenueToCache(v)     — optimistically append a just-created venue
+   ========================================================= */
+
+let _venueCache = null;
+let _venueFetchPromise = null;
+
+export async function getVenues() {
+  if (_venueCache !== null) return _venueCache;
+  if (_venueFetchPromise) return _venueFetchPromise;
+  _venueFetchPromise = adminGql(`
+    query { venues { id name address city state zipCode } }
+  `)
+    .then((res) => {
+      _venueCache = res?.data?.venues ?? [];
+      _venueFetchPromise = null;
+      return _venueCache;
+    })
+    .catch((err) => {
+      _venueFetchPromise = null;
+      throw err;
+    });
+  return _venueFetchPromise;
+}
+
+export function invalidateVenueCache() {
+  _venueCache = null;
+}
+
+export function addVenueToCache(venue) {
+  if (_venueCache !== null) {
+    _venueCache = [..._venueCache, venue];
+  }
+}
+
 /**
  * Sign the user out: invalidate the server session cookie, then clear localStorage.
  * The server call is best-effort — localStorage is always cleared regardless.

@@ -22,7 +22,7 @@ const (
 
 	qryVenues = `query Venues {
 		venues {
-			id name address city state
+			id name address city state zipCode
 		}
 	}`
 
@@ -101,11 +101,12 @@ type lookupValuesResult struct {
 }
 
 type venueResult struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Address string `json:"address"`
-	City    string `json:"city"`
-	State   string `json:"state"`
+	ID      string  `json:"id"`
+	Name    string  `json:"name"`
+	Address string  `json:"address"`
+	City    string  `json:"city"`
+	State   string  `json:"state"`
+	ZipCode *string `json:"zipCode"`
 }
 
 type staffResult struct {
@@ -202,10 +203,14 @@ func TestLookupValues(t *testing.T) {
 }
 
 // TestVenues verifies that an admin can query venues and that a seeded venue
-// appears in the results.
+// appears in the results with all fields the frontend cache relies on
+// (id, name, address, city, state, zipCode).
 func TestVenues(t *testing.T) {
 	adminToken := makeAdminToken(t)
 	venueID := seedVenue(t, "Admin Query Test Venue", "123 Main St", "Springfield", "IL")
+
+	// Also seed a venue with an explicit zip code so we can assert that field.
+	zipVenueID := seedVenueWithZip(t, "Zip Test Venue", "456 Oak Ave", "Portland", "OR", "97201")
 
 	resp := gqlPost(t, "/graphql/admin", adminToken, qryVenues, nil)
 
@@ -216,22 +221,39 @@ func TestVenues(t *testing.T) {
 	var venues []venueResult
 	unmarshalField(t, resp, "venues", &venues)
 
+	// Check the basic venue (no zip).
 	expectedID := strconv.Itoa(venueID)
 	found := false
 	for _, v := range venues {
 		if v.ID == expectedID {
 			found = true
 			if v.Name != "Admin Query Test Venue" {
-				t.Errorf("expected name=%q, got %q", "Admin Query Test Venue", v.Name)
+				t.Errorf("name: want %q, got %q", "Admin Query Test Venue", v.Name)
 			}
 			if v.City != "Springfield" {
-				t.Errorf("expected city=%q, got %q", "Springfield", v.City)
+				t.Errorf("city: want %q, got %q", "Springfield", v.City)
 			}
 			break
 		}
 	}
 	if !found {
-		t.Errorf("seeded venue with id=%d not found in venues results", venueID)
+		t.Errorf("seeded venue id=%d not found in venues results", venueID)
+	}
+
+	// Check the venue with zip code — zipCode must be returned and match.
+	expectedZipID := strconv.Itoa(zipVenueID)
+	zipFound := false
+	for _, v := range venues {
+		if v.ID == expectedZipID {
+			zipFound = true
+			if v.ZipCode == nil || *v.ZipCode != "97201" {
+				t.Errorf("zipCode: want %q, got %v", "97201", v.ZipCode)
+			}
+			break
+		}
+	}
+	if !zipFound {
+		t.Errorf("seeded venue id=%d (with zip) not found in venues results", zipVenueID)
 	}
 }
 
