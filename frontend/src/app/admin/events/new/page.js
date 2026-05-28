@@ -434,6 +434,25 @@ const EMPTY_DATE = () => ({
   endDate:   "", endTime:   "00:00",
 });
 
+/* ----- Accordion section wrapper ----- */
+
+function FormSection({ title, open, onToggle, children }) {
+  return (
+    <div className={styles.section}>
+      <button
+        type="button"
+        className={styles.sectionHeader}
+        onClick={onToggle}
+        aria-expanded={open}
+      >
+        <span className={styles.sectionTitle}>{title}</span>
+        <span className={`${styles.sectionChevron} ${open ? styles.chevronOpen : ""}`}>▼</span>
+      </button>
+      {open && <div className={styles.sectionBody}>{children}</div>}
+    </div>
+  );
+}
+
 export default function AddEventPage() {
   const router = useRouter();
   const [gql, setGql] = useState(null);
@@ -471,6 +490,15 @@ export default function AddEventPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [createdEvent, setCreatedEvent] = useState(null); // { id, name }
+
+  // Accordion — only "details" open by default; others expand on demand
+  const [openSections, setOpenSections] = useState(new Set(["details"]));
+  const toggleSection = (id) =>
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
 
   /* Auth check + load data */
   useEffect(() => {
@@ -578,7 +606,18 @@ export default function AddEventPage() {
   const handleSubmit = async () => {
     const errs = validate();
     setErrors(errs);
-    if (Object.keys(errs).length > 0) return;
+    if (Object.keys(errs).length > 0) {
+      // Open every section that contains an error so the user can see them.
+      setOpenSections((prev) => {
+        const next = new Set(prev);
+        if (errs.name || errs.fundingEntityId) next.add("details");
+        if (errs.venue)                        next.add("venue");
+        if (errs.recurrenceMax)                next.add("recurrence");
+        if (errs.dates?.some(Boolean))         next.add("dates");
+        return next;
+      });
+      return;
+    }
 
     setSubmitting(true);
     setSubmitError("");
@@ -691,8 +730,7 @@ export default function AddEventPage() {
         {!createdEvent && (
           <>
             {/* Event details */}
-            <div className={styles.section}>
-              <div className={styles.sectionTitle}>Event Details</div>
+            <FormSection title="Event Details" open={openSections.has("details")} onToggle={() => toggleSection("details")}>
 
               <div className={styles.field}>
                 <label className={styles.label}>
@@ -760,12 +798,11 @@ export default function AddEventPage() {
                   ))}
                 </div>
               </div>
-            </div>
+            </FormSection>
 
             {/* Venue */}
             {eventType !== "VIRTUAL" && (
-              <div className={styles.section}>
-                <div className={styles.sectionTitle}>Venue</div>
+              <FormSection title="Venue" open={openSections.has("venue")} onToggle={() => toggleSection("venue")}>
                 <div className={styles.field}>
                   <label className={styles.label}>
                     Venue <span className={styles.required}>*</span>
@@ -779,12 +816,11 @@ export default function AddEventPage() {
                   />
                   {errors.venue && <div className={styles.fieldError}>{errors.venue}</div>}
                 </div>
-              </div>
+              </FormSection>
             )}
 
             {/* Service types */}
-            <div className={styles.section}>
-              <div className={styles.sectionTitle}>Service Types</div>
+            <FormSection title="Service Types" open={openSections.has("serviceTypes")} onToggle={() => toggleSection("serviceTypes")}>
               <div className={styles.checkboxGroup}>
                 {serviceTypes.map((st) => (
                   <label key={st.id} className={styles.checkboxLabel}>
@@ -797,11 +833,10 @@ export default function AddEventPage() {
                   </label>
                 ))}
               </div>
-            </div>
+            </FormSection>
 
             {/* Timezone */}
-            <div className={styles.section}>
-              <div className={styles.sectionTitle}>Timezone</div>
+            <FormSection title="Timezone" open={openSections.has("timezone")} onToggle={() => toggleSection("timezone")}>
               <div className={styles.timezoneRow}>
                 <select
                   className={styles.select}
@@ -814,11 +849,10 @@ export default function AddEventPage() {
                   ))}
                 </select>
               </div>
-            </div>
+            </FormSection>
 
             {/* Recurrence */}
-            <div className={styles.section}>
-              <div className={styles.sectionTitle}>Recurrence</div>
+            <FormSection title="Recurrence" open={openSections.has("recurrence")} onToggle={() => toggleSection("recurrence")}>
               <div className={styles.field}>
                 <label className={styles.checkboxLabel}>
                   <input
@@ -904,13 +938,14 @@ export default function AddEventPage() {
                   </div>
                 )}
               </div>
-            </div>
+            </FormSection>
 
             {/* Event dates */}
-            <div className={styles.section}>
-              <div className={styles.sectionTitle}>
-                {recurring ? "First Occurrence Dates" : "Event Dates"}
-              </div>
+            <FormSection
+              title={recurring ? "First Occurrence Dates" : "Event Dates"}
+              open={openSections.has("dates")}
+              onToggle={() => toggleSection("dates")}
+            >
               {recurring && (
                 <p className={styles.recurNote}>
                   Enter the dates for the first occurrence; the system will generate the rest.
@@ -1004,7 +1039,7 @@ export default function AddEventPage() {
               <button className={styles.addDateBtn} onClick={addDate}>
                 ＋ Add another date
               </button>
-            </div>
+            </FormSection>
 
             {/* Submit */}
             {submitError && <div className={styles.submitError}>{submitError}</div>}

@@ -27,6 +27,24 @@
 
 import { test, expect, withAdminRetry } from "./helpers/fixtures";
 import type { Page } from "@playwright/test";
+
+/**
+ * Expand every collapsed accordion section on the new-event form so tests can
+ * reach fields that live in sections other than "Event Details".
+ */
+async function expandAllSections(page: Page) {
+  // Query all section-header buttons once (stable total — clicking doesn't add/remove them).
+  const allHeaders = page.locator('button[aria-expanded]');
+  const total = await allHeaders.count();
+  for (let i = 0; i < total; i++) {
+    const btn = allHeaders.nth(i);
+    if ((await btn.getAttribute('aria-expanded')) === 'false') {
+      await btn.click();
+      // Wait for React to apply the open state before moving to the next button.
+      await expect(btn).toHaveAttribute('aria-expanded', 'true');
+    }
+  }
+}
 import {
   createRecurringEvent,
   createEventWithoutShifts,
@@ -43,10 +61,12 @@ import {
 test.describe("New event form — recurrence section", () => {
   test.beforeEach(async ({ adminPage }) => {
     await adminPage.goto("/admin/events/new");
-    // Wait for the form to be fully hydrated.
+    // Wait for the form to be fully hydrated, then expand all accordion
+    // sections so fields in Recurrence, Dates, etc. are accessible.
     await expect(
       adminPage.getByPlaceholder(/medicare|workshop/i)
     ).toBeVisible({ timeout: 10_000 });
+    await expandAllSections(adminPage);
   });
 
   test("recurrence fields are disabled (greyed out) when toggle is off", async ({
@@ -226,6 +246,7 @@ test.describe("New event form — create recurring event happy path", () => {
     await expect(
       adminPage.getByPlaceholder(/medicare|workshop/i)
     ).toBeVisible({ timeout: 10_000 });
+    await expandAllSections(adminPage);
 
     // Fill event name.
     await adminPage.getByPlaceholder(/medicare|workshop/i).fill(createdEventName);
@@ -270,6 +291,7 @@ test.describe("New event form — create recurring event happy path", () => {
     await expect(
       adminPage.getByPlaceholder(/medicare|workshop/i)
     ).toBeVisible({ timeout: 10_000 });
+    await expandAllSections(adminPage);
 
     // Fill event name.
     await adminPage.getByPlaceholder(/medicare|workshop/i).fill(multiDateName);

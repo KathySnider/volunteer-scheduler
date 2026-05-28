@@ -11,6 +11,7 @@
  */
 
 import { test, expect } from "./helpers/fixtures";
+import type { Page } from "@playwright/test";
 import {
   createVenue,
   createJobType,
@@ -22,6 +23,24 @@ import {
   deleteJobType,
   uniqueName,
 } from "./helpers/api";
+
+/**
+ * Expand every collapsed accordion section on the new-event form so tests can
+ * reach fields that live in sections other than "Event Details".
+ */
+async function expandAllSections(page: Page) {
+  // Query all section-header buttons once (stable total — clicking doesn't add/remove them).
+  const allHeaders = page.locator('button[aria-expanded]');
+  const total = await allHeaders.count();
+  for (let i = 0; i < total; i++) {
+    const btn = allHeaders.nth(i);
+    if ((await btn.getAttribute('aria-expanded')) === 'false') {
+      await btn.click();
+      // Wait for React to apply the open state before moving to the next button.
+      await expect(btn).toHaveAttribute('aria-expanded', 'true');
+    }
+  }
+}
 
 test.describe("Admin event creation — happy path", () => {
   let happyVenueId: string;
@@ -56,9 +75,11 @@ test.describe("Admin event creation — happy path", () => {
 
     await adminPage.goto("/admin/events/new");
 
-    // Wait for the form to be ready.
+    // Wait for the form to be ready, then expand all accordion sections so
+    // fields in Venue, Dates, etc. are accessible.
     const nameInput = adminPage.getByPlaceholder(/medicare|workshop/i);
     await expect(nameInput).toBeVisible({ timeout: 10_000 });
+    await expandAllSections(adminPage);
     await nameInput.fill(happyEventName);
 
     // Select In-Person format.
