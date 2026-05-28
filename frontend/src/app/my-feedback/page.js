@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import {
   isAuthenticated,
   getAuthName,
+  getAuthRole,
   signOut,
   volunteerGql,
 } from "../lib/api";
-import UserMenu from "../components/UserMenu";
+import AdminTopBar from "../components/AdminTopBar";
 import FeedbackButton from "../components/FeedbackButton";
 import styles from "./my-feedback.module.css";
 
@@ -107,7 +108,9 @@ function FeedbackCard({ item, onClick }) {
 export default function MyFeedbackPage() {
   const router = useRouter();
   const [gql, setGql] = useState(null);
-  const [userName, setUserName] = useState("");
+  const [userName,     setUserName]     = useState("");
+  const [isAdmin,      setIsAdmin]      = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedback, setFeedback] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -136,6 +139,7 @@ export default function MyFeedbackPage() {
     const bound = volunteerGql;
     setGql(() => bound);
     setUserName(getAuthName() ?? "");
+    setIsAdmin(getAuthRole() === "ADMINISTRATOR");
     loadData(bound);
   }, [router, loadData]);
 
@@ -145,16 +149,7 @@ export default function MyFeedbackPage() {
 
   return (
     <div className={styles.page}>
-      {/* Top bar */}
-      <div className={styles.topBar}>
-        <div className={styles.topBarLeft}>
-          <a href="/events" className={styles.backLink}>&#8592; Back to Events</a>
-        </div>
-        <div className={styles.topBarTitle}>My Feedback</div>
-        <div className={styles.topBarRight}>
-          <UserMenu name={userName} isAdmin={false} onSignOut={handleSignOut} />
-        </div>
-      </div>
+      <AdminTopBar userName={userName} isAdmin={isAdmin} onSignOut={handleSignOut} onFeedbackOpen={() => setFeedbackOpen(true)} />
 
       <main className={styles.main}>
         <h1 className={styles.pageTitle}>My Feedback</h1>
@@ -191,7 +186,7 @@ export default function MyFeedbackPage() {
         )}
       </main>
 
-      <FeedbackButton />
+      <FeedbackButton open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </div>
   );
 }

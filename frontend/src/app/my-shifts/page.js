@@ -9,7 +9,7 @@ import {
   signOut,
   volunteerGql,
 } from "../lib/api";
-import UserMenu from "../components/UserMenu";
+import AdminTopBar from "../components/AdminTopBar";
 import FeedbackButton from "../components/FeedbackButton";
 import styles from "./my-shifts.module.css";
 
@@ -96,7 +96,8 @@ export default function MyShiftsPage() {
   const router    = useRouter();
   const [gql,     setGql]     = useState(null);
   const [userName,setUserName]= useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin,      setIsAdmin]      = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const [filter,   setFilter]   = useState("UPCOMING");
   const [groups,   setGroups]   = useState([]);
@@ -165,11 +166,7 @@ export default function MyShiftsPage() {
 
   return (
     <div className={styles.page}>
-      {/* Top bar */}
-      <div className={styles.topBar}>
-        <a href="/events" className={styles.backLink}>← Back to Events</a>
-        <UserMenu name={userName} isAdmin={isAdmin} onSignOut={handleSignOut} />
-      </div>
+      <AdminTopBar userName={userName} isAdmin={isAdmin} onSignOut={handleSignOut} onFeedbackOpen={() => setFeedbackOpen(true)} />
 
       <div className={styles.content}>
         <div className={styles.pageHeader}>
@@ -298,7 +295,7 @@ export default function MyShiftsPage() {
           );
         })}
       </div>
-      <FeedbackButton />
+      <FeedbackButton open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </div>
   );
 }

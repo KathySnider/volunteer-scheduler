@@ -64,6 +64,15 @@
   text-decoration: underline;
 }
 
+/* ----- Page title ----- */
+
+.pageTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  padding: 1.75rem 2rem 0;
+}
+
 /* ----- Filter bar ----- */
 
 .filterBar {

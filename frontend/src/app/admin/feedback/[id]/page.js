@@ -10,7 +10,7 @@ import {
   adminGql,
   downloadAttachment,
 } from "../../../lib/api";
-import UserMenu from "../../../components/UserMenu";
+import AdminTopBar from "../../../components/AdminTopBar";
 import FeedbackButton from "../../../components/FeedbackButton";
 import styles from "./admin-feedback-detail.module.css";
 
@@ -432,6 +432,7 @@ export default function AdminFeedbackDetailPage() {
   const id       = params?.id;
   const [gql, setGql]           = useState(null);
   const [userName, setUserName] = useState("");
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const [feedback, setFeedback]   = useState(null);
   const [loading, setLoading]     = useState(true);
@@ -499,10 +500,7 @@ export default function AdminFeedbackDetailPage() {
   return (
     <div className={styles.page}>
       {/* Top bar */}
-      <div className={styles.topBar}>
-        <button className={styles.backLink} onClick={() => router.back()}>← Manage Feedback</button>
-        <UserMenu name={userName} isAdmin={true} onSignOut={handleSignOut} />
-      </div>
+      <AdminTopBar userName={userName} isAdmin={true} onSignOut={handleSignOut} onFeedbackOpen={() => setFeedbackOpen(true)} />
 
       <div className={styles.content}>
         {/* Banners */}
@@ -659,7 +657,7 @@ export default function AdminFeedbackDetailPage() {
           </>
         )}
       </div>
-      <FeedbackButton />
+      <FeedbackButton open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </div>
   );
 }

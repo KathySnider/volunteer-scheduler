@@ -3,7 +3,7 @@
  *
  * Covers:
  *  - Happy path: magic-link request → email arrives → click link → land on /events
- *  - Role routing: ADMINISTRATOR lands on /events (same page, admin menu shown)
+ *  - Role routing: ADMINISTRATOR lands on /events (same page, admin nav links shown in header)
  *  - Unknown email: "No account found" message shown, account request form offered
  *  - Invalid/expired token: sign-in error shown
  *  - Logged-out user hitting a protected page: redirected to /login
@@ -102,13 +102,13 @@ test.describe("Magic-link login — happy path", () => {
 });
 
 test.describe("Magic-link login — admin routing", () => {
-  test("administrator sees admin menu items when logged in", async ({ adminPage }) => {
+  test("administrator sees admin nav links in the header when logged in", async ({ adminPage }) => {
     await adminPage.goto("/events");
 
-    // Open the user menu and check for admin-only items
-    await adminPage.getByRole("button", { name: /menu|account|settings/i }).first().click();
-    await expect(adminPage.getByRole("link", { name: "Manage Events" })).toBeVisible();
-    await expect(adminPage.getByRole("link", { name: "Manage Volunteers" })).toBeVisible();
+    // Admin section links are always visible in the persistent header — no
+    // gear-icon dropdown needed any more.
+    await expect(adminPage.getByRole("link", { name: "Events" }).first()).toBeVisible({ timeout: 8_000 });
+    await expect(adminPage.getByRole("link", { name: "Volunteers" })).toBeVisible({ timeout: 8_000 });
   });
 });
 
@@ -171,7 +171,7 @@ test.describe("Logout", () => {
     await volunteerPage.getByRole("button", { name: /sign out/i }).click();
 
     // Should land on /login.
-    await volunteerPage.waitForURL("**/login", { timeout: 5_000 });
+    await volunteerPage.waitForURL("**/login**", { timeout: 5_000 });
     expect(volunteerPage.url()).toContain("/login");
 
     // sessionActive must be cleared by signOut() — not authToken (removed).

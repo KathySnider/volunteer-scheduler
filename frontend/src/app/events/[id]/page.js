@@ -10,7 +10,7 @@ import {
   volunteerGql,
   adminGql,
 } from "../../lib/api";
-import UserMenu from "../../components/UserMenu";
+import AdminTopBar from "../../components/AdminTopBar";
 import FeedbackButton from "../../components/FeedbackButton";
 import styles from "./event-detail.module.css";
 
@@ -263,7 +263,8 @@ export default function EventDetailPage() {
   const [gql,       setGql]       = useState(null);
   const [volGql,    setVolGql]    = useState(null);
   const [userName,  setUserName]  = useState("");
-  const [isAdmin,   setIsAdmin]   = useState(false);
+  const [isAdmin,      setIsAdmin]      = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const [event,       setEvent]       = useState(null);
   const [shifts,      setShifts]      = useState([]);
@@ -378,11 +379,7 @@ export default function EventDetailPage() {
   /* ----- Render ----- */
   return (
     <div className={styles.page}>
-      {/* Top bar */}
-      <div className={styles.topBar}>
-        <a href="/events" className={styles.backLink}>← Back to Events</a>
-        <UserMenu name={userName} isAdmin={isAdmin} onSignOut={handleSignOut} />
-      </div>
+      <AdminTopBar userName={userName} isAdmin={isAdmin} onSignOut={handleSignOut} onFeedbackOpen={() => setFeedbackOpen(true)} />
 
       <div className={styles.content}>
 
@@ -496,7 +493,7 @@ export default function EventDetailPage() {
           </>
         )}
       </div>
-      <FeedbackButton />
+      <FeedbackButton open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </div>
   );
 }

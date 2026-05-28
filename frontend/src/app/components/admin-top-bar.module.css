@@ -1,0 +1,83 @@
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 2rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.topBarLeft {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.appTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.appTitle:hover {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.topBarNav {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.topBarLink {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-primary);
+  text-decoration: none;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  line-height: inherit;
+}
+
+.topBarLink:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
+/* Admin section links — green so they're visually distinct from the blue
+   volunteer links and the user immediately knows they're in admin territory */
+.topBarLinkAdmin {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-success, #16a34a);
+  text-decoration: none;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  line-height: inherit;
+}
+
+.topBarLinkAdmin:hover {
+  color: #15803d;
+  text-decoration: underline;
+}
+
+/* Thin vertical rule between the two nav groups */
+.navDivider {
+  width: 1px;
+  height: 1.25rem;
+  background: var(--color-border);
+  flex-shrink: 0;
+}

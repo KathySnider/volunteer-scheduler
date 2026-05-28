@@ -10,7 +10,7 @@ import {
   volunteerGql,
   adminGql,
 } from "../lib/api";
-import UserMenu from "../components/UserMenu";
+import AdminTopBar from "../components/AdminTopBar";
 import FeedbackButton from "../components/FeedbackButton";
 import styles from "./events.module.css";
 
@@ -517,25 +517,12 @@ export default function EventsPage() {
   return (
     <div className={styles.page}>
 
-      {/* ---- Top bar ---- */}
-      <div className={styles.topBar}>
-        <div className={styles.topBarLeft}>
-          <div className={styles.appTitle}>Volunteer Events</div>
-          <nav className={styles.topBarNav}>
-            <a href="/my-shifts" className={styles.topBarLink}>My Shifts</a>
-            <a href="/profile" className={styles.topBarLink}>My Profile</a>
-            <button
-              type="button"
-              className={styles.topBarLink}
-              onClick={() => setFeedbackOpen(true)}
-            >
-              Submit Feedback
-            </button>
-            <a href="/my-feedback" className={styles.topBarLink}>My Feedback</a>
-          </nav>
-        </div>
-        <UserMenu name={userName} isAdmin={isAdmin} onSignOut={handleSignOut} />
-      </div>
+      <AdminTopBar userName={userName} isAdmin={isAdmin} onSignOut={handleSignOut} onFeedbackOpen={() => setFeedbackOpen(true)} />
+
+      <h1 className={styles.pageTitle}>
+        Volunteer Events
+        {!loading && <span className={styles.eventCount}>({events.length})</span>}
+      </h1>
 
       {/* ---- Filter bar ---- */}
       <div className={styles.filterBar}>
@@ -634,16 +621,7 @@ export default function EventsPage() {
 
       {/* ---- Main content ---- */}
       <main className={styles.main}>
-        <div className={styles.mainHeader}>
-          <h1 className={styles.mainTitle}>
-            Volunteer Events
-            {!loading && (
-              <span className={styles.eventCount}>({events.length})</span>
-            )}
-          </h1>
-        </div>
-
-        {searchError && <div className={styles.errorBox}>{searchError}</div>}
+        {searchError &&<div className={styles.errorBox}>{searchError}</div>}
 
         {loading && (
           <div className={styles.stateBox}>

@@ -9,7 +9,7 @@ import {
   signOut,
   adminGql,
 } from "../../../lib/api";
-import UserMenu from "../../../components/UserMenu";
+import AdminTopBar from "../../../components/AdminTopBar";
 import FeedbackButton from "../../../components/FeedbackButton";
 import styles from "./add-event.module.css";
 
@@ -439,6 +439,7 @@ export default function AddEventPage() {
   const [gql, setGql] = useState(null);
   const [userName, setUserName] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const browserZone = useRef(Intl.DateTimeFormat().resolvedOptions().timeZone);
 
   // Lookup data
@@ -661,10 +662,7 @@ export default function AddEventPage() {
   return (
     <div className={styles.page}>
       {/* Top bar */}
-      <div className={styles.topBar}>
-        <a href="/events" className={styles.backLink}>← Back to Events</a>
-        <UserMenu name={userName} isAdmin={isAdmin} onSignOut={handleSignOut} />
-      </div>
+      <AdminTopBar userName={userName} isAdmin={true} onSignOut={handleSignOut} onFeedbackOpen={() => setFeedbackOpen(true)} />
 
       <div className={styles.content}>
         <h1 className={styles.pageTitle}>Add Event</h1>
@@ -1025,7 +1023,7 @@ export default function AddEventPage() {
           </>
         )}
       </div>
-      <FeedbackButton />
+      <FeedbackButton open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </div>
   );
 }

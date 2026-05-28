@@ -9,7 +9,7 @@ import {
   signOut,
   adminGql,
 } from "../../lib/api";
-import UserMenu from "../../components/UserMenu";
+import AdminTopBar from "../../components/AdminTopBar";
 import FeedbackButton from "../../components/FeedbackButton";
 import styles from "./admin-events.module.css";
 
@@ -160,6 +160,7 @@ export default function AdminEventsPage() {
   const router = useRouter();
   const [gql, setGql] = useState(null);
   const [userName, setUserName] = useState("");
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   // Lookup data
   const [allCities, setAllCities] = useState([]);
@@ -350,11 +351,7 @@ export default function AdminEventsPage() {
 
   return (
     <div className={styles.page}>
-      {/* Top bar */}
-      <div className={styles.topBar}>
-        <a href="/events" className={styles.backLink}>← Back to Events</a>
-        <UserMenu name={userName} isAdmin={true} onSignOut={handleSignOut} />
-      </div>
+      <AdminTopBar userName={userName} isAdmin={true} onSignOut={handleSignOut} onFeedbackOpen={() => setFeedbackOpen(true)} />
 
       <div className={styles.content}>
         {/* Header row */}
@@ -547,7 +544,7 @@ export default function AdminEventsPage() {
           </div>
         )}
       </div>
-      <FeedbackButton />
+      <FeedbackButton open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
 
       {/* Delete scope modal — shown only for recurring events */}
       {pendingDelete && (

@@ -5,11 +5,12 @@ import { useRouter, useParams } from "next/navigation";
 import {
   isAuthenticated,
   getAuthName,
+  getAuthRole,
   signOut,
   volunteerGql,
   downloadAttachment,
 } from "../../lib/api";
-import UserMenu from "../../components/UserMenu";
+import AdminTopBar from "../../components/AdminTopBar";
 import FeedbackButton from "../../components/FeedbackButton";
 import styles from "./my-feedback-detail.module.css";
 
@@ -130,7 +131,9 @@ export default function FeedbackDetailPage() {
   const router = useRouter();
   const { id } = useParams();
   const [gql, setGql] = useState(null);
-  const [userName, setUserName] = useState("");
+  const [userName,     setUserName]     = useState("");
+  const [isAdmin,      setIsAdmin]      = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -175,6 +178,7 @@ export default function FeedbackDetailPage() {
     const bound = volunteerGql;
     setGql(() => bound);
     setUserName(getAuthName() ?? "");
+    setIsAdmin(getAuthRole() === "ADMINISTRATOR");
     loadData(bound);
   }, [router, loadData]);
 
@@ -184,16 +188,7 @@ export default function FeedbackDetailPage() {
 
   return (
     <div className={styles.page}>
-      {/* Top bar */}
-      <div className={styles.topBar}>
-        <div className={styles.topBarLeft}>
-          <a href="/my-feedback" className={styles.backLink}>&#8592; My Feedback</a>
-        </div>
-        <div className={styles.topBarTitle}>Feedback Detail</div>
-        <div className={styles.topBarRight}>
-          <UserMenu name={userName} isAdmin={false} onSignOut={handleSignOut} />
-        </div>
-      </div>
+      <AdminTopBar userName={userName} isAdmin={isAdmin} onSignOut={handleSignOut} onFeedbackOpen={() => setFeedbackOpen(true)} />
 
       <main className={styles.main}>
         {error && <div className={styles.errorBox}>{error}</div>}
@@ -287,7 +282,7 @@ export default function FeedbackDetailPage() {
         )}
       </main>
 
-      <FeedbackButton />
+      <FeedbackButton open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </div>
   );
 }

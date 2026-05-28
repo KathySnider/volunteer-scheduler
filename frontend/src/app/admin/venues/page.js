@@ -9,7 +9,7 @@ import {
   signOut,
   adminGql,
 } from "../../lib/api";
-import UserMenu from "../../components/UserMenu";
+import AdminTopBar from "../../components/AdminTopBar";
 import FeedbackButton from "../../components/FeedbackButton";
 import styles from "./admin-venues.module.css";
 
@@ -92,6 +92,7 @@ export default function AdminVenuesPage() {
   const router = useRouter();
   const [gql, setGql]           = useState(null);
   const [userName, setUserName] = useState("");
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const [venues, setVenues]   = useState([]);
   const [loading, setLoading] = useState(true);
@@ -223,10 +224,7 @@ export default function AdminVenuesPage() {
   return (
     <div className={styles.page}>
       {/* Top bar */}
-      <div className={styles.topBar}>
-        <a href="/events" className={styles.backLink}>← Back to Events</a>
-        <UserMenu name={userName} isAdmin={true} onSignOut={handleSignOut} />
-      </div>
+      <AdminTopBar userName={userName} isAdmin={true} onSignOut={handleSignOut} onFeedbackOpen={() => setFeedbackOpen(true)} />
 
       <div className={styles.content}>
         <div className={styles.pageHeader}>
@@ -312,7 +310,7 @@ export default function AdminVenuesPage() {
           );
         })}
       </div>
-      <FeedbackButton />
+      <FeedbackButton open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </div>
   );
 }

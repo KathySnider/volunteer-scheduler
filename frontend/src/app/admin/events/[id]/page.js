@@ -9,7 +9,7 @@ import {
   signOut,
   adminGql,
 } from "../../../lib/api";
-import UserMenu from "../../../components/UserMenu";
+import AdminTopBar from "../../../components/AdminTopBar";
 import FeedbackButton from "../../../components/FeedbackButton";
 import styles from "./admin-event-detail.module.css";
 
@@ -449,6 +449,7 @@ export default function AdminEventDetailPage() {
   const eventId = params?.id;
   const [gql, setGql]           = useState(null);
   const [userName, setUserName] = useState("");
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   /* Page data */
   const [event, setEvent]                   = useState(null);
@@ -963,9 +964,7 @@ export default function AdminEventDetailPage() {
   if (loading) {
     return (
       <div className={styles.page}>
-        <div className={styles.topBar}>
-          <a href="/admin/events" className={styles.backLink}>← Back to Manage Events</a>
-        </div>
+        <AdminTopBar userName={userName} isAdmin={true} onSignOut={handleSignOut} onFeedbackOpen={() => setFeedbackOpen(true)} />
         <div className={styles.content}>
           <div className={styles.stateBox}>
             <div className={styles.spinner} />
@@ -979,9 +978,7 @@ export default function AdminEventDetailPage() {
   if (!event) {
     return (
       <div className={styles.page}>
-        <div className={styles.topBar}>
-          <a href="/admin/events" className={styles.backLink}>← Back to Manage Events</a>
-        </div>
+        <AdminTopBar userName={userName} isAdmin={true} onSignOut={handleSignOut} onFeedbackOpen={() => setFeedbackOpen(true)} />
         <div className={styles.content}>
           <div className={styles.stateBox}>
             <div className={styles.stateTitle}>Event not found</div>
@@ -997,11 +994,7 @@ export default function AdminEventDetailPage() {
 
   return (
     <div className={styles.page}>
-      {/* Top bar */}
-      <div className={styles.topBar}>
-        <a href="/admin/events" className={styles.backLink}>← Back to Manage Events</a>
-        <UserMenu name={userName} isAdmin={true} onSignOut={handleSignOut} />
-      </div>
+      <AdminTopBar userName={userName} isAdmin={true} onSignOut={handleSignOut} onFeedbackOpen={() => setFeedbackOpen(true)} />
 
       <div className={styles.content}>
         {/* Banners */}
@@ -1663,7 +1656,7 @@ export default function AdminEventDetailPage() {
 
 
       </div>
-      <FeedbackButton />
+      <FeedbackButton open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </div>
   );
 }
