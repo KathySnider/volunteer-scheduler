@@ -9,6 +9,8 @@ import {
   signOut,
   volunteerGql,
   adminGql,
+  getOwnShifts,
+  setOwnShiftsCache,
 } from "../../lib/api";
 import AdminTopBar from "../../components/AdminTopBar";
 import FeedbackButton from "../../components/FeedbackButton";
@@ -52,14 +54,6 @@ const SHIFTS_FOR_EVENT = `
   }
 `;
 
-const OWN_SHIFTS = `
-  query {
-    ownShifts(filter: UPCOMING) {
-      shiftId
-    }
-  }
-`;
-
 const ASSIGN_SELF = `
   mutation AssignSelf($shiftId: ID!) {
     assignSelfToShift(shiftId: $shiftId) {
@@ -74,6 +68,19 @@ const CANCEL_OWN = `
     cancelOwnShift(shiftId: $shiftId) {
       success
       message
+    }
+  }
+`;
+
+// Direct own-shifts fetch used by refreshShifts — bypasses the module-level
+// cache so signed-up status is always authoritative after a mutation.
+const OWN_SHIFTS_FRESH = `
+  query {
+    ownShifts(filter: UPCOMING) {
+      shiftId
+      startDateTime
+      endDateTime
+      eventName
     }
   }
 `;
@@ -102,6 +109,22 @@ function formatTimeRange(startStr, endStr) {
 function spotsOpen(shift) {
   if (shift.maxVolunteers === null || shift.maxVolunteers === undefined) return null;
   return Math.max(0, shift.maxVolunteers - shift.assignedVolunteers);
+}
+
+/**
+ * Return the subset of the volunteer's own upcoming shifts that overlap with
+ * the given candidate shift.  Excludes the shift itself (already signed up).
+ * Uses a half-open interval: overlap when start1 < end2 AND end1 > start2.
+ */
+function findConflicts(shift, ownShifts) {
+  const s1 = new Date(shift.startDateTime).getTime();
+  const e1 = new Date(shift.endDateTime).getTime();
+  return ownShifts.filter((own) => {
+    if (own.shiftId === String(shift.id)) return false; // same shift — already signed up
+    const s2 = new Date(own.startDateTime).getTime();
+    const e2 = new Date(own.endDateTime).getTime();
+    return s1 < e2 && e1 > s2;
+  });
 }
 
 /** Group an array of shifts by jobName, sorted by first shift start time. */
@@ -143,9 +166,10 @@ const FORMAT_BADGE_CLASS = {
 };
 
 /* ----- ShiftRow — one row per shift inside a job group card ----- */
-function ShiftRow({ shift, isSignedUp, busy, onSignUp, onCancel }) {
+function ShiftRow({ shift, isSignedUp, busy, onSignUp, onCancel, conflictingShifts }) {
   const open   = spotsOpen(shift);
   const isFull = open !== null && open === 0;
+  const hasConflict = !isSignedUp && conflictingShifts && conflictingShifts.length > 0;
 
   // Spots label — shown as plain text, not on the button
   let spotsLabel = null;
@@ -167,17 +191,40 @@ function ShiftRow({ shift, isSignedUp, busy, onSignUp, onCancel }) {
     );
   } else if (!isFull) {
     btn = (
-      <button className={styles.btnSignUp} disabled={busy} onClick={() => onSignUp(shift.id)}>
-        {busy ? "Signing up…" : "Sign Up"}
+      <button
+        className={hasConflict ? styles.btnSignUpAnyway : styles.btnSignUp}
+        disabled={busy}
+        onClick={() => onSignUp(shift.id)}
+      >
+        {busy ? "Signing up…" : hasConflict ? "Sign Up Anyway" : "Sign Up"}
       </button>
+    );
+  }
+
+  // Conflict warning text — names up to 2 conflicting events
+  let conflictNote = null;
+  if (hasConflict) {
+    const names = conflictingShifts.map((c) => c.eventName).filter(Boolean);
+    const label = names.length === 1
+      ? names[0]
+      : names.length === 2
+        ? `${names[0]} and ${names[1]}`
+        : `${names[0]} and ${names.length - 1} others`;
+    conflictNote = (
+      <div className={styles.conflictWarning}>
+        ⚠️ Overlaps with your shift: <strong>{label}</strong>
+      </div>
     );
   }
 
   return (
     <div className={styles.shiftRow}>
-      <span className={styles.shiftTime}>
-        {formatDate(shift.startDateTime)} · {formatTimeRange(shift.startDateTime, shift.endDateTime)}
-      </span>
+      <div className={styles.shiftLeft}>
+        <span className={styles.shiftTime}>
+          {formatDate(shift.startDateTime)} · {formatTimeRange(shift.startDateTime, shift.endDateTime)}
+        </span>
+        {conflictNote}
+      </div>
       <div className={styles.shiftRowRight}>
         {spotsLabel}
         {btn}
@@ -193,7 +240,7 @@ function ShiftRow({ shift, isSignedUp, busy, onSignUp, onCancel }) {
    accordion={true}  → collapsible; starts open if the volunteer already has
                         a signed-up shift in this group, otherwise starts closed.
    accordion={false} → always expanded (used when there is only one job type). */
-function JobGroupCard({ jobName, shifts, serviceTypes, signedUpIds, actionBusy, onSignUp, onCancel, accordion }) {
+function JobGroupCard({ jobName, shifts, serviceTypes, signedUpIds, ownShifts, actionBusy, onSignUp, onCancel, accordion }) {
   const [isOpen, setIsOpen] = useState(() => {
     if (!accordion) return true;
     // Auto-open any group the volunteer is already signed up for.
@@ -218,6 +265,7 @@ function JobGroupCard({ jobName, shifts, serviceTypes, signedUpIds, actionBusy, 
           busy={actionBusy === shift.id}
           onSignUp={onSignUp}
           onCancel={onCancel}
+          conflictingShifts={findConflicts(shift, ownShifts)}
         />
       ))}
     </>
@@ -268,6 +316,7 @@ export default function EventDetailPage() {
 
   const [event,       setEvent]       = useState(null);
   const [shifts,      setShifts]      = useState([]);
+  const [ownShifts,   setOwnShifts]   = useState([]);  // cached upcoming shifts for conflict detection
   const [signedUpIds, setSignedUpIds] = useState(new Set());
 
   const [loading,       setLoading]       = useState(true);
@@ -291,9 +340,9 @@ export default function EventDetailPage() {
     Promise.all([
       volunteerGql(EVENT_DETAIL, { eventId }),
       boundVolGql(SHIFTS_FOR_EVENT, { eventId }),
-      boundVolGql(OWN_SHIFTS, null),
+      getOwnShifts().catch(() => []),
     ])
-      .then(([evRes, shiftRes, ownRes]) => {
+      .then(([evRes, shiftRes, cached]) => {
         if (evRes.errors) {
           setPageError(evRes.errors[0]?.message ?? "Error loading event.");
           return;
@@ -305,28 +354,36 @@ export default function EventDetailPage() {
         sorted.sort((a, b) => (a.startDateTime < b.startDateTime ? -1 : 1));
         setShifts(sorted);
 
-        setSignedUpIds(
-          new Set((ownRes.data?.ownShifts ?? []).map((s) => s.shiftId))
-        );
+        // Own shifts from cache — used for both signed-up status and conflict detection
+        setOwnShifts(cached);
+        setSignedUpIds(new Set(cached.map((s) => s.shiftId)));
       })
       .catch(() => setPageError("Unable to reach the server. Please try again."))
       .finally(() => setLoading(false));
   }, [router, eventId]);
 
-  /* Refresh shifts + own signups after a mutation */
+  /* Refresh event shifts after a sign-up or cancel mutation.
+     Queries the server directly — never reads from the module-level cache —
+     so signedUpIds and shift counts are always authoritative.
+     After the fetch, the cache is repopulated so conflict detection on other
+     event pages stays accurate. */
   const refreshShifts = useCallback(async () => {
     if (!volGql) return;
     const [shiftRes, ownRes] = await Promise.all([
       volGql(SHIFTS_FOR_EVENT, { eventId }),
-      volGql(OWN_SHIFTS, null),
+      volunteerGql(OWN_SHIFTS_FRESH).catch(() => null),
     ]);
-    if (!shiftRes.errors) {
-      const sorted = [...(shiftRes.data?.shiftsForEvent ?? [])];
+    if (shiftRes?.data?.shiftsForEvent) {
+      const sorted = [...shiftRes.data.shiftsForEvent];
       sorted.sort((a, b) => (a.startDateTime < b.startDateTime ? -1 : 1));
       setShifts(sorted);
     }
-    if (!ownRes.errors) {
-      setSignedUpIds(new Set((ownRes.data?.ownShifts ?? []).map((s) => s.shiftId)));
+    const ownList = ownRes?.data?.ownShifts ?? null;
+    if (ownList !== null) {
+      // Keep the module-level cache fresh for conflict detection elsewhere.
+      setOwnShiftsCache(ownList);
+      setOwnShifts(ownList);
+      setSignedUpIds(new Set(ownList.map((s) => s.shiftId)));
     }
   }, [volGql, eventId]);
 
@@ -483,6 +540,7 @@ export default function EventDetailPage() {
                   shifts={jobShifts}
                   serviceTypes={event.serviceTypes ?? []}
                   signedUpIds={signedUpIds}
+                  ownShifts={ownShifts}
                   actionBusy={actionBusy}
                   onSignUp={handleSignUp}
                   onCancel={handleCancel}

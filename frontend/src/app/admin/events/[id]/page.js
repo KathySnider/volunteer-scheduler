@@ -61,6 +61,19 @@ const VOLUNTEER_SHIFTS_FOR_ROSTER = `
   }
 `;
 
+// Fetches a volunteer's upcoming shifts (with times) for conflict detection
+// when an admin manually assigns them to a shift.
+const UPCOMING_SHIFTS_FOR_VOL = `
+  query UpcomingShiftsForVol($volunteerId: ID!) {
+    volunteerShifts(volunteerId: $volunteerId, filter: UPCOMING) {
+      shiftId
+      startDateTime
+      endDateTime
+      eventName
+    }
+  }
+`;
+
 const UPDATE_EVENT      = `mutation UpdateEvent($event: UpdateEventInput!) { updateEvent(event: $event) { success message } }`;
 const DELETE_EVENT      = `mutation DeleteEvent($eventId: ID!, $scope: RecurrenceUpdateScope) { deleteEvent(eventId: $eventId, scope: $scope) { success message } }`;
 const CREATE_EVENT_DATE = `mutation CreateEventDate($newDate: AddEventDateInput!) { createEventDate(newDate: $newDate) { success message id } }`;
@@ -514,8 +527,10 @@ export default function AdminEventDetailPage() {
   const [rosterMap, setRosterMap]         = useState(null); // null = not yet loaded
   const [rosterLoading, setRosterLoading] = useState(false);
   const [allVolunteers, setAllVolunteers] = useState([]);   // for assign dropdown
-  const [assigningShiftId, setAssigningShiftId] = useState(null);
-  const [assignVolId, setAssignVolId]           = useState("");
+  const [assigningShiftId, setAssigningShiftId]       = useState(null);
+  const [assignVolId, setAssignVolId]                 = useState("");
+  const [assignConflicts, setAssignConflicts]         = useState([]);   // conflicting shifts for selected vol
+  const [conflictCheckLoading, setConflictCheckLoading] = useState(false);
 
   /* ---- Roster load ---- */
   // Takes a Set of shift ID strings so we can filter by known shift IDs
@@ -550,6 +565,33 @@ export default function AdminEventDetailPage() {
       })
       .catch(() => setRosterMap({}))
       .finally(() => setRosterLoading(false));
+  }, []);
+
+  /**
+   * Fetch a volunteer's upcoming shifts and compare against the target shift's
+   * time window.  Called when the admin picks a volunteer from the assign
+   * dropdown so any scheduling conflict is shown before they confirm.
+   */
+  const checkConflicts = useCallback(async (volunteerId, shift) => {
+    setConflictCheckLoading(true);
+    setAssignConflicts([]);
+    try {
+      const res = await adminGql(UPCOMING_SHIFTS_FOR_VOL, { volunteerId });
+      const volShifts = res?.data?.volunteerShifts ?? [];
+      const s1 = new Date(shift.startDateTime).getTime();
+      const e1 = new Date(shift.endDateTime).getTime();
+      const conflicts = volShifts.filter((s) => {
+        if (s.shiftId === String(shift.id)) return false; // already on this shift
+        const s2 = new Date(s.startDateTime).getTime();
+        const e2 = new Date(s.endDateTime).getTime();
+        return s1 < e2 && e1 > s2;
+      });
+      setAssignConflicts(conflicts);
+    } catch {
+      // Non-fatal — proceed without conflict info.
+    } finally {
+      setConflictCheckLoading(false);
+    }
   }, []);
 
   /* ---- Auth + data load ---- */
@@ -945,7 +987,7 @@ export default function AdminEventDetailPage() {
       ASSIGN_VOLUNTEER,
       { shiftId, volunteerId: assignVolId },
       "Volunteer assigned.",
-      () => { setAssigningShiftId(null); setAssignVolId(""); },
+      () => { setAssigningShiftId(null); setAssignVolId(""); setAssignConflicts([]); },
     );
   };
 
@@ -1589,37 +1631,65 @@ export default function AdminEventDetailPage() {
                                 <button
                                   className={styles.btnOutline}
                                   style={{ fontSize: "0.8rem", marginTop: "0.375rem" }}
-                                  onClick={() => { setAssigningShiftId(shift.id); setAssignVolId(""); }}
+                                  onClick={() => { setAssigningShiftId(shift.id); setAssignVolId(""); setAssignConflicts([]); }}
                                 >
                                   + Assign Volunteer
                                 </button>
                               ) : (
-                                <div className={styles.assignRow}>
-                                  <select
-                                    className={styles.select}
-                                    value={assignVolId}
-                                    onChange={(e) => setAssignVolId(e.target.value)}
-                                  >
-                                    <option value="">— select volunteer —</option>
-                                    {available.map((v) => (
-                                      <option key={v.id} value={v.id}>
-                                        {v.firstName} {v.lastName}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <button
-                                    className={styles.btnPrimary}
-                                    onClick={() => handleAssignVolunteer(shift.id)}
-                                    disabled={busy || !assignVolId}
-                                  >
-                                    Assign
-                                  </button>
-                                  <button
-                                    className={styles.btnSecondary}
-                                    onClick={() => { setAssigningShiftId(null); setAssignVolId(""); }}
-                                  >
-                                    Cancel
-                                  </button>
+                                <div>
+                                  <div className={styles.assignRow}>
+                                    <select
+                                      className={styles.select}
+                                      value={assignVolId}
+                                      onChange={(e) => {
+                                        const volId = e.target.value;
+                                        setAssignVolId(volId);
+                                        if (volId) {
+                                          checkConflicts(volId, shift);
+                                        } else {
+                                          setAssignConflicts([]);
+                                        }
+                                      }}
+                                    >
+                                      <option value="">— select volunteer —</option>
+                                      {available.map((v) => (
+                                        <option key={v.id} value={v.id}>
+                                          {v.firstName} {v.lastName}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <button
+                                      className={
+                                        !conflictCheckLoading && assignConflicts.length > 0
+                                          ? styles.btnAssignAnyway
+                                          : styles.btnPrimary
+                                      }
+                                      onClick={() => handleAssignVolunteer(shift.id)}
+                                      disabled={busy || !assignVolId}
+                                    >
+                                      {!conflictCheckLoading && assignConflicts.length > 0
+                                        ? "Assign Anyway"
+                                        : "Assign"}
+                                    </button>
+                                    <button
+                                      className={styles.btnSecondary}
+                                      onClick={() => { setAssigningShiftId(null); setAssignVolId(""); setAssignConflicts([]); }}
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                  {conflictCheckLoading && (
+                                    <p className={styles.conflictChecking}>Checking schedule…</p>
+                                  )}
+                                  {!conflictCheckLoading && assignConflicts.length > 0 && (
+                                    <p className={styles.assignConflictWarning}>
+                                      ⚠ This volunteer already has a shift at this time
+                                      {assignConflicts[0]?.eventName
+                                        ? `: ${assignConflicts.map((c) => c.eventName).join(", ")}`
+                                        : ""
+                                      }.
+                                    </p>
+                                  )}
                                 </div>
                               )
                             )}

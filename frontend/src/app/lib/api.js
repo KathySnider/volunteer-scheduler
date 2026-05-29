@@ -220,6 +220,71 @@ export function addVenueToCache(venue) {
   }
 }
 
+/* =========================================================
+   Own-shift cache
+   =========================================================
+   Stores the current user's upcoming shifts so the event
+   detail page can detect scheduling conflicts without an
+   extra network request on every page load.
+
+   Each entry: { shiftId, startDateTime, endDateTime, eventName }
+
+   Usage:
+     getOwnShifts()              — cached fetch; re-fetches on first call
+     invalidateShiftCache()      — call when shifts may have changed externally
+     addShiftToCache(shift)      — optimistic add after sign-up
+     removeShiftFromCache(id)    — optimistic remove after cancel
+   ========================================================= */
+
+let _shiftCache = null;
+let _shiftFetchPromise = null;
+
+export async function getOwnShifts() {
+  if (_shiftCache !== null) return _shiftCache;
+  if (_shiftFetchPromise) return _shiftFetchPromise;
+  _shiftFetchPromise = volunteerGql(`
+    query {
+      ownShifts(filter: UPCOMING) {
+        shiftId
+        startDateTime
+        endDateTime
+        eventName
+      }
+    }
+  `)
+    .then((res) => {
+      _shiftCache = res?.data?.ownShifts ?? [];
+      _shiftFetchPromise = null;
+      return _shiftCache;
+    })
+    .catch((err) => {
+      _shiftFetchPromise = null;
+      throw err;
+    });
+  return _shiftFetchPromise;
+}
+
+export function invalidateShiftCache() {
+  _shiftCache = null;
+}
+
+export function addShiftToCache(shift) {
+  if (_shiftCache !== null) {
+    _shiftCache = [..._shiftCache, shift];
+  }
+}
+
+export function removeShiftFromCache(shiftId) {
+  if (_shiftCache !== null) {
+    _shiftCache = _shiftCache.filter((s) => s.shiftId !== String(shiftId));
+  }
+}
+
+/** Replace the entire shift cache with a freshly-fetched array. */
+export function setOwnShiftsCache(shifts) {
+  _shiftCache = shifts;
+}
+
 /**
  * Sign the user out: invalidate the server session cookie, then clear localStorage.
  * The server call is best-effort — localStorage is always cleared regardless.

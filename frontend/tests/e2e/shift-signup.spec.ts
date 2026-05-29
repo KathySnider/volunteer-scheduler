@@ -179,6 +179,110 @@ test.describe("Shift signup — full shift", () => {
   });
 });
 
+test.describe("Shift signup — scheduling conflict", () => {
+  let eventAId: string;
+  let eventBId: string;
+  let conflictVenueId: string;
+  let conflictJobTypeId: number;
+
+  test.beforeAll(async ({ adminToken }) => {
+    conflictVenueId = await createVenue(adminToken, {
+      name: uniqueName("Venue"),
+      city: "Testville",
+      state: "VA",
+    });
+    conflictJobTypeId = await createJobType(
+      adminToken,
+      uniqueName("cnfl"),
+      uniqueName("Conflict")
+    );
+
+    // Event A: 9 AM – 11 AM
+    const resultA = await createEventWithShift(adminToken, {
+      eventName: uniqueName("ConflictEventA"),
+      venueId: conflictVenueId,
+      jobTypeId: conflictJobTypeId,
+      startDateTime: "2027-08-20 09:00:00",
+      endDateTime:   "2027-08-20 11:00:00",
+      maxVolunteers: 5,
+    });
+    eventAId = resultA.eventId;
+
+    // Event B: 10 AM – 12 PM (overlaps with A by one hour)
+    const resultB = await createEventWithShift(adminToken, {
+      eventName: uniqueName("ConflictEventB"),
+      venueId: conflictVenueId,
+      jobTypeId: conflictJobTypeId,
+      startDateTime: "2027-08-20 10:00:00",
+      endDateTime:   "2027-08-20 12:00:00",
+      maxVolunteers: 5,
+    });
+    eventBId = resultB.eventId;
+  });
+
+  test.afterAll(async ({ adminToken }) => {
+    for (const id of [eventAId, eventBId]) {
+      if (id) try { await deleteEvent(adminToken, id); } catch { /* ignore */ }
+    }
+    if (conflictVenueId) try { await deleteVenue(adminToken, conflictVenueId); } catch { /* ignore */ }
+    if (conflictJobTypeId) try { await deleteJobType(adminToken, conflictJobTypeId); } catch { /* ignore */ }
+  });
+
+  test("shows conflict warning and Sign Up Anyway button when shifts overlap", async ({
+    volunteerPage,
+  }) => {
+    // Sign up for Event A (9 AM – 11 AM) via UI.
+    await volunteerPage.goto(`/events/${eventAId}`);
+    const signUpA = volunteerPage.getByRole("button", { name: "Sign Up" }).first();
+    await expect(signUpA).toBeVisible({ timeout: 5_000 });
+    await signUpA.click();
+    await expect(
+      volunteerPage.getByRole("button", { name: "Cancel Signup" }).first()
+    ).toBeVisible({ timeout: 5_000 });
+
+    // Navigate to Event B (10 AM – 12 PM).  The shift cache now includes Event A,
+    // so overlap detection fires on load.
+    await volunteerPage.goto(`/events/${eventBId}`);
+
+    // Conflict warning and amber "Sign Up Anyway" button should be visible.
+    await expect(
+      volunteerPage.getByText(/overlaps with your shift/i)
+    ).toBeVisible({ timeout: 5_000 });
+    await expect(
+      volunteerPage.getByRole("button", { name: "Sign Up Anyway" })
+    ).toBeVisible({ timeout: 5_000 });
+
+    // Normal "Sign Up" button must NOT appear (it's replaced by "Sign Up Anyway").
+    await expect(
+      volunteerPage.getByRole("button", { name: "Sign Up", exact: true })
+    ).not.toBeVisible();
+  });
+
+  test("Sign Up Anyway succeeds and shows confirmation despite conflict", async ({
+    volunteerPage,
+  }) => {
+    // Sign up for Event A first to create the conflict.
+    await volunteerPage.goto(`/events/${eventAId}`);
+    const signUpA = volunteerPage.getByRole("button", { name: "Sign Up" }).first();
+    await expect(signUpA).toBeVisible({ timeout: 5_000 });
+    await signUpA.click();
+    await expect(
+      volunteerPage.getByRole("button", { name: "Cancel Signup" }).first()
+    ).toBeVisible({ timeout: 5_000 });
+
+    // Navigate to Event B and override the conflict.
+    await volunteerPage.goto(`/events/${eventBId}`);
+    const signUpAnyway = volunteerPage.getByRole("button", { name: "Sign Up Anyway" });
+    await expect(signUpAnyway).toBeVisible({ timeout: 5_000 });
+    await signUpAnyway.click();
+
+    // Success banner confirms the signup went through.
+    await expect(
+      volunteerPage.getByText("You're signed up!")
+    ).toBeVisible({ timeout: 5_000 });
+  });
+});
+
 test.describe("Shift signup — error cases", () => {
   test("unauthenticated user is redirected to /login when visiting event page", async ({
     page,

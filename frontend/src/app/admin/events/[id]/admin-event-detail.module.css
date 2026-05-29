@@ -280,6 +280,43 @@
   min-width: 10rem;
 }
 
+/* Shown while the conflict check fetch is in flight */
+.conflictChecking {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin: 0.375rem 0 0;
+}
+
+/* Shown when a scheduling conflict is detected for the selected volunteer */
+.assignConflictWarning {
+  font-size: 0.8rem;
+  color: var(--color-warning);
+  margin: 0.375rem 0 0;
+}
+
+/* Replaces the primary Assign button when a conflict is detected */
+.btnAssignAnyway {
+  padding: 0.4rem 0.875rem;
+  background: transparent;
+  color: var(--color-warning);
+  border: 1.5px solid var(--color-warning);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.btnAssignAnyway:hover:not(:disabled) {
+  background: var(--color-warning-light);
+}
+
+.btnAssignAnyway:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* ----- Empty message ----- */
 
 .emptyMsg {

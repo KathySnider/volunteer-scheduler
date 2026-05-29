@@ -8,6 +8,7 @@ import {
   getAuthName,
   signOut,
   volunteerGql,
+  removeShiftFromCache,
 } from "../lib/api";
 import AdminTopBar from "../components/AdminTopBar";
 import FeedbackButton from "../components/FeedbackButton";
@@ -151,6 +152,7 @@ export default function MyShiftsPage() {
         setMessage({ type: "error", text: result?.message ?? res.errors?.[0]?.message ?? "Cancellation failed." });
       } else {
         setMessage({ type: "success", text: "Signup cancelled." });
+        removeShiftFromCache(shiftId);
         loadShifts(gql, filter);
       }
     } catch {

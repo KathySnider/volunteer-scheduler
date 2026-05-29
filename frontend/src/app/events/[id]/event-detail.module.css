@@ -336,9 +336,24 @@
   background: var(--color-bg);
 }
 
+/* Left side: time + optional conflict note stacked vertically */
+.shiftLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
 .shiftTime {
   font-size: 0.9rem;
   color: var(--color-text-muted);
+}
+
+/* ----- Scheduling conflict warning ----- */
+
+.conflictWarning {
+  font-size: 0.8rem;
+  color: var(--color-warning);
 }
 
 /* Right side of a shift row: spots label + button */
@@ -386,6 +401,29 @@
 }
 
 .btnSignUp:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Amber outlined button — shown instead of Sign Up when a conflict is detected */
+.btnSignUpAnyway {
+  padding: 0.45rem 1.125rem;
+  background: transparent;
+  color: var(--color-warning);
+  border: 1.5px solid var(--color-warning);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.btnSignUpAnyway:hover:not(:disabled) {
+  background: var(--color-warning-light);
+}
+
+.btnSignUpAnyway:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
