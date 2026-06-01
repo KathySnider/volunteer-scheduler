@@ -30,8 +30,8 @@ import (
 // testServer is the shared httptest.Server used by all tests in this package.
 // testDB is the shared database connection for seeding and asserting.
 var (
-	testServer          *httptest.Server
-	testDB              *sql.DB
+	testServer           *httptest.Server
+	testDB               *sql.DB
 	testMagicLinkService *services.MagicLinkService
 )
 

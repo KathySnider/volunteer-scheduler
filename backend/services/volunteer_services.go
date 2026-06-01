@@ -7,8 +7,9 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/lib/pq"
 	"volunteer-scheduler/models"
+
+	"github.com/lib/pq"
 )
 
 type VolunteerService struct {
@@ -47,6 +48,7 @@ func (s *VolunteerService) FetchVolunteers(ctx context.Context, filter *models.V
 		LEFT JOIN roles r            ON r.role_id = vr.role_id
 		WHERE v.is_active = TRUE
 		GROUP BY v.volunteer_id
+		ORDER BY v.last_name, v.first_name
 	`
 	rows, err := s.DB.QueryContext(ctx, query)
 	if err != nil {
@@ -241,10 +243,10 @@ func (s *VolunteerService) FetchOwnShifts(ctx context.Context, volId int, filter
             v.zip_code,
 			e.timezone
     	FROM volunteer_shifts sv
-		LEFT JOIN shifts s ON s.shift_id = sv.shift_id
-		LEFT JOIN opportunities opp ON opp.opportunity_id = s.opportunity_id
+		JOIN shifts s ON s.shift_id = sv.shift_id
+		JOIN opportunities opp ON opp.opportunity_id = s.opportunity_id
 		LEFT JOIN job_types jt ON jt.job_type_id = opp.job_type_id
-		LEFT JOIN events e ON e.event_id = opp.event_id
+		JOIN events e ON e.event_id = opp.event_id
 		LEFT JOIN venues v ON e.venue_id = v.venue_id
 		WHERE sv.volunteer_id = $1
 		AND sv.cancelled_at IS NULL
@@ -257,6 +259,7 @@ func (s *VolunteerService) FetchOwnShifts(ctx context.Context, volId int, filter
 	case "ALL":
 		// no filter
 	}
+	query += " ORDER BY s.shift_start"
 
 	shiftRows, err := s.DB.QueryContext(ctx, query, volId)
 	if err != nil {
@@ -385,10 +388,10 @@ func (s *VolunteerService) FetchVolunteerShifts(ctx context.Context, volId strin
             v.zip_code,
 			e.timezone
     	FROM volunteer_shifts sv
-		LEFT JOIN shifts s ON s.shift_id = sv.shift_id
-		LEFT JOIN opportunities opp ON opp.opportunity_id = s.opportunity_id
+		JOIN shifts s ON s.shift_id = sv.shift_id
+		JOIN opportunities opp ON opp.opportunity_id = s.opportunity_id
 		LEFT JOIN job_types jt ON jt.job_type_id = opp.job_type_id
-		LEFT JOIN events e ON e.event_id = opp.event_id
+		JOIN events e ON e.event_id = opp.event_id
 		LEFT JOIN venues v ON e.venue_id = v.venue_id
 		WHERE sv.volunteer_id = $1
 		AND sv.cancelled_at IS NULL
@@ -401,6 +404,7 @@ func (s *VolunteerService) FetchVolunteerShifts(ctx context.Context, volId strin
 	case "ALL":
 		// no filter
 	}
+	query += " ORDER BY s.shift_start"
 
 	shiftRows, err := s.DB.QueryContext(ctx, query, volInt)
 	if err != nil {

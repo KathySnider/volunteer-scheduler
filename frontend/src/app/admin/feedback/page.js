@@ -229,7 +229,6 @@ function AdminFeedbackPage() {
                 <TypeBadge type={fb.type} />
                 <StatusBadge status={fb.status} />
               </div>
-              <span className={styles.cardDate}>{formatDate(fb.createdAt)}</span>
             </div>
             <div className={styles.cardSubject}>{fb.subject || "(no subject)"}</div>
             <div className={styles.cardMeta}>
@@ -237,6 +236,7 @@ function AdminFeedbackPage() {
               {fb.appPageName && (
                 <span className={styles.metaPage}>Page: {fb.appPageName}</span>
               )}
+              <span className={styles.metaDate}>Submitted: {formatDate(fb.createdAt)}</span>
             </div>
           </button>
         ))}

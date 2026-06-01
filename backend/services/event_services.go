@@ -64,7 +64,7 @@ func (s *EventService) FetchLookups(ctx context.Context) (*models.LookupValues, 
 
 	// Get ServiceTypes.
 	lookup.ServiceTypes = make([]*models.ServiceType, 0)
-	rows, err := s.DB.QueryContext(ctx, "Select service_type_id, code, name from service_types")
+	rows, err := s.DB.QueryContext(ctx, "SELECT service_type_id, code, name FROM service_types ORDER BY name")
 	if err != nil {
 		return nil, fmt.Errorf("error querying service types: %w", err)
 	}
@@ -82,7 +82,7 @@ func (s *EventService) FetchLookups(ctx context.Context) (*models.LookupValues, 
 
 	// Get JobTypes.
 	lookup.JobTypes = make([]*models.JobType, 0)
-	rows, err = s.DB.QueryContext(ctx, "Select job_type_id, code, name, is_active from job_types WHERE is_active = true")
+	rows, err = s.DB.QueryContext(ctx, "SELECT job_type_id, code, name, is_active FROM job_types WHERE is_active = true ORDER BY sort_order, name")
 	if err != nil {
 		return nil, fmt.Errorf("error querying job types: %w", err)
 	}
@@ -245,21 +245,23 @@ func (s *EventService) FetchEventView(ctx context.Context, eventId string) (*mod
 		e.Venue = nil
 	}
 
-	stPtrs, err := FetchEventServiceTypes(ctx, s.DB, eventInt)
+	stMap, err := fetchServiceTypesMap(ctx, s.DB, []int{eventInt})
 	if err != nil {
 		return nil, fmt.Errorf("error getting event's service types: %w", err)
 	}
-	// Convert the pointers to the actual strings.
-	e.ServiceTypes = make([]string, len(stPtrs))
-	for i := 0; i < len(stPtrs); i++ {
-		e.ServiceTypes[i] = *stPtrs[i]
-	}
+	e.ServiceTypes = (*stMap)[eventInt]
 
-	dates, err := fetchEventDateViews(ctx, s.DB, eventInt)
+	dMap, err := fetchDatesMap(ctx, s.DB, []int{eventInt})
 	if err != nil {
 		return nil, fmt.Errorf("error getting event's dates: %w", err)
 	}
-	e.EventDates = dates
+	for _, d := range (*dMap)[eventInt] {
+		dView := models.EventDateView{
+			StartDateTime: d.StartDateTime,
+			EndDateTime:   d.EndDateTime,
+		}
+		e.EventDates = append(e.EventDates, &dView)
+	}
 
 	// All good.
 	return &e, nil
@@ -422,21 +424,19 @@ func (s *EventService) FetchEvent(ctx context.Context, eventId string) (*models.
 		}
 	}
 
-	stPtrs, err := FetchEventServiceTypes(ctx, s.DB, eventInt)
+	stMap, err := fetchServiceTypesMap(ctx, s.DB, []int{eventInt})
 	if err != nil {
 		return nil, fmt.Errorf("error getting event's service types: %w", err)
 	}
-	// Convert the pointers to the actual strings.
-	e.ServiceTypes = make([]string, len(stPtrs))
-	for i, strPtr := range stPtrs {
-		e.ServiceTypes[i] = *strPtr
-	}
+	e.ServiceTypes = (*stMap)[eventInt]
 
-	dates, err := FetchEventDates(ctx, s.DB, eventInt)
+	dMap, err := fetchDatesMap(ctx, s.DB, []int{eventInt})
 	if err != nil {
 		return nil, fmt.Errorf("error getting event's dates: %w", err)
 	}
-	e.EventDates = dates
+	for _, d := range (*dMap)[eventInt] {
+		e.EventDates = append(e.EventDates, &d)
+	}
 
 	// All good.
 	return &e, nil

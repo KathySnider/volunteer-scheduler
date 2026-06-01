@@ -160,20 +160,28 @@ func (s *FeedbackService) FetchFeedback(ctx context.Context, filter *models.Feed
 			LEFT JOIN volunteers nc ON nc.volunteer_id = fn.volunteer_id
 		WHERE 1=1
     `
+
+	args := []any{}
+	argcount := 1
+
 	if filter != nil {
 		if filter.Status != nil {
 			dbstatus := strings.ToLower(string(*filter.Status))
-			query += " AND f.status = " + dbstatus
+			query += " AND f.status = $" + strconv.Itoa(argcount)
+			args = append(args, dbstatus)
+			argcount++
 		}
 
 		if filter.Type != nil {
 			dbtype := strings.ToLower(string(*filter.Type))
-			query += " AND f.feedback_type = " + dbtype
+			query += " AND f.feedback_type = $" + strconv.Itoa(argcount)
+			args = append(args, dbtype)
+			argcount++
 		}
 	}
 	query += " ORDER BY f.created_at, fn.created_at"
 
-	rows, err := s.DB.QueryContext(ctx, query)
+	rows, err := s.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("error querying feedback: %w", err)
 	}

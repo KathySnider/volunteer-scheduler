@@ -2,11 +2,12 @@ package models
 
 // Output types
 
+import "slices"
+
 type LookupValues struct {
-	FundingEntities []*FundingEntity
-	ServiceTypes    []*ServiceType
-	JobTypes        []*JobType
-	Cities          []string
+	ServiceTypes []*ServiceType
+	JobTypes     []*JobType
+	Cities       []string
 }
 
 // Result types (API-wide).
@@ -33,10 +34,5 @@ const (
 
 // HasRole returns true when the provided role is present in the roles slice.
 func HasRole(roles []Role, r Role) bool {
-	for _, v := range roles {
-		if v == r {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(roles, r)
 }

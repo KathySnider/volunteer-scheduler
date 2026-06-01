@@ -218,12 +218,6 @@
   flex-wrap: wrap;
 }
 
-.cardDate {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  flex-shrink: 0;
-  margin-left: 0.75rem;
-}
 
 .cardSubject {
   font-size: 1rem;
@@ -245,6 +239,12 @@
 
 .metaPage {
   font-style: italic;
+}
+
+.metaDate {
+  font-weight: 500;
+  color: var(--color-text);
+  margin-left: auto;
 }
 
 /* ----- Badges ----- */

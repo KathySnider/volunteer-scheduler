@@ -78,6 +78,7 @@ func (s *ShiftService) FetchOpportunitiesForEvent(ctx context.Context, eventId s
 		  pre_event_instructions
 		FROM opportunities
 		WHERE event_id = $1
+		ORDER BY opportunity_id
 	`
 	rows, err := s.DB.QueryContext(ctx, query, eventInt)
 	if err != nil {
@@ -139,6 +140,7 @@ func (s *ShiftService) FetchShiftsForOpportunity(ctx context.Context, oppId stri
 		  staff_contact_id
 		FROM shifts
 	WHERE opportunity_id = $1
+	ORDER BY shift_start
 	`
 
 	rows, err := s.DB.QueryContext(ctx, query, oppInt)
@@ -200,7 +202,7 @@ func (s *ShiftService) FetchEventShiftViews(ctx context.Context, eventId string)
 		s.max_volunteers,
 		o.opportunity_is_virtual
 	FROM shifts s
-	LEFT JOIN opportunities o ON s.opportunity_id = o.opportunity_id
+	JOIN opportunities o ON s.opportunity_id = o.opportunity_id
 	LEFT JOIN job_types jt ON jt.job_type_id = o.job_type_id
 	WHERE o.event_id = $1
 	ORDER by o.opportunity_id, s.shift_id

@@ -31,6 +31,7 @@ func (s *VenueService) FetchVenues(ctx context.Context) ([]*models.Venue, error)
             state,
             zip_code
         FROM venues
+		ORDER BY COALESCE(venue_name, city)
     `
 
 	rows, err := s.DB.QueryContext(ctx, query)

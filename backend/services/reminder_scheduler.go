@@ -62,7 +62,7 @@ func (s *ReminderScheduler) SendPendingReminders(ctx context.Context) error {
 		JOIN shifts s ON s.shift_id = vs.shift_id
 		JOIN opportunities opp ON opp.opportunity_id = s.opportunity_id
 		JOIN events e ON e.event_id = opp.event_id
-		JOIN venues ven on ven.venue_id = e.venue_id
+		LEFT JOIN venues ven on ven.venue_id = e.venue_id
 		WHERE vs.cancelled_at IS NULL 
 					AND s.shift_start BETWEEN now() + interval '23 hours'
                         AND now() + interval '25 hours'
