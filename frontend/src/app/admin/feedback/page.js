@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   isAuthenticated,
-  getAuthRole,
+  hasAuthRole,
+  Roles,
   getAuthName,
   signOut,
   adminGql,
@@ -129,8 +130,7 @@ function AdminFeedbackPage() {
   /* ----- Auth guard ----- */
   useEffect(() => {
     if (!isAuthenticated()) { router.replace("/login"); return; }
-    const role = getAuthRole();
-    if (role !== "ADMINISTRATOR") { router.replace("/events"); return; }
+    if (!hasAuthRole(Roles.ADMINISTRATOR)) { router.replace("/events"); return; }
     const bound = adminGql;
     setGql(() => bound);
     setUserName(getAuthName() ?? "");

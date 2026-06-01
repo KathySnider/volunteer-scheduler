@@ -31,6 +31,30 @@ func NewEventService(db *sql.DB, mailer *Mailer, shiftService *ShiftService) (*E
 }
 
 // Queries.
+
+func (s *EventService) FetchFundingEntities(ctx context.Context) ([]*models.FundingEntity, error) {
+	// Get FundingEntities.
+	fes := []*models.FundingEntity{}
+
+	rows, err := s.DB.QueryContext(ctx, "SELECT id, name, COALESCE(description, '') FROM funding_entities WHERE is_active = true ORDER BY name")
+	if err != nil {
+		return nil, fmt.Errorf("error querying funding entities: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var f models.FundingEntity
+
+		err = rows.Scan(&f.ID, &f.Name, &f.Description)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning funding entities: %w", err)
+		}
+		fes = append(fes, &f)
+	}
+
+	return fes, nil
+}
+
 // FetchLookups
 // Retrieve cities, service types, job types,... anything
 // that uses a lookup table.
@@ -38,28 +62,9 @@ func (s *EventService) FetchLookups(ctx context.Context) (*models.LookupValues, 
 
 	var lookup models.LookupValues
 
-	// Get FundingEntities.
-	lookup.FundingEntities = make([]*models.FundingEntity, 0)
-	rows, err := s.DB.QueryContext(ctx, "SELECT id, name, COALESCE(description, '') FROM funding_entities WHERE is_active = true ORDER BY name")
-	if err != nil {
-		return nil, fmt.Errorf("error querying funding entities: %w", err)
-	}
-
-	for rows.Next() {
-		var fe models.FundingEntity
-
-		err = rows.Scan(&fe.ID, &fe.Name, &fe.Description)
-		if err != nil {
-			rows.Close()
-			return nil, fmt.Errorf("error scanning funding entities: %w", err)
-		}
-		lookup.FundingEntities = append(lookup.FundingEntities, &fe)
-	}
-	rows.Close()
-
 	// Get ServiceTypes.
 	lookup.ServiceTypes = make([]*models.ServiceType, 0)
-	rows, err = s.DB.QueryContext(ctx, "Select service_type_id, code, name from service_types")
+	rows, err := s.DB.QueryContext(ctx, "Select service_type_id, code, name from service_types")
 	if err != nil {
 		return nil, fmt.Errorf("error querying service types: %w", err)
 	}
@@ -114,14 +119,16 @@ func (s *EventService) FetchLookups(ctx context.Context) (*models.LookupValues, 
 	return &lookup, nil
 }
 
-// FetchFilteredEventsWithShifts
-// There *are* significant differences between this function and FetchManagedEvents:
+// FetchEventViews
+// This is the call for filtered volunteers events (those shown on the Volunteer Events page).
+// There *are* significant differences between this function and FetchEvents (which fetches
+// events for the Manage Events page):
 //  * This call does a second pass to make sure that it only has events with shifts.
-//  * This call returns volunteer events (no recurrence stuff that admins need).
+//  * This call returns volunteer event views (no recurrence stuff that admins need).
 //  * This call must have the id of the volunteer who called it, in case distance is
 //    part of the criteria (the volunteers' lat/lng data is stored in their profiles)
 
-func (s *EventService) FetchFilteredEventsWithShifts(ctx context.Context, filter *models.EventFilterInput, volId *int) ([]*models.Event, error) {
+func (s *EventService) FetchEventViews(ctx context.Context, filter *models.VolunteerEventFilterInput, volId *int) ([]*models.EventView, error) {
 
 	// Translate all of the filter stuff to a set of events that potentially meet
 	// all of the user's criteria. If there are no filters, the call to pass 1 just
@@ -136,7 +143,7 @@ func (s *EventService) FetchFilteredEventsWithShifts(ctx context.Context, filter
 	}
 	if len(eventsMap) == 0 {
 		// Return an empty set of events. Nothing matched.
-		return []*models.Event{}, nil
+		return []*models.EventView{}, nil
 	}
 
 	// Now, for each of the selected events, determine which
@@ -148,7 +155,7 @@ func (s *EventService) FetchFilteredEventsWithShifts(ctx context.Context, filter
 
 	// Build the result slice in the order the DB returned the events.
 	// Skipping any IDs that were removed by pass two.
-	events := make([]*models.Event, 0, len(eventsMap))
+	events := make([]*models.EventView, 0, len(eventsMap))
 	for _, id := range orderedIDs {
 		hasShifts, _ := eventsWithShifts[id]
 		if hasShifts {
@@ -160,7 +167,7 @@ func (s *EventService) FetchFilteredEventsWithShifts(ctx context.Context, filter
 	return events, nil
 }
 
-func (s *EventService) FetchEventById(ctx context.Context, eventId string) (*models.Event, error) {
+func (s *EventService) FetchEventView(ctx context.Context, eventId string) (*models.EventView, error) {
 	eventInt, err := strconv.Atoi(eventId)
 	if err != nil {
 		return nil, fmt.Errorf("invalid event id: %w", err)
@@ -185,7 +192,7 @@ func (s *EventService) FetchEventById(ctx context.Context, eventId string) (*mod
 
 	row := s.DB.QueryRowContext(ctx, query, eventInt)
 
-	var e models.Event
+	var e models.EventView
 	e.ID = eventId
 
 	var isVirtual bool
@@ -219,8 +226,7 @@ func (s *EventService) FetchEventById(ctx context.Context, eventId string) (*mod
 		// Since venueInt is valid, most of the strings are valid, because
 		// the fields are NOT NULL in the DB. The exceptions are venue name
 		// and zip code.
-		var venue models.Venue
-		venue.ID = strconv.Itoa(int(venueInt.Int64))
+		var venue models.VenueView
 		venue.Address = streetAddress.String
 		venue.City = city.String
 		venue.State = state.String
@@ -249,7 +255,7 @@ func (s *EventService) FetchEventById(ctx context.Context, eventId string) (*mod
 		e.ServiceTypes[i] = *stPtrs[i]
 	}
 
-	dates, err := FetchEventDates(ctx, s.DB, eventInt)
+	dates, err := fetchEventDateViews(ctx, s.DB, eventInt)
 	if err != nil {
 		return nil, fmt.Errorf("error getting event's dates: %w", err)
 	}
@@ -259,18 +265,18 @@ func (s *EventService) FetchEventById(ctx context.Context, eventId string) (*mod
 	return &e, nil
 }
 
-func (s *EventService) FetchManagedEvents(ctx context.Context, filter *models.EventFilterInput) ([]*models.ManagedEvent, error) {
+func (s *EventService) FetchEvents(ctx context.Context, filter *models.EventFilterInput) ([]*models.Event, error) {
 
 	// Translate all of the filter stuff to a set of events that meet all of the
 	// caller's criteria. If there are no filters, return all events.
 
-	eventsMap, orderedIDs, err := filterManagedEvents(ctx, filter, s.DB)
+	eventsMap, orderedIDs, err := filterEvents(ctx, filter, s.DB)
 	if err != nil {
 		return nil, fmt.Errorf("error querying events: %w", err)
 	}
 	if len(eventsMap) == 0 {
 		// Return an empty set of events. Nothing matched.
-		return []*models.ManagedEvent{}, nil
+		return []*models.Event{}, nil
 	}
 
 	// orderedIDs carries the ORDER BY from the SQL query (earliest event date ASC).
@@ -278,7 +284,7 @@ func (s *EventService) FetchManagedEvents(ctx context.Context, filter *models.Ev
 	// would randomise the order because Go maps have no guaranteed iteration order.
 	// Build the result slice in the order the DB returned the events.
 
-	events := make([]*models.ManagedEvent, 0, len(eventsMap))
+	events := make([]*models.Event, 0, len(eventsMap))
 	for _, id := range orderedIDs {
 		event, _ := eventsMap[id]
 		events = append(events, event)
@@ -286,7 +292,7 @@ func (s *EventService) FetchManagedEvents(ctx context.Context, filter *models.Ev
 	return events, nil
 }
 
-func (s *EventService) FetchManagedEventById(ctx context.Context, eventId string) (*models.ManagedEvent, error) {
+func (s *EventService) FetchEvent(ctx context.Context, eventId string) (*models.Event, error) {
 	eventInt, err := strconv.Atoi(eventId)
 	if err != nil {
 		return nil, fmt.Errorf("invalid event id: %w", err)
@@ -321,7 +327,7 @@ func (s *EventService) FetchManagedEventById(ctx context.Context, eventId string
 
 	row := s.DB.QueryRowContext(ctx, query, eventInt)
 
-	var e models.ManagedEvent
+	var e models.Event
 	var fe models.FundingEntity
 
 	e.ID = eventId
@@ -332,7 +338,7 @@ func (s *EventService) FetchManagedEventById(ctx context.Context, eventId string
 	var venueName, streetAddress, city, state, zip sql.NullString
 	var feDesc, recurGrpId sql.NullString
 	var recurOrder sql.NullInt32
-	var recurPattern, recurOrdinal sql.NullString
+	var recurPattern, recurWdOrd sql.NullString
 	var recurMax sql.NullInt32
 
 	err = row.Scan(
@@ -353,7 +359,7 @@ func (s *EventService) FetchManagedEventById(ctx context.Context, eventId string
 		&recurOrder,
 		&recurPattern,
 		&recurMax,
-		&recurOrdinal,
+		&recurWdOrd,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error scanning event: %w", err)
@@ -396,21 +402,23 @@ func (s *EventService) FetchManagedEventById(ctx context.Context, eventId string
 	e.FundingEntity = fe
 
 	if recurGrpId.Valid {
-		e.RecurrenceId = recurGrpId.String
+		rg := &models.RecurrenceGroup{GroupID: recurGrpId.String}
+		e.RecurrenceGroup = rg
 		if recurOrder.Valid {
-			e.RecurrenceOrder = int(recurOrder.Int32)
+			order := int(recurOrder.Int32)
+			e.RecurrenceOrder = &order
 		} else {
 			return nil, fmt.Errorf("recurrence_order is required when recurrence_group_id is not null.")
 		}
 		if recurPattern.Valid {
-			e.RecurrencePattern = recurPattern.String
+			rg.Pattern = recurPattern.String
 		}
 		if recurMax.Valid {
-			v := int(recurMax.Int32)
-			e.RecurrenceMaxOccurrences = &v
+			max := int(recurMax.Int32)
+			rg.MaxOccurrences = &max
 		}
-		if recurOrdinal.Valid {
-			e.RecurrenceOrdinal = &recurOrdinal.String
+		if recurWdOrd.Valid {
+			rg.WeekdayOrdinal = &recurWdOrd.String
 		}
 	}
 

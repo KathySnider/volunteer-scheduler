@@ -1,5 +1,9 @@
 ## Types common to all of the schemas.
 
+type Query {
+  lookupValues: LookupValues!
+}
+
 #-- Scalers --
 
 scalar Upload
@@ -43,34 +47,7 @@ enum ShiftTimeFilter {
   ALL
 }
 
-#-- Input --
-
-## The EventFilter reflects all of the fields on which 
-## a user can filter the results. If you want to add
-## more ways to filter, this is the place.
-
-input EventFilterInput {
-  cities: [String!]
-  distance: Int
-  eventType: EventType
-  jobs: [Int!]
-  timeFrame: ShiftTimeFilter
-}
-
-input NewFeedbackInput {
-  type: FeedbackType!
-  subject: String!
-  app_page_name: String!
-  text: String!
-}
-
 #-- Output --
-
-type FundingEntity {
-  id: Int!
-  name: String!
-  description: String
-}
 
 type ServiceType{
   id: Int!
@@ -87,86 +64,31 @@ type JobType{
 }
   
 type LookupValues{
-  fundingEntities: [FundingEntity!]!
   serviceTypes: [ServiceType!]!
   jobTypes: [JobType!]!
   cities: [String!]!
 }
 
-type VolunteerProfile {
-  firstName: String!
-  lastName: String!
-  email: String!
-  phone: String
-  zipCode: String
-  distance: Int
-  role: Role!
-}
-
-type VolunteerShift {
-  shiftId: ID!
-  assignedAt: String!
-  cancelledAt: String
-  startDateTime: String!
-  endDateTime: String!
-  maxVolunteers: Int
-  jobName: String!
-  isVirtual: Boolean!
-  preEventInstructions: String
-  eventId: ID!
-  eventName: String!
-  eventDescription: String
-  venue: Venue
-}
-
-type Venue {
-  id: ID!
-  name: String
-  address: String!
-  city: String!
-  state: String!
-  zipCode: String
-}
-
-type Event {
-  id: ID!
-  name: String!
-  description: String
-  eventType: EventType!
-  venue: Venue
-  timezone: String!
-  serviceTypes: [String!]
-  eventDates: [EventDate!]!
-  shiftSummaries: [EventShiftSummary!]!
-}
-
 # Per-opportunity volunteer counts for the event listing cards.
+# Used on volunteer pages, and on manage events pages.
+
 type EventShiftSummary {
   jobName: String!
   assignedVolunteers: Int!
   maxVolunteers: Int!
 }
 
-type EventDate {
-  id: ID!
-  startDateTime: String!
-  endDateTime: String!
-}
+# Both Feedback and FeedbackView (volunteers) use
+# the same metadata. When an attachment is viewed,
+# there is a different type.
 
-type FeedbackAttachment {
+type FeedbackMetaAttachment {
   id: ID!
   filename: String!
   mimeType: String!
   fileSize: Int!
   createdAt: String!
 }
-
-type AttachmentDownload {
-  filename: String!
-  mimeType: String!
-  data: String!
-}
-
 
 #-- Results --
 type MutationResult {

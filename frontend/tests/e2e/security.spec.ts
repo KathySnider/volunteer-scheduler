@@ -83,8 +83,8 @@ test.describe("HttpOnly session cookie", () => {
     expect(authToken).toBeNull();
 
     // Role and name are still stored for display purposes.
-    const role = await page.evaluate(() => localStorage.getItem("authRole"));
-    expect(role).toBe("VOLUNTEER");
+    const roles = await page.evaluate(() => localStorage.getItem("authRoles"));
+    expect(JSON.parse(roles ?? "[]")).toContain("VOLUNTEER");
   });
 
   test("session cookie is present before sign-out and absent after", async ({ page }) => {

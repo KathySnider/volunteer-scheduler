@@ -23,7 +23,7 @@ const VOLUNTEER_PROFILE = `
     ownProfile {
       firstName
       lastName
-      role
+      roles
     }
   }
 `;
@@ -61,12 +61,12 @@ function MagicLinkContent() {
 
       // The server has set an HttpOnly session cookie. Now fetch the volunteer's
       // profile — the cookie is sent automatically via credentials: 'include'.
-      let role = null;
+      let roles = null;
       let name = null;
       try {
         const profileResult = await volunteerGql(VOLUNTEER_PROFILE);
         const profile = profileResult.data?.ownProfile;
-        role = profile?.role ?? null;
+        roles = profile?.roles ?? null;
         if (profile?.firstName || profile?.lastName) {
           name = `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim();
         }
@@ -75,7 +75,7 @@ function MagicLinkContent() {
       }
 
       // Save only display values — the session token lives in the HttpOnly cookie.
-      setAuthInfo(email, role, name);
+      setAuthInfo(email, roles, name);
       setStatus("success");
       setTimeout(() => router.push("/events"), 2000);
     } catch {

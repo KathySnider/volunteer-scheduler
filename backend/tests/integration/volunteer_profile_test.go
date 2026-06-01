@@ -11,7 +11,7 @@ import (
 
 const (
 	qryVolunteerProfile = `query {
-		volunteerProfile { firstName lastName email role }
+		ownProfile { firstName lastName email roles }
 	}`
 
 	// updateOwnProfile returns VolunteerMutationResult { success message }
@@ -21,7 +21,7 @@ const (
 	}`
 
 	qryEventById = `query EventById($id: ID!) {
-		eventById(eventId: $id) { id name eventType }
+		eventView(eventId: $id) { id name eventType }
 	}`
 )
 
@@ -30,10 +30,10 @@ const (
 // ============================================================================
 
 type volunteerProfileResult struct {
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
-	Email     string `json:"email"`
-	Role      string `json:"role"`
+	FirstName string   `json:"firstName"`
+	LastName  string   `json:"lastName"`
+	Email     string   `json:"email"`
+	Roles     []string `json:"roles"`
 }
 
 // volunteerMutationResult mirrors VolunteerMutationResult { success message }.
@@ -61,7 +61,7 @@ func TestVolunteerProfile(t *testing.T) {
 	}
 
 	var profile volunteerProfileResult
-	unmarshalField(t, resp, "volunteerProfile", &profile)
+	unmarshalField(t, resp, "ownProfile", &profile)
 
 	if profile.FirstName != "Vol" {
 		t.Errorf("expected firstName=%q, got %q", "Vol", profile.FirstName)
@@ -69,8 +69,14 @@ func TestVolunteerProfile(t *testing.T) {
 	if profile.LastName != "Test" {
 		t.Errorf("expected lastName=%q, got %q", "Test", profile.LastName)
 	}
-	if profile.Role != "VOLUNTEER" {
-		t.Errorf("expected role=VOLUNTEER, got %q", profile.Role)
+	hasVolunteer := false
+	for _, r := range profile.Roles {
+		if r == "VOLUNTEER" {
+			hasVolunteer = true
+		}
+	}
+	if !hasVolunteer {
+		t.Errorf("expected roles to contain VOLUNTEER, got %v", profile.Roles)
 	}
 }
 
@@ -120,7 +126,7 @@ func TestEventById(t *testing.T) {
 	}
 
 	var event eventByIdResult
-	unmarshalField(t, resp, "eventById", &event)
+	unmarshalField(t, resp, "eventView", &event)
 
 	if event.Name != "Profile Test Event" {
 		t.Errorf("expected event name %q, got %q", "Profile Test Event", event.Name)

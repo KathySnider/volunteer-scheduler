@@ -13,34 +13,38 @@ type ServiceType struct {
 	Name string
 }
 
-type Event struct {
+type EventView struct {
 	ID             string
 	Name           string
 	Description    *string
 	EventType      EventType
-	Venue          *Venue
-	EventDates     []*EventDate
+	Venue          *VenueView
+	EventDates     []*EventDateView
 	Timezone       string
 	ServiceTypes   []string
 	ShiftSummaries []*EventShiftSummary
 }
 
-type ManagedEvent struct {
-	ID                       string
-	Name                     string
-	Description              *string
-	EventType                EventType
-	Venue                    *Venue
-	EventDates               []*EventDate
-	Timezone                 string
-	FundingEntity            FundingEntity
-	ServiceTypes             []string
-	ShiftSummaries           []*EventShiftSummary
-	RecurrenceId             string
-	RecurrenceOrder          int
-	RecurrencePattern        string
-	RecurrenceMaxOccurrences *int
-	RecurrenceOrdinal        *string
+type Event struct {
+	ID              string
+	Name            string
+	Description     *string
+	EventType       EventType
+	Venue           *Venue
+	EventDates      []*EventDate
+	Timezone        string
+	FundingEntity   FundingEntity
+	ServiceTypes    []string
+	ShiftSummaries  []*EventShiftSummary
+	RecurrenceGroup *RecurrenceGroup
+	RecurrenceOrder *int
+}
+
+type RecurrenceGroup struct {
+	GroupID        string
+	Pattern        string
+	MaxOccurrences *int
+	WeekdayOrdinal *string
 }
 
 // EventShiftSummary holds the per-opportunity volunteer counts
@@ -57,9 +61,23 @@ type EventDate struct {
 	EndDateTime   string
 }
 
+type EventDateView struct {
+	StartDateTime string
+	EndDateTime   string
+}
+
 // Input types for queries (e.g., filters).
 
+// Filter's events on the Manage Events page
 type EventFilterInput struct {
+	Cities    []string
+	EventType *EventType
+	Jobs      []int
+	TimeFrame *ShiftsTimeFilter
+}
+
+// Filter's events on the Volunteer Events page
+type VolunteerEventFilterInput struct {
 	Cities    []string
 	Distance  *int
 	EventType *EventType
@@ -74,6 +92,7 @@ type RecurrenceInput struct {
 	MaxOccurrences *int
 	WeekdayOrdinal *WeekdayOrdinal
 }
+
 type NewEventInput struct {
 	Name            string
 	Description     *string

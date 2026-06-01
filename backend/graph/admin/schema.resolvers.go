@@ -8,65 +8,62 @@ package admin
 import (
 	"context"
 	"fmt"
-	"io"
 	"strconv"
 	"volunteer-scheduler/graph/admin/generated"
 	"volunteer-scheduler/middleware"
-
-	"github.com/99designs/gqlgen/graphql"
 )
 
-// GiveFeedback is the resolver for the giveFeedback field.
-func (r *mutationResolver) GiveFeedback(ctx context.Context, feedback generated.NewFeedbackInput) (*generated.MutationResult, error) {
-	volId, ok := middleware.VolunteerIdFromContext(ctx)
-	if !ok {
-		return nil, fmt.Errorf("unauthorized")
+// CreateFundingEntity is the resolver for the createFundingEntity field.
+func (r *mutationResolver) CreateFundingEntity(ctx context.Context, input generated.NewFundingEntityInput) (*generated.MutationResult, error) {
+	m := toModelNewFundingEntityInput(input)
+	id, err := r.FundingEntityService.CreateFundingEntity(ctx, m.Name, m.Description)
+	if err != nil {
+		return nil, err
 	}
+	idStr := strconv.Itoa(id)
+	return &generated.MutationResult{Success: true, ID: &idStr}, nil
+}
 
-	result, err := r.FeedbackService.CreateNewFeedback(ctx, volId, toModelNewFeedbackInput(feedback))
+// CreateJobType is the resolver for the createJobType field.
+func (r *mutationResolver) CreateJobType(ctx context.Context, newJob generated.NewJobTypeInput) (*generated.MutationResult, error) {
+	result, err := r.ShiftService.CreateJobType(ctx, toModelNewJobTypeInput(newJob))
 	if err != nil {
 		return nil, err
 	}
 	return toGenMutationResult(result), nil
 }
 
-// AttachFileToFeedback is the resolver for the attachFileToFeedback field.
-func (r *mutationResolver) AttachFileToFeedback(ctx context.Context, feedbackID string, file graphql.Upload) (*generated.MutationResult, error) {
-	fbInt, err := strconv.Atoi(feedbackID)
+// DeleteFundingEntity is the resolver for the deleteFundingEntity field.
+func (r *mutationResolver) DeleteFundingEntity(ctx context.Context, id int) (*generated.MutationResult, error) {
+	err := r.FundingEntityService.DeleteFundingEntity(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("invalid feedback id %s: %w", feedbackID, err)
+		return nil, err
 	}
-	data, err := io.ReadAll(file.File)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read upload: %w", err)
-	}
+	return &generated.MutationResult{Success: true}, nil
+}
 
-	result, err := r.FeedbackService.AttachFileToFeedback(
-		ctx, fbInt, file.Filename, file.ContentType, data,
-	)
+// DeleteJobType is the resolver for the deleteJobType field.
+func (r *mutationResolver) DeleteJobType(ctx context.Context, jobID int) (*generated.MutationResult, error) {
+	result, err := r.ShiftService.DeleteJobType(ctx, jobID)
 	if err != nil {
 		return nil, err
 	}
 	return toGenMutationResult(result), nil
 }
 
-// CreateVolunteer is the resolver for the createVolunteer field.
-func (r *mutationResolver) CreateVolunteer(ctx context.Context, newVol generated.NewVolunteerInput) (*generated.MutationResult, error) {
-	creatorId, ok := middleware.VolunteerIdFromContext(ctx)
-	if !ok {
-		return nil, fmt.Errorf("unauthorized")
-	}
-
-	result, err := r.VolunteerService.CreateVolunteer(ctx, creatorId, toModelNewVolunteerInput(newVol))
+// UpdateFundingEntity is the resolver for the updateFundingEntity field.
+func (r *mutationResolver) UpdateFundingEntity(ctx context.Context, input generated.UpdateFundingEntityInput) (*generated.MutationResult, error) {
+	m := toModelUpdateFundingEntityInput(input)
+	err := r.FundingEntityService.UpdateFundingEntity(ctx, m.ID, m.Name, m.Description)
 	if err != nil {
 		return nil, err
 	}
-	return toGenMutationResult(result), nil
+	return &generated.MutationResult{Success: true}, nil
 }
 
-// CreateVenue is the resolver for the createVenue field.
-func (r *mutationResolver) CreateVenue(ctx context.Context, newVenue generated.NewVenueInput) (*generated.MutationResult, error) {
-	result, err := r.VenueService.CreateVenue(ctx, toModelNewVenueInput(newVenue))
+// UpdateJobType is the resolver for the updateJobType field.
+func (r *mutationResolver) UpdateJobType(ctx context.Context, job generated.UpdateJobTypeInput) (*generated.MutationResult, error) {
+	result, err := r.ShiftService.UpdateJobType(ctx, toModelUpdateJobTypeInput(job))
 	if err != nil {
 		return nil, err
 	}
@@ -82,9 +79,9 @@ func (r *mutationResolver) CreateEvent(ctx context.Context, newEvent generated.N
 	return toGenMutationResult(result), nil
 }
 
-// CreateJobType is the resolver for the createJobType field.
-func (r *mutationResolver) CreateJobType(ctx context.Context, newJob generated.NewJobTypeInput) (*generated.MutationResult, error) {
-	result, err := r.ShiftService.CreateJobType(ctx, toModelNewJobTypeInput(newJob))
+// CreateEventDate is the resolver for the createEventDate field.
+func (r *mutationResolver) CreateEventDate(ctx context.Context, newDate generated.AddEventDateInput) (*generated.MutationResult, error) {
+	result, err := r.EventService.CreateEventDate(ctx, toModelAddEventDate(newDate))
 	if err != nil {
 		return nil, err
 	}
@@ -109,65 +106,36 @@ func (r *mutationResolver) CreateShift(ctx context.Context, newShift generated.A
 	return toGenMutationResult(result), nil
 }
 
-// CreateEventDate is the resolver for the createEventDate field.
-func (r *mutationResolver) CreateEventDate(ctx context.Context, newDate generated.AddEventDateInput) (*generated.MutationResult, error) {
-	result, err := r.EventService.CreateEventDate(ctx, toModelAddEventDate(newDate))
+// DeleteEvent is the resolver for the deleteEvent field.
+func (r *mutationResolver) DeleteEvent(ctx context.Context, eventID string, scope *generated.RecurrenceUpdateScope) (*generated.MutationResult, error) {
+	result, err := r.EventService.DeleteEvent(ctx, eventID, toModelScope(scope))
 	if err != nil {
 		return nil, err
 	}
 	return toGenMutationResult(result), nil
 }
 
-// CreateStaff is the resolver for the createStaff field.
-func (r *mutationResolver) CreateStaff(ctx context.Context, newStaff generated.NewStaffInput) (*generated.MutationResult, error) {
-	result, err := r.StaffService.CreateStaff(ctx, toModelNewStaffInput(newStaff))
+// DeleteEventDate is the resolver for the deleteEventDate field.
+func (r *mutationResolver) DeleteEventDate(ctx context.Context, eventDateID string) (*generated.MutationResult, error) {
+	result, err := r.EventService.DeleteEventDate(ctx, eventDateID)
 	if err != nil {
 		return nil, err
 	}
 	return toGenMutationResult(result), nil
 }
 
-// CreateFundingEntity is the resolver for the createFundingEntity field.
-func (r *mutationResolver) CreateFundingEntity(ctx context.Context, input generated.NewFundingEntityInput) (*generated.MutationResult, error) {
-	m := toModelNewFundingEntityInput(input)
-	id, err := r.FundingEntityService.CreateFundingEntity(ctx, m.Name, m.Description)
-	if err != nil {
-		return nil, err
-	}
-	idStr := strconv.Itoa(id)
-	return &generated.MutationResult{Success: true, ID: &idStr}, nil
-}
-
-// AssignVolunteerToShift is the resolver for the assignVolunteerToShift field.
-func (r *mutationResolver) AssignVolunteerToShift(ctx context.Context, shiftID string, volunteerID string) (*generated.MutationResult, error) {
-	result, err := r.ShiftService.AssignVolunteerToShift(ctx, shiftID, volunteerID)
+// DeleteOpportunity is the resolver for the deleteOpportunity field.
+func (r *mutationResolver) DeleteOpportunity(ctx context.Context, oppID string) (*generated.MutationResult, error) {
+	result, err := r.ShiftService.DeleteOpportunity(ctx, oppID)
 	if err != nil {
 		return nil, err
 	}
 	return toGenMutationResult(result), nil
 }
 
-// CancelShift is the resolver for the cancelShift field.
-func (r *mutationResolver) CancelShift(ctx context.Context, shiftID string, volunteerID string) (*generated.MutationResult, error) {
-	result, err := r.ShiftService.CancelShiftAssignment(ctx, shiftID, volunteerID)
-	if err != nil {
-		return nil, err
-	}
-	return toGenMutationResult(result), nil
-}
-
-// UpdateVenue is the resolver for the updateVenue field.
-func (r *mutationResolver) UpdateVenue(ctx context.Context, venue generated.UpdateVenueInput) (*generated.MutationResult, error) {
-	result, err := r.VenueService.UpdateVenue(ctx, toModelUpdateVenue(venue))
-	if err != nil {
-		return nil, err
-	}
-	return toGenMutationResult(result), nil
-}
-
-// UpdateVolunteer is the resolver for the updateVolunteer field.
-func (r *mutationResolver) UpdateVolunteer(ctx context.Context, profile generated.UpdateVolunteerInput) (*generated.MutationResult, error) {
-	result, err := r.VolunteerService.UpdateVolunteerProfile(ctx, toModelUpdateVolunteerInput(profile))
+// DeleteShift is the resolver for the deleteShift field.
+func (r *mutationResolver) DeleteShift(ctx context.Context, shiftID string) (*generated.MutationResult, error) {
+	result, err := r.ShiftService.DeleteShift(ctx, shiftID)
 	if err != nil {
 		return nil, err
 	}
@@ -183,9 +151,9 @@ func (r *mutationResolver) UpdateEvent(ctx context.Context, event generated.Upda
 	return toGenMutationResult(result), nil
 }
 
-// UpdateJobType is the resolver for the updateJobType field.
-func (r *mutationResolver) UpdateJobType(ctx context.Context, job generated.UpdateJobTypeInput) (*generated.MutationResult, error) {
-	result, err := r.ShiftService.UpdateJobType(ctx, toModelUpdateJobTypeInput(job))
+// UpdateEventDate is the resolver for the updateEventDate field.
+func (r *mutationResolver) UpdateEventDate(ctx context.Context, date generated.UpdateEventDateInput) (*generated.MutationResult, error) {
+	result, err := r.EventService.UpdateEventDate(ctx, toModelUpdateEventDateInput(date))
 	if err != nil {
 		return nil, err
 	}
@@ -208,34 +176,6 @@ func (r *mutationResolver) UpdateShift(ctx context.Context, shift generated.Upda
 		return nil, err
 	}
 	return toGenMutationResult(result), nil
-}
-
-// UpdateEventDate is the resolver for the updateEventDate field.
-func (r *mutationResolver) UpdateEventDate(ctx context.Context, date generated.UpdateEventDateInput) (*generated.MutationResult, error) {
-	result, err := r.EventService.UpdateEventDate(ctx, toModelUpdateEventDateInput(date))
-	if err != nil {
-		return nil, err
-	}
-	return toGenMutationResult(result), nil
-}
-
-// UpdateStaff is the resolver for the updateStaff field.
-func (r *mutationResolver) UpdateStaff(ctx context.Context, staff generated.UpdateStaffInput) (*generated.MutationResult, error) {
-	result, err := r.StaffService.UpdateStaff(ctx, toModelUpdateStaffInput(staff))
-	if err != nil {
-		return nil, err
-	}
-	return toGenMutationResult(result), nil
-}
-
-// UpdateFundingEntity is the resolver for the updateFundingEntity field.
-func (r *mutationResolver) UpdateFundingEntity(ctx context.Context, input generated.UpdateFundingEntityInput) (*generated.MutationResult, error) {
-	m := toModelUpdateFundingEntityInput(input)
-	err := r.FundingEntityService.UpdateFundingEntity(ctx, m.ID, m.Name, m.Description)
-	if err != nil {
-		return nil, err
-	}
-	return &generated.MutationResult{Success: true}, nil
 }
 
 // QuestionFeedback is the resolver for the questionFeedback field.
@@ -265,87 +205,6 @@ func (r *mutationResolver) UpdateFeedback(ctx context.Context, feedback generate
 	return toGenMutationResult(result), nil
 }
 
-// DeleteVolunteer is the resolver for the deleteVolunteer field.
-func (r *mutationResolver) DeleteVolunteer(ctx context.Context, volunteerID string) (*generated.MutationResult, error) {
-	result, err := r.VolunteerService.DeleteVolunteer(ctx, volunteerID)
-	if err != nil {
-		return nil, err
-	}
-	return toGenMutationResult(result), nil
-}
-
-// DeleteVenue is the resolver for the deleteVenue field.
-func (r *mutationResolver) DeleteVenue(ctx context.Context, venueID string) (*generated.MutationResult, error) {
-	result, err := r.VenueService.DeleteVenue(ctx, venueID)
-	if err != nil {
-		return nil, err
-	}
-	return toGenMutationResult(result), nil
-}
-
-// DeleteEvent is the resolver for the deleteEvent field.
-func (r *mutationResolver) DeleteEvent(ctx context.Context, eventID string, scope *generated.RecurrenceUpdateScope) (*generated.MutationResult, error) {
-	result, err := r.EventService.DeleteEvent(ctx, eventID, toModelScope(scope))
-	if err != nil {
-		return nil, err
-	}
-	return toGenMutationResult(result), nil
-}
-
-// DeleteJobType is the resolver for the deleteJobType field.
-func (r *mutationResolver) DeleteJobType(ctx context.Context, jobID int) (*generated.MutationResult, error) {
-	result, err := r.ShiftService.DeleteJobType(ctx, jobID)
-	if err != nil {
-		return nil, err
-	}
-	return toGenMutationResult(result), nil
-}
-
-// DeleteOpportunity is the resolver for the deleteOpportunity field.
-func (r *mutationResolver) DeleteOpportunity(ctx context.Context, oppID string) (*generated.MutationResult, error) {
-	result, err := r.ShiftService.DeleteOpportunity(ctx, oppID)
-	if err != nil {
-		return nil, err
-	}
-	return toGenMutationResult(result), nil
-}
-
-// DeleteShift is the resolver for the deleteShift field.
-func (r *mutationResolver) DeleteShift(ctx context.Context, shiftID string) (*generated.MutationResult, error) {
-	result, err := r.ShiftService.DeleteShift(ctx, shiftID)
-	if err != nil {
-		return nil, err
-	}
-	return toGenMutationResult(result), nil
-}
-
-// DeleteEventDate is the resolver for the deleteEventDate field.
-func (r *mutationResolver) DeleteEventDate(ctx context.Context, eventDateID string) (*generated.MutationResult, error) {
-	result, err := r.EventService.DeleteEventDate(ctx, eventDateID)
-	if err != nil {
-		return nil, err
-	}
-	return toGenMutationResult(result), nil
-}
-
-// DeleteStaff is the resolver for the deleteStaff field.
-func (r *mutationResolver) DeleteStaff(ctx context.Context, staffID string) (*generated.MutationResult, error) {
-	result, err := r.StaffService.DeleteStaff(ctx, staffID)
-	if err != nil {
-		return nil, err
-	}
-	return toGenMutationResult(result), nil
-}
-
-// DeleteFundingEntity is the resolver for the deleteFundingEntity field.
-func (r *mutationResolver) DeleteFundingEntity(ctx context.Context, id int) (*generated.MutationResult, error) {
-	err := r.FundingEntityService.DeleteFundingEntity(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	return &generated.MutationResult{Success: true}, nil
-}
-
 // ResolveFeedback is the resolver for the resolveFeedback field.
 func (r *mutationResolver) ResolveFeedback(ctx context.Context, resolution generated.ResolveFeedbackInput) (*generated.MutationResult, error) {
 	volId, ok := middleware.VolunteerIdFromContext(ctx)
@@ -372,96 +231,135 @@ func (r *mutationResolver) DeleteFeedback(ctx context.Context, feedbackID string
 	return toGenMutationResult(result), nil
 }
 
-// LookupValues is the resolver for the lookupValues field.
-func (r *queryResolver) LookupValues(ctx context.Context) (*generated.LookupValues, error) {
-	lookup, err := r.EventService.FetchLookups(ctx)
+// CreateStaff is the resolver for the createStaff field.
+func (r *mutationResolver) CreateStaff(ctx context.Context, newStaff generated.NewStaffInput) (*generated.MutationResult, error) {
+	result, err := r.StaffService.CreateStaff(ctx, toModelNewStaffInput(newStaff))
 	if err != nil {
 		return nil, err
 	}
-	genLookup := toGenLookupValues(*lookup)
-	return &genLookup, nil
+	return toGenMutationResult(result), nil
 }
 
-// VolunteerProfile is the resolver for the volunteerProfile field.
-func (r *queryResolver) VolunteerProfile(ctx context.Context) (*generated.VolunteerProfile, error) {
-	volId, ok := middleware.VolunteerIdFromContext(ctx)
+// DeleteStaff is the resolver for the deleteStaff field.
+func (r *mutationResolver) DeleteStaff(ctx context.Context, staffID string) (*generated.MutationResult, error) {
+	result, err := r.StaffService.DeleteStaff(ctx, staffID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// UpdateStaff is the resolver for the updateStaff field.
+func (r *mutationResolver) UpdateStaff(ctx context.Context, staff generated.UpdateStaffInput) (*generated.MutationResult, error) {
+	result, err := r.StaffService.UpdateStaff(ctx, toModelUpdateStaffInput(staff))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// CreateVenue is the resolver for the createVenue field.
+func (r *mutationResolver) CreateVenue(ctx context.Context, newVenue generated.NewVenueInput) (*generated.MutationResult, error) {
+	result, err := r.VenueService.CreateVenue(ctx, toModelNewVenueInput(newVenue))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// DeleteVenue is the resolver for the deleteVenue field.
+func (r *mutationResolver) DeleteVenue(ctx context.Context, venueID string) (*generated.MutationResult, error) {
+	result, err := r.VenueService.DeleteVenue(ctx, venueID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// UpdateVenue is the resolver for the updateVenue field.
+func (r *mutationResolver) UpdateVenue(ctx context.Context, venue generated.UpdateVenueInput) (*generated.MutationResult, error) {
+	result, err := r.VenueService.UpdateVenue(ctx, toModelUpdateVenue(venue))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// CreateVolunteer is the resolver for the createVolunteer field.
+func (r *mutationResolver) CreateVolunteer(ctx context.Context, newVol generated.NewVolunteerInput) (*generated.MutationResult, error) {
+	creatorId, ok := middleware.VolunteerIdFromContext(ctx)
 	if !ok {
 		return nil, fmt.Errorf("unauthorized")
 	}
 
-	profile, err := r.VolunteerService.FetchOwnProfile(ctx, volId)
+	result, err := r.VolunteerService.CreateVolunteer(ctx, creatorId, toModelNewVolunteerInput(newVol))
 	if err != nil {
 		return nil, err
 	}
-	return toGenVolunteerProfile(profile), nil
+	return toGenMutationResult(result), nil
 }
 
-// FilteredEventsWithShifts is the resolver for the filteredEventsWithShifts field.
-func (r *queryResolver) FilteredEventsWithShifts(ctx context.Context, filter *generated.EventFilterInput) ([]*generated.Event, error) {
-	volId, ok := middleware.VolunteerIdFromContext(ctx)
-	if !ok {
-		return nil, fmt.Errorf("unauthorized")
+// DeleteVolunteer is the resolver for the deleteVolunteer field.
+func (r *mutationResolver) DeleteVolunteer(ctx context.Context, volunteerID string) (*generated.MutationResult, error) {
+	result, err := r.VolunteerService.DeleteVolunteer(ctx, volunteerID)
+	if err != nil {
+		return nil, err
 	}
+	return toGenMutationResult(result), nil
+}
 
-	events, err := r.EventService.FetchFilteredEventsWithShifts(ctx, toModelEventFilterInput(filter), &volId)
+// UpdateVolunteer is the resolver for the updateVolunteer field.
+func (r *mutationResolver) UpdateVolunteer(ctx context.Context, profile generated.UpdateVolunteerInput) (*generated.MutationResult, error) {
+	result, err := r.VolunteerService.UpdateVolunteerProfile(ctx, toModelUpdateVolunteerInput(profile))
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// AssignVolunteerToShift is the resolver for the assignVolunteerToShift field.
+func (r *mutationResolver) AssignVolunteerToShift(ctx context.Context, shiftID string, volunteerID string) (*generated.MutationResult, error) {
+	result, err := r.ShiftService.AssignVolunteerToShift(ctx, shiftID, volunteerID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// CancelShift is the resolver for the cancelShift field.
+func (r *mutationResolver) CancelShift(ctx context.Context, shiftID string, volunteerID string) (*generated.MutationResult, error) {
+	result, err := r.ShiftService.CancelShiftAssignment(ctx, shiftID, volunteerID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// Events is the resolver for the filteredEvents field.
+func (r *queryResolver) Events(ctx context.Context, filter *generated.EventFilterInput) ([]*generated.Event, error) {
+	events, err := r.EventService.FetchEvents(ctx, toModelEventFilterInput(filter))
 	if err != nil {
 		return nil, err
 	}
 	return toGenEvents(events), nil
 }
 
-// Venues is the resolver for the venues field.
-func (r *queryResolver) Venues(ctx context.Context) ([]*generated.Venue, error) {
-	venues, err := r.VenueService.FetchVenues(ctx)
+// Event is the resolver for the EventById field.
+func (r *queryResolver) Event(ctx context.Context, eventID string) (*generated.Event, error) {
+	e, err := r.EventService.FetchEvent(ctx, eventID)
 	if err != nil {
 		return nil, err
 	}
-	return toGenVenues(venues), nil
+	return toGenEvent(e), nil
 }
 
-// Staff is the resolver for the staff field.
-func (r *queryResolver) Staff(ctx context.Context) ([]*generated.Staff, error) {
-	allStaff, err := r.StaffService.FetchAllStaff(ctx)
+// FundingEntities is the resolver for the fundingEntities field.
+func (r *queryResolver) FundingEntities(ctx context.Context) ([]*generated.FundingEntity, error) {
+	fes, err := r.EventService.FetchFundingEntities(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return toGenAllStaff(allStaff), nil
-}
-
-// AllVolunteers is the resolver for the allVolunteers field.
-func (r *queryResolver) AllVolunteers(ctx context.Context, filter *generated.VolunteerFilterInput) ([]*generated.Volunteer, error) {
-	vols, err := r.VolunteerService.FetchAllVolunteers(ctx, toModelVolunteerFilterInput(filter))
-	if err != nil {
-		return nil, err
-	}
-	return toGenVolunteers(vols), nil
-}
-
-// VolunteerShifts is the resolver for the volunteerShifts field.
-func (r *queryResolver) VolunteerShifts(ctx context.Context, volunteerID string, filter generated.ShiftTimeFilter) ([]*generated.VolunteerShift, error) {
-	shifts, err := r.ShiftService.FetchVolunteerShifts(ctx, volunteerID, toModelShiftTimeFilter(filter))
-	if err != nil {
-		return nil, err
-	}
-	return toGenVolunteerShifts(shifts), nil
-}
-
-// FilteredEvents is the resolver for the filteredEvents field.
-func (r *queryResolver) FilteredEvents(ctx context.Context, filter *generated.EventFilterInput) ([]*generated.ManagedEvent, error) {
-	events, err := r.EventService.FetchManagedEvents(ctx, toModelEventFilterInput(filter))
-	if err != nil {
-		return nil, err
-	}
-	return toGenManagedEvents(events), nil
-}
-
-// ManagedEventByID is the resolver for the ManagedEventById field.
-func (r *queryResolver) ManagedEventByID(ctx context.Context, eventID string) (*generated.ManagedEvent, error) {
-	me, err := r.EventService.FetchManagedEventById(ctx, eventID)
-	if err != nil {
-		return nil, err
-	}
-	return toGenManagedEvent(me), nil
+	return toGenFundingEntities(fes), nil
 }
 
 // OpportunitiesForEvent is the resolver for the opportunitiesForEvent field.
@@ -492,28 +390,60 @@ func (r *queryResolver) FeedbackByID(ctx context.Context, feedbackID string) (*g
 }
 
 // Attachment is the resolver for the attachment field.
-func (r *queryResolver) Attachment(ctx context.Context, attachmentID int) (*generated.AttachmentDownload, error) {
+func (r *queryResolver) FeedbackAttachment(ctx context.Context, attachmentID int) (*generated.FeedbackAttachment, error) {
 	att, err := r.FeedbackService.FetchAttachment(ctx, attachmentID)
 	if err != nil {
 		return nil, err
 	}
-	return toGenAttachmentDownload(att), nil
+	return toGenFeedbackAttachment(att), nil
 }
 
-// VolunteerByID is the resolver for the volunteerById field.
-func (r *queryResolver) VolunteerByID(ctx context.Context, volunteerID string) (*generated.VolunteerProfile, error) {
-	vol, err := r.VolunteerService.FetchVolunteerProfileById(ctx, volunteerID)
+// Staff is the resolver for the staff field.
+func (r *queryResolver) Staff(ctx context.Context) ([]*generated.Staff, error) {
+	allStaff, err := r.StaffService.FetchAllStaff(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return toGenVolunteerProfile(vol), nil
+	return toGenAllStaff(allStaff), nil
+}
+
+// Venues is the resolver for the venues field.
+func (r *queryResolver) Venues(ctx context.Context) ([]*generated.Venue, error) {
+	venues, err := r.VenueService.FetchVenues(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return toGenVenues(venues), nil
+}
+
+// AllVolunteers is the resolver for the allVolunteers field.
+func (r *queryResolver) Volunteers(ctx context.Context, filter *generated.VolunteerFilterInput) ([]*generated.Volunteer, error) {
+	vols, err := r.VolunteerService.FetchVolunteers(ctx, toModelVolunteeFilterInput(filter))
+	if err != nil {
+		return nil, err
+	}
+	return toGenVolunteers(vols), nil
+}
+
+// Volunteer is the resolver for the volunteer field.
+func (r *queryResolver) Volunteer(ctx context.Context, volID int) (*generated.Volunteer, error) {
+	vol, err := r.VolunteerService.FetchVolunteer(ctx, volID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenVolunteer(vol), nil
+}
+
+// VolunteerShifts is the resolver for the volunteerShifts field.
+func (r *queryResolver) VolunteerShifts(ctx context.Context, volunteerID string, filter generated.ShiftTimeFilter) ([]*generated.VolunteerShift, error) {
+	shifts, err := r.VolunteerService.FetchVolunteerShifts(ctx, volunteerID, toModelShiftTimeFilter(filter))
+	if err != nil {
+		return nil, err
+	}
+	return toGenVolunteerShifts(shifts), nil
 }
 
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
-// Query returns generated.QueryResolver implementation.
-func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
-
 type mutationResolver struct{ *Resolver }
-type queryResolver struct{ *Resolver }

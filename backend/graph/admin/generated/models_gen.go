@@ -23,22 +23,19 @@ type AddShiftInput struct {
 	StaffContactID *string `json:"staffContactId,omitempty"`
 }
 
-type AttachmentDownload struct {
-	Filename string `json:"filename"`
-	MimeType string `json:"mimeType"`
-	Data     string `json:"data"`
-}
-
 type Event struct {
-	ID             string               `json:"id"`
-	Name           string               `json:"name"`
-	Description    *string              `json:"description,omitempty"`
-	EventType      EventType            `json:"eventType"`
-	Venue          *Venue               `json:"venue,omitempty"`
-	Timezone       string               `json:"timezone"`
-	ServiceTypes   []string             `json:"serviceTypes,omitempty"`
-	EventDates     []*EventDate         `json:"eventDates"`
-	ShiftSummaries []*EventShiftSummary `json:"shiftSummaries"`
+	ID              string               `json:"id"`
+	Name            string               `json:"name"`
+	Description     *string              `json:"description,omitempty"`
+	EventType       EventType            `json:"eventType"`
+	Venue           *Venue               `json:"venue,omitempty"`
+	Timezone        string               `json:"timezone"`
+	FundingEntity   *FundingEntity       `json:"fundingEntity"`
+	ServiceTypes    []string             `json:"serviceTypes,omitempty"`
+	EventDates      []*EventDate         `json:"eventDates"`
+	ShiftSummaries  []*EventShiftSummary `json:"shiftSummaries"`
+	RecurrenceGroup *RecurrenceGroup     `json:"recurrenceGroup,omitempty"`
+	RecurrenceOrder *int                 `json:"recurrenceOrder,omitempty"`
 }
 
 type EventDate struct {
@@ -49,7 +46,6 @@ type EventDate struct {
 
 type EventFilterInput struct {
 	Cities    []string         `json:"cities,omitempty"`
-	Distance  *int             `json:"distance,omitempty"`
 	EventType *EventType       `json:"eventType,omitempty"`
 	Jobs      []int            `json:"jobs,omitempty"`
 	TimeFrame *ShiftTimeFilter `json:"timeFrame,omitempty"`
@@ -62,32 +58,38 @@ type EventShiftSummary struct {
 }
 
 type Feedback struct {
-	ID             string                `json:"id"`
-	VolunteerName  string                `json:"volunteerName"`
-	Type           FeedbackType          `json:"type"`
-	Status         FeedbackStatus        `json:"status"`
-	Subject        string                `json:"subject"`
-	AppPageName    string                `json:"appPageName"`
-	Text           string                `json:"text"`
-	Notes          []*FeedbackNote       `json:"notes"`
-	GithubIssueURL *string               `json:"githubIssueURL,omitempty"`
-	CreatedAt      string                `json:"createdAt"`
-	LastUpdatedAt  *string               `json:"lastUpdatedAt,omitempty"`
-	ResolvedAt     *string               `json:"resolvedAt,omitempty"`
-	Attachments    []*FeedbackAttachment `json:"attachments"`
+	ID             string                    `json:"id"`
+	VolunteerName  string                    `json:"volunteerName"`
+	Type           FeedbackType              `json:"type"`
+	Status         FeedbackStatus            `json:"status"`
+	Subject        string                    `json:"subject"`
+	AppPageName    string                    `json:"appPageName"`
+	Text           string                    `json:"text"`
+	Notes          []*FeedbackNote           `json:"notes"`
+	GithubIssueURL *string                   `json:"githubIssueURL,omitempty"`
+	CreatedAt      string                    `json:"createdAt"`
+	LastUpdatedAt  *string                   `json:"lastUpdatedAt,omitempty"`
+	ResolvedAt     *string                   `json:"resolvedAt,omitempty"`
+	Attachments    []*FeedbackMetaAttachment `json:"attachments"`
 }
 
 type FeedbackAttachment struct {
-	ID        string `json:"id"`
-	Filename  string `json:"filename"`
-	MimeType  string `json:"mimeType"`
-	FileSize  int    `json:"fileSize"`
-	CreatedAt string `json:"createdAt"`
+	Filename string `json:"filename"`
+	MimeType string `json:"mimeType"`
+	Data     string `json:"data"`
 }
 
 type FeedbackFilterInput struct {
 	Status *FeedbackStatus `json:"status,omitempty"`
 	Type   *FeedbackType   `json:"type,omitempty"`
+}
+
+type FeedbackMetaAttachment struct {
+	ID        string `json:"id"`
+	Filename  string `json:"filename"`
+	MimeType  string `json:"mimeType"`
+	FileSize  int    `json:"fileSize"`
+	CreatedAt string `json:"createdAt"`
 }
 
 type FeedbackNote struct {
@@ -113,28 +115,9 @@ type JobType struct {
 }
 
 type LookupValues struct {
-	FundingEntities []*FundingEntity `json:"fundingEntities"`
-	ServiceTypes    []*ServiceType   `json:"serviceTypes"`
-	JobTypes        []*JobType       `json:"jobTypes"`
-	Cities          []string         `json:"cities"`
-}
-
-type ManagedEvent struct {
-	ID                       string               `json:"id"`
-	Name                     string               `json:"name"`
-	Description              *string              `json:"description,omitempty"`
-	EventType                EventType            `json:"eventType"`
-	Venue                    *Venue               `json:"venue,omitempty"`
-	Timezone                 string               `json:"timezone"`
-	FundingEntity            *FundingEntity       `json:"fundingEntity"`
-	ServiceTypes             []string             `json:"serviceTypes,omitempty"`
-	EventDates               []*EventDate         `json:"eventDates"`
-	ShiftSummaries           []*EventShiftSummary `json:"shiftSummaries"`
-	RecurrenceID             *string              `json:"recurrenceId,omitempty"`
-	RecurrenceOrder          *int                 `json:"recurrenceOrder,omitempty"`
-	RecurrencePattern        *string              `json:"recurrencePattern,omitempty"`
-	RecurrenceMaxOccurrences *int                 `json:"recurrenceMaxOccurrences,omitempty"`
-	RecurrenceOrdinal        *string              `json:"recurrenceOrdinal,omitempty"`
+	ServiceTypes []*ServiceType `json:"serviceTypes"`
+	JobTypes     []*JobType     `json:"jobTypes"`
+	Cities       []string       `json:"cities"`
 }
 
 type Mutation struct {
@@ -161,13 +144,6 @@ type NewEventInput struct {
 	FundingEntityID int                  `json:"fundingEntityId"`
 	ServiceTypes    []int                `json:"serviceTypes"`
 	Recurrence      *RecurrenceInput     `json:"recurrence,omitempty"`
-}
-
-type NewFeedbackInput struct {
-	Type        FeedbackType `json:"type"`
-	Subject     string       `json:"subject"`
-	AppPageName string       `json:"app_page_name"`
-	Text        string       `json:"text"`
 }
 
 type NewFundingEntityInput struct {
@@ -237,6 +213,13 @@ type QuestionFeedbackInput struct {
 	ID        string `json:"id"`
 	EmailText string `json:"emailText"`
 	Note      string `json:"note"`
+}
+
+type RecurrenceGroup struct {
+	GroupID        string            `json:"groupId"`
+	Pattern        RecurrencePattern `json:"pattern"`
+	MaxOccurrences *int              `json:"maxOccurrences,omitempty"`
+	WeekdayOrdinal *string           `json:"weekdayOrdinal,omitempty"`
 }
 
 type RecurrenceInput struct {
@@ -374,23 +357,13 @@ type Volunteer struct {
 	Phone     *string `json:"phone,omitempty"`
 	ZipCode   *string `json:"zipCode,omitempty"`
 	Distance  *int    `json:"distance,omitempty"`
-	Role      Role    `json:"role"`
+	Roles     []Role  `json:"roles"`
 }
 
 type VolunteerFilterInput struct {
 	FirstName *string `json:"firstName,omitempty"`
 	LastName  *string `json:"lastName,omitempty"`
 	Email     *string `json:"email,omitempty"`
-}
-
-type VolunteerProfile struct {
-	FirstName string  `json:"firstName"`
-	LastName  string  `json:"lastName"`
-	Email     string  `json:"email"`
-	Phone     *string `json:"phone,omitempty"`
-	ZipCode   *string `json:"zipCode,omitempty"`
-	Distance  *int    `json:"distance,omitempty"`
-	Role      Role    `json:"role"`
 }
 
 type VolunteerShift struct {

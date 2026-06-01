@@ -130,7 +130,7 @@ export const test = base.extend<TestFixtures>({
       ({ email }: { email: string }) => {
         localStorage.setItem("sessionActive", "1");
         localStorage.setItem("authEmail", email);
-        localStorage.setItem("authRole", "ADMINISTRATOR");
+        localStorage.setItem("authRoles", JSON.stringify(["ADMINISTRATOR", "VOLUNTEER"]));
         localStorage.setItem("authName", "Test Admin");
       },
       { email: adminEmail }
@@ -201,7 +201,7 @@ export const test = base.extend<TestFixtures>({
       ({ email }: { email: string }) => {
         localStorage.setItem("sessionActive", "1");
         localStorage.setItem("authEmail", email);
-        localStorage.setItem("authRole", "VOLUNTEER");
+        localStorage.setItem("authRoles", JSON.stringify(["VOLUNTEER"]));
         localStorage.setItem("authName", "Test Volunteer");
       },
       { email: _volunteerSession.email }

@@ -9,36 +9,9 @@ import (
 	"strconv"
 )
 
-type AttachmentDownload struct {
-	Filename string `json:"filename"`
-	MimeType string `json:"mimeType"`
-	Data     string `json:"data"`
-}
-
-type Event struct {
-	ID             string               `json:"id"`
-	Name           string               `json:"name"`
-	Description    *string              `json:"description,omitempty"`
-	EventType      EventType            `json:"eventType"`
-	Venue          *Venue               `json:"venue,omitempty"`
-	Timezone       string               `json:"timezone"`
-	ServiceTypes   []string             `json:"serviceTypes,omitempty"`
-	EventDates     []*EventDate         `json:"eventDates"`
-	ShiftSummaries []*EventShiftSummary `json:"shiftSummaries"`
-}
-
-type EventDate struct {
-	ID            string `json:"id"`
+type EventDateView struct {
 	StartDateTime string `json:"startDateTime"`
 	EndDateTime   string `json:"endDateTime"`
-}
-
-type EventFilterInput struct {
-	Cities    []string         `json:"cities,omitempty"`
-	Distance  *int             `json:"distance,omitempty"`
-	EventType *EventType       `json:"eventType,omitempty"`
-	Jobs      []int            `json:"jobs,omitempty"`
-	TimeFrame *ShiftTimeFilter `json:"timeFrame,omitempty"`
 }
 
 type EventShiftSummary struct {
@@ -47,7 +20,35 @@ type EventShiftSummary struct {
 	MaxVolunteers      int    `json:"maxVolunteers"`
 }
 
-type FeedbackAttachment struct {
+type EventShiftView struct {
+	ID                 string `json:"id"`
+	JobName            string `json:"jobName"`
+	StartDateTime      string `json:"startDateTime"`
+	EndDateTime        string `json:"endDateTime"`
+	IsVirtual          bool   `json:"isVirtual"`
+	MaxVolunteers      *int   `json:"maxVolunteers,omitempty"`
+	AssignedVolunteers int    `json:"assignedVolunteers"`
+}
+
+type EventView struct {
+	ID             string               `json:"id"`
+	Name           string               `json:"name"`
+	Description    *string              `json:"description,omitempty"`
+	EventType      EventType            `json:"eventType"`
+	Venue          *VenueView           `json:"venue,omitempty"`
+	Timezone       string               `json:"timezone"`
+	ServiceTypes   []string             `json:"serviceTypes,omitempty"`
+	EventDates     []*EventDateView     `json:"eventDates"`
+	ShiftSummaries []*EventShiftSummary `json:"shiftSummaries"`
+}
+
+type FeedbackAttachmentView struct {
+	Filename string `json:"filename"`
+	MimeType string `json:"mimeType"`
+	Data     string `json:"data"`
+}
+
+type FeedbackMetaAttachment struct {
 	ID        string `json:"id"`
 	Filename  string `json:"filename"`
 	MimeType  string `json:"mimeType"`
@@ -55,10 +56,24 @@ type FeedbackAttachment struct {
 	CreatedAt string `json:"createdAt"`
 }
 
-type FundingEntity struct {
-	ID          int     `json:"id"`
-	Name        string  `json:"name"`
-	Description *string `json:"description,omitempty"`
+type FeedbackNoteView struct {
+	ID        string           `json:"id"`
+	CreatedAt string           `json:"createdAt"`
+	NoteType  FeedbackNoteType `json:"noteType"`
+	Note      string           `json:"note"`
+}
+
+type FeedbackView struct {
+	ID             string                    `json:"id"`
+	Type           FeedbackType              `json:"type"`
+	Status         FeedbackStatus            `json:"status"`
+	Subject        string                    `json:"subject"`
+	AppPageName    string                    `json:"appPageName"`
+	Text           string                    `json:"text"`
+	GithubIssueURL *string                   `json:"githubIssueURL,omitempty"`
+	CreatedAt      string                    `json:"createdAt"`
+	Notes          []*FeedbackNoteView       `json:"notes"`
+	Attachments    []*FeedbackMetaAttachment `json:"attachments"`
 }
 
 type JobType struct {
@@ -70,10 +85,9 @@ type JobType struct {
 }
 
 type LookupValues struct {
-	FundingEntities []*FundingEntity `json:"fundingEntities"`
-	ServiceTypes    []*ServiceType   `json:"serviceTypes"`
-	JobTypes        []*JobType       `json:"jobTypes"`
-	Cities          []string         `json:"cities"`
+	ServiceTypes []*ServiceType `json:"serviceTypes"`
+	JobTypes     []*JobType     `json:"jobTypes"`
+	Cities       []string       `json:"cities"`
 }
 
 type Mutation struct {
@@ -101,16 +115,6 @@ type ServiceType struct {
 	Name string `json:"name"`
 }
 
-type ShiftView struct {
-	ID                 string `json:"id"`
-	JobName            string `json:"jobName"`
-	StartDateTime      string `json:"startDateTime"`
-	EndDateTime        string `json:"endDateTime"`
-	IsVirtual          bool   `json:"isVirtual"`
-	MaxVolunteers      *int   `json:"maxVolunteers,omitempty"`
-	AssignedVolunteers int    `json:"assignedVolunteers"`
-}
-
 type UpdateOwnProfileInput struct {
 	FirstName string  `json:"firstName"`
 	LastName  string  `json:"lastName"`
@@ -120,8 +124,7 @@ type UpdateOwnProfileInput struct {
 	Distance  *int    `json:"distance,omitempty"`
 }
 
-type Venue struct {
-	ID      string  `json:"id"`
+type VenueView struct {
 	Name    *string `json:"name,omitempty"`
 	Address string  `json:"address"`
 	City    string  `json:"city"`
@@ -129,24 +132,12 @@ type Venue struct {
 	ZipCode *string `json:"zipCode,omitempty"`
 }
 
-type VolunteerFeedback struct {
-	ID             string                   `json:"id"`
-	Type           FeedbackType             `json:"type"`
-	Status         FeedbackStatus           `json:"status"`
-	Subject        string                   `json:"subject"`
-	AppPageName    string                   `json:"appPageName"`
-	Text           string                   `json:"text"`
-	GithubIssueURL *string                  `json:"githubIssueURL,omitempty"`
-	CreatedAt      string                   `json:"createdAt"`
-	Notes          []*VolunteerFeedbackNote `json:"notes"`
-	Attachments    []*FeedbackAttachment    `json:"attachments"`
-}
-
-type VolunteerFeedbackNote struct {
-	ID        string           `json:"id"`
-	CreatedAt string           `json:"createdAt"`
-	NoteType  FeedbackNoteType `json:"noteType"`
-	Note      string           `json:"note"`
+type VolunteerEventFilterInput struct {
+	Cities    []string         `json:"cities,omitempty"`
+	Distance  *int             `json:"distance,omitempty"`
+	EventType *EventType       `json:"eventType,omitempty"`
+	Jobs      []int            `json:"jobs,omitempty"`
+	TimeFrame *ShiftTimeFilter `json:"timeFrame,omitempty"`
 }
 
 type VolunteerMutationResult struct {
@@ -154,30 +145,30 @@ type VolunteerMutationResult struct {
 	Message *string `json:"message,omitempty"`
 }
 
-type VolunteerProfile struct {
+type VolunteerShiftView struct {
+	ShiftID              string     `json:"shiftId"`
+	AssignedAt           string     `json:"assignedAt"`
+	CancelledAt          *string    `json:"cancelledAt,omitempty"`
+	StartDateTime        string     `json:"startDateTime"`
+	EndDateTime          string     `json:"endDateTime"`
+	MaxVolunteers        *int       `json:"maxVolunteers,omitempty"`
+	JobName              string     `json:"jobName"`
+	IsVirtual            bool       `json:"isVirtual"`
+	PreEventInstructions *string    `json:"preEventInstructions,omitempty"`
+	EventID              string     `json:"eventId"`
+	EventName            string     `json:"eventName"`
+	EventDescription     *string    `json:"eventDescription,omitempty"`
+	Venue                *VenueView `json:"venue,omitempty"`
+}
+
+type VolunteerView struct {
 	FirstName string  `json:"firstName"`
 	LastName  string  `json:"lastName"`
 	Email     string  `json:"email"`
 	Phone     *string `json:"phone,omitempty"`
 	ZipCode   *string `json:"zipCode,omitempty"`
 	Distance  *int    `json:"distance,omitempty"`
-	Role      Role    `json:"role"`
-}
-
-type VolunteerShift struct {
-	ShiftID              string  `json:"shiftId"`
-	AssignedAt           string  `json:"assignedAt"`
-	CancelledAt          *string `json:"cancelledAt,omitempty"`
-	StartDateTime        string  `json:"startDateTime"`
-	EndDateTime          string  `json:"endDateTime"`
-	MaxVolunteers        *int    `json:"maxVolunteers,omitempty"`
-	JobName              string  `json:"jobName"`
-	IsVirtual            bool    `json:"isVirtual"`
-	PreEventInstructions *string `json:"preEventInstructions,omitempty"`
-	EventID              string  `json:"eventId"`
-	EventName            string  `json:"eventName"`
-	EventDescription     *string `json:"eventDescription,omitempty"`
-	Venue                *Venue  `json:"venue,omitempty"`
+	Roles     []Role  `json:"roles"`
 }
 
 type EventType string

@@ -45,22 +45,19 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
-	AttachmentDownload struct {
-		Data     func(childComplexity int) int
-		Filename func(childComplexity int) int
-		MimeType func(childComplexity int) int
-	}
-
 	Event struct {
-		Description    func(childComplexity int) int
-		EventDates     func(childComplexity int) int
-		EventType      func(childComplexity int) int
-		ID             func(childComplexity int) int
-		Name           func(childComplexity int) int
-		ServiceTypes   func(childComplexity int) int
-		ShiftSummaries func(childComplexity int) int
-		Timezone       func(childComplexity int) int
-		Venue          func(childComplexity int) int
+		Description     func(childComplexity int) int
+		EventDates      func(childComplexity int) int
+		EventType       func(childComplexity int) int
+		FundingEntity   func(childComplexity int) int
+		ID              func(childComplexity int) int
+		Name            func(childComplexity int) int
+		RecurrenceGroup func(childComplexity int) int
+		RecurrenceOrder func(childComplexity int) int
+		ServiceTypes    func(childComplexity int) int
+		ShiftSummaries  func(childComplexity int) int
+		Timezone        func(childComplexity int) int
+		Venue           func(childComplexity int) int
 	}
 
 	EventDate struct {
@@ -92,6 +89,12 @@ type ComplexityRoot struct {
 	}
 
 	FeedbackAttachment struct {
+		Data     func(childComplexity int) int
+		Filename func(childComplexity int) int
+		MimeType func(childComplexity int) int
+	}
+
+	FeedbackMetaAttachment struct {
 		CreatedAt func(childComplexity int) int
 		FileSize  func(childComplexity int) int
 		Filename  func(childComplexity int) int
@@ -122,33 +125,13 @@ type ComplexityRoot struct {
 	}
 
 	LookupValues struct {
-		Cities          func(childComplexity int) int
-		FundingEntities func(childComplexity int) int
-		JobTypes        func(childComplexity int) int
-		ServiceTypes    func(childComplexity int) int
-	}
-
-	ManagedEvent struct {
-		Description              func(childComplexity int) int
-		EventDates               func(childComplexity int) int
-		EventType                func(childComplexity int) int
-		FundingEntity            func(childComplexity int) int
-		ID                       func(childComplexity int) int
-		Name                     func(childComplexity int) int
-		RecurrenceID             func(childComplexity int) int
-		RecurrenceMaxOccurrences func(childComplexity int) int
-		RecurrenceOrder          func(childComplexity int) int
-		RecurrenceOrdinal        func(childComplexity int) int
-		RecurrencePattern        func(childComplexity int) int
-		ServiceTypes             func(childComplexity int) int
-		ShiftSummaries           func(childComplexity int) int
-		Timezone                 func(childComplexity int) int
-		Venue                    func(childComplexity int) int
+		Cities       func(childComplexity int) int
+		JobTypes     func(childComplexity int) int
+		ServiceTypes func(childComplexity int) int
 	}
 
 	Mutation struct {
 		AssignVolunteerToShift func(childComplexity int, shiftID string, volunteerID string) int
-		AttachFileToFeedback   func(childComplexity int, feedbackID string, file graphql.Upload) int
 		CancelShift            func(childComplexity int, shiftID string, volunteerID string) int
 		CreateEvent            func(childComplexity int, newEvent NewEventInput) int
 		CreateEventDate        func(childComplexity int, newDate AddEventDateInput) int
@@ -161,15 +144,14 @@ type ComplexityRoot struct {
 		CreateVolunteer        func(childComplexity int, newVol NewVolunteerInput) int
 		DeleteEvent            func(childComplexity int, eventID string, scope *RecurrenceUpdateScope) int
 		DeleteEventDate        func(childComplexity int, eventDateID string) int
+		DeleteFeedback         func(childComplexity int, feedbackID string) int
 		DeleteFundingEntity    func(childComplexity int, id int) int
 		DeleteJobType          func(childComplexity int, jobID int) int
 		DeleteOpportunity      func(childComplexity int, oppID string) int
 		DeleteShift            func(childComplexity int, shiftID string) int
 		DeleteStaff            func(childComplexity int, staffID string) int
 		DeleteVenue            func(childComplexity int, venueID string) int
-		DeleteFeedback         func(childComplexity int, feedbackID string) int
 		DeleteVolunteer        func(childComplexity int, volunteerID string) int
-		GiveFeedback           func(childComplexity int, feedback NewFeedbackInput) int
 		QuestionFeedback       func(childComplexity int, question QuestionFeedbackInput) int
 		ResolveFeedback        func(childComplexity int, resolution ResolveFeedbackInput) int
 		UpdateEvent            func(childComplexity int, event UpdateEventInput) int
@@ -199,20 +181,26 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		AllVolunteers            func(childComplexity int, filter *VolunteerFilterInput) int
-		Attachment               func(childComplexity int, attachmentID int) int
-		Feedback                 func(childComplexity int, filter *FeedbackFilterInput) int
-		FeedbackByID             func(childComplexity int, feedbackID string) int
-		FilteredEvents           func(childComplexity int, filter *EventFilterInput) int
-		FilteredEventsWithShifts func(childComplexity int, filter *EventFilterInput) int
-		LookupValues             func(childComplexity int) int
-		ManagedEventByID         func(childComplexity int, eventID string) int
-		OpportunitiesForEvent    func(childComplexity int, eventID string) int
-		Staff                    func(childComplexity int) int
-		Venues                   func(childComplexity int) int
-		VolunteerByID            func(childComplexity int, volunteerID string) int
-		VolunteerProfile         func(childComplexity int) int
-		VolunteerShifts          func(childComplexity int, volunteerID string, filter ShiftTimeFilter) int
+		Event                 func(childComplexity int, eventID string) int
+		Events                func(childComplexity int, filter *EventFilterInput) int
+		Feedback              func(childComplexity int, filter *FeedbackFilterInput) int
+		FeedbackAttachment    func(childComplexity int, attachmentID int) int
+		FeedbackByID          func(childComplexity int, feedbackID string) int
+		FundingEntities       func(childComplexity int) int
+		LookupValues          func(childComplexity int) int
+		OpportunitiesForEvent func(childComplexity int, eventID string) int
+		Staff                 func(childComplexity int) int
+		Venues                func(childComplexity int) int
+		Volunteer             func(childComplexity int, volID int) int
+		VolunteerShifts       func(childComplexity int, volunteerID string, filter ShiftTimeFilter) int
+		Volunteers            func(childComplexity int, filter *VolunteerFilterInput) int
+	}
+
+	RecurrenceGroup struct {
+		GroupID        func(childComplexity int) int
+		MaxOccurrences func(childComplexity int) int
+		Pattern        func(childComplexity int) int
+		WeekdayOrdinal func(childComplexity int) int
 	}
 
 	ServiceType struct {
@@ -254,17 +242,7 @@ type ComplexityRoot struct {
 		ID        func(childComplexity int) int
 		LastName  func(childComplexity int) int
 		Phone     func(childComplexity int) int
-		Role      func(childComplexity int) int
-		ZipCode   func(childComplexity int) int
-	}
-
-	VolunteerProfile struct {
-		Distance  func(childComplexity int) int
-		Email     func(childComplexity int) int
-		FirstName func(childComplexity int) int
-		LastName  func(childComplexity int) int
-		Phone     func(childComplexity int) int
-		Role      func(childComplexity int) int
+		Roles     func(childComplexity int) int
 		ZipCode   func(childComplexity int) int
 	}
 
@@ -286,57 +264,54 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	GiveFeedback(ctx context.Context, feedback NewFeedbackInput) (*MutationResult, error)
-	AttachFileToFeedback(ctx context.Context, feedbackID string, file graphql.Upload) (*MutationResult, error)
-	CreateVolunteer(ctx context.Context, newVol NewVolunteerInput) (*MutationResult, error)
-	CreateVenue(ctx context.Context, newVenue NewVenueInput) (*MutationResult, error)
-	CreateEvent(ctx context.Context, newEvent NewEventInput) (*MutationResult, error)
+	CreateFundingEntity(ctx context.Context, input NewFundingEntityInput) (*MutationResult, error)
 	CreateJobType(ctx context.Context, newJob NewJobTypeInput) (*MutationResult, error)
+	DeleteFundingEntity(ctx context.Context, id int) (*MutationResult, error)
+	DeleteJobType(ctx context.Context, jobID int) (*MutationResult, error)
+	UpdateFundingEntity(ctx context.Context, input UpdateFundingEntityInput) (*MutationResult, error)
+	UpdateJobType(ctx context.Context, job UpdateJobTypeInput) (*MutationResult, error)
+	CreateEvent(ctx context.Context, newEvent NewEventInput) (*MutationResult, error)
+	CreateEventDate(ctx context.Context, newDate AddEventDateInput) (*MutationResult, error)
 	CreateOpportunity(ctx context.Context, newOpp NewOpportunityInput) (*MutationResult, error)
 	CreateShift(ctx context.Context, newShift AddShiftInput) (*MutationResult, error)
-	CreateEventDate(ctx context.Context, newDate AddEventDateInput) (*MutationResult, error)
-	CreateStaff(ctx context.Context, newStaff NewStaffInput) (*MutationResult, error)
-	CreateFundingEntity(ctx context.Context, input NewFundingEntityInput) (*MutationResult, error)
-	AssignVolunteerToShift(ctx context.Context, shiftID string, volunteerID string) (*MutationResult, error)
-	CancelShift(ctx context.Context, shiftID string, volunteerID string) (*MutationResult, error)
-	UpdateVenue(ctx context.Context, venue UpdateVenueInput) (*MutationResult, error)
-	UpdateVolunteer(ctx context.Context, profile UpdateVolunteerInput) (*MutationResult, error)
-	UpdateEvent(ctx context.Context, event UpdateEventInput) (*MutationResult, error)
-	UpdateJobType(ctx context.Context, job UpdateJobTypeInput) (*MutationResult, error)
-	UpdateOpportunity(ctx context.Context, opp UpdateOpportunityInput) (*MutationResult, error)
-	UpdateShift(ctx context.Context, shift UpdateShiftInput) (*MutationResult, error)
-	UpdateEventDate(ctx context.Context, date UpdateEventDateInput) (*MutationResult, error)
-	UpdateStaff(ctx context.Context, staff UpdateStaffInput) (*MutationResult, error)
-	UpdateFundingEntity(ctx context.Context, input UpdateFundingEntityInput) (*MutationResult, error)
-	QuestionFeedback(ctx context.Context, question QuestionFeedbackInput) (*MutationResult, error)
-	UpdateFeedback(ctx context.Context, feedback UpdateFeedbackInput) (*MutationResult, error)
-	DeleteVolunteer(ctx context.Context, volunteerID string) (*MutationResult, error)
-	DeleteVenue(ctx context.Context, venueID string) (*MutationResult, error)
 	DeleteEvent(ctx context.Context, eventID string, scope *RecurrenceUpdateScope) (*MutationResult, error)
-	DeleteJobType(ctx context.Context, jobID int) (*MutationResult, error)
+	DeleteEventDate(ctx context.Context, eventDateID string) (*MutationResult, error)
 	DeleteOpportunity(ctx context.Context, oppID string) (*MutationResult, error)
 	DeleteShift(ctx context.Context, shiftID string) (*MutationResult, error)
-	DeleteEventDate(ctx context.Context, eventDateID string) (*MutationResult, error)
-	DeleteStaff(ctx context.Context, staffID string) (*MutationResult, error)
-	DeleteFundingEntity(ctx context.Context, id int) (*MutationResult, error)
+	UpdateEvent(ctx context.Context, event UpdateEventInput) (*MutationResult, error)
+	UpdateEventDate(ctx context.Context, date UpdateEventDateInput) (*MutationResult, error)
+	UpdateOpportunity(ctx context.Context, opp UpdateOpportunityInput) (*MutationResult, error)
+	UpdateShift(ctx context.Context, shift UpdateShiftInput) (*MutationResult, error)
+	QuestionFeedback(ctx context.Context, question QuestionFeedbackInput) (*MutationResult, error)
+	UpdateFeedback(ctx context.Context, feedback UpdateFeedbackInput) (*MutationResult, error)
 	ResolveFeedback(ctx context.Context, resolution ResolveFeedbackInput) (*MutationResult, error)
 	DeleteFeedback(ctx context.Context, feedbackID string) (*MutationResult, error)
+	CreateStaff(ctx context.Context, newStaff NewStaffInput) (*MutationResult, error)
+	DeleteStaff(ctx context.Context, staffID string) (*MutationResult, error)
+	UpdateStaff(ctx context.Context, staff UpdateStaffInput) (*MutationResult, error)
+	CreateVenue(ctx context.Context, newVenue NewVenueInput) (*MutationResult, error)
+	DeleteVenue(ctx context.Context, venueID string) (*MutationResult, error)
+	UpdateVenue(ctx context.Context, venue UpdateVenueInput) (*MutationResult, error)
+	CreateVolunteer(ctx context.Context, newVol NewVolunteerInput) (*MutationResult, error)
+	DeleteVolunteer(ctx context.Context, volunteerID string) (*MutationResult, error)
+	UpdateVolunteer(ctx context.Context, profile UpdateVolunteerInput) (*MutationResult, error)
+	AssignVolunteerToShift(ctx context.Context, shiftID string, volunteerID string) (*MutationResult, error)
+	CancelShift(ctx context.Context, shiftID string, volunteerID string) (*MutationResult, error)
 }
 type QueryResolver interface {
 	LookupValues(ctx context.Context) (*LookupValues, error)
-	VolunteerProfile(ctx context.Context) (*VolunteerProfile, error)
-	FilteredEventsWithShifts(ctx context.Context, filter *EventFilterInput) ([]*Event, error)
-	Venues(ctx context.Context) ([]*Venue, error)
-	Staff(ctx context.Context) ([]*Staff, error)
-	AllVolunteers(ctx context.Context, filter *VolunteerFilterInput) ([]*Volunteer, error)
-	VolunteerShifts(ctx context.Context, volunteerID string, filter ShiftTimeFilter) ([]*VolunteerShift, error)
-	FilteredEvents(ctx context.Context, filter *EventFilterInput) ([]*ManagedEvent, error)
-	ManagedEventByID(ctx context.Context, eventID string) (*ManagedEvent, error)
+	Events(ctx context.Context, filter *EventFilterInput) ([]*Event, error)
+	Event(ctx context.Context, eventID string) (*Event, error)
+	FundingEntities(ctx context.Context) ([]*FundingEntity, error)
 	OpportunitiesForEvent(ctx context.Context, eventID string) ([]*Opportunity, error)
 	Feedback(ctx context.Context, filter *FeedbackFilterInput) ([]*Feedback, error)
 	FeedbackByID(ctx context.Context, feedbackID string) (*Feedback, error)
-	Attachment(ctx context.Context, attachmentID int) (*AttachmentDownload, error)
-	VolunteerByID(ctx context.Context, volunteerID string) (*VolunteerProfile, error)
+	FeedbackAttachment(ctx context.Context, attachmentID int) (*FeedbackAttachment, error)
+	Staff(ctx context.Context) ([]*Staff, error)
+	Venues(ctx context.Context) ([]*Venue, error)
+	Volunteers(ctx context.Context, filter *VolunteerFilterInput) ([]*Volunteer, error)
+	Volunteer(ctx context.Context, volID int) (*Volunteer, error)
+	VolunteerShifts(ctx context.Context, volunteerID string, filter ShiftTimeFilter) ([]*VolunteerShift, error)
 }
 
 type executableSchema struct {
@@ -358,25 +333,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 	_ = ec
 	switch typeName + "." + field {
 
-	case "AttachmentDownload.data":
-		if e.complexity.AttachmentDownload.Data == nil {
-			break
-		}
-
-		return e.complexity.AttachmentDownload.Data(childComplexity), true
-	case "AttachmentDownload.filename":
-		if e.complexity.AttachmentDownload.Filename == nil {
-			break
-		}
-
-		return e.complexity.AttachmentDownload.Filename(childComplexity), true
-	case "AttachmentDownload.mimeType":
-		if e.complexity.AttachmentDownload.MimeType == nil {
-			break
-		}
-
-		return e.complexity.AttachmentDownload.MimeType(childComplexity), true
-
 	case "Event.description":
 		if e.complexity.Event.Description == nil {
 			break
@@ -395,6 +351,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Event.EventType(childComplexity), true
+	case "Event.fundingEntity":
+		if e.complexity.Event.FundingEntity == nil {
+			break
+		}
+
+		return e.complexity.Event.FundingEntity(childComplexity), true
 	case "Event.id":
 		if e.complexity.Event.ID == nil {
 			break
@@ -407,6 +369,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Event.Name(childComplexity), true
+	case "Event.recurrenceGroup":
+		if e.complexity.Event.RecurrenceGroup == nil {
+			break
+		}
+
+		return e.complexity.Event.RecurrenceGroup(childComplexity), true
+	case "Event.recurrenceOrder":
+		if e.complexity.Event.RecurrenceOrder == nil {
+			break
+		}
+
+		return e.complexity.Event.RecurrenceOrder(childComplexity), true
 	case "Event.serviceTypes":
 		if e.complexity.Event.ServiceTypes == nil {
 			break
@@ -549,36 +523,55 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Feedback.VolunteerName(childComplexity), true
 
-	case "FeedbackAttachment.createdAt":
-		if e.complexity.FeedbackAttachment.CreatedAt == nil {
+	case "FeedbackAttachment.data":
+		if e.complexity.FeedbackAttachment.Data == nil {
 			break
 		}
 
-		return e.complexity.FeedbackAttachment.CreatedAt(childComplexity), true
-	case "FeedbackAttachment.fileSize":
-		if e.complexity.FeedbackAttachment.FileSize == nil {
-			break
-		}
-
-		return e.complexity.FeedbackAttachment.FileSize(childComplexity), true
+		return e.complexity.FeedbackAttachment.Data(childComplexity), true
 	case "FeedbackAttachment.filename":
 		if e.complexity.FeedbackAttachment.Filename == nil {
 			break
 		}
 
 		return e.complexity.FeedbackAttachment.Filename(childComplexity), true
-	case "FeedbackAttachment.id":
-		if e.complexity.FeedbackAttachment.ID == nil {
-			break
-		}
-
-		return e.complexity.FeedbackAttachment.ID(childComplexity), true
 	case "FeedbackAttachment.mimeType":
 		if e.complexity.FeedbackAttachment.MimeType == nil {
 			break
 		}
 
 		return e.complexity.FeedbackAttachment.MimeType(childComplexity), true
+
+	case "FeedbackMetaAttachment.createdAt":
+		if e.complexity.FeedbackMetaAttachment.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.FeedbackMetaAttachment.CreatedAt(childComplexity), true
+	case "FeedbackMetaAttachment.fileSize":
+		if e.complexity.FeedbackMetaAttachment.FileSize == nil {
+			break
+		}
+
+		return e.complexity.FeedbackMetaAttachment.FileSize(childComplexity), true
+	case "FeedbackMetaAttachment.filename":
+		if e.complexity.FeedbackMetaAttachment.Filename == nil {
+			break
+		}
+
+		return e.complexity.FeedbackMetaAttachment.Filename(childComplexity), true
+	case "FeedbackMetaAttachment.id":
+		if e.complexity.FeedbackMetaAttachment.ID == nil {
+			break
+		}
+
+		return e.complexity.FeedbackMetaAttachment.ID(childComplexity), true
+	case "FeedbackMetaAttachment.mimeType":
+		if e.complexity.FeedbackMetaAttachment.MimeType == nil {
+			break
+		}
+
+		return e.complexity.FeedbackMetaAttachment.MimeType(childComplexity), true
 
 	case "FeedbackNote.createdAt":
 		if e.complexity.FeedbackNote.CreatedAt == nil {
@@ -667,12 +660,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.LookupValues.Cities(childComplexity), true
-	case "LookupValues.fundingEntities":
-		if e.complexity.LookupValues.FundingEntities == nil {
-			break
-		}
-
-		return e.complexity.LookupValues.FundingEntities(childComplexity), true
 	case "LookupValues.jobTypes":
 		if e.complexity.LookupValues.JobTypes == nil {
 			break
@@ -686,97 +673,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.LookupValues.ServiceTypes(childComplexity), true
 
-	case "ManagedEvent.description":
-		if e.complexity.ManagedEvent.Description == nil {
-			break
-		}
-
-		return e.complexity.ManagedEvent.Description(childComplexity), true
-	case "ManagedEvent.eventDates":
-		if e.complexity.ManagedEvent.EventDates == nil {
-			break
-		}
-
-		return e.complexity.ManagedEvent.EventDates(childComplexity), true
-	case "ManagedEvent.eventType":
-		if e.complexity.ManagedEvent.EventType == nil {
-			break
-		}
-
-		return e.complexity.ManagedEvent.EventType(childComplexity), true
-	case "ManagedEvent.fundingEntity":
-		if e.complexity.ManagedEvent.FundingEntity == nil {
-			break
-		}
-
-		return e.complexity.ManagedEvent.FundingEntity(childComplexity), true
-	case "ManagedEvent.id":
-		if e.complexity.ManagedEvent.ID == nil {
-			break
-		}
-
-		return e.complexity.ManagedEvent.ID(childComplexity), true
-	case "ManagedEvent.name":
-		if e.complexity.ManagedEvent.Name == nil {
-			break
-		}
-
-		return e.complexity.ManagedEvent.Name(childComplexity), true
-	case "ManagedEvent.recurrenceId":
-		if e.complexity.ManagedEvent.RecurrenceID == nil {
-			break
-		}
-
-		return e.complexity.ManagedEvent.RecurrenceID(childComplexity), true
-	case "ManagedEvent.recurrenceMaxOccurrences":
-		if e.complexity.ManagedEvent.RecurrenceMaxOccurrences == nil {
-			break
-		}
-
-		return e.complexity.ManagedEvent.RecurrenceMaxOccurrences(childComplexity), true
-	case "ManagedEvent.recurrenceOrder":
-		if e.complexity.ManagedEvent.RecurrenceOrder == nil {
-			break
-		}
-
-		return e.complexity.ManagedEvent.RecurrenceOrder(childComplexity), true
-	case "ManagedEvent.recurrenceOrdinal":
-		if e.complexity.ManagedEvent.RecurrenceOrdinal == nil {
-			break
-		}
-
-		return e.complexity.ManagedEvent.RecurrenceOrdinal(childComplexity), true
-	case "ManagedEvent.recurrencePattern":
-		if e.complexity.ManagedEvent.RecurrencePattern == nil {
-			break
-		}
-
-		return e.complexity.ManagedEvent.RecurrencePattern(childComplexity), true
-	case "ManagedEvent.serviceTypes":
-		if e.complexity.ManagedEvent.ServiceTypes == nil {
-			break
-		}
-
-		return e.complexity.ManagedEvent.ServiceTypes(childComplexity), true
-	case "ManagedEvent.shiftSummaries":
-		if e.complexity.ManagedEvent.ShiftSummaries == nil {
-			break
-		}
-
-		return e.complexity.ManagedEvent.ShiftSummaries(childComplexity), true
-	case "ManagedEvent.timezone":
-		if e.complexity.ManagedEvent.Timezone == nil {
-			break
-		}
-
-		return e.complexity.ManagedEvent.Timezone(childComplexity), true
-	case "ManagedEvent.venue":
-		if e.complexity.ManagedEvent.Venue == nil {
-			break
-		}
-
-		return e.complexity.ManagedEvent.Venue(childComplexity), true
-
 	case "Mutation.assignVolunteerToShift":
 		if e.complexity.Mutation.AssignVolunteerToShift == nil {
 			break
@@ -788,17 +684,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.AssignVolunteerToShift(childComplexity, args["shiftId"].(string), args["volunteerId"].(string)), true
-	case "Mutation.attachFileToFeedback":
-		if e.complexity.Mutation.AttachFileToFeedback == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_attachFileToFeedback_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.AttachFileToFeedback(childComplexity, args["feedbackId"].(string), args["file"].(graphql.Upload)), true
 	case "Mutation.cancelShift":
 		if e.complexity.Mutation.CancelShift == nil {
 			break
@@ -931,6 +816,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteEventDate(childComplexity, args["eventDateId"].(string)), true
+	case "Mutation.deleteFeedback":
+		if e.complexity.Mutation.DeleteFeedback == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteFeedback_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteFeedback(childComplexity, args["feedbackId"].(string)), true
 	case "Mutation.deleteFundingEntity":
 		if e.complexity.Mutation.DeleteFundingEntity == nil {
 			break
@@ -1008,28 +904,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteVolunteer(childComplexity, args["volunteerId"].(string)), true
-	case "Mutation.deleteFeedback":
-		if e.complexity.Mutation.DeleteFeedback == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_deleteFeedback_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.DeleteFeedback(childComplexity, args["feedbackId"].(string)), true
-	case "Mutation.giveFeedback":
-		if e.complexity.Mutation.GiveFeedback == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_giveFeedback_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.GiveFeedback(childComplexity, args["feedback"].(NewFeedbackInput)), true
 	case "Mutation.questionFeedback":
 		if e.complexity.Mutation.QuestionFeedback == nil {
 			break
@@ -1213,28 +1087,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Opportunity.Shifts(childComplexity), true
 
-	case "Query.allVolunteers":
-		if e.complexity.Query.AllVolunteers == nil {
+	case "Query.event":
+		if e.complexity.Query.Event == nil {
 			break
 		}
 
-		args, err := ec.field_Query_allVolunteers_args(ctx, rawArgs)
+		args, err := ec.field_Query_event_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.AllVolunteers(childComplexity, args["filter"].(*VolunteerFilterInput)), true
-	case "Query.attachment":
-		if e.complexity.Query.Attachment == nil {
+		return e.complexity.Query.Event(childComplexity, args["eventId"].(string)), true
+	case "Query.events":
+		if e.complexity.Query.Events == nil {
 			break
 		}
 
-		args, err := ec.field_Query_attachment_args(ctx, rawArgs)
+		args, err := ec.field_Query_events_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.Attachment(childComplexity, args["attachmentId"].(int)), true
+		return e.complexity.Query.Events(childComplexity, args["filter"].(*EventFilterInput)), true
 	case "Query.feedback":
 		if e.complexity.Query.Feedback == nil {
 			break
@@ -1246,6 +1120,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Feedback(childComplexity, args["filter"].(*FeedbackFilterInput)), true
+	case "Query.feedbackAttachment":
+		if e.complexity.Query.FeedbackAttachment == nil {
+			break
+		}
+
+		args, err := ec.field_Query_feedbackAttachment_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FeedbackAttachment(childComplexity, args["attachmentId"].(int)), true
 	case "Query.feedbackById":
 		if e.complexity.Query.FeedbackByID == nil {
 			break
@@ -1257,45 +1142,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.FeedbackByID(childComplexity, args["feedbackId"].(string)), true
-	case "Query.filteredEvents":
-		if e.complexity.Query.FilteredEvents == nil {
+	case "Query.fundingEntities":
+		if e.complexity.Query.FundingEntities == nil {
 			break
 		}
 
-		args, err := ec.field_Query_filteredEvents_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.FilteredEvents(childComplexity, args["filter"].(*EventFilterInput)), true
-	case "Query.filteredEventsWithShifts":
-		if e.complexity.Query.FilteredEventsWithShifts == nil {
-			break
-		}
-
-		args, err := ec.field_Query_filteredEventsWithShifts_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.FilteredEventsWithShifts(childComplexity, args["filter"].(*EventFilterInput)), true
+		return e.complexity.Query.FundingEntities(childComplexity), true
 	case "Query.lookupValues":
 		if e.complexity.Query.LookupValues == nil {
 			break
 		}
 
 		return e.complexity.Query.LookupValues(childComplexity), true
-	case "Query.managedEventById":
-		if e.complexity.Query.ManagedEventByID == nil {
-			break
-		}
-
-		args, err := ec.field_Query_managedEventById_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.ManagedEventByID(childComplexity, args["eventId"].(string)), true
 	case "Query.opportunitiesForEvent":
 		if e.complexity.Query.OpportunitiesForEvent == nil {
 			break
@@ -1319,23 +1177,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Venues(childComplexity), true
-	case "Query.volunteerById":
-		if e.complexity.Query.VolunteerByID == nil {
+	case "Query.volunteer":
+		if e.complexity.Query.Volunteer == nil {
 			break
 		}
 
-		args, err := ec.field_Query_volunteerById_args(ctx, rawArgs)
+		args, err := ec.field_Query_volunteer_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.VolunteerByID(childComplexity, args["volunteerId"].(string)), true
-	case "Query.volunteerProfile":
-		if e.complexity.Query.VolunteerProfile == nil {
-			break
-		}
-
-		return e.complexity.Query.VolunteerProfile(childComplexity), true
+		return e.complexity.Query.Volunteer(childComplexity, args["volId"].(int)), true
 	case "Query.volunteerShifts":
 		if e.complexity.Query.VolunteerShifts == nil {
 			break
@@ -1347,6 +1199,42 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.VolunteerShifts(childComplexity, args["volunteerId"].(string), args["filter"].(ShiftTimeFilter)), true
+	case "Query.volunteers":
+		if e.complexity.Query.Volunteers == nil {
+			break
+		}
+
+		args, err := ec.field_Query_volunteers_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Volunteers(childComplexity, args["filter"].(*VolunteerFilterInput)), true
+
+	case "RecurrenceGroup.groupId":
+		if e.complexity.RecurrenceGroup.GroupID == nil {
+			break
+		}
+
+		return e.complexity.RecurrenceGroup.GroupID(childComplexity), true
+	case "RecurrenceGroup.maxOccurrences":
+		if e.complexity.RecurrenceGroup.MaxOccurrences == nil {
+			break
+		}
+
+		return e.complexity.RecurrenceGroup.MaxOccurrences(childComplexity), true
+	case "RecurrenceGroup.pattern":
+		if e.complexity.RecurrenceGroup.Pattern == nil {
+			break
+		}
+
+		return e.complexity.RecurrenceGroup.Pattern(childComplexity), true
+	case "RecurrenceGroup.weekdayOrdinal":
+		if e.complexity.RecurrenceGroup.WeekdayOrdinal == nil {
+			break
+		}
+
+		return e.complexity.RecurrenceGroup.WeekdayOrdinal(childComplexity), true
 
 	case "ServiceType.code":
 		if e.complexity.ServiceType.Code == nil {
@@ -1508,61 +1396,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Volunteer.Phone(childComplexity), true
-	case "Volunteer.role":
-		if e.complexity.Volunteer.Role == nil {
+	case "Volunteer.roles":
+		if e.complexity.Volunteer.Roles == nil {
 			break
 		}
 
-		return e.complexity.Volunteer.Role(childComplexity), true
+		return e.complexity.Volunteer.Roles(childComplexity), true
 	case "Volunteer.zipCode":
 		if e.complexity.Volunteer.ZipCode == nil {
 			break
 		}
 
 		return e.complexity.Volunteer.ZipCode(childComplexity), true
-
-	case "VolunteerProfile.distance":
-		if e.complexity.VolunteerProfile.Distance == nil {
-			break
-		}
-
-		return e.complexity.VolunteerProfile.Distance(childComplexity), true
-	case "VolunteerProfile.email":
-		if e.complexity.VolunteerProfile.Email == nil {
-			break
-		}
-
-		return e.complexity.VolunteerProfile.Email(childComplexity), true
-	case "VolunteerProfile.firstName":
-		if e.complexity.VolunteerProfile.FirstName == nil {
-			break
-		}
-
-		return e.complexity.VolunteerProfile.FirstName(childComplexity), true
-	case "VolunteerProfile.lastName":
-		if e.complexity.VolunteerProfile.LastName == nil {
-			break
-		}
-
-		return e.complexity.VolunteerProfile.LastName(childComplexity), true
-	case "VolunteerProfile.phone":
-		if e.complexity.VolunteerProfile.Phone == nil {
-			break
-		}
-
-		return e.complexity.VolunteerProfile.Phone(childComplexity), true
-	case "VolunteerProfile.role":
-		if e.complexity.VolunteerProfile.Role == nil {
-			break
-		}
-
-		return e.complexity.VolunteerProfile.Role(childComplexity), true
-	case "VolunteerProfile.zipCode":
-		if e.complexity.VolunteerProfile.ZipCode == nil {
-			break
-		}
-
-		return e.complexity.VolunteerProfile.ZipCode(childComplexity), true
 
 	case "VolunteerShift.assignedAt":
 		if e.complexity.VolunteerShift.AssignedAt == nil {
@@ -1657,7 +1502,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputFeedbackFilterInput,
 		ec.unmarshalInputNewEventDateInput,
 		ec.unmarshalInputNewEventInput,
-		ec.unmarshalInputNewFeedbackInput,
 		ec.unmarshalInputNewFundingEntityInput,
 		ec.unmarshalInputNewJobTypeInput,
 		ec.unmarshalInputNewOpportunityInput,
@@ -1778,6 +1622,10 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 var sources = []*ast.Source{
 	{Name: "../../shared/types.graphql", Input: `## Types common to all of the schemas.
 
+type Query {
+  lookupValues: LookupValues!
+}
+
 #-- Scalers --
 
 scalar Upload
@@ -1821,34 +1669,7 @@ enum ShiftTimeFilter {
   ALL
 }
 
-#-- Input --
-
-## The EventFilter reflects all of the fields on which 
-## a user can filter the results. If you want to add
-## more ways to filter, this is the place.
-
-input EventFilterInput {
-  cities: [String!]
-  distance: Int
-  eventType: EventType
-  jobs: [Int!]
-  timeFrame: ShiftTimeFilter
-}
-
-input NewFeedbackInput {
-  type: FeedbackType!
-  subject: String!
-  app_page_name: String!
-  text: String!
-}
-
 #-- Output --
-
-type FundingEntity {
-  id: Int!
-  name: String!
-  description: String
-}
 
 type ServiceType{
   id: Int!
@@ -1865,86 +1686,31 @@ type JobType{
 }
   
 type LookupValues{
-  fundingEntities: [FundingEntity!]!
   serviceTypes: [ServiceType!]!
   jobTypes: [JobType!]!
   cities: [String!]!
 }
 
-type VolunteerProfile {
-  firstName: String!
-  lastName: String!
-  email: String!
-  phone: String
-  zipCode: String
-  distance: Int
-  role: Role!
-}
-
-type VolunteerShift {
-  shiftId: ID!
-  assignedAt: String!
-  cancelledAt: String
-  startDateTime: String!
-  endDateTime: String!
-  maxVolunteers: Int
-  jobName: String!
-  isVirtual: Boolean!
-  preEventInstructions: String
-  eventId: ID!
-  eventName: String!
-  eventDescription: String
-  venue: Venue
-}
-
-type Venue {
-  id: ID!
-  name: String
-  address: String!
-  city: String!
-  state: String!
-  zipCode: String
-}
-
-type Event {
-  id: ID!
-  name: String!
-  description: String
-  eventType: EventType!
-  venue: Venue
-  timezone: String!
-  serviceTypes: [String!]
-  eventDates: [EventDate!]!
-  shiftSummaries: [EventShiftSummary!]!
-}
-
 # Per-opportunity volunteer counts for the event listing cards.
+# Used on volunteer pages, and on manage events pages.
+
 type EventShiftSummary {
   jobName: String!
   assignedVolunteers: Int!
   maxVolunteers: Int!
 }
 
-type EventDate {
-  id: ID!
-  startDateTime: String!
-  endDateTime: String!
-}
+# Both Feedback and FeedbackView (volunteers) use
+# the same metadata. When an attachment is viewed,
+# there is a different type.
 
-type FeedbackAttachment {
+type FeedbackMetaAttachment {
   id: ID!
   filename: String!
   mimeType: String!
   fileSize: Int!
   createdAt: String!
 }
-
-type AttachmentDownload {
-  filename: String!
-  mimeType: String!
-  data: String!
-}
-
 
 #-- Results --
 type MutationResult {
@@ -1954,76 +1720,86 @@ type MutationResult {
 }
 `, BuiltIn: false},
 	{Name: "../schema.graphql", Input: `## These definitions apply to those users with admin status
-## only. The definitions in the volunteer schema are also
-## available to admins. So the admin privilege allows the
-## definitions in the union of the 2 schema files.
+## only. 
 
-type Query {
-  # Shared queries:
-  lookupValues: LookupValues!
-  volunteerProfile: VolunteerProfile!
-  filteredEventsWithShifts(filter: EventFilterInput): [Event!]!
+extend type Query {
 
-  # Admin-only queries:
-  venues: [Venue!]!
-  staff: [Staff!]!
-  allVolunteers(filter: VolunteerFilterInput): [Volunteer!]!
-  volunteerShifts(volunteerId: ID!, filter: ShiftTimeFilter!): [VolunteerShift!]!
-  filteredEvents(filter: EventFilterInput): [ManagedEvent!]!
-  managedEventById(eventId: ID!): ManagedEvent!
+  # Events
+  events(filter: EventFilterInput): [Event!]!
+  event(eventId: ID!): Event!
+  fundingEntities: [FundingEntity!]!
   opportunitiesForEvent(eventId: ID!): [Opportunity!]!
+
+  # Feedback
   feedback(filter: FeedbackFilterInput): [Feedback!]!
   feedbackById(feedbackId: ID!): Feedback
-  attachment(attachmentId: Int!): AttachmentDownload!
+  feedbackAttachment(attachmentId: Int!): FeedbackAttachment!
 
-  # Currently unused; remove (along with service)?
-  volunteerById(volunteerId: ID!): VolunteerProfile  
+  # Staff
+  staff: [Staff!]!
+
+  # Venues
+  venues: [Venue!]!
+
+  # Volunteers
+  volunteers(filter: VolunteerFilterInput): [Volunteer!]!
+  volunteer(volId: Int!): Volunteer!
+  volunteerShifts(volunteerId: ID!, filter: ShiftTimeFilter!): [VolunteerShift!]!
 }
 
 type Mutation {
-  # Shared mutations:
-  giveFeedback (feedback: NewFeedbackInput!): MutationResult!
-  attachFileToFeedback(feedbackId: ID!, file: Upload!): MutationResult!
-  deleteFeedback(feedbackId: ID!): MutationResult!
 
-  # Admin-only mutations:
-  createVolunteer(newVol: NewVolunteerInput!): MutationResult!
-  createVenue(newVenue: NewVenueInput!): MutationResult!
-  createEvent(newEvent: NewEventInput!): MutationResult!
+  # Generic - used for lookups and within other types.
+
+  createFundingEntity(input: NewFundingEntityInput!): MutationResult!
   createJobType(newJob: NewJobTypeInput!): MutationResult!
+
+  deleteFundingEntity(id: Int!): MutationResult!
+  deleteJobType(JobId: Int!): MutationResult!
+
+  updateFundingEntity(input: UpdateFundingEntityInput!): MutationResult!
+  updateJobType(job: UpdateJobTypeInput!): MutationResult!
+
+  # Events/Opportunities/Shifts
+  createEvent(newEvent: NewEventInput!): MutationResult!
+  createEventDate(newDate: AddEventDateInput!): MutationResult!
   createOpportunity(newOpp: NewOpportunityInput!): MutationResult!
   createShift(newShift: AddShiftInput!): MutationResult!
-  createEventDate(newDate: AddEventDateInput!): MutationResult!
-  createStaff(newStaff: NewStaffInput!): MutationResult!
-  createFundingEntity(input: NewFundingEntityInput!): MutationResult!
 
-  assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): MutationResult!
-  cancelShift(shiftId: ID!, volunteerId: ID!): MutationResult!
-
-  updateVenue(venue: UpdateVenueInput!): MutationResult!
-  updateVolunteer(profile: UpdateVolunteerInput!): MutationResult!
-  updateEvent(event: UpdateEventInput!): MutationResult!
-  updateJobType(job: UpdateJobTypeInput!): MutationResult!
-  updateOpportunity(opp: UpdateOpportunityInput!): MutationResult!
-  updateShift(shift: UpdateShiftInput!): MutationResult!
-  updateEventDate(date: UpdateEventDateInput!): MutationResult!
-  updateStaff(staff: UpdateStaffInput!): MutationResult!
-  updateFundingEntity(input: UpdateFundingEntityInput!): MutationResult!
-
-  questionFeedback(question: QuestionFeedbackInput!): MutationResult!
-  updateFeedback(feedback: UpdateFeedbackInput!): MutationResult!
-
-  deleteVolunteer(volunteerId: ID!): MutationResult!
-  deleteVenue(venueId: ID!): MutationResult!
   deleteEvent(eventId: ID!, scope: RecurrenceUpdateScope): MutationResult!
-  deleteJobType(JobId: Int!): MutationResult!
+  deleteEventDate(eventDateId: ID!): MutationResult!
   deleteOpportunity(oppId: ID!): MutationResult!
   deleteShift(shiftId: ID!): MutationResult!
-  deleteEventDate(eventDateId: ID!): MutationResult!
-  deleteStaff(staffId: ID!): MutationResult!
-  deleteFundingEntity(id: Int!): MutationResult!
 
+  updateEvent(event: UpdateEventInput!): MutationResult!
+  updateEventDate(date: UpdateEventDateInput!): MutationResult!
+  updateOpportunity(opp: UpdateOpportunityInput!): MutationResult!
+  updateShift(shift: UpdateShiftInput!): MutationResult!
+
+  # Feedback
+  questionFeedback(question: QuestionFeedbackInput!): MutationResult!
+  updateFeedback(feedback: UpdateFeedbackInput!): MutationResult!
   resolveFeedback(resolution: ResolveFeedbackInput!): MutationResult!
+  deleteFeedback(feedbackId: ID!): MutationResult!
+
+  # Staff
+  createStaff(newStaff: NewStaffInput!): MutationResult!
+  deleteStaff(staffId: ID!): MutationResult!
+  updateStaff(staff: UpdateStaffInput!): MutationResult!
+
+  # Venues
+  createVenue(newVenue: NewVenueInput!): MutationResult!
+  deleteVenue(venueId: ID!): MutationResult!
+  updateVenue(venue: UpdateVenueInput!): MutationResult!
+
+  # Volunteers
+  createVolunteer(newVol: NewVolunteerInput!): MutationResult!
+  deleteVolunteer(volunteerId: ID!): MutationResult!
+  updateVolunteer(profile: UpdateVolunteerInput!): MutationResult!
+
+  # Volunteer Shifts
+  assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): MutationResult!
+  cancelShift(shiftId: ID!, volunteerId: ID!): MutationResult!
 }
 
 
@@ -2037,6 +1813,12 @@ enum RecurrencePattern {
   YEARLY
 }
 
+#- Weekday Ordinal is used for monthy recurrence pattern.
+#- Weekday is derived from the start date, but the "nth"
+#- can only be derived up to a point. If the start date
+#- is the 4th Wed, and the starting month does not have
+#- 5 Wednesdays, does the user want the 4th? Or the last
+#- Wednesday of every month?
 
 enum WeekdayOrdinal {
   FIRST
@@ -2051,9 +1833,23 @@ enum RecurrenceUpdateScope {
   THIS_AND_FUTURE
 }
 
-#-- Outputs (for queries) --
+#-- Output --
 
-type ManagedEvent {
+# Events/Opportunites/Shifts
+
+type FundingEntity {
+  id: Int!
+  name: String!
+  description: String
+}
+
+type EventDate {
+  id: ID!
+  startDateTime: String!
+  endDateTime: String!
+}
+
+type Event {
   id: ID!
   name: String!
   description: String
@@ -2064,31 +1860,15 @@ type ManagedEvent {
   serviceTypes: [String!]
   eventDates: [EventDate!]!
   shiftSummaries: [EventShiftSummary!]!
-  recurrenceId: String
+  recurrenceGroup: RecurrenceGroup
   recurrenceOrder: Int
-  recurrencePattern: String
-  recurrenceMaxOccurrences: Int
-  recurrenceOrdinal: String
 }
 
-type Staff {
-  id: ID!
-  firstName: String!
-  lastName: String!
-  email: String!
-  phone: String
-  position: String
-}
-
-type Volunteer {
-  id: ID!
-  firstName: String!
-  lastName: String!
-  email: String!
-  phone: String
-  zipCode: String
-  distance: Int
-  role: Role!
+type RecurrenceGroup {
+  groupId:          String!
+  pattern:          RecurrencePattern!
+  maxOccurrences:   Int            # backend defaults to 1 year's worth unless yearly; then required.
+  weekdayOrdinal:   String         # for monthly only
 }
 
 type Opportunity {
@@ -2105,6 +1885,14 @@ type Shift {
   endDateTime: String!
   maxVolunteers: Int
   staffContactId: ID
+}
+
+# Feedback
+
+type FeedbackAttachment {
+  filename: String!
+  mimeType: String!
+  data: String!
 }
 
 type FeedbackNote {
@@ -2128,71 +1916,96 @@ type Feedback {
   createdAt: String!
   lastUpdatedAt: String
   resolvedAt: String  
-  attachments: [FeedbackAttachment!]!   
+  attachments: [FeedbackMetaAttachment!]!   
 }
+
+# Staff
+
+type Staff {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  position: String
+}
+
+# Venues
+
+type Venue {
+  id: ID!
+  name: String
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String
+}
+
+# Volunteers
+
+type Volunteer {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  zipCode: String
+  distance: Int
+  roles: [Role!]!
+}
+
+type VolunteerShift {
+  shiftId: ID!
+  assignedAt: String!
+  cancelledAt: String
+  startDateTime: String!
+  endDateTime: String!
+  maxVolunteers: Int
+  jobName: String!
+  isVirtual: Boolean!
+  preEventInstructions: String
+  eventId: ID!
+  eventName: String!
+  eventDescription: String
+  venue: Venue
+}
+
 
 #-- Inputs --
 
-input NewStaffInput {
-  firstName: String!
-  lastName: String!
-  email: String!
-  phone: String
-  position: String
+# Generic
+
+input NewFundingEntityInput {
+  name: String!
+  description: String
 }
 
-input UpdateStaffInput {
-  id: ID!
-  firstName: String!
-  lastName: String!
-  email: String!
-  phone: String
-  position: String
-}
-
-input NewVolunteerInput {
-  firstName: String!
-  lastName: String!
-  email: String!
-  phone: String
-  zipCode: String
-  distance: Int
-  role: Role!
-}
-
-input UpdateVolunteerInput {
-  id: ID!
-  firstName: String!
-  lastName: String!
-  email: String!
-  phone: String
-  zipCode: String
-  distance: Int
-  role: Role!
-}
-
-input NewVenueInput {
+input UpdateFundingEntityInput {
+  id: Int!
   name: String
-  address: String!
-  city: String!
-  state: String!
-  zipCode: String
+  description: String
 }
 
-input UpdateVenueInput {
-  id: ID!
-  name: String
-  address: String!
-  city: String!
-  state: String!
-  zipCode: String
+input NewJobTypeInput {
+  code: String!
+  name: String!
+  sortOrder: Int!
 }
 
+input UpdateJobTypeInput {
+  id: Int!
+  code: String!
+  name: String!
+  sortOrder: Int!
+}
 
-input RecurrenceInput {
-  pattern:          RecurrencePattern!
-  maxOccurrences:   Int            # backend defaults to 1 year's worth unless yearly; then required.
-  weekdayOrdinal:   WeekdayOrdinal # for monthly only
+# Events/Opportunites/Shifts
+
+input EventFilterInput {
+  cities: [String!]
+  eventType: EventType
+  jobs: [Int!]
+  timeFrame: ShiftTimeFilter
 }
 
 input NewEventInput {
@@ -2236,17 +2049,10 @@ input UpdateEventDateInput {
   endDateTime: String!
 }
 
-input NewJobTypeInput {
-  code: String!
-  name: String!
-  sortOrder: Int!
-}
-
-input UpdateJobTypeInput {
-  id: Int!
-  code: String!
-  name: String!
-  sortOrder: Int!
+input RecurrenceInput {
+  pattern:          RecurrencePattern!
+  maxOccurrences:   Int            # backend defaults to 1 year's worth unless yearly; then required.
+  weekdayOrdinal:   WeekdayOrdinal # for monthly only
 }
 
 input NewOpportunityInput {
@@ -2287,11 +2093,7 @@ input UpdateShiftInput {
   staffContactId: ID
 }
 
-input VolunteerFilterInput {
-  firstName: String
-  lastName: String
-  email: String
-}
+# Feedback
 
 input FeedbackFilterInput {
   status: FeedbackStatus
@@ -2318,16 +2120,79 @@ input ResolveFeedbackInput {
   githubIssueURL: String
 }
 
-input NewFundingEntityInput {
-  name: String!
-  description: String
+# Staff
+
+input NewStaffInput {
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  position: String
 }
 
-input UpdateFundingEntityInput {
-  id: Int!
-  name: String
-  description: String
+input UpdateStaffInput {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  position: String
 }
+
+# Venues
+
+input NewVenueInput {
+  name: String
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String
+}
+
+input UpdateVenueInput {
+  id: ID!
+  name: String
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String
+}
+
+# Volunteers
+
+input VolunteerFilterInput {
+  firstName: String
+  lastName: String
+  email: String
+}
+
+input NewVolunteerInput {
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  zipCode: String
+  distance: Int
+  role: Role!
+}
+
+input UpdateVolunteerInput {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  zipCode: String
+  distance: Int
+  role: Role!
+}
+
+
+###########################3
+
+
+
+
 `, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
@@ -2349,22 +2214,6 @@ func (ec *executionContext) field_Mutation_assignVolunteerToShift_args(ctx conte
 		return nil, err
 	}
 	args["volunteerId"] = arg1
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_attachFileToFeedback_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "feedbackId", ec.unmarshalNID2string)
-	if err != nil {
-		return nil, err
-	}
-	args["feedbackId"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "file", ec.unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload)
-	if err != nil {
-		return nil, err
-	}
-	args["file"] = arg1
 	return args, nil
 }
 
@@ -2510,6 +2359,17 @@ func (ec *executionContext) field_Mutation_deleteEvent_args(ctx context.Context,
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_deleteFeedback_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "feedbackId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["feedbackId"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_deleteFundingEntity_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2587,17 +2447,6 @@ func (ec *executionContext) field_Mutation_deleteVolunteer_args(ctx context.Cont
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_giveFeedback_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "feedback", ec.unmarshalNNewFeedbackInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewFeedbackInput)
-	if err != nil {
-		return nil, err
-	}
-	args["feedback"] = arg0
-	return args, nil
-}
-
 func (ec *executionContext) field_Mutation_questionFeedback_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2606,17 +2455,6 @@ func (ec *executionContext) field_Mutation_questionFeedback_args(ctx context.Con
 		return nil, err
 	}
 	args["question"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_deleteFeedback_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "feedbackId", ec.unmarshalNID2string)
-	if err != nil {
-		return nil, err
-	}
-	args["feedbackId"] = arg0
 	return args, nil
 }
 
@@ -2752,10 +2590,21 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_allVolunteers_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+func (ec *executionContext) field_Query_event_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOVolunteerFilterInput2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerFilterInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "eventId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["eventId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_events_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOEventFilterInput2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventFilterInput)
 	if err != nil {
 		return nil, err
 	}
@@ -2763,7 +2612,7 @@ func (ec *executionContext) field_Query_allVolunteers_args(ctx context.Context, 
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_attachment_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+func (ec *executionContext) field_Query_feedbackAttachment_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "attachmentId", ec.unmarshalNInt2int)
@@ -2796,39 +2645,6 @@ func (ec *executionContext) field_Query_feedback_args(ctx context.Context, rawAr
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_filteredEventsWithShifts_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOEventFilterInput2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventFilterInput)
-	if err != nil {
-		return nil, err
-	}
-	args["filter"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_filteredEvents_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOEventFilterInput2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventFilterInput)
-	if err != nil {
-		return nil, err
-	}
-	args["filter"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_managedEventById_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "eventId", ec.unmarshalNID2string)
-	if err != nil {
-		return nil, err
-	}
-	args["eventId"] = arg0
-	return args, nil
-}
-
 func (ec *executionContext) field_Query_opportunitiesForEvent_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2837,17 +2653,6 @@ func (ec *executionContext) field_Query_opportunitiesForEvent_args(ctx context.C
 		return nil, err
 	}
 	args["eventId"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_volunteerById_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "volunteerId", ec.unmarshalNID2string)
-	if err != nil {
-		return nil, err
-	}
-	args["volunteerId"] = arg0
 	return args, nil
 }
 
@@ -2864,6 +2669,28 @@ func (ec *executionContext) field_Query_volunteerShifts_args(ctx context.Context
 		return nil, err
 	}
 	args["filter"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_volunteer_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "volId", ec.unmarshalNInt2int)
+	if err != nil {
+		return nil, err
+	}
+	args["volId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_volunteers_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOVolunteerFilterInput2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerFilterInput)
+	if err != nil {
+		return nil, err
+	}
+	args["filter"] = arg0
 	return args, nil
 }
 
@@ -2918,93 +2745,6 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
-
-func (ec *executionContext) _AttachmentDownload_filename(ctx context.Context, field graphql.CollectedField, obj *AttachmentDownload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_AttachmentDownload_filename,
-		func(ctx context.Context) (any, error) {
-			return obj.Filename, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_AttachmentDownload_filename(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AttachmentDownload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AttachmentDownload_mimeType(ctx context.Context, field graphql.CollectedField, obj *AttachmentDownload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_AttachmentDownload_mimeType,
-		func(ctx context.Context) (any, error) {
-			return obj.MimeType, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_AttachmentDownload_mimeType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AttachmentDownload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AttachmentDownload_data(ctx context.Context, field graphql.CollectedField, obj *AttachmentDownload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_AttachmentDownload_data,
-		func(ctx context.Context) (any, error) {
-			return obj.Data, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_AttachmentDownload_data(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AttachmentDownload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
 
 func (ec *executionContext) _Event_id(ctx context.Context, field graphql.CollectedField, obj *Event) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
@@ -3194,6 +2934,43 @@ func (ec *executionContext) fieldContext_Event_timezone(_ context.Context, field
 	return fc, nil
 }
 
+func (ec *executionContext) _Event_fundingEntity(ctx context.Context, field graphql.CollectedField, obj *Event) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Event_fundingEntity,
+		func(ctx context.Context) (any, error) {
+			return obj.FundingEntity, nil
+		},
+		nil,
+		ec.marshalNFundingEntity2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFundingEntity,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Event_fundingEntity(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Event",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FundingEntity_id(ctx, field)
+			case "name":
+				return ec.fieldContext_FundingEntity_name(ctx, field)
+			case "description":
+				return ec.fieldContext_FundingEntity_description(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FundingEntity", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Event_serviceTypes(ctx context.Context, field graphql.CollectedField, obj *Event) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -3292,6 +3069,74 @@ func (ec *executionContext) fieldContext_Event_shiftSummaries(_ context.Context,
 				return ec.fieldContext_EventShiftSummary_maxVolunteers(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type EventShiftSummary", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Event_recurrenceGroup(ctx context.Context, field graphql.CollectedField, obj *Event) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Event_recurrenceGroup,
+		func(ctx context.Context) (any, error) {
+			return obj.RecurrenceGroup, nil
+		},
+		nil,
+		ec.marshalORecurrenceGroup2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRecurrenceGroup,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Event_recurrenceGroup(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Event",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "groupId":
+				return ec.fieldContext_RecurrenceGroup_groupId(ctx, field)
+			case "pattern":
+				return ec.fieldContext_RecurrenceGroup_pattern(ctx, field)
+			case "maxOccurrences":
+				return ec.fieldContext_RecurrenceGroup_maxOccurrences(ctx, field)
+			case "weekdayOrdinal":
+				return ec.fieldContext_RecurrenceGroup_weekdayOrdinal(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RecurrenceGroup", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Event_recurrenceOrder(ctx context.Context, field graphql.CollectedField, obj *Event) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Event_recurrenceOrder,
+		func(ctx context.Context) (any, error) {
+			return obj.RecurrenceOrder, nil
+		},
+		nil,
+		ec.marshalOInt2ᚖint,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Event_recurrenceOrder(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Event",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3841,7 +3686,7 @@ func (ec *executionContext) _Feedback_attachments(ctx context.Context, field gra
 			return obj.Attachments, nil
 		},
 		nil,
-		ec.marshalNFeedbackAttachment2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackAttachmentᚄ,
+		ec.marshalNFeedbackMetaAttachment2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackMetaAttachmentᚄ,
 		true,
 		true,
 	)
@@ -3856,46 +3701,17 @@ func (ec *executionContext) fieldContext_Feedback_attachments(_ context.Context,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_FeedbackAttachment_id(ctx, field)
+				return ec.fieldContext_FeedbackMetaAttachment_id(ctx, field)
 			case "filename":
-				return ec.fieldContext_FeedbackAttachment_filename(ctx, field)
+				return ec.fieldContext_FeedbackMetaAttachment_filename(ctx, field)
 			case "mimeType":
-				return ec.fieldContext_FeedbackAttachment_mimeType(ctx, field)
+				return ec.fieldContext_FeedbackMetaAttachment_mimeType(ctx, field)
 			case "fileSize":
-				return ec.fieldContext_FeedbackAttachment_fileSize(ctx, field)
+				return ec.fieldContext_FeedbackMetaAttachment_fileSize(ctx, field)
 			case "createdAt":
-				return ec.fieldContext_FeedbackAttachment_createdAt(ctx, field)
+				return ec.fieldContext_FeedbackMetaAttachment_createdAt(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type FeedbackAttachment", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _FeedbackAttachment_id(ctx context.Context, field graphql.CollectedField, obj *FeedbackAttachment) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_FeedbackAttachment_id,
-		func(ctx context.Context) (any, error) {
-			return obj.ID, nil
-		},
-		nil,
-		ec.marshalNID2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_FeedbackAttachment_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "FeedbackAttachment",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, fmt.Errorf("no field named %q was found under type FeedbackMetaAttachment", field.Name)
 		},
 	}
 	return fc, nil
@@ -3959,12 +3775,128 @@ func (ec *executionContext) fieldContext_FeedbackAttachment_mimeType(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _FeedbackAttachment_fileSize(ctx context.Context, field graphql.CollectedField, obj *FeedbackAttachment) (ret graphql.Marshaler) {
+func (ec *executionContext) _FeedbackAttachment_data(ctx context.Context, field graphql.CollectedField, obj *FeedbackAttachment) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_FeedbackAttachment_fileSize,
+		ec.fieldContext_FeedbackAttachment_data,
+		func(ctx context.Context) (any, error) {
+			return obj.Data, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FeedbackAttachment_data(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FeedbackAttachment",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FeedbackMetaAttachment_id(ctx context.Context, field graphql.CollectedField, obj *FeedbackMetaAttachment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FeedbackMetaAttachment_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FeedbackMetaAttachment_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FeedbackMetaAttachment",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FeedbackMetaAttachment_filename(ctx context.Context, field graphql.CollectedField, obj *FeedbackMetaAttachment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FeedbackMetaAttachment_filename,
+		func(ctx context.Context) (any, error) {
+			return obj.Filename, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FeedbackMetaAttachment_filename(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FeedbackMetaAttachment",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FeedbackMetaAttachment_mimeType(ctx context.Context, field graphql.CollectedField, obj *FeedbackMetaAttachment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FeedbackMetaAttachment_mimeType,
+		func(ctx context.Context) (any, error) {
+			return obj.MimeType, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FeedbackMetaAttachment_mimeType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FeedbackMetaAttachment",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FeedbackMetaAttachment_fileSize(ctx context.Context, field graphql.CollectedField, obj *FeedbackMetaAttachment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FeedbackMetaAttachment_fileSize,
 		func(ctx context.Context) (any, error) {
 			return obj.FileSize, nil
 		},
@@ -3975,9 +3907,9 @@ func (ec *executionContext) _FeedbackAttachment_fileSize(ctx context.Context, fi
 	)
 }
 
-func (ec *executionContext) fieldContext_FeedbackAttachment_fileSize(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_FeedbackMetaAttachment_fileSize(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "FeedbackAttachment",
+		Object:     "FeedbackMetaAttachment",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -3988,12 +3920,12 @@ func (ec *executionContext) fieldContext_FeedbackAttachment_fileSize(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _FeedbackAttachment_createdAt(ctx context.Context, field graphql.CollectedField, obj *FeedbackAttachment) (ret graphql.Marshaler) {
+func (ec *executionContext) _FeedbackMetaAttachment_createdAt(ctx context.Context, field graphql.CollectedField, obj *FeedbackMetaAttachment) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_FeedbackAttachment_createdAt,
+		ec.fieldContext_FeedbackMetaAttachment_createdAt,
 		func(ctx context.Context) (any, error) {
 			return obj.CreatedAt, nil
 		},
@@ -4004,9 +3936,9 @@ func (ec *executionContext) _FeedbackAttachment_createdAt(ctx context.Context, f
 	)
 }
 
-func (ec *executionContext) fieldContext_FeedbackAttachment_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_FeedbackMetaAttachment_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "FeedbackAttachment",
+		Object:     "FeedbackMetaAttachment",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -4394,43 +4326,6 @@ func (ec *executionContext) fieldContext_JobType_isActive(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _LookupValues_fundingEntities(ctx context.Context, field graphql.CollectedField, obj *LookupValues) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_LookupValues_fundingEntities,
-		func(ctx context.Context) (any, error) {
-			return obj.FundingEntities, nil
-		},
-		nil,
-		ec.marshalNFundingEntity2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFundingEntityᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_LookupValues_fundingEntities(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "LookupValues",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_FundingEntity_id(ctx, field)
-			case "name":
-				return ec.fieldContext_FundingEntity_name(ctx, field)
-			case "description":
-				return ec.fieldContext_FundingEntity_description(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type FundingEntity", field.Name)
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _LookupValues_serviceTypes(ctx context.Context, field graphql.CollectedField, obj *LookupValues) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -4538,488 +4433,15 @@ func (ec *executionContext) fieldContext_LookupValues_cities(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _ManagedEvent_id(ctx context.Context, field graphql.CollectedField, obj *ManagedEvent) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_createFundingEntity(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_ManagedEvent_id,
-		func(ctx context.Context) (any, error) {
-			return obj.ID, nil
-		},
-		nil,
-		ec.marshalNID2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_ManagedEvent_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ManagedEvent",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ManagedEvent_name(ctx context.Context, field graphql.CollectedField, obj *ManagedEvent) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ManagedEvent_name,
-		func(ctx context.Context) (any, error) {
-			return obj.Name, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_ManagedEvent_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ManagedEvent",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ManagedEvent_description(ctx context.Context, field graphql.CollectedField, obj *ManagedEvent) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ManagedEvent_description,
-		func(ctx context.Context) (any, error) {
-			return obj.Description, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ManagedEvent_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ManagedEvent",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ManagedEvent_eventType(ctx context.Context, field graphql.CollectedField, obj *ManagedEvent) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ManagedEvent_eventType,
-		func(ctx context.Context) (any, error) {
-			return obj.EventType, nil
-		},
-		nil,
-		ec.marshalNEventType2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventType,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_ManagedEvent_eventType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ManagedEvent",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type EventType does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ManagedEvent_venue(ctx context.Context, field graphql.CollectedField, obj *ManagedEvent) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ManagedEvent_venue,
-		func(ctx context.Context) (any, error) {
-			return obj.Venue, nil
-		},
-		nil,
-		ec.marshalOVenue2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVenue,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ManagedEvent_venue(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ManagedEvent",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Venue_id(ctx, field)
-			case "name":
-				return ec.fieldContext_Venue_name(ctx, field)
-			case "address":
-				return ec.fieldContext_Venue_address(ctx, field)
-			case "city":
-				return ec.fieldContext_Venue_city(ctx, field)
-			case "state":
-				return ec.fieldContext_Venue_state(ctx, field)
-			case "zipCode":
-				return ec.fieldContext_Venue_zipCode(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Venue", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ManagedEvent_timezone(ctx context.Context, field graphql.CollectedField, obj *ManagedEvent) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ManagedEvent_timezone,
-		func(ctx context.Context) (any, error) {
-			return obj.Timezone, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_ManagedEvent_timezone(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ManagedEvent",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ManagedEvent_fundingEntity(ctx context.Context, field graphql.CollectedField, obj *ManagedEvent) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ManagedEvent_fundingEntity,
-		func(ctx context.Context) (any, error) {
-			return obj.FundingEntity, nil
-		},
-		nil,
-		ec.marshalNFundingEntity2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFundingEntity,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_ManagedEvent_fundingEntity(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ManagedEvent",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_FundingEntity_id(ctx, field)
-			case "name":
-				return ec.fieldContext_FundingEntity_name(ctx, field)
-			case "description":
-				return ec.fieldContext_FundingEntity_description(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type FundingEntity", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ManagedEvent_serviceTypes(ctx context.Context, field graphql.CollectedField, obj *ManagedEvent) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ManagedEvent_serviceTypes,
-		func(ctx context.Context) (any, error) {
-			return obj.ServiceTypes, nil
-		},
-		nil,
-		ec.marshalOString2ᚕstringᚄ,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ManagedEvent_serviceTypes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ManagedEvent",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ManagedEvent_eventDates(ctx context.Context, field graphql.CollectedField, obj *ManagedEvent) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ManagedEvent_eventDates,
-		func(ctx context.Context) (any, error) {
-			return obj.EventDates, nil
-		},
-		nil,
-		ec.marshalNEventDate2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventDateᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_ManagedEvent_eventDates(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ManagedEvent",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_EventDate_id(ctx, field)
-			case "startDateTime":
-				return ec.fieldContext_EventDate_startDateTime(ctx, field)
-			case "endDateTime":
-				return ec.fieldContext_EventDate_endDateTime(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type EventDate", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ManagedEvent_shiftSummaries(ctx context.Context, field graphql.CollectedField, obj *ManagedEvent) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ManagedEvent_shiftSummaries,
-		func(ctx context.Context) (any, error) {
-			return obj.ShiftSummaries, nil
-		},
-		nil,
-		ec.marshalNEventShiftSummary2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventShiftSummaryᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_ManagedEvent_shiftSummaries(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ManagedEvent",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "jobName":
-				return ec.fieldContext_EventShiftSummary_jobName(ctx, field)
-			case "assignedVolunteers":
-				return ec.fieldContext_EventShiftSummary_assignedVolunteers(ctx, field)
-			case "maxVolunteers":
-				return ec.fieldContext_EventShiftSummary_maxVolunteers(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type EventShiftSummary", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ManagedEvent_recurrenceId(ctx context.Context, field graphql.CollectedField, obj *ManagedEvent) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ManagedEvent_recurrenceId,
-		func(ctx context.Context) (any, error) {
-			return obj.RecurrenceID, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ManagedEvent_recurrenceId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ManagedEvent",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ManagedEvent_recurrenceOrder(ctx context.Context, field graphql.CollectedField, obj *ManagedEvent) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ManagedEvent_recurrenceOrder,
-		func(ctx context.Context) (any, error) {
-			return obj.RecurrenceOrder, nil
-		},
-		nil,
-		ec.marshalOInt2ᚖint,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ManagedEvent_recurrenceOrder(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ManagedEvent",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ManagedEvent_recurrencePattern(ctx context.Context, field graphql.CollectedField, obj *ManagedEvent) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ManagedEvent_recurrencePattern,
-		func(ctx context.Context) (any, error) {
-			return obj.RecurrencePattern, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ManagedEvent_recurrencePattern(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ManagedEvent",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ManagedEvent_recurrenceMaxOccurrences(ctx context.Context, field graphql.CollectedField, obj *ManagedEvent) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ManagedEvent_recurrenceMaxOccurrences,
-		func(ctx context.Context) (any, error) {
-			return obj.RecurrenceMaxOccurrences, nil
-		},
-		nil,
-		ec.marshalOInt2ᚖint,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ManagedEvent_recurrenceMaxOccurrences(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ManagedEvent",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ManagedEvent_recurrenceOrdinal(ctx context.Context, field graphql.CollectedField, obj *ManagedEvent) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ManagedEvent_recurrenceOrdinal,
-		func(ctx context.Context) (any, error) {
-			return obj.RecurrenceOrdinal, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ManagedEvent_recurrenceOrdinal(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ManagedEvent",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_giveFeedback(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_giveFeedback,
+		ec.fieldContext_Mutation_createFundingEntity,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().GiveFeedback(ctx, fc.Args["feedback"].(NewFeedbackInput))
+			return ec.resolvers.Mutation().CreateFundingEntity(ctx, fc.Args["input"].(NewFundingEntityInput))
 		},
 		nil,
 		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
@@ -5028,7 +4450,7 @@ func (ec *executionContext) _Mutation_giveFeedback(ctx context.Context, field gr
 	)
 }
 
-func (ec *executionContext) fieldContext_Mutation_giveFeedback(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_createFundingEntity(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -5053,22 +4475,22 @@ func (ec *executionContext) fieldContext_Mutation_giveFeedback(ctx context.Conte
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_giveFeedback_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_createFundingEntity_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_attachFileToFeedback(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_createJobType(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Mutation_attachFileToFeedback,
+		ec.fieldContext_Mutation_createJobType,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().AttachFileToFeedback(ctx, fc.Args["feedbackId"].(string), fc.Args["file"].(graphql.Upload))
+			return ec.resolvers.Mutation().CreateJobType(ctx, fc.Args["newJob"].(NewJobTypeInput))
 		},
 		nil,
 		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
@@ -5077,7 +4499,7 @@ func (ec *executionContext) _Mutation_attachFileToFeedback(ctx context.Context, 
 	)
 }
 
-func (ec *executionContext) fieldContext_Mutation_attachFileToFeedback(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_createJobType(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -5102,22 +4524,22 @@ func (ec *executionContext) fieldContext_Mutation_attachFileToFeedback(ctx conte
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_attachFileToFeedback_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_createJobType_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_createVolunteer(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_deleteFundingEntity(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Mutation_createVolunteer,
+		ec.fieldContext_Mutation_deleteFundingEntity,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateVolunteer(ctx, fc.Args["newVol"].(NewVolunteerInput))
+			return ec.resolvers.Mutation().DeleteFundingEntity(ctx, fc.Args["id"].(int))
 		},
 		nil,
 		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
@@ -5126,7 +4548,7 @@ func (ec *executionContext) _Mutation_createVolunteer(ctx context.Context, field
 	)
 }
 
-func (ec *executionContext) fieldContext_Mutation_createVolunteer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_deleteFundingEntity(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -5151,22 +4573,22 @@ func (ec *executionContext) fieldContext_Mutation_createVolunteer(ctx context.Co
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_createVolunteer_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_deleteFundingEntity_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_createVenue(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_deleteJobType(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Mutation_createVenue,
+		ec.fieldContext_Mutation_deleteJobType,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateVenue(ctx, fc.Args["newVenue"].(NewVenueInput))
+			return ec.resolvers.Mutation().DeleteJobType(ctx, fc.Args["JobId"].(int))
 		},
 		nil,
 		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
@@ -5175,7 +4597,7 @@ func (ec *executionContext) _Mutation_createVenue(ctx context.Context, field gra
 	)
 }
 
-func (ec *executionContext) fieldContext_Mutation_createVenue(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_deleteJobType(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -5200,7 +4622,105 @@ func (ec *executionContext) fieldContext_Mutation_createVenue(ctx context.Contex
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_createVenue_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_deleteJobType_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateFundingEntity(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateFundingEntity,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateFundingEntity(ctx, fc.Args["input"].(UpdateFundingEntityInput))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateFundingEntity(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateFundingEntity_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateJobType(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateJobType,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateJobType(ctx, fc.Args["job"].(UpdateJobTypeInput))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateJobType(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateJobType_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -5256,15 +4776,15 @@ func (ec *executionContext) fieldContext_Mutation_createEvent(ctx context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_createJobType(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_createEventDate(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Mutation_createJobType,
+		ec.fieldContext_Mutation_createEventDate,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateJobType(ctx, fc.Args["newJob"].(NewJobTypeInput))
+			return ec.resolvers.Mutation().CreateEventDate(ctx, fc.Args["newDate"].(AddEventDateInput))
 		},
 		nil,
 		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
@@ -5273,7 +4793,7 @@ func (ec *executionContext) _Mutation_createJobType(ctx context.Context, field g
 	)
 }
 
-func (ec *executionContext) fieldContext_Mutation_createJobType(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_createEventDate(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -5298,7 +4818,7 @@ func (ec *executionContext) fieldContext_Mutation_createJobType(ctx context.Cont
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_createJobType_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_createEventDate_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -5403,888 +4923,6 @@ func (ec *executionContext) fieldContext_Mutation_createShift(ctx context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_createEventDate(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_createEventDate,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateEventDate(ctx, fc.Args["newDate"].(AddEventDateInput))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_createEventDate(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_createEventDate_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_createStaff(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_createStaff,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateStaff(ctx, fc.Args["newStaff"].(NewStaffInput))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_createStaff(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_createStaff_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_createFundingEntity(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_createFundingEntity,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateFundingEntity(ctx, fc.Args["input"].(NewFundingEntityInput))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_createFundingEntity(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_createFundingEntity_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_assignVolunteerToShift(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_assignVolunteerToShift,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().AssignVolunteerToShift(ctx, fc.Args["shiftId"].(string), fc.Args["volunteerId"].(string))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_assignVolunteerToShift(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_assignVolunteerToShift_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_cancelShift(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_cancelShift,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CancelShift(ctx, fc.Args["shiftId"].(string), fc.Args["volunteerId"].(string))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_cancelShift(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_cancelShift_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_updateVenue(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_updateVenue,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateVenue(ctx, fc.Args["venue"].(UpdateVenueInput))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_updateVenue(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_updateVenue_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_updateVolunteer(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_updateVolunteer,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateVolunteer(ctx, fc.Args["profile"].(UpdateVolunteerInput))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_updateVolunteer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_updateVolunteer_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_updateEvent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_updateEvent,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateEvent(ctx, fc.Args["event"].(UpdateEventInput))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_updateEvent(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_updateEvent_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_updateJobType(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_updateJobType,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateJobType(ctx, fc.Args["job"].(UpdateJobTypeInput))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_updateJobType(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_updateJobType_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_updateOpportunity(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_updateOpportunity,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateOpportunity(ctx, fc.Args["opp"].(UpdateOpportunityInput))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_updateOpportunity(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_updateOpportunity_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_updateShift(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_updateShift,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateShift(ctx, fc.Args["shift"].(UpdateShiftInput))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_updateShift(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_updateShift_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_updateEventDate(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_updateEventDate,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateEventDate(ctx, fc.Args["date"].(UpdateEventDateInput))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_updateEventDate(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_updateEventDate_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_updateStaff(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_updateStaff,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateStaff(ctx, fc.Args["staff"].(UpdateStaffInput))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_updateStaff(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_updateStaff_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_updateFundingEntity(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_updateFundingEntity,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateFundingEntity(ctx, fc.Args["input"].(UpdateFundingEntityInput))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_updateFundingEntity(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_updateFundingEntity_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_questionFeedback(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_questionFeedback,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().QuestionFeedback(ctx, fc.Args["question"].(QuestionFeedbackInput))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_questionFeedback(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_questionFeedback_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_updateFeedback(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_updateFeedback,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateFeedback(ctx, fc.Args["feedback"].(UpdateFeedbackInput))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_updateFeedback(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_updateFeedback_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_deleteVolunteer(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_deleteVolunteer,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().DeleteVolunteer(ctx, fc.Args["volunteerId"].(string))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_deleteVolunteer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_deleteVolunteer_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_deleteVenue(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_deleteVenue,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().DeleteVenue(ctx, fc.Args["venueId"].(string))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_deleteVenue(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_deleteVenue_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Mutation_deleteEvent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -6334,15 +4972,15 @@ func (ec *executionContext) fieldContext_Mutation_deleteEvent(ctx context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_deleteJobType(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_deleteEventDate(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Mutation_deleteJobType,
+		ec.fieldContext_Mutation_deleteEventDate,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().DeleteJobType(ctx, fc.Args["JobId"].(int))
+			return ec.resolvers.Mutation().DeleteEventDate(ctx, fc.Args["eventDateId"].(string))
 		},
 		nil,
 		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
@@ -6351,7 +4989,7 @@ func (ec *executionContext) _Mutation_deleteJobType(ctx context.Context, field g
 	)
 }
 
-func (ec *executionContext) fieldContext_Mutation_deleteJobType(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_deleteEventDate(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -6376,7 +5014,7 @@ func (ec *executionContext) fieldContext_Mutation_deleteJobType(ctx context.Cont
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_deleteJobType_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_deleteEventDate_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -6481,15 +5119,15 @@ func (ec *executionContext) fieldContext_Mutation_deleteShift(ctx context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_deleteEventDate(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_updateEvent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Mutation_deleteEventDate,
+		ec.fieldContext_Mutation_updateEvent,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().DeleteEventDate(ctx, fc.Args["eventDateId"].(string))
+			return ec.resolvers.Mutation().UpdateEvent(ctx, fc.Args["event"].(UpdateEventInput))
 		},
 		nil,
 		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
@@ -6498,7 +5136,7 @@ func (ec *executionContext) _Mutation_deleteEventDate(ctx context.Context, field
 	)
 }
 
-func (ec *executionContext) fieldContext_Mutation_deleteEventDate(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_updateEvent(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -6523,22 +5161,22 @@ func (ec *executionContext) fieldContext_Mutation_deleteEventDate(ctx context.Co
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_deleteEventDate_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_updateEvent_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_deleteStaff(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_updateEventDate(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Mutation_deleteStaff,
+		ec.fieldContext_Mutation_updateEventDate,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().DeleteStaff(ctx, fc.Args["staffId"].(string))
+			return ec.resolvers.Mutation().UpdateEventDate(ctx, fc.Args["date"].(UpdateEventDateInput))
 		},
 		nil,
 		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
@@ -6547,7 +5185,7 @@ func (ec *executionContext) _Mutation_deleteStaff(ctx context.Context, field gra
 	)
 }
 
-func (ec *executionContext) fieldContext_Mutation_deleteStaff(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_updateEventDate(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -6572,22 +5210,22 @@ func (ec *executionContext) fieldContext_Mutation_deleteStaff(ctx context.Contex
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_deleteStaff_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_updateEventDate_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_deleteFundingEntity(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_updateOpportunity(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Mutation_deleteFundingEntity,
+		ec.fieldContext_Mutation_updateOpportunity,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().DeleteFundingEntity(ctx, fc.Args["id"].(int))
+			return ec.resolvers.Mutation().UpdateOpportunity(ctx, fc.Args["opp"].(UpdateOpportunityInput))
 		},
 		nil,
 		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
@@ -6596,7 +5234,7 @@ func (ec *executionContext) _Mutation_deleteFundingEntity(ctx context.Context, f
 	)
 }
 
-func (ec *executionContext) fieldContext_Mutation_deleteFundingEntity(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_updateOpportunity(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -6621,7 +5259,203 @@ func (ec *executionContext) fieldContext_Mutation_deleteFundingEntity(ctx contex
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_deleteFundingEntity_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_updateOpportunity_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateShift(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateShift,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateShift(ctx, fc.Args["shift"].(UpdateShiftInput))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateShift(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateShift_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_questionFeedback(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_questionFeedback,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().QuestionFeedback(ctx, fc.Args["question"].(QuestionFeedbackInput))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_questionFeedback(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_questionFeedback_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateFeedback(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateFeedback,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateFeedback(ctx, fc.Args["feedback"].(UpdateFeedbackInput))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateFeedback(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateFeedback_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_resolveFeedback(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_resolveFeedback,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().ResolveFeedback(ctx, fc.Args["resolution"].(ResolveFeedbackInput))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_resolveFeedback(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_resolveFeedback_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -6677,15 +5511,15 @@ func (ec *executionContext) fieldContext_Mutation_deleteFeedback(ctx context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_resolveFeedback(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_createStaff(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Mutation_resolveFeedback,
+		ec.fieldContext_Mutation_createStaff,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().ResolveFeedback(ctx, fc.Args["resolution"].(ResolveFeedbackInput))
+			return ec.resolvers.Mutation().CreateStaff(ctx, fc.Args["newStaff"].(NewStaffInput))
 		},
 		nil,
 		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
@@ -6694,7 +5528,7 @@ func (ec *executionContext) _Mutation_resolveFeedback(ctx context.Context, field
 	)
 }
 
-func (ec *executionContext) fieldContext_Mutation_resolveFeedback(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_createStaff(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -6719,7 +5553,497 @@ func (ec *executionContext) fieldContext_Mutation_resolveFeedback(ctx context.Co
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_resolveFeedback_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_createStaff_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteStaff(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_deleteStaff,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().DeleteStaff(ctx, fc.Args["staffId"].(string))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteStaff(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteStaff_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateStaff(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateStaff,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateStaff(ctx, fc.Args["staff"].(UpdateStaffInput))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateStaff(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateStaff_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createVenue(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_createVenue,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CreateVenue(ctx, fc.Args["newVenue"].(NewVenueInput))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createVenue(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createVenue_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteVenue(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_deleteVenue,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().DeleteVenue(ctx, fc.Args["venueId"].(string))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteVenue(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteVenue_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateVenue(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateVenue,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateVenue(ctx, fc.Args["venue"].(UpdateVenueInput))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateVenue(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateVenue_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createVolunteer(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_createVolunteer,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CreateVolunteer(ctx, fc.Args["newVol"].(NewVolunteerInput))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createVolunteer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createVolunteer_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteVolunteer(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_deleteVolunteer,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().DeleteVolunteer(ctx, fc.Args["volunteerId"].(string))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteVolunteer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteVolunteer_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateVolunteer(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateVolunteer,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateVolunteer(ctx, fc.Args["profile"].(UpdateVolunteerInput))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateVolunteer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateVolunteer_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_assignVolunteerToShift(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_assignVolunteerToShift,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().AssignVolunteerToShift(ctx, fc.Args["shiftId"].(string), fc.Args["volunteerId"].(string))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_assignVolunteerToShift(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_assignVolunteerToShift_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_cancelShift(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_cancelShift,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CancelShift(ctx, fc.Args["shiftId"].(string), fc.Args["volunteerId"].(string))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_cancelShift(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_cancelShift_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -6994,8 +6318,6 @@ func (ec *executionContext) fieldContext_Query_lookupValues(_ context.Context, f
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "fundingEntities":
-				return ec.fieldContext_LookupValues_fundingEntities(ctx, field)
 			case "serviceTypes":
 				return ec.fieldContext_LookupValues_serviceTypes(ctx, field)
 			case "jobTypes":
@@ -7009,60 +6331,15 @@ func (ec *executionContext) fieldContext_Query_lookupValues(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_volunteerProfile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_events(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_volunteerProfile,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Query().VolunteerProfile(ctx)
-		},
-		nil,
-		ec.marshalNVolunteerProfile2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerProfile,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Query_volunteerProfile(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "firstName":
-				return ec.fieldContext_VolunteerProfile_firstName(ctx, field)
-			case "lastName":
-				return ec.fieldContext_VolunteerProfile_lastName(ctx, field)
-			case "email":
-				return ec.fieldContext_VolunteerProfile_email(ctx, field)
-			case "phone":
-				return ec.fieldContext_VolunteerProfile_phone(ctx, field)
-			case "zipCode":
-				return ec.fieldContext_VolunteerProfile_zipCode(ctx, field)
-			case "distance":
-				return ec.fieldContext_VolunteerProfile_distance(ctx, field)
-			case "role":
-				return ec.fieldContext_VolunteerProfile_role(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type VolunteerProfile", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_filteredEventsWithShifts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Query_filteredEventsWithShifts,
+		ec.fieldContext_Query_events,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().FilteredEventsWithShifts(ctx, fc.Args["filter"].(*EventFilterInput))
+			return ec.resolvers.Query().Events(ctx, fc.Args["filter"].(*EventFilterInput))
 		},
 		nil,
 		ec.marshalNEvent2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventᚄ,
@@ -7071,7 +6348,7 @@ func (ec *executionContext) _Query_filteredEventsWithShifts(ctx context.Context,
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_filteredEventsWithShifts(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_events(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -7091,12 +6368,18 @@ func (ec *executionContext) fieldContext_Query_filteredEventsWithShifts(ctx cont
 				return ec.fieldContext_Event_venue(ctx, field)
 			case "timezone":
 				return ec.fieldContext_Event_timezone(ctx, field)
+			case "fundingEntity":
+				return ec.fieldContext_Event_fundingEntity(ctx, field)
 			case "serviceTypes":
 				return ec.fieldContext_Event_serviceTypes(ctx, field)
 			case "eventDates":
 				return ec.fieldContext_Event_eventDates(ctx, field)
 			case "shiftSummaries":
 				return ec.fieldContext_Event_shiftSummaries(ctx, field)
+			case "recurrenceGroup":
+				return ec.fieldContext_Event_recurrenceGroup(ctx, field)
+			case "recurrenceOrder":
+				return ec.fieldContext_Event_recurrenceOrder(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Event", field.Name)
 		},
@@ -7108,30 +6391,31 @@ func (ec *executionContext) fieldContext_Query_filteredEventsWithShifts(ctx cont
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_filteredEventsWithShifts_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_events_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_venues(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_event(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_venues,
+		ec.fieldContext_Query_event,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Query().Venues(ctx)
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().Event(ctx, fc.Args["eventId"].(string))
 		},
 		nil,
-		ec.marshalNVenue2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVenueᚄ,
+		ec.marshalNEvent2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEvent,
 		true,
 		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_venues(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_event(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -7140,252 +6424,31 @@ func (ec *executionContext) fieldContext_Query_venues(_ context.Context, field g
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_Venue_id(ctx, field)
+				return ec.fieldContext_Event_id(ctx, field)
 			case "name":
-				return ec.fieldContext_Venue_name(ctx, field)
-			case "address":
-				return ec.fieldContext_Venue_address(ctx, field)
-			case "city":
-				return ec.fieldContext_Venue_city(ctx, field)
-			case "state":
-				return ec.fieldContext_Venue_state(ctx, field)
-			case "zipCode":
-				return ec.fieldContext_Venue_zipCode(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Venue", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_staff(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Query_staff,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Query().Staff(ctx)
-		},
-		nil,
-		ec.marshalNStaff2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐStaffᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Query_staff(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Staff_id(ctx, field)
-			case "firstName":
-				return ec.fieldContext_Staff_firstName(ctx, field)
-			case "lastName":
-				return ec.fieldContext_Staff_lastName(ctx, field)
-			case "email":
-				return ec.fieldContext_Staff_email(ctx, field)
-			case "phone":
-				return ec.fieldContext_Staff_phone(ctx, field)
-			case "position":
-				return ec.fieldContext_Staff_position(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Staff", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_allVolunteers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Query_allVolunteers,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().AllVolunteers(ctx, fc.Args["filter"].(*VolunteerFilterInput))
-		},
-		nil,
-		ec.marshalNVolunteer2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Query_allVolunteers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Volunteer_id(ctx, field)
-			case "firstName":
-				return ec.fieldContext_Volunteer_firstName(ctx, field)
-			case "lastName":
-				return ec.fieldContext_Volunteer_lastName(ctx, field)
-			case "email":
-				return ec.fieldContext_Volunteer_email(ctx, field)
-			case "phone":
-				return ec.fieldContext_Volunteer_phone(ctx, field)
-			case "zipCode":
-				return ec.fieldContext_Volunteer_zipCode(ctx, field)
-			case "distance":
-				return ec.fieldContext_Volunteer_distance(ctx, field)
-			case "role":
-				return ec.fieldContext_Volunteer_role(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Volunteer", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_allVolunteers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_volunteerShifts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Query_volunteerShifts,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().VolunteerShifts(ctx, fc.Args["volunteerId"].(string), fc.Args["filter"].(ShiftTimeFilter))
-		},
-		nil,
-		ec.marshalNVolunteerShift2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerShiftᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Query_volunteerShifts(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "shiftId":
-				return ec.fieldContext_VolunteerShift_shiftId(ctx, field)
-			case "assignedAt":
-				return ec.fieldContext_VolunteerShift_assignedAt(ctx, field)
-			case "cancelledAt":
-				return ec.fieldContext_VolunteerShift_cancelledAt(ctx, field)
-			case "startDateTime":
-				return ec.fieldContext_VolunteerShift_startDateTime(ctx, field)
-			case "endDateTime":
-				return ec.fieldContext_VolunteerShift_endDateTime(ctx, field)
-			case "maxVolunteers":
-				return ec.fieldContext_VolunteerShift_maxVolunteers(ctx, field)
-			case "jobName":
-				return ec.fieldContext_VolunteerShift_jobName(ctx, field)
-			case "isVirtual":
-				return ec.fieldContext_VolunteerShift_isVirtual(ctx, field)
-			case "preEventInstructions":
-				return ec.fieldContext_VolunteerShift_preEventInstructions(ctx, field)
-			case "eventId":
-				return ec.fieldContext_VolunteerShift_eventId(ctx, field)
-			case "eventName":
-				return ec.fieldContext_VolunteerShift_eventName(ctx, field)
-			case "eventDescription":
-				return ec.fieldContext_VolunteerShift_eventDescription(ctx, field)
-			case "venue":
-				return ec.fieldContext_VolunteerShift_venue(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type VolunteerShift", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_volunteerShifts_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_filteredEvents(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Query_filteredEvents,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().FilteredEvents(ctx, fc.Args["filter"].(*EventFilterInput))
-		},
-		nil,
-		ec.marshalNManagedEvent2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐManagedEventᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Query_filteredEvents(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_ManagedEvent_id(ctx, field)
-			case "name":
-				return ec.fieldContext_ManagedEvent_name(ctx, field)
+				return ec.fieldContext_Event_name(ctx, field)
 			case "description":
-				return ec.fieldContext_ManagedEvent_description(ctx, field)
+				return ec.fieldContext_Event_description(ctx, field)
 			case "eventType":
-				return ec.fieldContext_ManagedEvent_eventType(ctx, field)
+				return ec.fieldContext_Event_eventType(ctx, field)
 			case "venue":
-				return ec.fieldContext_ManagedEvent_venue(ctx, field)
+				return ec.fieldContext_Event_venue(ctx, field)
 			case "timezone":
-				return ec.fieldContext_ManagedEvent_timezone(ctx, field)
+				return ec.fieldContext_Event_timezone(ctx, field)
 			case "fundingEntity":
-				return ec.fieldContext_ManagedEvent_fundingEntity(ctx, field)
+				return ec.fieldContext_Event_fundingEntity(ctx, field)
 			case "serviceTypes":
-				return ec.fieldContext_ManagedEvent_serviceTypes(ctx, field)
+				return ec.fieldContext_Event_serviceTypes(ctx, field)
 			case "eventDates":
-				return ec.fieldContext_ManagedEvent_eventDates(ctx, field)
+				return ec.fieldContext_Event_eventDates(ctx, field)
 			case "shiftSummaries":
-				return ec.fieldContext_ManagedEvent_shiftSummaries(ctx, field)
-			case "recurrenceId":
-				return ec.fieldContext_ManagedEvent_recurrenceId(ctx, field)
+				return ec.fieldContext_Event_shiftSummaries(ctx, field)
+			case "recurrenceGroup":
+				return ec.fieldContext_Event_recurrenceGroup(ctx, field)
 			case "recurrenceOrder":
-				return ec.fieldContext_ManagedEvent_recurrenceOrder(ctx, field)
-			case "recurrencePattern":
-				return ec.fieldContext_ManagedEvent_recurrencePattern(ctx, field)
-			case "recurrenceMaxOccurrences":
-				return ec.fieldContext_ManagedEvent_recurrenceMaxOccurrences(ctx, field)
-			case "recurrenceOrdinal":
-				return ec.fieldContext_ManagedEvent_recurrenceOrdinal(ctx, field)
+				return ec.fieldContext_Event_recurrenceOrder(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type ManagedEvent", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type Event", field.Name)
 		},
 	}
 	defer func() {
@@ -7395,31 +6458,30 @@ func (ec *executionContext) fieldContext_Query_filteredEvents(ctx context.Contex
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_filteredEvents_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_event_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_managedEventById(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_fundingEntities(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_managedEventById,
+		ec.fieldContext_Query_fundingEntities,
 		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().ManagedEventByID(ctx, fc.Args["eventId"].(string))
+			return ec.resolvers.Query().FundingEntities(ctx)
 		},
 		nil,
-		ec.marshalNManagedEvent2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐManagedEvent,
+		ec.marshalNFundingEntity2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFundingEntityᚄ,
 		true,
 		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_managedEventById(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_fundingEntities(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -7428,49 +6490,14 @@ func (ec *executionContext) fieldContext_Query_managedEventById(ctx context.Cont
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_ManagedEvent_id(ctx, field)
+				return ec.fieldContext_FundingEntity_id(ctx, field)
 			case "name":
-				return ec.fieldContext_ManagedEvent_name(ctx, field)
+				return ec.fieldContext_FundingEntity_name(ctx, field)
 			case "description":
-				return ec.fieldContext_ManagedEvent_description(ctx, field)
-			case "eventType":
-				return ec.fieldContext_ManagedEvent_eventType(ctx, field)
-			case "venue":
-				return ec.fieldContext_ManagedEvent_venue(ctx, field)
-			case "timezone":
-				return ec.fieldContext_ManagedEvent_timezone(ctx, field)
-			case "fundingEntity":
-				return ec.fieldContext_ManagedEvent_fundingEntity(ctx, field)
-			case "serviceTypes":
-				return ec.fieldContext_ManagedEvent_serviceTypes(ctx, field)
-			case "eventDates":
-				return ec.fieldContext_ManagedEvent_eventDates(ctx, field)
-			case "shiftSummaries":
-				return ec.fieldContext_ManagedEvent_shiftSummaries(ctx, field)
-			case "recurrenceId":
-				return ec.fieldContext_ManagedEvent_recurrenceId(ctx, field)
-			case "recurrenceOrder":
-				return ec.fieldContext_ManagedEvent_recurrenceOrder(ctx, field)
-			case "recurrencePattern":
-				return ec.fieldContext_ManagedEvent_recurrencePattern(ctx, field)
-			case "recurrenceMaxOccurrences":
-				return ec.fieldContext_ManagedEvent_recurrenceMaxOccurrences(ctx, field)
-			case "recurrenceOrdinal":
-				return ec.fieldContext_ManagedEvent_recurrenceOrdinal(ctx, field)
+				return ec.fieldContext_FundingEntity_description(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type ManagedEvent", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type FundingEntity", field.Name)
 		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_managedEventById_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
 	}
 	return fc, nil
 }
@@ -7666,24 +6693,24 @@ func (ec *executionContext) fieldContext_Query_feedbackById(ctx context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_attachment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_feedbackAttachment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_attachment,
+		ec.fieldContext_Query_feedbackAttachment,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().Attachment(ctx, fc.Args["attachmentId"].(int))
+			return ec.resolvers.Query().FeedbackAttachment(ctx, fc.Args["attachmentId"].(int))
 		},
 		nil,
-		ec.marshalNAttachmentDownload2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐAttachmentDownload,
+		ec.marshalNFeedbackAttachment2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackAttachment,
 		true,
 		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_attachment(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_feedbackAttachment(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -7692,13 +6719,13 @@ func (ec *executionContext) fieldContext_Query_attachment(ctx context.Context, f
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "filename":
-				return ec.fieldContext_AttachmentDownload_filename(ctx, field)
+				return ec.fieldContext_FeedbackAttachment_filename(ctx, field)
 			case "mimeType":
-				return ec.fieldContext_AttachmentDownload_mimeType(ctx, field)
+				return ec.fieldContext_FeedbackAttachment_mimeType(ctx, field)
 			case "data":
-				return ec.fieldContext_AttachmentDownload_data(ctx, field)
+				return ec.fieldContext_FeedbackAttachment_data(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type AttachmentDownload", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type FeedbackAttachment", field.Name)
 		},
 	}
 	defer func() {
@@ -7708,31 +6735,30 @@ func (ec *executionContext) fieldContext_Query_attachment(ctx context.Context, f
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_attachment_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_feedbackAttachment_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_volunteerById(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_staff(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_volunteerById,
+		ec.fieldContext_Query_staff,
 		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().VolunteerByID(ctx, fc.Args["volunteerId"].(string))
+			return ec.resolvers.Query().Staff(ctx)
 		},
 		nil,
-		ec.marshalOVolunteerProfile2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerProfile,
+		ec.marshalNStaff2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐStaffᚄ,
 		true,
-		false,
+		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_volunteerById(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_staff(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -7740,22 +6766,111 @@ func (ec *executionContext) fieldContext_Query_volunteerById(ctx context.Context
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "id":
+				return ec.fieldContext_Staff_id(ctx, field)
 			case "firstName":
-				return ec.fieldContext_VolunteerProfile_firstName(ctx, field)
+				return ec.fieldContext_Staff_firstName(ctx, field)
 			case "lastName":
-				return ec.fieldContext_VolunteerProfile_lastName(ctx, field)
+				return ec.fieldContext_Staff_lastName(ctx, field)
 			case "email":
-				return ec.fieldContext_VolunteerProfile_email(ctx, field)
+				return ec.fieldContext_Staff_email(ctx, field)
 			case "phone":
-				return ec.fieldContext_VolunteerProfile_phone(ctx, field)
-			case "zipCode":
-				return ec.fieldContext_VolunteerProfile_zipCode(ctx, field)
-			case "distance":
-				return ec.fieldContext_VolunteerProfile_distance(ctx, field)
-			case "role":
-				return ec.fieldContext_VolunteerProfile_role(ctx, field)
+				return ec.fieldContext_Staff_phone(ctx, field)
+			case "position":
+				return ec.fieldContext_Staff_position(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type VolunteerProfile", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type Staff", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_venues(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_venues,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().Venues(ctx)
+		},
+		nil,
+		ec.marshalNVenue2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVenueᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_venues(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Venue_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Venue_name(ctx, field)
+			case "address":
+				return ec.fieldContext_Venue_address(ctx, field)
+			case "city":
+				return ec.fieldContext_Venue_city(ctx, field)
+			case "state":
+				return ec.fieldContext_Venue_state(ctx, field)
+			case "zipCode":
+				return ec.fieldContext_Venue_zipCode(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Venue", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_volunteers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_volunteers,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().Volunteers(ctx, fc.Args["filter"].(*VolunteerFilterInput))
+		},
+		nil,
+		ec.marshalNVolunteer2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_volunteers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Volunteer_id(ctx, field)
+			case "firstName":
+				return ec.fieldContext_Volunteer_firstName(ctx, field)
+			case "lastName":
+				return ec.fieldContext_Volunteer_lastName(ctx, field)
+			case "email":
+				return ec.fieldContext_Volunteer_email(ctx, field)
+			case "phone":
+				return ec.fieldContext_Volunteer_phone(ctx, field)
+			case "zipCode":
+				return ec.fieldContext_Volunteer_zipCode(ctx, field)
+			case "distance":
+				return ec.fieldContext_Volunteer_distance(ctx, field)
+			case "roles":
+				return ec.fieldContext_Volunteer_roles(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Volunteer", field.Name)
 		},
 	}
 	defer func() {
@@ -7765,7 +6880,135 @@ func (ec *executionContext) fieldContext_Query_volunteerById(ctx context.Context
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_volunteerById_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_volunteers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_volunteer(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_volunteer,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().Volunteer(ctx, fc.Args["volId"].(int))
+		},
+		nil,
+		ec.marshalNVolunteer2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteer,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_volunteer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Volunteer_id(ctx, field)
+			case "firstName":
+				return ec.fieldContext_Volunteer_firstName(ctx, field)
+			case "lastName":
+				return ec.fieldContext_Volunteer_lastName(ctx, field)
+			case "email":
+				return ec.fieldContext_Volunteer_email(ctx, field)
+			case "phone":
+				return ec.fieldContext_Volunteer_phone(ctx, field)
+			case "zipCode":
+				return ec.fieldContext_Volunteer_zipCode(ctx, field)
+			case "distance":
+				return ec.fieldContext_Volunteer_distance(ctx, field)
+			case "roles":
+				return ec.fieldContext_Volunteer_roles(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Volunteer", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_volunteer_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_volunteerShifts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_volunteerShifts,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().VolunteerShifts(ctx, fc.Args["volunteerId"].(string), fc.Args["filter"].(ShiftTimeFilter))
+		},
+		nil,
+		ec.marshalNVolunteerShift2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerShiftᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_volunteerShifts(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "shiftId":
+				return ec.fieldContext_VolunteerShift_shiftId(ctx, field)
+			case "assignedAt":
+				return ec.fieldContext_VolunteerShift_assignedAt(ctx, field)
+			case "cancelledAt":
+				return ec.fieldContext_VolunteerShift_cancelledAt(ctx, field)
+			case "startDateTime":
+				return ec.fieldContext_VolunteerShift_startDateTime(ctx, field)
+			case "endDateTime":
+				return ec.fieldContext_VolunteerShift_endDateTime(ctx, field)
+			case "maxVolunteers":
+				return ec.fieldContext_VolunteerShift_maxVolunteers(ctx, field)
+			case "jobName":
+				return ec.fieldContext_VolunteerShift_jobName(ctx, field)
+			case "isVirtual":
+				return ec.fieldContext_VolunteerShift_isVirtual(ctx, field)
+			case "preEventInstructions":
+				return ec.fieldContext_VolunteerShift_preEventInstructions(ctx, field)
+			case "eventId":
+				return ec.fieldContext_VolunteerShift_eventId(ctx, field)
+			case "eventName":
+				return ec.fieldContext_VolunteerShift_eventName(ctx, field)
+			case "eventDescription":
+				return ec.fieldContext_VolunteerShift_eventDescription(ctx, field)
+			case "venue":
+				return ec.fieldContext_VolunteerShift_venue(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type VolunteerShift", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_volunteerShifts_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -7875,6 +7118,122 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 				return ec.fieldContext___Schema_directives(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Schema", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RecurrenceGroup_groupId(ctx context.Context, field graphql.CollectedField, obj *RecurrenceGroup) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RecurrenceGroup_groupId,
+		func(ctx context.Context) (any, error) {
+			return obj.GroupID, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RecurrenceGroup_groupId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RecurrenceGroup",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RecurrenceGroup_pattern(ctx context.Context, field graphql.CollectedField, obj *RecurrenceGroup) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RecurrenceGroup_pattern,
+		func(ctx context.Context) (any, error) {
+			return obj.Pattern, nil
+		},
+		nil,
+		ec.marshalNRecurrencePattern2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRecurrencePattern,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RecurrenceGroup_pattern(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RecurrenceGroup",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type RecurrencePattern does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RecurrenceGroup_maxOccurrences(ctx context.Context, field graphql.CollectedField, obj *RecurrenceGroup) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RecurrenceGroup_maxOccurrences,
+		func(ctx context.Context) (any, error) {
+			return obj.MaxOccurrences, nil
+		},
+		nil,
+		ec.marshalOInt2ᚖint,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_RecurrenceGroup_maxOccurrences(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RecurrenceGroup",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RecurrenceGroup_weekdayOrdinal(ctx context.Context, field graphql.CollectedField, obj *RecurrenceGroup) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RecurrenceGroup_weekdayOrdinal,
+		func(ctx context.Context) (any, error) {
+			return obj.WeekdayOrdinal, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_RecurrenceGroup_weekdayOrdinal(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RecurrenceGroup",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -8663,228 +8022,25 @@ func (ec *executionContext) fieldContext_Volunteer_distance(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Volunteer_role(ctx context.Context, field graphql.CollectedField, obj *Volunteer) (ret graphql.Marshaler) {
+func (ec *executionContext) _Volunteer_roles(ctx context.Context, field graphql.CollectedField, obj *Volunteer) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Volunteer_role,
+		ec.fieldContext_Volunteer_roles,
 		func(ctx context.Context) (any, error) {
-			return obj.Role, nil
+			return obj.Roles, nil
 		},
 		nil,
-		ec.marshalNRole2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRole,
+		ec.marshalNRole2ᚕvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRoleᚄ,
 		true,
 		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Volunteer_role(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Volunteer_roles(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Volunteer",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Role does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _VolunteerProfile_firstName(ctx context.Context, field graphql.CollectedField, obj *VolunteerProfile) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_VolunteerProfile_firstName,
-		func(ctx context.Context) (any, error) {
-			return obj.FirstName, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_VolunteerProfile_firstName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "VolunteerProfile",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _VolunteerProfile_lastName(ctx context.Context, field graphql.CollectedField, obj *VolunteerProfile) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_VolunteerProfile_lastName,
-		func(ctx context.Context) (any, error) {
-			return obj.LastName, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_VolunteerProfile_lastName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "VolunteerProfile",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _VolunteerProfile_email(ctx context.Context, field graphql.CollectedField, obj *VolunteerProfile) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_VolunteerProfile_email,
-		func(ctx context.Context) (any, error) {
-			return obj.Email, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_VolunteerProfile_email(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "VolunteerProfile",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _VolunteerProfile_phone(ctx context.Context, field graphql.CollectedField, obj *VolunteerProfile) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_VolunteerProfile_phone,
-		func(ctx context.Context) (any, error) {
-			return obj.Phone, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_VolunteerProfile_phone(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "VolunteerProfile",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _VolunteerProfile_zipCode(ctx context.Context, field graphql.CollectedField, obj *VolunteerProfile) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_VolunteerProfile_zipCode,
-		func(ctx context.Context) (any, error) {
-			return obj.ZipCode, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_VolunteerProfile_zipCode(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "VolunteerProfile",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _VolunteerProfile_distance(ctx context.Context, field graphql.CollectedField, obj *VolunteerProfile) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_VolunteerProfile_distance,
-		func(ctx context.Context) (any, error) {
-			return obj.Distance, nil
-		},
-		nil,
-		ec.marshalOInt2ᚖint,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_VolunteerProfile_distance(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "VolunteerProfile",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _VolunteerProfile_role(ctx context.Context, field graphql.CollectedField, obj *VolunteerProfile) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_VolunteerProfile_role,
-		func(ctx context.Context) (any, error) {
-			return obj.Role, nil
-		},
-		nil,
-		ec.marshalNRole2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRole,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_VolunteerProfile_role(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "VolunteerProfile",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -10835,7 +9991,7 @@ func (ec *executionContext) unmarshalInputEventFilterInput(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"cities", "distance", "eventType", "jobs", "timeFrame"}
+	fieldsInOrder := [...]string{"cities", "eventType", "jobs", "timeFrame"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -10849,13 +10005,6 @@ func (ec *executionContext) unmarshalInputEventFilterInput(ctx context.Context, 
 				return it, err
 			}
 			it.Cities = data
-		case "distance":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("distance"))
-			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Distance = data
 		case "eventType":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("eventType"))
 			data, err := ec.unmarshalOEventType2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventType(ctx, v)
@@ -11028,54 +10177,6 @@ func (ec *executionContext) unmarshalInputNewEventInput(ctx context.Context, obj
 				return it, err
 			}
 			it.Recurrence = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputNewFeedbackInput(ctx context.Context, obj any) (NewFeedbackInput, error) {
-	var it NewFeedbackInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"type", "subject", "app_page_name", "text"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "type":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
-			data, err := ec.unmarshalNFeedbackType2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackType(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Type = data
-		case "subject":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subject"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Subject = data
-		case "app_page_name":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("app_page_name"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.AppPageName = data
-		case "text":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("text"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Text = data
 		}
 	}
 
@@ -12182,55 +11283,6 @@ func (ec *executionContext) unmarshalInputVolunteerFilterInput(ctx context.Conte
 
 // region    **************************** object.gotpl ****************************
 
-var attachmentDownloadImplementors = []string{"AttachmentDownload"}
-
-func (ec *executionContext) _AttachmentDownload(ctx context.Context, sel ast.SelectionSet, obj *AttachmentDownload) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, attachmentDownloadImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("AttachmentDownload")
-		case "filename":
-			out.Values[i] = ec._AttachmentDownload_filename(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "mimeType":
-			out.Values[i] = ec._AttachmentDownload_mimeType(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "data":
-			out.Values[i] = ec._AttachmentDownload_data(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
 var eventImplementors = []string{"Event"}
 
 func (ec *executionContext) _Event(ctx context.Context, sel ast.SelectionSet, obj *Event) graphql.Marshaler {
@@ -12266,6 +11318,11 @@ func (ec *executionContext) _Event(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "fundingEntity":
+			out.Values[i] = ec._Event_fundingEntity(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "serviceTypes":
 			out.Values[i] = ec._Event_serviceTypes(ctx, field, obj)
 		case "eventDates":
@@ -12278,6 +11335,10 @@ func (ec *executionContext) _Event(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "recurrenceGroup":
+			out.Values[i] = ec._Event_recurrenceGroup(ctx, field, obj)
+		case "recurrenceOrder":
+			out.Values[i] = ec._Event_recurrenceOrder(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -12500,11 +11561,6 @@ func (ec *executionContext) _FeedbackAttachment(ctx context.Context, sel ast.Sel
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("FeedbackAttachment")
-		case "id":
-			out.Values[i] = ec._FeedbackAttachment_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "filename":
 			out.Values[i] = ec._FeedbackAttachment_filename(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -12515,13 +11571,67 @@ func (ec *executionContext) _FeedbackAttachment(ctx context.Context, sel ast.Sel
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "data":
+			out.Values[i] = ec._FeedbackAttachment_data(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var feedbackMetaAttachmentImplementors = []string{"FeedbackMetaAttachment"}
+
+func (ec *executionContext) _FeedbackMetaAttachment(ctx context.Context, sel ast.SelectionSet, obj *FeedbackMetaAttachment) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, feedbackMetaAttachmentImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FeedbackMetaAttachment")
+		case "id":
+			out.Values[i] = ec._FeedbackMetaAttachment_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "filename":
+			out.Values[i] = ec._FeedbackMetaAttachment_filename(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "mimeType":
+			out.Values[i] = ec._FeedbackMetaAttachment_mimeType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "fileSize":
-			out.Values[i] = ec._FeedbackAttachment_fileSize(ctx, field, obj)
+			out.Values[i] = ec._FeedbackMetaAttachment_fileSize(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
 		case "createdAt":
-			out.Values[i] = ec._FeedbackAttachment_createdAt(ctx, field, obj)
+			out.Values[i] = ec._FeedbackMetaAttachment_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -12723,11 +11833,6 @@ func (ec *executionContext) _LookupValues(ctx context.Context, sel ast.Selection
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("LookupValues")
-		case "fundingEntities":
-			out.Values[i] = ec._LookupValues_fundingEntities(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "serviceTypes":
 			out.Values[i] = ec._LookupValues_serviceTypes(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -12743,91 +11848,6 @@ func (ec *executionContext) _LookupValues(ctx context.Context, sel ast.Selection
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var managedEventImplementors = []string{"ManagedEvent"}
-
-func (ec *executionContext) _ManagedEvent(ctx context.Context, sel ast.SelectionSet, obj *ManagedEvent) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, managedEventImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ManagedEvent")
-		case "id":
-			out.Values[i] = ec._ManagedEvent_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "name":
-			out.Values[i] = ec._ManagedEvent_name(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "description":
-			out.Values[i] = ec._ManagedEvent_description(ctx, field, obj)
-		case "eventType":
-			out.Values[i] = ec._ManagedEvent_eventType(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "venue":
-			out.Values[i] = ec._ManagedEvent_venue(ctx, field, obj)
-		case "timezone":
-			out.Values[i] = ec._ManagedEvent_timezone(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "fundingEntity":
-			out.Values[i] = ec._ManagedEvent_fundingEntity(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "serviceTypes":
-			out.Values[i] = ec._ManagedEvent_serviceTypes(ctx, field, obj)
-		case "eventDates":
-			out.Values[i] = ec._ManagedEvent_eventDates(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "shiftSummaries":
-			out.Values[i] = ec._ManagedEvent_shiftSummaries(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "recurrenceId":
-			out.Values[i] = ec._ManagedEvent_recurrenceId(ctx, field, obj)
-		case "recurrenceOrder":
-			out.Values[i] = ec._ManagedEvent_recurrenceOrder(ctx, field, obj)
-		case "recurrencePattern":
-			out.Values[i] = ec._ManagedEvent_recurrencePattern(ctx, field, obj)
-		case "recurrenceMaxOccurrences":
-			out.Values[i] = ec._ManagedEvent_recurrenceMaxOccurrences(ctx, field, obj)
-		case "recurrenceOrdinal":
-			out.Values[i] = ec._ManagedEvent_recurrenceOrdinal(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -12870,30 +11890,44 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
-		case "giveFeedback":
+		case "createFundingEntity":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_giveFeedback(ctx, field)
+				return ec._Mutation_createFundingEntity(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "attachFileToFeedback":
+		case "createJobType":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_attachFileToFeedback(ctx, field)
+				return ec._Mutation_createJobType(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "createVolunteer":
+		case "deleteFundingEntity":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_createVolunteer(ctx, field)
+				return ec._Mutation_deleteFundingEntity(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "createVenue":
+		case "deleteJobType":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_createVenue(ctx, field)
+				return ec._Mutation_deleteJobType(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateFundingEntity":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateFundingEntity(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateJobType":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateJobType(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -12905,9 +11939,9 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "createJobType":
+		case "createEventDate":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_createJobType(ctx, field)
+				return ec._Mutation_createEventDate(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -12926,132 +11960,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "createEventDate":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_createEventDate(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "createStaff":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_createStaff(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "createFundingEntity":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_createFundingEntity(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "assignVolunteerToShift":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_assignVolunteerToShift(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "cancelShift":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_cancelShift(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "updateVenue":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_updateVenue(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "updateVolunteer":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_updateVolunteer(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "updateEvent":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_updateEvent(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "updateJobType":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_updateJobType(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "updateOpportunity":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_updateOpportunity(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "updateShift":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_updateShift(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "updateEventDate":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_updateEventDate(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "updateStaff":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_updateStaff(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "updateFundingEntity":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_updateFundingEntity(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "questionFeedback":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_questionFeedback(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "updateFeedback":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_updateFeedback(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "deleteVolunteer":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_deleteVolunteer(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "deleteVenue":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_deleteVenue(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "deleteEvent":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteEvent(ctx, field)
@@ -13059,9 +11967,9 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "deleteJobType":
+		case "deleteEventDate":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_deleteJobType(ctx, field)
+				return ec._Mutation_deleteEventDate(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -13080,23 +11988,44 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "deleteEventDate":
+		case "updateEvent":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_deleteEventDate(ctx, field)
+				return ec._Mutation_updateEvent(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "deleteStaff":
+		case "updateEventDate":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_deleteStaff(ctx, field)
+				return ec._Mutation_updateEventDate(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "deleteFundingEntity":
+		case "updateOpportunity":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_deleteFundingEntity(ctx, field)
+				return ec._Mutation_updateOpportunity(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateShift":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateShift(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "questionFeedback":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_questionFeedback(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateFeedback":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateFeedback(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -13111,6 +12040,83 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "deleteFeedback":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteFeedback(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createStaff":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createStaff(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteStaff":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteStaff(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateStaff":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateStaff(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createVenue":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createVenue(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteVenue":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteVenue(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateVenue":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateVenue(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createVolunteer":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createVolunteer(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteVolunteer":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteVolunteer(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateVolunteer":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateVolunteer(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "assignVolunteerToShift":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_assignVolunteerToShift(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "cancelShift":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_cancelShift(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -13278,7 +12284,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "volunteerProfile":
+		case "events":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -13287,7 +12293,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_volunteerProfile(ctx, field)
+				res = ec._Query_events(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -13300,7 +12306,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "filteredEventsWithShifts":
+		case "event":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -13309,7 +12315,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_filteredEventsWithShifts(ctx, field)
+				res = ec._Query_event(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -13322,7 +12328,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "venues":
+		case "fundingEntities":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -13331,117 +12337,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_venues(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "staff":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_staff(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "allVolunteers":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_allVolunteers(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "volunteerShifts":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_volunteerShifts(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "filteredEvents":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_filteredEvents(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "managedEventById":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_managedEventById(ctx, field)
+				res = ec._Query_fundingEntities(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -13517,7 +12413,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "attachment":
+		case "feedbackAttachment":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -13526,7 +12422,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_attachment(ctx, field)
+				res = ec._Query_feedbackAttachment(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -13539,16 +12435,107 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "volunteerById":
+		case "staff":
 			field := field
 
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
 				defer func() {
 					if r := recover(); r != nil {
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_volunteerById(ctx, field)
+				res = ec._Query_staff(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "venues":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_venues(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "volunteers":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_volunteers(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "volunteer":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_volunteer(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "volunteerShifts":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_volunteerShifts(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
 				return res
 			}
 
@@ -13566,6 +12553,54 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___schema(ctx, field)
 			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var recurrenceGroupImplementors = []string{"RecurrenceGroup"}
+
+func (ec *executionContext) _RecurrenceGroup(ctx context.Context, sel ast.SelectionSet, obj *RecurrenceGroup) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, recurrenceGroupImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RecurrenceGroup")
+		case "groupId":
+			out.Values[i] = ec._RecurrenceGroup_groupId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "pattern":
+			out.Values[i] = ec._RecurrenceGroup_pattern(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "maxOccurrences":
+			out.Values[i] = ec._RecurrenceGroup_maxOccurrences(ctx, field, obj)
+		case "weekdayOrdinal":
+			out.Values[i] = ec._RecurrenceGroup_weekdayOrdinal(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -13844,68 +12879,8 @@ func (ec *executionContext) _Volunteer(ctx context.Context, sel ast.SelectionSet
 			out.Values[i] = ec._Volunteer_zipCode(ctx, field, obj)
 		case "distance":
 			out.Values[i] = ec._Volunteer_distance(ctx, field, obj)
-		case "role":
-			out.Values[i] = ec._Volunteer_role(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var volunteerProfileImplementors = []string{"VolunteerProfile"}
-
-func (ec *executionContext) _VolunteerProfile(ctx context.Context, sel ast.SelectionSet, obj *VolunteerProfile) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, volunteerProfileImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("VolunteerProfile")
-		case "firstName":
-			out.Values[i] = ec._VolunteerProfile_firstName(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "lastName":
-			out.Values[i] = ec._VolunteerProfile_lastName(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "email":
-			out.Values[i] = ec._VolunteerProfile_email(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "phone":
-			out.Values[i] = ec._VolunteerProfile_phone(ctx, field, obj)
-		case "zipCode":
-			out.Values[i] = ec._VolunteerProfile_zipCode(ctx, field, obj)
-		case "distance":
-			out.Values[i] = ec._VolunteerProfile_distance(ctx, field, obj)
-		case "role":
-			out.Values[i] = ec._VolunteerProfile_role(ctx, field, obj)
+		case "roles":
+			out.Values[i] = ec._Volunteer_roles(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -14361,20 +13336,6 @@ func (ec *executionContext) unmarshalNAddShiftInput2volunteerᚑschedulerᚋgrap
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNAttachmentDownload2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐAttachmentDownload(ctx context.Context, sel ast.SelectionSet, v AttachmentDownload) graphql.Marshaler {
-	return ec._AttachmentDownload(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNAttachmentDownload2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐAttachmentDownload(ctx context.Context, sel ast.SelectionSet, v *AttachmentDownload) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._AttachmentDownload(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v any) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -14389,6 +13350,10 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNEvent2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEvent(ctx context.Context, sel ast.SelectionSet, v Event) graphql.Marshaler {
+	return ec._Event(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNEvent2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐEventᚄ(ctx context.Context, sel ast.SelectionSet, v []*Event) graphql.Marshaler {
@@ -14617,7 +13582,21 @@ func (ec *executionContext) marshalNFeedback2ᚖvolunteerᚑschedulerᚋgraphᚋ
 	return ec._Feedback(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNFeedbackAttachment2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackAttachmentᚄ(ctx context.Context, sel ast.SelectionSet, v []*FeedbackAttachment) graphql.Marshaler {
+func (ec *executionContext) marshalNFeedbackAttachment2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackAttachment(ctx context.Context, sel ast.SelectionSet, v FeedbackAttachment) graphql.Marshaler {
+	return ec._FeedbackAttachment(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNFeedbackAttachment2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackAttachment(ctx context.Context, sel ast.SelectionSet, v *FeedbackAttachment) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FeedbackAttachment(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNFeedbackMetaAttachment2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackMetaAttachmentᚄ(ctx context.Context, sel ast.SelectionSet, v []*FeedbackMetaAttachment) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -14641,7 +13620,7 @@ func (ec *executionContext) marshalNFeedbackAttachment2ᚕᚖvolunteerᚑschedul
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNFeedbackAttachment2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackAttachment(ctx, sel, v[i])
+			ret[i] = ec.marshalNFeedbackMetaAttachment2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackMetaAttachment(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -14661,14 +13640,14 @@ func (ec *executionContext) marshalNFeedbackAttachment2ᚕᚖvolunteerᚑschedul
 	return ret
 }
 
-func (ec *executionContext) marshalNFeedbackAttachment2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackAttachment(ctx context.Context, sel ast.SelectionSet, v *FeedbackAttachment) graphql.Marshaler {
+func (ec *executionContext) marshalNFeedbackMetaAttachment2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackMetaAttachment(ctx context.Context, sel ast.SelectionSet, v *FeedbackMetaAttachment) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
 		}
 		return graphql.Null
 	}
-	return ec._FeedbackAttachment(ctx, sel, v)
+	return ec._FeedbackMetaAttachment(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNFeedbackNote2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackNoteᚄ(ctx context.Context, sel ast.SelectionSet, v []*FeedbackNote) graphql.Marshaler {
@@ -14939,64 +13918,6 @@ func (ec *executionContext) marshalNLookupValues2ᚖvolunteerᚑschedulerᚋgrap
 	return ec._LookupValues(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNManagedEvent2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐManagedEvent(ctx context.Context, sel ast.SelectionSet, v ManagedEvent) graphql.Marshaler {
-	return ec._ManagedEvent(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNManagedEvent2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐManagedEventᚄ(ctx context.Context, sel ast.SelectionSet, v []*ManagedEvent) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNManagedEvent2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐManagedEvent(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) marshalNManagedEvent2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐManagedEvent(ctx context.Context, sel ast.SelectionSet, v *ManagedEvent) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._ManagedEvent(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalNMutationResult2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult(ctx context.Context, sel ast.SelectionSet, v MutationResult) graphql.Marshaler {
 	return ec._MutationResult(ctx, sel, &v)
 }
@@ -15033,11 +13954,6 @@ func (ec *executionContext) unmarshalNNewEventDateInput2ᚖvolunteerᚑscheduler
 
 func (ec *executionContext) unmarshalNNewEventInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewEventInput(ctx context.Context, v any) (NewEventInput, error) {
 	res, err := ec.unmarshalInputNewEventInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNNewFeedbackInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewFeedbackInput(ctx context.Context, v any) (NewFeedbackInput, error) {
-	res, err := ec.unmarshalInputNewFeedbackInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -15173,6 +14089,65 @@ func (ec *executionContext) unmarshalNRole2volunteerᚑschedulerᚋgraphᚋadmin
 
 func (ec *executionContext) marshalNRole2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRole(ctx context.Context, sel ast.SelectionSet, v Role) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) unmarshalNRole2ᚕvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRoleᚄ(ctx context.Context, v any) ([]Role, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]Role, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNRole2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRole(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNRole2ᚕvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRoleᚄ(ctx context.Context, sel ast.SelectionSet, v []Role) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNRole2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRole(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalNServiceType2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐServiceTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []*ServiceType) graphql.Marshaler {
@@ -15443,22 +14418,6 @@ func (ec *executionContext) unmarshalNUpdateVolunteerInput2volunteerᚑscheduler
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, v any) (graphql.Upload, error) {
-	res, err := graphql.UnmarshalUpload(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, sel ast.SelectionSet, v graphql.Upload) graphql.Marshaler {
-	_ = sel
-	res := graphql.MarshalUpload(v)
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-	}
-	return res
-}
-
 func (ec *executionContext) marshalNVenue2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVenueᚄ(ctx context.Context, sel ast.SelectionSet, v []*Venue) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -15513,6 +14472,10 @@ func (ec *executionContext) marshalNVenue2ᚖvolunteerᚑschedulerᚋgraphᚋadm
 	return ec._Venue(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNVolunteer2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteer(ctx context.Context, sel ast.SelectionSet, v Volunteer) graphql.Marshaler {
+	return ec._Volunteer(ctx, sel, &v)
+}
+
 func (ec *executionContext) marshalNVolunteer2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerᚄ(ctx context.Context, sel ast.SelectionSet, v []*Volunteer) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -15565,20 +14528,6 @@ func (ec *executionContext) marshalNVolunteer2ᚖvolunteerᚑschedulerᚋgraph�
 		return graphql.Null
 	}
 	return ec._Volunteer(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNVolunteerProfile2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerProfile(ctx context.Context, sel ast.SelectionSet, v VolunteerProfile) graphql.Marshaler {
-	return ec._VolunteerProfile(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNVolunteerProfile2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerProfile(ctx context.Context, sel ast.SelectionSet, v *VolunteerProfile) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._VolunteerProfile(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNVolunteerShift2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerShiftᚄ(ctx context.Context, sel ast.SelectionSet, v []*VolunteerShift) graphql.Marshaler {
@@ -16061,6 +15010,13 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return res
 }
 
+func (ec *executionContext) marshalORecurrenceGroup2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRecurrenceGroup(ctx context.Context, sel ast.SelectionSet, v *RecurrenceGroup) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._RecurrenceGroup(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalORecurrenceInput2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRecurrenceInput(ctx context.Context, v any) (*RecurrenceInput, error) {
 	if v == nil {
 		return nil, nil
@@ -16168,13 +15124,6 @@ func (ec *executionContext) unmarshalOVolunteerFilterInput2ᚖvolunteerᚑschedu
 	}
 	res, err := ec.unmarshalInputVolunteerFilterInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalOVolunteerProfile2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVolunteerProfile(ctx context.Context, sel ast.SelectionSet, v *VolunteerProfile) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._VolunteerProfile(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOWeekdayOrdinal2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐWeekdayOrdinal(ctx context.Context, v any) (*WeekdayOrdinal, error) {

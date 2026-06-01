@@ -26,7 +26,7 @@ func NewFeedbackService(db *sql.DB, mailer *Mailer) *FeedbackService {
 
 // Queries.
 
-func (s *FeedbackService) FetchOwnFeedback(ctx context.Context, volId int) ([]*models.VolunteerFeedback, error) {
+func (s *FeedbackService) FetchOwnFeedback(ctx context.Context, volId int) ([]*models.FeedbackView, error) {
 	query := `
         SELECT
             f.feedback_id,
@@ -35,6 +35,7 @@ func (s *FeedbackService) FetchOwnFeedback(ctx context.Context, volId int) ([]*m
 			f.subject,
 			f.app_page_name,
 			f.text,
+			fn.note_id,
 			fn.note,
 			fn.note_type,
 			f.github_issue_url,
@@ -52,16 +53,17 @@ func (s *FeedbackService) FetchOwnFeedback(ctx context.Context, volId int) ([]*m
 	}
 	defer rows.Close()
 
-	feedbackMap := make(map[int]*models.VolunteerFeedback)
+	feedbackMap := make(map[int]*models.FeedbackView)
 
 	// orderedFB preserves the ORDER BY from the SQL query so the caller
 	// can reassemble the slice in the correct order after map operations.
 	orderedFB := make([]int, 0)
 
 	for rows.Next() {
-		var fb models.VolunteerFeedback
+		var fb models.FeedbackView
 		var fbInt int
 		var fbType, fbStatus string
+		var noteId sql.NullInt64
 		var note, noteType, noteCreatedAt, url sql.NullString
 
 		err := rows.Scan(
@@ -71,6 +73,7 @@ func (s *FeedbackService) FetchOwnFeedback(ctx context.Context, volId int) ([]*m
 			&fb.Subject,
 			&fb.AppPageName,
 			&fb.Text,
+			&noteId,
 			&note,
 			&noteType,
 			&url,
@@ -106,21 +109,22 @@ func (s *FeedbackService) FetchOwnFeedback(ctx context.Context, volId int) ([]*m
 		if note.Valid {
 			// If there is a note, the fields from feedback_notes must also be
 			// valid, because they are NOT NULL. We don't need to check each one.
-			fbPtr.Notes = append(fbPtr.Notes, &models.VolunteerFeedbackNote{
+			fbPtr.Notes = append(fbPtr.Notes, &models.FeedbackNoteView{
+				ID:        strconv.FormatInt(noteId.Int64, 10),
 				Note:      note.String,
 				NoteType:  models.FeedbackNoteType(noteType.String),
 				CreatedAt: noteCreatedAt.String,
 			})
 		}
 
-		fbPtr.Attachments, err = s.fetchAttachmentsForFeedback(ctx, fbInt)
+		fbPtr.Attachments, err = s.fetchMetaAttachments(ctx, fbInt)
 		if err != nil {
 			return nil, fmt.Errorf("error fetching attachments for feedback with id %d: %w", fbInt, err)
 		}
 	}
 
 	// Build the feedback slice in the order the DB returned the feedback.
-	feedback := make([]*models.VolunteerFeedback, 0, len(feedbackMap))
+	feedback := make([]*models.FeedbackView, 0, len(feedbackMap))
 	for _, id := range orderedFB {
 		feedback = append(feedback, feedbackMap[id])
 	}
@@ -255,7 +259,7 @@ func (s *FeedbackService) FetchFeedback(ctx context.Context, filter *models.Feed
 			})
 		}
 
-		fbPtr.Attachments, err = s.fetchAttachmentsForFeedback(ctx, fbInt)
+		fbPtr.Attachments, err = s.fetchMetaAttachments(ctx, fbInt)
 		if err != nil {
 			return nil, fmt.Errorf("error fetching attachments for feedback with id %d: %w", fbInt, err)
 		}
@@ -378,7 +382,7 @@ func (s *FeedbackService) FetchFeedbackById(ctx context.Context, feedbackId stri
 		feedback.Notes = append(feedback.Notes, &note)
 
 	}
-	feedback.Attachments, err = s.fetchAttachmentsForFeedback(ctx, fbInt)
+	feedback.Attachments, err = s.fetchMetaAttachments(ctx, fbInt)
 	if err != nil {
 		return nil, fmt.Errorf("error getting attachments: %w", err)
 	}

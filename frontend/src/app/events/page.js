@@ -4,7 +4,8 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   isAuthenticated,
-  getAuthRole,
+  hasAuthRole,
+  Roles,
   getAuthName,
   signOut,
   volunteerGql,
@@ -312,12 +313,10 @@ export default function EventsPage() {
       router.replace("/login");
       return;
     }
-    const role = getAuthRole();
-
     setReady(true);
     setGql(() => volunteerGql);
     setUserName(getAuthName() ?? "");
-    setIsAdmin(role === "ADMINISTRATOR");
+    setIsAdmin(hasAuthRole(Roles.ADMINISTRATOR));
   }, [router]);
 
   /* ----- Fetch lookups once gql is available ----- */

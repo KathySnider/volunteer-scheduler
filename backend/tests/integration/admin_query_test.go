@@ -16,7 +16,6 @@ const (
 		lookupValues {
 			serviceTypes { name }
 			jobTypes { name }
-			fundingEntities { name }
 		}
 	}`
 
@@ -33,14 +32,14 @@ const (
 	}`
 
 	qryAllVolunteers = `query AllVolunteers {
-		allVolunteers {
-			id firstName lastName email role
+		volunteers {
+			id firstName lastName email roles
 		}
 	}`
 
-	qryVolunteerById = `query VolunteerById($volunteerId: ID!) {
-		volunteerById(volunteerId: $volunteerId) {
-			firstName lastName email role
+	qryVolunteerById = `query VolunteerById($volId: Int!) {
+		volunteer(volId: $volId) {
+			firstName lastName email roles
 		}
 	}`
 
@@ -72,14 +71,16 @@ const (
 	}`
 
 	qryManagedEventById = `query ManagedEventById($eventId: ID!) {
-		managedEventById(eventId: $eventId) {
+		event(eventId: $eventId) {
 			id name eventType timezone
 			fundingEntity { id name }
-			recurrenceId
 			recurrenceOrder
-			recurrencePattern
-			recurrenceMaxOccurrences
-			recurrenceOrdinal
+			recurrenceGroup {
+				groupId
+				pattern
+				maxOccurrences
+				weekdayOrdinal
+			}
 		}
 	}`
 )
@@ -117,11 +118,11 @@ type staffResult struct {
 }
 
 type volunteerListResult struct {
-	ID        string `json:"id"`
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
-	Email     string `json:"email"`
-	Role      string `json:"role"`
+	ID        string   `json:"id"`
+	FirstName string   `json:"firstName"`
+	LastName  string   `json:"lastName"`
+	Email     string   `json:"email"`
+	Roles     []string `json:"roles"`
 }
 
 type opportunityShiftResult struct {
@@ -160,20 +161,24 @@ type feedbackDetailResult struct {
 	Notes         []feedbackNoteResult `json:"notes"`
 }
 
+type recurrenceGroupResult struct {
+	GroupID         string  `json:"groupId"`
+	Pattern         string  `json:"pattern"`
+	MaxOccurrences  int     `json:"maxOccurrences"`
+	WeekdayOrdinal  *string `json:"weekdayOrdinal"`
+}
+
 type managedEventResult struct {
-	ID                       string  `json:"id"`
-	Name                     string  `json:"name"`
-	EventType                string  `json:"eventType"`
-	Timezone                 string  `json:"timezone"`
-	FundingEntity            struct {
+	ID              string  `json:"id"`
+	Name            string  `json:"name"`
+	EventType       string  `json:"eventType"`
+	Timezone        string  `json:"timezone"`
+	FundingEntity   struct {
 		ID   int    `json:"id"`
 		Name string `json:"name"`
 	} `json:"fundingEntity"`
-	RecurrenceID             *string `json:"recurrenceId"`
-	RecurrenceOrder          *int    `json:"recurrenceOrder"`
-	RecurrencePattern        *string `json:"recurrencePattern"`
-	RecurrenceMaxOccurrences *int    `json:"recurrenceMaxOccurrences"`
-	RecurrenceOrdinal        *string `json:"recurrenceOrdinal"`
+	RecurrenceOrder   *int                    `json:"recurrenceOrder"`
+	RecurrenceGroup   *recurrenceGroupResult  `json:"recurrenceGroup"`
 }
 
 // ============================================================================
@@ -305,7 +310,7 @@ func TestAllVolunteers(t *testing.T) {
 	}
 
 	var volunteers []volunteerListResult
-	unmarshalField(t, resp, "allVolunteers", &volunteers)
+	unmarshalField(t, resp, "volunteers", &volunteers)
 
 	expectedID := strconv.Itoa(volID)
 	found := false
@@ -325,7 +330,7 @@ func TestAllVolunteers(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Errorf("seeded volunteer with id=%d not found in allVolunteers results", volID)
+		t.Errorf("seeded volunteer with id=%d not found in volunteers results", volID)
 	}
 }
 
@@ -337,7 +342,7 @@ func TestVolunteerById(t *testing.T) {
 	volID := seedVolunteer(t, email, "Fetched", "ByID", "VOLUNTEER")
 
 	resp := gqlPost(t, "/graphql/admin", adminToken, qryVolunteerById, map[string]any{
-		"volunteerId": strconv.Itoa(volID),
+		"volId": volID,
 	})
 
 	if hasGQLErrors(resp) {
@@ -345,7 +350,7 @@ func TestVolunteerById(t *testing.T) {
 	}
 
 	var profile volunteerProfileResult
-	unmarshalField(t, resp, "volunteerById", &profile)
+	unmarshalField(t, resp, "volunteer", &profile)
 
 	if profile.FirstName != "Fetched" {
 		t.Errorf("expected firstName=%q, got %q", "Fetched", profile.FirstName)
@@ -356,8 +361,14 @@ func TestVolunteerById(t *testing.T) {
 	if profile.Email != email {
 		t.Errorf("expected email=%q, got %q", email, profile.Email)
 	}
-	if profile.Role != "VOLUNTEER" {
-		t.Errorf("expected role=%q, got %q", "VOLUNTEER", profile.Role)
+	hasVolunteer := false
+	for _, r := range profile.Roles {
+		if r == "VOLUNTEER" {
+			hasVolunteer = true
+		}
+	}
+	if !hasVolunteer {
+		t.Errorf("expected roles to contain VOLUNTEER, got %v", profile.Roles)
 	}
 }
 
@@ -541,7 +552,7 @@ func TestManagedEventById(t *testing.T) {
 	}
 
 	var ev managedEventResult
-	unmarshalField(t, resp, "managedEventById", &ev)
+	unmarshalField(t, resp, "event", &ev)
 
 	if ev.ID != strconv.Itoa(eventID) {
 		t.Errorf("id: want %q, got %q", strconv.Itoa(eventID), ev.ID)
@@ -555,12 +566,9 @@ func TestManagedEventById(t *testing.T) {
 	if ev.FundingEntity.Name == "" {
 		t.Error("fundingEntity.name should be non-empty")
 	}
-	// Non-recurring event should have nil recurrence fields.
-	if ev.RecurrenceID != nil {
-		t.Errorf("recurrenceId: want nil for non-recurring, got %q", *ev.RecurrenceID)
-	}
-	if ev.RecurrencePattern != nil {
-		t.Errorf("recurrencePattern: want nil for non-recurring, got %q", *ev.RecurrencePattern)
+	// Non-recurring event should have nil recurrenceGroup.
+	if ev.RecurrenceGroup != nil {
+		t.Errorf("recurrenceGroup: want nil for non-recurring, got %+v", ev.RecurrenceGroup)
 	}
 }
 
@@ -601,24 +609,24 @@ func TestManagedEventById_RecurringFields(t *testing.T) {
 	}
 
 	var ev managedEventResult
-	unmarshalField(t, resp, "managedEventById", &ev)
+	unmarshalField(t, resp, "event", &ev)
 
-	if ev.RecurrenceID == nil {
-		t.Fatal("recurrenceId: want non-nil for recurring event, got nil")
+	if ev.RecurrenceGroup == nil {
+		t.Fatal("recurrenceGroup: want non-nil for recurring event, got nil")
 	}
-	if *ev.RecurrenceID != groupID {
-		t.Errorf("recurrenceId: want %q, got %q", groupID, *ev.RecurrenceID)
+	if ev.RecurrenceGroup.GroupID != groupID {
+		t.Errorf("recurrenceGroup.groupId: want %q, got %q", groupID, ev.RecurrenceGroup.GroupID)
 	}
 	if ev.RecurrenceOrder == nil || *ev.RecurrenceOrder != 1 {
 		t.Errorf("recurrenceOrder: want 1, got %v", ev.RecurrenceOrder)
 	}
-	if ev.RecurrencePattern == nil || *ev.RecurrencePattern != wantPattern {
-		t.Errorf("recurrencePattern: want %q, got %v", wantPattern, ev.RecurrencePattern)
+	if ev.RecurrenceGroup.Pattern != wantPattern {
+		t.Errorf("recurrenceGroup.pattern: want %q, got %q", wantPattern, ev.RecurrenceGroup.Pattern)
 	}
-	if ev.RecurrenceMaxOccurrences == nil || *ev.RecurrenceMaxOccurrences != wantMax {
-		t.Errorf("recurrenceMaxOccurrences: want %d, got %v", wantMax, ev.RecurrenceMaxOccurrences)
+	if ev.RecurrenceGroup.MaxOccurrences != wantMax {
+		t.Errorf("recurrenceGroup.maxOccurrences: want %d, got %d", wantMax, ev.RecurrenceGroup.MaxOccurrences)
 	}
-	if ev.RecurrenceOrdinal != nil {
-		t.Errorf("recurrenceOrdinal: want nil for weekly, got %q", *ev.RecurrenceOrdinal)
+	if ev.RecurrenceGroup.WeekdayOrdinal != nil {
+		t.Errorf("recurrenceGroup.weekdayOrdinal: want nil for weekly, got %q", *ev.RecurrenceGroup.WeekdayOrdinal)
 	}
 }

@@ -11,8 +11,8 @@ import (
 // ============================================================================
 
 const queryFilteredEvents = `
-	query FilteredEvents($filter: EventFilterInput) {
-		filteredEventsWithShifts(filter: $filter) {
+	query FilteredEvents($filter: VolunteerEventFilterInput) {
+		eventViews(filter: $filter) {
 			id
 			name
 			eventType
@@ -102,14 +102,14 @@ func setupEventFixture(t *testing.T) eventTestFixture {
 // Small assertion helpers
 // ============================================================================
 
-// eventNamesFromResponse unmarshals the filteredEventsWithShifts data field and returns
+// eventNamesFromResponse unmarshals the eventViews data field and returns
 // a map of event name → true for quick membership checks.
 func eventNamesFromResponse(t *testing.T, resp gqlResponse) map[string]bool {
 	t.Helper()
 	var events []struct {
 		Name string `json:"name"`
 	}
-	unmarshalField(t, resp, "filteredEventsWithShifts", &events)
+	unmarshalField(t, resp, "eventViews", &events)
 	m := make(map[string]bool, len(events))
 	for _, e := range events {
 		m[e.Name] = true
@@ -124,7 +124,7 @@ func assertEventCount(t *testing.T, resp gqlResponse, want int) {
 	var events []struct {
 		Name string `json:"name"`
 	}
-	unmarshalField(t, resp, "filteredEventsWithShifts", &events)
+	unmarshalField(t, resp, "eventViews", &events)
 	if len(events) != want {
 		names := make([]string, len(events))
 		for i, e := range events {

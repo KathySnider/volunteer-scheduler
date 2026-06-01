@@ -20,7 +20,7 @@ import (
 // the order, because Go maps have no guaranteed iteration order.
 
 // ** Filtering for Managing Events **
-func filterManagedEvents(ctx context.Context, filter *models.EventFilterInput, db *sql.DB) (map[int]*models.ManagedEvent, []int, error) {
+func filterEvents(ctx context.Context, filter *models.EventFilterInput, db *sql.DB) (map[int]*models.Event, []int, error) {
 	query := `
         SELECT DISTINCT
             e.event_id,
@@ -38,10 +38,14 @@ func filterManagedEvents(ctx context.Context, filter *models.EventFilterInput, d
 			fe.name,
 			e.recurrence_group_id,
 			e.recurrence_order,
+			rg.pattern,
+			rg.max_occurrences,
+			rg.weekday_ordinal,
 			earliest.first_date
         FROM events e
         LEFT JOIN venues v ON e.venue_id = v.venue_id
-        LEFT JOIN funding_entities fe ON e.funding_entity_id = fe.id
+        LEFT JOIN recurrence_groups rg ON rg.id = e.recurrence_group_id
+		LEFT JOIN funding_entities fe ON e.funding_entity_id = fe.id
         LEFT JOIN opportunities opp ON e.event_id = opp.event_id
 		LEFT JOIN job_types jt ON jt.job_type_id = opp.job_type_id
 		LEFT JOIN (
@@ -114,13 +118,13 @@ func filterManagedEvents(ctx context.Context, filter *models.EventFilterInput, d
 
 	// Each row represents an event that *might* meet the
 	// criteria. Turn each row into an event.
-	eventsMap := make(map[int]*models.ManagedEvent)
+	eventsMap := make(map[int]*models.Event)
 	// orderedIDs preserves the ORDER BY from the SQL query so the caller
 	// can reassemble the slice in the correct order after map operations.
 	orderedIDs := make([]int, 0)
 
 	for rows.Next() {
-		var e models.ManagedEvent
+		var e models.Event
 		var eventInt int
 		var venueInt sql.NullInt64
 		var isVirtual bool
@@ -128,8 +132,8 @@ func filterManagedEvents(ctx context.Context, filter *models.EventFilterInput, d
 		var eventDesc, venueName, streetAddress, city, state, zip sql.NullString
 		var fundingEntityId int
 		var fundingEntityName string
-		var recurGrpId sql.NullString
-		var recurOrder sql.NullInt32
+		var recurGrpId, recurPattern, recurWdOrd sql.NullString
+		var recurOrder, recurMax sql.NullInt32
 
 		err := rows.Scan(
 			&eventInt,
@@ -147,6 +151,9 @@ func filterManagedEvents(ctx context.Context, filter *models.EventFilterInput, d
 			&fundingEntityName,
 			&recurGrpId,
 			&recurOrder,
+			&recurPattern,
+			&recurMax,
+			&recurWdOrd,
 			&firstDate,
 		)
 		if err != nil {
@@ -186,8 +193,24 @@ func filterManagedEvents(ctx context.Context, filter *models.EventFilterInput, d
 		e.FundingEntity = models.FundingEntity{ID: fundingEntityId, Name: fundingEntityName}
 
 		if recurGrpId.Valid {
-			e.RecurrenceId = recurGrpId.String
-			e.RecurrenceOrder = int(recurOrder.Int32)
+			rg := &models.RecurrenceGroup{GroupID: recurGrpId.String}
+			e.RecurrenceGroup = rg
+			if recurOrder.Valid {
+				order := int(recurOrder.Int32)
+				e.RecurrenceOrder = &order
+			} else {
+				return nil, nil, fmt.Errorf("recurrence_order is required when recurrence_group_id is not null.")
+			}
+			if recurPattern.Valid {
+				rg.Pattern = recurPattern.String
+			}
+			if recurMax.Valid {
+				max := int(recurMax.Int32)
+				rg.MaxOccurrences = &max
+			}
+			if recurWdOrd.Valid {
+				rg.WeekdayOrdinal = &recurWdOrd.String
+			}
 		}
 
 		stPtrs, err := FetchEventServiceTypes(ctx, db, eventInt)
@@ -234,7 +257,7 @@ func filterManagedEvents(ctx context.Context, filter *models.EventFilterInput, d
 // We use a 2-pass strategy. This function handles the first pass. This pass
 // returns both the map of events (keyed by event_id) and the slice of event
 // IDs in the order they came back from the DB (ORDER BY earliest event date ASC).
-func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, db *sql.DB, volId int) (map[int]*models.Event, []int, error) {
+func fetchFilteredPassOne(ctx context.Context, filter *models.VolunteerEventFilterInput, db *sql.DB, volId int) (map[int]*models.EventView, []int, error) {
 
 	// If distance is used, will need the volunteer's lat/lng.
 	// Since there is no way to join a volunteer to any of this,
@@ -363,14 +386,14 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 
 	// Each row represents an event that *might* meet the
 	// criteria. Turn each row into an event.
-	eventsMap := make(map[int]*models.Event)
+	eventsMap := make(map[int]*models.EventView)
 
 	// orderedIDs preserves the ORDER BY from the SQL query so the caller
 	// can reassemble the slice in the correct order after map operations.
 	orderedIDs := make([]int, 0)
 
 	for rows.Next() {
-		var e models.Event
+		var e models.EventView
 		var eventInt int
 		var venueInt sql.NullInt64
 		var isVirtual bool
@@ -405,11 +428,10 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 		e.EventType = GetEventType(isVirtual, venueInt.Valid)
 
 		if venueInt.Valid {
-			var venue models.Venue
-			// Since venue is present, the other fields must also be
+			var venue models.VenueView
+			// Since venue ID is present, the other fields must also be
 			// not null - they are NOT NULL in DB. The exceptions are
 			// name and zip.
-			venue.ID = strconv.Itoa(int(venueInt.Int64))
 			venue.Address = streetAddress.String
 			venue.City = city.String
 			venue.State = state.String
@@ -479,7 +501,7 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.EventFilterInput, 
 			e.ServiceTypes[i] = *stPtrs[i]
 		}
 
-		dates, err := FetchEventDates(ctx, db, eventInt)
+		dates, err := fetchEventDateViews(ctx, db, eventInt)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error getting event's dates: %w", err)
 		}

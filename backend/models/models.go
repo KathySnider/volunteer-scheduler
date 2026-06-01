@@ -30,3 +30,13 @@ const (
 	RoleVolunteer     Role = "VOLUNTEER"
 	RoleAdministrator Role = "ADMINISTRATOR"
 )
+
+// HasRole returns true when the provided role is present in the roles slice.
+func HasRole(roles []Role, r Role) bool {
+	for _, v := range roles {
+		if v == r {
+			return true
+		}
+	}
+	return false
+}

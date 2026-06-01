@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   isAuthenticated,
-  getAuthRole,
+  hasAuthRole,
+  Roles,
+  getAuthRoles,
   getAuthName,
   signOut,
   volunteerGql,
@@ -27,7 +29,6 @@ const GET_PROFILE = `
       phone
       zipCode
       distance
-      role
     }
   }
 `;
@@ -64,10 +65,9 @@ export default function ProfilePage() {
   /* ----- Auth + load ----- */
   useEffect(() => {
     if (!isAuthenticated()) { router.replace("/login"); return; }
-    const role = getAuthRole();
     const bound = volunteerGql;
     setGql(() => bound);
-    setIsAdmin(role === "ADMINISTRATOR");
+    setIsAdmin(hasAuthRole(Roles.ADMINISTRATOR));
     setUserName(getAuthName() ?? "");
 
     bound(GET_PROFILE, null)
@@ -124,7 +124,7 @@ export default function ProfilePage() {
 
       // Keep the display name in localStorage in sync
       const newName = `${form.firstName.trim()} ${form.lastName.trim()}`.trim();
-      setAuthInfo(form.email.trim(), getAuthRole(), newName);
+      setAuthInfo(form.email.trim(), getAuthRoles(), newName);
       setUserName(newName);
 
       setActionMsg({ type: "success", text: "Profile updated." });

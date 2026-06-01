@@ -9,7 +9,7 @@
  *   - Backend unreachable        → /login  (fail secure)
  *
  * Because this runs before the page renders, a volunteer who manually sets
- * authRole="ADMINISTRATOR" in localStorage will never see the admin page shell
+ * authRoles=["ADMINISTRATOR"] in localStorage will never see the admin page shell
  * — they are redirected by the server before any HTML is sent.
  *
  * Server-side URL note:
@@ -21,6 +21,8 @@
 
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+
+const ROLE_ADMINISTRATOR = "ADMINISTRATOR";
 
 const VOLUNTEER_API_URL =
   process.env.GRAPHQL_VOLUNTEER_URL ||
@@ -41,7 +43,7 @@ export async function middleware(request: NextRequest) {
         "Content-Type": "application/json",
         Cookie: `session=${sessionCookie.value}`,
       },
-      body: JSON.stringify({ query: "{ ownProfile { role } }" }),
+      body: JSON.stringify({ query: "{ ownProfile { roles } }" }),
     });
 
     if (!res.ok) {
@@ -49,11 +51,11 @@ export async function middleware(request: NextRequest) {
     }
 
     const json = (await res.json()) as {
-      data?: { ownProfile?: { role?: string } | null };
+      data?: { ownProfile?: { roles?: string[] } | null };
     };
-    const role = json?.data?.ownProfile?.role;
+    const roles = json?.data?.ownProfile?.roles;
 
-    if (role !== "ADMINISTRATOR") {
+    if (!Array.isArray(roles) || !roles.includes(ROLE_ADMINISTRATOR)) {
       return NextResponse.redirect(new URL("/events", request.url));
     }
   } catch {

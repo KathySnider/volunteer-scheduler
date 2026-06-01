@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   isAuthenticated,
-  getAuthRole,
+  hasAuthRole,
+  Roles,
   getAuthName,
   signOut,
   adminGql,
@@ -20,7 +21,7 @@ import styles from "./admin-volunteers.module.css";
 const ALL_VOLUNTEERS = `
   query {
     volunteers {
-      id firstName lastName email phone zipCode distance role
+      id firstName lastName email phone zipCode distance roles
     }
   }
 `;
@@ -144,8 +145,8 @@ function VolunteerFormFields({ form, setForm }) {
             value={form.role}
             onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}
           >
-            <option value="VOLUNTEER">Volunteer</option>
-            <option value="ADMINISTRATOR">Administrator</option>
+            <option value={Roles.VOLUNTEER}>Volunteer</option>
+            <option value={Roles.ADMINISTRATOR}>Administrator</option>
           </select>
         </div>
 
@@ -175,7 +176,7 @@ function VolunteerFormFields({ form, setForm }) {
    ========================================================= */
 
 const EMPTY_FORM = {
-  firstName: "", lastName: "", email: "", phone: "", zipCode: "", distance: "", role: "VOLUNTEER",
+  firstName: "", lastName: "", email: "", phone: "", zipCode: "", distance: "", role: Roles.VOLUNTEER,
 };
 
 export default function AdminVolunteersPage() {
@@ -222,8 +223,7 @@ export default function AdminVolunteersPage() {
 
   useEffect(() => {
     if (!isAuthenticated()) { router.replace("/login"); return; }
-    const role = getAuthRole();
-    if (role !== "ADMINISTRATOR") { router.replace("/events"); return; }
+    if (!hasAuthRole(Roles.ADMINISTRATOR)) { router.replace("/events"); return; }
     const bound = adminGql;
     setGql(() => bound);
     setUserName(getAuthName() ?? "");
@@ -291,7 +291,7 @@ export default function AdminVolunteersPage() {
       phone:     vol.phone ?? "",
       zipCode:   vol.zipCode ?? "",
       distance:  vol.distance != null ? String(vol.distance) : "",
-      role:      vol.role,
+      role:      vol.roles?.includes(Roles.ADMINISTRATOR) ? Roles.ADMINISTRATOR : Roles.VOLUNTEER,
     });
     setEditVolError("");
     setOpenShiftsId(null);
@@ -448,7 +448,7 @@ export default function AdminVolunteersPage() {
         {!loading && filtered.map((vol) => {
           const isEditing      = editingId === vol.id;
           const shiftsOpen     = openShiftsId === vol.id;
-          const isAdmin        = vol.role === "ADMINISTRATOR";
+          const isAdmin        = vol.roles?.includes(Roles.ADMINISTRATOR) ?? false;
 
           return (
             <div key={vol.id} className={styles.volCard}>

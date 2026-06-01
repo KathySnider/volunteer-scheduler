@@ -181,10 +181,9 @@ func (s *ShiftService) FetchShiftsForOpportunity(ctx context.Context, oppId stri
 // This function gets the shifts in the "flattened" view for the
 // volunteers. Each shift includes the job name, even though the
 // job is really part of the opportunity that includes these
-// shifts.
-// Including the name in each shift view makes it easier for
-// volunteers to understand what they are signing up for.
-func (s *ShiftService) FetchShiftViewsForEvent(ctx context.Context, eventId string) ([]*models.ShiftView, error) {
+// shifts. (Including the name in each shift view makes it easier
+// for volunteers to understand what they are signing up for.)
+func (s *ShiftService) FetchEventShiftViews(ctx context.Context, eventId string) ([]*models.EventShiftView, error) {
 
 	eventInt, err := strconv.Atoi(eventId)
 	if err != nil {
@@ -212,10 +211,10 @@ func (s *ShiftService) FetchShiftViewsForEvent(ctx context.Context, eventId stri
 	}
 	defer rows.Close()
 
-	var shifts []*models.ShiftView
+	var shifts []*models.EventShiftView
 
 	for rows.Next() {
-		var shift models.ShiftView
+		var shift models.EventShiftView
 		var shiftInt, oppInt int
 		var maxVols sql.NullInt64
 
@@ -251,21 +250,6 @@ func (s *ShiftService) FetchShiftViewsForEvent(ctx context.Context, eventId stri
 	}
 
 	return shifts, nil
-}
-
-// These 2 functions get *all* of the information for each shift for a volunteer.
-// Only qualification is that it might include only upcoming shifts (>= NOW()),
-// only past shifts (< NOW()) or all shifts ever.
-func (s *ShiftService) FetchOwnShifts(ctx context.Context, volId int, filter models.ShiftsTimeFilter) ([]*models.VolunteerShift, error) {
-	return fetchVolunteerShifts(ctx, s.DB, volId, filter)
-}
-
-func (s *ShiftService) FetchVolunteerShifts(ctx context.Context, volId string, filter models.ShiftsTimeFilter) ([]*models.VolunteerShift, error) {
-	volInt, err := strconv.Atoi(volId)
-	if err != nil {
-		return nil, fmt.Errorf("volunteer id is not valid: %w", err)
-	}
-	return fetchVolunteerShifts(ctx, s.DB, volInt, filter)
 }
 
 // ============================================================================

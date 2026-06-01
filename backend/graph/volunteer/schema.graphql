@@ -1,28 +1,47 @@
 ## This file contains queries and mutations available to
 ## those users logged in with "volunteer" privileges. 
 
+extend type Query {
 
-type Query {
-  lookupValues: LookupValues!
-  volunteerProfile: VolunteerProfile!
-  filteredEventsWithShifts(filter: EventFilterInput): [Event!]!
-  eventById(eventId: ID!): Event!
-  shiftsForEvent(eventId: ID!): [ShiftView!]!  
-  ownShifts(filter: ShiftTimeFilter!): [VolunteerShift!]! 
-  ownFeedback: [VolunteerFeedback!]!
-  ownAttachment(attachmentId: Int!): AttachmentDownload!
+  # Events
+  eventShiftViews(eventId: ID!): [EventShiftView!]!  
+  eventViews(filter: VolunteerEventFilterInput): [EventView!]!
+  eventView(eventId: ID!): EventView!
+
+  # Feedback
+  ownAttachment(attachmentId: Int!): FeedbackAttachmentView!
+  ownFeedback: [FeedbackView!]!
+
+  # Volunteer 
+  ownProfile: VolunteerView!
+  ownShifts(filter: ShiftTimeFilter!): [VolunteerShiftView!]! 
 }
 
 type Mutation {
+  # Feedback
+  attachFileToFeedback(feedbackId: ID!, file: Upload!): MutationResult!
+  giveFeedback (feedback: NewFeedbackInput!): MutationResult!
+
+  # Volunteer Profile
   updateOwnProfile(profile: UpdateOwnProfileInput!): VolunteerMutationResult!    
+
+  # Volunteer Shifts
   assignSelfToShift(shiftId: ID!): MutationResult!  
   cancelOwnShift(shiftId: ID!): MutationResult!
-  giveFeedback (feedback: NewFeedbackInput!): MutationResult!
-  attachFileToFeedback(feedbackId: ID!, file: Upload!): MutationResult!
 }
 
-type ShiftView {
-  id: ID!
+
+##-- Output --
+
+# Events
+
+type EventDateView {
+  startDateTime: String!
+  endDateTime: String!
+}
+
+type EventShiftView {
+  id: ID!                 # - shift id is needed for shift signups/cancellations.
   jobName: String!
   startDateTime: String!
   endDateTime: String!
@@ -31,14 +50,42 @@ type ShiftView {
   assignedVolunteers: Int!
 }
 
-type VolunteerFeedbackNote {
-   id: ID!
+type EventView {
+  id: ID!               # - event id is needed to get event details.
+  name: String!
+  description: String
+  eventType: EventType!
+  venue: VenueView
+  timezone: String!
+  serviceTypes: [String!]
+  eventDates: [EventDateView!]!
+  shiftSummaries: [EventShiftSummary!]!
+}
+
+type VenueView {
+  name: String
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String
+}
+
+# Feedback
+
+type FeedbackAttachmentView {
+  filename: String!
+  mimeType: String!
+  data: String!
+}
+
+type FeedbackNoteView {
+  id: ID!
   createdAt: String!
   noteType: FeedbackNoteType!
   note: String!
  
 }
-type VolunteerFeedback {
+type FeedbackView {
   id: ID!
   type: FeedbackType!
   status: FeedbackStatus!
@@ -47,9 +94,73 @@ type VolunteerFeedback {
   text: String!
   githubIssueURL: String
   createdAt: String!
-  notes: [VolunteerFeedbackNote!]!
-  attachments: [FeedbackAttachment!]!   
+  notes: [FeedbackNoteView!]!
+  attachments: [FeedbackMetaAttachment!]!   
 }
+
+# Volunteers 
+
+#-- Show vol-shift information in a flattened
+#-- form. Used to query what shifts a volunteer
+#-- has signed up for. Used by volunteer with
+#-- "ownShifts".
+
+#-- Volunteers can see their own profiles. We
+#-- don't include the ID in these. Volunteers
+#-- have no need for their IDs. The middleware
+#-- gets the caller's ID when the query is made.
+type VolunteerView {
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  zipCode: String
+  distance: Int
+  roles: [Role!]!
+}
+
+type VolunteerShiftView {
+  shiftId: ID!
+  assignedAt: String!
+  cancelledAt: String
+  startDateTime: String!
+  endDateTime: String!
+  maxVolunteers: Int
+  jobName: String!
+  isVirtual: Boolean!
+  preEventInstructions: String
+  eventId: ID!
+  eventName: String!
+  eventDescription: String
+  venue: VenueView
+}
+
+##-- Input --
+
+# Events
+
+## The EventFilter reflects all of the fields on which 
+## a volunteer can filter the events. If you want to add
+## more ways for them to filter, this is the place.
+
+input VolunteerEventFilterInput {
+  cities: [String!]
+  distance: Int
+  eventType: EventType
+  jobs: [Int!]
+  timeFrame: ShiftTimeFilter
+}
+
+# Feedback
+
+input NewFeedbackInput {
+  type: FeedbackType!
+  subject: String!
+  app_page_name: String!
+  text: String!
+}
+
+# Volunteers
 
 input UpdateOwnProfileInput {
   firstName: String!
@@ -59,6 +170,11 @@ input UpdateOwnProfileInput {
   zipCode: String
   distance: Int
 }
+
+##-- Results --
+
+# If the ID field would reveal the volunteer's ID, 
+# prefer to use the VolunteerMutationResult.
 
 type VolunteerMutationResult {
   success: Boolean!

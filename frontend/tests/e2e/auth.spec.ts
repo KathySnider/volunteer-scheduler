@@ -96,8 +96,8 @@ test.describe("Magic-link login — happy path", () => {
     const token = await page.evaluate(() => localStorage.getItem("authToken"));
     expect(token).toBeNull();
 
-    const role = await page.evaluate(() => localStorage.getItem("authRole"));
-    expect(role).toBe("VOLUNTEER");
+    const roles = await page.evaluate(() => localStorage.getItem("authRoles"));
+    expect(JSON.parse(roles ?? "[]")).toContain("VOLUNTEER");
   });
 });
 

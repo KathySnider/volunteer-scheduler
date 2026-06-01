@@ -26,15 +26,15 @@ func VolunteerIdFromContext(ctx context.Context) (int, bool) {
 	return volId, ok
 }
 
-// ContextWithVolunteerRole stores the authenticated volunteer role in the context.
-func ContextWithVolunteerRole(ctx context.Context, role string) context.Context {
-	return context.WithValue(ctx, volunteerRoleContextKey, role)
+// ContextWithVolunteerRoles stores the authenticated volunteer roles in the context.
+func ContextWithVolunteerRoles(ctx context.Context, roles []string) context.Context {
+	return context.WithValue(ctx, volunteerRoleContextKey, roles)
 }
 
-// VolunteerRoleFromContext retrieves the authenticated volunteer role from the context.
-func VolunteerRoleFromContext(ctx context.Context) (string, bool) {
-	role, ok := ctx.Value(volunteerRoleContextKey).(string)
-	return role, ok
+// VolunteerRolesFromContext retrieves the authenticated volunteer roles from the context.
+func VolunteerRolesFromContext(ctx context.Context) ([]string, bool) {
+	roles, ok := ctx.Value(volunteerRoleContextKey).([]string)
+	return roles, ok
 }
 
 // HTTP keys

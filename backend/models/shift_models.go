@@ -19,9 +19,10 @@ type Shift struct {
 }
 
 // Flattened view for volunteers; combines
-// opportunity and shifts.
+// opportunity and shifts. Used to show
+// shifts for events.
 
-type ShiftView struct {
+type EventShiftView struct {
 	ID                 string
 	JobName            string
 	StartDateTime      string

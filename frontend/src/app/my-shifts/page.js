@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   isAuthenticated,
-  getAuthRole,
+  hasAuthRole,
+  Roles,
   getAuthName,
   signOut,
   volunteerGql,
@@ -125,12 +126,11 @@ export default function MyShiftsPage() {
 
   useEffect(() => {
     if (!isAuthenticated()) { router.replace("/login"); return; }
-    const role = getAuthRole();
     // ownShifts lives on the volunteer endpoint; admin tokens are accepted there too
     const bound = volunteerGql;
     setGql(() => bound);
     setUserName(getAuthName() ?? "");
-    setIsAdmin(role === "ADMINISTRATOR");
+    setIsAdmin(hasAuthRole(Roles.ADMINISTRATOR));
     loadShifts(bound, "UPCOMING");
   }, [router, loadShifts]);
 

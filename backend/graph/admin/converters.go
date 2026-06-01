@@ -5,44 +5,9 @@ import (
 	"volunteer-scheduler/models"
 )
 
-// These functions are duplicated in graph/admin/converters.go
-// Keep both files in sync when making changes.
+// Convert models to generated (graphql) types. (Output from services to the API.)
 
-// START OF DUPLICATE CODE
-// Convert models to generated types, e.g., results
-// coming back from services to the API.
-
-func toGenMutationResult(m *models.MutationResult) *generated.MutationResult {
-	if m == nil {
-		return nil
-	}
-
-	return &generated.MutationResult{
-		Success: m.Success,
-		Message: m.Message,
-		ID:      m.ID,
-	}
-}
-
-func toGenAttachmentDownload(m *models.AttachmentDownload) *generated.AttachmentDownload {
-	if m == nil {
-		return nil
-	}
-	return &generated.AttachmentDownload{
-		Filename: m.Filename,
-		MimeType: m.MimeType,
-		Data:     m.Data,
-	}
-}
-
-func toGenLookupValues(m models.LookupValues) generated.LookupValues {
-	return generated.LookupValues{
-		FundingEntities: toGenFundingEntities(m.FundingEntities),
-		ServiceTypes:    toGenServiceTypes(m.ServiceTypes),
-		JobTypes:        toGenJobTypes(m.JobTypes),
-		Cities:          m.Cities,
-	}
-}
+// Generic - lookup types.
 
 func toGenFundingEntities(ms []*models.FundingEntity) []*generated.FundingEntity {
 	result := make([]*generated.FundingEntity, len(ms))
@@ -63,12 +28,12 @@ func toGenFundingEntity(m *models.FundingEntity) *generated.FundingEntity {
 	}
 }
 
-func toGenServiceTypes(ms []*models.ServiceType) []*generated.ServiceType {
-	result := make([]*generated.ServiceType, len(ms))
-	for i, m := range ms {
-		result[i] = toGenServiceType(m)
+func toGenLookupValues(m models.LookupValues) generated.LookupValues {
+	return generated.LookupValues{
+		Cities:       m.Cities,
+		JobTypes:     toGenJobTypes(m.JobTypes),
+		ServiceTypes: toGenServiceTypes(m.ServiceTypes),
 	}
-	return result
 }
 
 func toGenJobTypes(ms []*models.JobType) []*generated.JobType {
@@ -77,17 +42,6 @@ func toGenJobTypes(ms []*models.JobType) []*generated.JobType {
 		result[i] = toGenJobType(m)
 	}
 	return result
-}
-
-func toGenServiceType(m *models.ServiceType) *generated.ServiceType {
-	if m == nil {
-		return nil
-	}
-	return &generated.ServiceType{
-		ID:   m.ID,
-		Code: m.Code,
-		Name: m.Name,
-	}
 }
 
 func toGenJobType(m *models.JobType) *generated.JobType {
@@ -103,132 +57,22 @@ func toGenJobType(m *models.JobType) *generated.JobType {
 	}
 }
 
-func toGenVenue(m *models.Venue) *generated.Venue {
-	if m == nil {
-		return nil
-	}
-	return &generated.Venue{
-		ID:      m.ID,
-		Name:    m.Name,
-		Address: m.Address,
-		City:    m.City,
-		State:   m.State,
-		ZipCode: m.ZipCode,
-	}
-}
-
-func toGenVolunteerProfile(m *models.VolunteerProfile) *generated.VolunteerProfile {
-	if m == nil {
-		return nil
-	}
-
-	return &generated.VolunteerProfile{
-		FirstName: m.FirstName,
-		LastName:  m.LastName,
-		Email:     m.Email,
-		Phone:     m.Phone,
-		ZipCode:   m.ZipCode,
-		Distance:  m.Distance,
-		Role:      generated.Role(m.Role),
-	}
-}
-
-func toGenVolunteerShifts(ms []*models.VolunteerShift) []*generated.VolunteerShift {
-	result := make([]*generated.VolunteerShift, len(ms))
+func toGenServiceTypes(ms []*models.ServiceType) []*generated.ServiceType {
+	result := make([]*generated.ServiceType, len(ms))
 	for i, m := range ms {
-		result[i] = toGenVolunteerShift(m)
+		result[i] = toGenServiceType(m)
 	}
 	return result
 }
 
-func toGenVolunteerShift(m *models.VolunteerShift) *generated.VolunteerShift {
+func toGenServiceType(m *models.ServiceType) *generated.ServiceType {
 	if m == nil {
 		return nil
 	}
-	return &generated.VolunteerShift{
-		ShiftID:              m.ShiftId,
-		AssignedAt:           m.AssignedAt,
-		CancelledAt:          m.CancelledAt,
-		StartDateTime:        m.StartDateTime,
-		EndDateTime:          m.EndDateTime,
-		MaxVolunteers:        m.MaxVolunteers,
-		JobName:              m.JobName,
-		IsVirtual:            m.IsVirtual,
-		PreEventInstructions: m.PreEventInstructions,
-		EventID:              m.EventId,
-		EventName:            m.EventName,
-		EventDescription:     m.EventDescription,
-		Venue:                toGenVenue(m.Venue),
-	}
-}
-
-func toGenEvents(ms []*models.Event) []*generated.Event {
-	result := make([]*generated.Event, len(ms))
-	for i, m := range ms {
-		result[i] = toGenEvent(m)
-	}
-	return result
-}
-
-func toGenEvent(m *models.Event) *generated.Event {
-	if m == nil {
-		return nil
-	}
-
-	return &generated.Event{
-		ID:             m.ID,
-		Name:           m.Name,
-		Description:    m.Description,
-		EventType:      generated.EventType(m.EventType),
-		Venue:          toGenVenue(m.Venue),
-		EventDates:     toGenEventDates(m.EventDates),
-		ServiceTypes:   m.ServiceTypes,
-		ShiftSummaries: toGenEventShiftSummaries(m.ShiftSummaries),
-	}
-}
-
-func toGenManagedEvents(ms []*models.ManagedEvent) []*generated.ManagedEvent {
-	result := make([]*generated.ManagedEvent, len(ms))
-	for i, m := range ms {
-		result[i] = toGenManagedEvent(m)
-	}
-
-	return result
-}
-
-func toGenManagedEvent(m *models.ManagedEvent) *generated.ManagedEvent {
-	if m == nil {
-		return nil
-	}
-
-	var recurrenceID *string
-	var recurrenceOrder *int
-	var recurrencePattern *string
-	if m.RecurrenceId != "" {
-		recurrenceID = &m.RecurrenceId
-		order := m.RecurrenceOrder
-		recurrenceOrder = &order
-		if m.RecurrencePattern != "" {
-			recurrencePattern = &m.RecurrencePattern
-		}
-	}
-
-	return &generated.ManagedEvent{
-		ID:                       m.ID,
-		Name:                     m.Name,
-		Description:              m.Description,
-		EventType:                generated.EventType(m.EventType),
-		Venue:                    toGenVenue(m.Venue),
-		EventDates:               toGenEventDates(m.EventDates),
-		Timezone:                 m.Timezone,
-		FundingEntity:            toGenFundingEntity(&m.FundingEntity),
-		ServiceTypes:             m.ServiceTypes,
-		ShiftSummaries:           toGenEventShiftSummaries(m.ShiftSummaries),
-		RecurrenceID:             recurrenceID,
-		RecurrenceOrder:          recurrenceOrder,
-		RecurrencePattern:        recurrencePattern,
-		RecurrenceMaxOccurrences: m.RecurrenceMaxOccurrences,
-		RecurrenceOrdinal:        m.RecurrenceOrdinal,
+	return &generated.ServiceType{
+		ID:   m.ID,
+		Code: m.Code,
+		Name: m.Name,
 	}
 }
 
@@ -251,6 +95,38 @@ func toGenEventShiftSummary(m *models.EventShiftSummary) *generated.EventShiftSu
 	}
 }
 
+// Events, Opportunities, Shifts
+
+func toGenEvents(ms []*models.Event) []*generated.Event {
+	result := make([]*generated.Event, len(ms))
+	for i, m := range ms {
+		result[i] = toGenEvent(m)
+	}
+
+	return result
+}
+
+func toGenEvent(m *models.Event) *generated.Event {
+	if m == nil {
+		return nil
+	}
+
+	return &generated.Event{
+		ID:              m.ID,
+		Name:            m.Name,
+		Description:     m.Description,
+		EventType:       generated.EventType(m.EventType),
+		Venue:           toGenVenue(m.Venue),
+		EventDates:      toGenEventDates(m.EventDates),
+		Timezone:        m.Timezone,
+		FundingEntity:   toGenFundingEntity(&m.FundingEntity),
+		ServiceTypes:    m.ServiceTypes,
+		ShiftSummaries:  toGenEventShiftSummaries(m.ShiftSummaries),
+		RecurrenceGroup: toGenRecurrenceGroup(m.RecurrenceGroup),
+		RecurrenceOrder: m.RecurrenceOrder,
+	}
+}
+
 func toGenEventDates(ms []*models.EventDate) []*generated.EventDate {
 	result := make([]*generated.EventDate, len(ms))
 	for i, m := range ms {
@@ -268,125 +144,16 @@ func toGenEventDate(m *models.EventDate) *generated.EventDate {
 	}
 }
 
-// Convert generated types to models
-
-func toModelShiftTimeFilter(g generated.ShiftTimeFilter) models.ShiftsTimeFilter {
-	return models.ShiftsTimeFilter(g)
-}
-
-func toModelEventFilterInput(g *generated.EventFilterInput) *models.EventFilterInput {
-	if g == nil {
-		return nil
-	}
-
-	var eventType *models.EventType
-	if g.EventType != nil {
-		et := models.EventType(*g.EventType)
-		eventType = &et
-	}
-	var timeframe *models.ShiftsTimeFilter
-	if g.TimeFrame != nil {
-		tf := models.ShiftsTimeFilter(*g.TimeFrame)
-		timeframe = &tf
-	}
-	return &models.EventFilterInput{
-		Cities:    g.Cities,
-		Distance:  g.Distance,
-		EventType: eventType,
-		Jobs:      g.Jobs,
-		TimeFrame: timeframe,
-	}
-}
-
-func toModelNewFeedbackInput(g generated.NewFeedbackInput) models.NewFeedbackInput {
-	return models.NewFeedbackInput{
-		Type:        models.FeedbackType(g.Type),
-		Subject:     g.Subject,
-		AppPageName: g.AppPageName,
-		Text:        g.Text,
-	}
-}
-
-func toGenFeedbackAttachments(ms []*models.FeedbackAttachment) []*generated.FeedbackAttachment {
-	attachments := make([]*generated.FeedbackAttachment, len(ms))
-	for i, m := range ms {
-		attachments[i] = toGenFeedbackAttachment(m)
-	}
-	return attachments
-}
-
-func toGenFeedbackAttachment(m *models.FeedbackAttachment) *generated.FeedbackAttachment {
+func toGenRecurrenceGroup(m *models.RecurrenceGroup) *generated.RecurrenceGroup {
 	if m == nil {
 		return nil
 	}
-	return &generated.FeedbackAttachment{
-		ID:        m.ID,
-		Filename:  m.Filename,
-		MimeType:  m.MimeType,
-		FileSize:  m.FileSize,
-		CreatedAt: m.CreatedAt,
-	}
-}
 
-// END OF DUPLICATE CODE
-
-// Everything below this is unique to admins only.
-// Don't worry, if you accidentally put any of this stuff
-// in volunteer files, the gqlgenerate step will fail.
-
-// Convert models to generated types
-// Elements coming back from services to the API.
-
-func toGenVenues(ms []*models.Venue) []*generated.Venue {
-	result := make([]*generated.Venue, len(ms))
-	for i, m := range ms {
-		result[i] = toGenVenue(m)
-	}
-	return result
-}
-
-func toGenAllStaff(ms []*models.Staff) []*generated.Staff {
-	result := make([]*generated.Staff, len(ms))
-	for i, m := range ms {
-		result[i] = toGenStaff(m)
-	}
-	return result
-}
-
-func toGenStaff(m *models.Staff) *generated.Staff {
-	if m == nil {
-		return nil
-	}
-	return &generated.Staff{
-		ID:        m.ID,
-		FirstName: m.FirstName,
-		LastName:  m.LastName,
-		Email:     m.Email,
-		Phone:     m.Phone,
-		Position:  m.Position,
-	}
-}
-func toGenVolunteers(ms []*models.Volunteer) []*generated.Volunteer {
-	result := make([]*generated.Volunteer, len(ms))
-	for i, m := range ms {
-		result[i] = toGenVolunteer(m)
-	}
-	return result
-}
-
-func toGenVolunteer(m *models.Volunteer) *generated.Volunteer {
-	if m == nil {
-		return nil
-	}
-	return &generated.Volunteer{
-		ID:        m.ID,
-		FirstName: m.FirstName,
-		LastName:  m.LastName,
-		Email:     m.Email,
-		Phone:     m.Phone,
-		ZipCode:   m.ZipCode,
-		Distance:  m.Distance,
-		Role:      generated.Role(m.Role),
+	return &generated.RecurrenceGroup{
+		GroupID:        m.GroupID,
+		Pattern:        generated.RecurrencePattern(m.Pattern),
+		MaxOccurrences: m.MaxOccurrences,
+		WeekdayOrdinal: m.WeekdayOrdinal,
 	}
 }
 
@@ -430,6 +197,40 @@ func toGenShift(m *models.Shift) *generated.Shift {
 		EndDateTime:    m.EndDateTime,
 		MaxVolunteers:  m.MaxVolunteers,
 		StaffContactID: m.StaffContactId,
+	}
+}
+
+// Feedback
+
+func toGenFeedbackAttachment(m *models.FeedbackAttachment) *generated.FeedbackAttachment {
+	if m == nil {
+		return nil
+	}
+	return &generated.FeedbackAttachment{
+		Filename: m.Filename,
+		MimeType: m.MimeType,
+		Data:     m.Data,
+	}
+}
+
+func toGenFeedbackMetaAttachments(ms []*models.FeedbackMetaAttachment) []*generated.FeedbackMetaAttachment {
+	attachments := make([]*generated.FeedbackMetaAttachment, len(ms))
+	for i, m := range ms {
+		attachments[i] = toGenFeedbackMetaAttachment(m)
+	}
+	return attachments
+}
+
+func toGenFeedbackMetaAttachment(m *models.FeedbackMetaAttachment) *generated.FeedbackMetaAttachment {
+	if m == nil {
+		return nil
+	}
+	return &generated.FeedbackMetaAttachment{
+		ID:        m.ID,
+		Filename:  m.Filename,
+		MimeType:  m.MimeType,
+		FileSize:  m.FileSize,
+		CreatedAt: m.CreatedAt,
 	}
 }
 
@@ -480,77 +281,195 @@ func toGenFeedback(m *models.Feedback) *generated.Feedback {
 		CreatedAt:      m.CreatedAt,
 		LastUpdatedAt:  m.LastUpdatedAt,
 		ResolvedAt:     m.ResolvedAt,
-		Attachments:    toGenFeedbackAttachments(m.Attachments),
+		Attachments:    toGenFeedbackMetaAttachments(m.Attachments),
 	}
 }
 
-// Convert generated types to models.
+// Staff
 
-// Filters from the API to the services.
+func toGenAllStaff(ms []*models.Staff) []*generated.Staff {
+	result := make([]*generated.Staff, len(ms))
+	for i, m := range ms {
+		result[i] = toGenStaff(m)
+	}
+	return result
+}
 
-func toModelVolunteerFilterInput(g *generated.VolunteerFilterInput) *models.VolunteerFilterInput {
+func toGenStaff(m *models.Staff) *generated.Staff {
+	if m == nil {
+		return nil
+	}
+	return &generated.Staff{
+		ID:        m.ID,
+		FirstName: m.FirstName,
+		LastName:  m.LastName,
+		Email:     m.Email,
+		Phone:     m.Phone,
+		Position:  m.Position,
+	}
+}
+
+// Venues
+func toGenVenues(ms []*models.Venue) []*generated.Venue {
+	result := make([]*generated.Venue, len(ms))
+	for i, m := range ms {
+		result[i] = toGenVenue(m)
+	}
+	return result
+}
+
+func toGenVenue(m *models.Venue) *generated.Venue {
+	if m == nil {
+		return nil
+	}
+	return &generated.Venue{
+		ID:      m.ID,
+		Name:    m.Name,
+		Address: m.Address,
+		City:    m.City,
+		State:   m.State,
+		ZipCode: m.ZipCode,
+	}
+}
+
+// Volunteers
+
+func toGenVolunteers(ms []*models.Volunteer) []*generated.Volunteer {
+	result := make([]*generated.Volunteer, len(ms))
+	for i, m := range ms {
+		result[i] = toGenVolunteer(m)
+	}
+	return result
+}
+
+func toGenVolunteer(m *models.Volunteer) *generated.Volunteer {
+	if m == nil {
+		return nil
+	}
+	return &generated.Volunteer{
+		ID:        m.ID,
+		FirstName: m.FirstName,
+		LastName:  m.LastName,
+		Email:     m.Email,
+		Phone:     m.Phone,
+		ZipCode:   m.ZipCode,
+		Distance:  m.Distance,
+		Roles:     toGenRoles(m.Roles),
+	}
+}
+
+func toGenRoles(ms []models.Role) []generated.Role {
+	result := make([]generated.Role, len(ms))
+	for i, r := range ms {
+		result[i] = generated.Role(r)
+	}
+	return result
+}
+
+func toGenVolunteerShifts(ms []*models.VolunteerShift) []*generated.VolunteerShift {
+	result := make([]*generated.VolunteerShift, len(ms))
+	for i, m := range ms {
+		result[i] = toGenVolunteerShift(m)
+	}
+	return result
+}
+
+func toGenVolunteerShift(m *models.VolunteerShift) *generated.VolunteerShift {
+	if m == nil {
+		return nil
+	}
+	return &generated.VolunteerShift{
+		ShiftID:              m.ShiftId,
+		AssignedAt:           m.AssignedAt,
+		CancelledAt:          m.CancelledAt,
+		StartDateTime:        m.StartDateTime,
+		EndDateTime:          m.EndDateTime,
+		MaxVolunteers:        m.MaxVolunteers,
+		JobName:              m.JobName,
+		IsVirtual:            m.IsVirtual,
+		PreEventInstructions: m.PreEventInstructions,
+		EventID:              m.EventId,
+		EventName:            m.EventName,
+		EventDescription:     m.EventDescription,
+		Venue:                toGenVenue(m.Venue),
+	}
+}
+
+// Results
+
+func toGenMutationResult(m *models.MutationResult) *generated.MutationResult {
+	if m == nil {
+		return nil
+	}
+
+	return &generated.MutationResult{
+		Success: m.Success,
+		Message: m.Message,
+		ID:      m.ID,
+	}
+}
+
+// Convert generated (graphql) types to models. (Input from API to services.)
+
+// Generic
+
+func toModelNewJobTypeInput(g generated.NewJobTypeInput) models.NewJobTypeInput {
+	return models.NewJobTypeInput{
+		Code: g.Code,
+		Name: g.Name,
+	}
+}
+
+func toModelUpdateJobTypeInput(g generated.UpdateJobTypeInput) models.UpdateJobTypeInput {
+	return models.UpdateJobTypeInput{
+		ID:        g.ID,
+		Code:      g.Code,
+		Name:      g.Name,
+		SortOrder: g.SortOrder,
+	}
+}
+
+func toModelNewFundingEntityInput(g generated.NewFundingEntityInput) models.NewFundingEntityInput {
+	return models.NewFundingEntityInput{
+		Name:        g.Name,
+		Description: g.Description,
+	}
+}
+
+func toModelUpdateFundingEntityInput(g generated.UpdateFundingEntityInput) models.UpdateFundingEntityInput {
+	return models.UpdateFundingEntityInput{
+		ID:          g.ID,
+		Name:        g.Name,
+		Description: g.Description,
+	}
+}
+
+// Events
+
+func toModelShiftTimeFilter(g generated.ShiftTimeFilter) models.ShiftsTimeFilter {
+	return models.ShiftsTimeFilter(g)
+}
+
+func toModelEventFilterInput(g *generated.EventFilterInput) *models.EventFilterInput {
 	if g == nil {
 		return nil
 	}
 
-	return &models.VolunteerFilterInput{
-		FirstName: g.FirstName,
-		LastName:  g.LastName,
-		Email:     g.Email,
+	var eventType *models.EventType
+	if g.EventType != nil {
+		et := models.EventType(*g.EventType)
+		eventType = &et
 	}
-}
-
-func toModelFeedbackFilterInput(g *generated.FeedbackFilterInput) *models.FeedbackFilterInput {
-	if g == nil {
-		return nil
+	var timeframe *models.ShiftsTimeFilter
+	if g.TimeFrame != nil {
+		tf := models.ShiftsTimeFilter(*g.TimeFrame)
+		timeframe = &tf
 	}
-
-	var fs models.FeedbackStatus
-	if g.Status != nil {
-		fs = models.FeedbackStatus(*g.Status)
-	}
-	var ft models.FeedbackType
-	if g.Type != nil {
-		ft = models.FeedbackType(*g.Type)
-	}
-
-	return &models.FeedbackFilterInput{
-		Status: &fs,
-		Type:   &ft,
-	}
-}
-
-// New elements from the API to the services.
-func toModelNewStaffInput(g generated.NewStaffInput) models.NewStaffInput {
-	return models.NewStaffInput{
-		FirstName: g.FirstName,
-		LastName:  g.LastName,
-		Email:     g.Email,
-		Phone:     g.Phone,
-		Position:  g.Position,
-	}
-}
-func toModelNewVolunteerInput(g generated.NewVolunteerInput) models.NewVolunteerInput {
-
-	return models.NewVolunteerInput{
-		FirstName: g.FirstName,
-		LastName:  g.LastName,
-		Email:     g.Email,
-		Phone:     g.Phone,
-		ZipCode:   g.ZipCode,
-		Distance:  g.Distance,
-		Role:      models.Role(g.Role),
-	}
-}
-
-func toModelNewVenueInput(g generated.NewVenueInput) models.NewVenueInput {
-
-	return models.NewVenueInput{
-		Name:    g.Name,
-		Address: g.Address,
-		City:    g.City,
-		State:   g.State,
-		ZipCode: g.ZipCode,
+	return &models.EventFilterInput{
+		Cities:    g.Cities,
+		EventType: eventType,
+		Jobs:      g.Jobs,
+		TimeFrame: timeframe,
 	}
 }
 
@@ -612,13 +531,6 @@ func toModelAddEventDate(g generated.AddEventDateInput) models.AddEventDateInput
 	}
 }
 
-func toModelNewJobTypeInput(g generated.NewJobTypeInput) models.NewJobTypeInput {
-	return models.NewJobTypeInput{
-		Code: g.Code,
-		Name: g.Name,
-	}
-}
-
 func toModelNewOpportunities(gs []generated.NewOpportunityInput) []models.NewOpportunityInput {
 	result := make([]models.NewOpportunityInput, len(gs))
 
@@ -670,41 +582,7 @@ func toModelAddShiftInput(g generated.AddShiftInput) models.AddShiftInput {
 	}
 }
 
-// Updates from the API to the services.
-
-func toModelUpdateStaffInput(g generated.UpdateStaffInput) models.UpdateStaffInput {
-	return models.UpdateStaffInput{
-		ID:        g.ID,
-		FirstName: g.FirstName,
-		LastName:  g.LastName,
-		Email:     g.Email,
-		Phone:     g.Phone,
-		Position:  g.Position,
-	}
-}
-func toModelUpdateVolunteerInput(g generated.UpdateVolunteerInput) models.UpdateVolunteerInput {
-	return models.UpdateVolunteerInput{
-		ID:        g.ID,
-		FirstName: g.FirstName,
-		LastName:  g.LastName,
-		Email:     g.Email,
-		Phone:     g.Phone,
-		ZipCode:   g.ZipCode,
-		Distance:  g.Distance,
-		Role:      models.Role(g.Role),
-	}
-}
-
-func toModelUpdateVenue(g generated.UpdateVenueInput) models.UpdateVenueInput {
-	return models.UpdateVenueInput{
-		ID:      g.ID,
-		Name:    g.Name,
-		Address: g.Address,
-		City:    g.City,
-		State:   g.State,
-		ZipCode: g.ZipCode,
-	}
-}
+// Scope is for updating/deleting recurring events.
 
 func toModelScope(s *generated.RecurrenceUpdateScope) *models.RecurrenceUpdateScope {
 	if s == nil {
@@ -737,15 +615,6 @@ func toModelUpdateEventDateInput(g generated.UpdateEventDateInput) models.Update
 	}
 }
 
-func toModelUpdateJobTypeInput(g generated.UpdateJobTypeInput) models.UpdateJobTypeInput {
-	return models.UpdateJobTypeInput{
-		ID:        g.ID,
-		Code:      g.Code,
-		Name:      g.Name,
-		SortOrder: g.SortOrder,
-	}
-}
-
 func toModelUpdateOpportunity(g generated.UpdateOpportunityInput) models.UpdateOpportunityInput {
 	return models.UpdateOpportunityInput{
 		ID:                   g.ID,
@@ -762,6 +631,28 @@ func toModelUpdateShift(g generated.UpdateShiftInput) models.UpdateShiftInput {
 		EndDateTime:    g.EndDateTime,
 		MaxVolunteers:  g.MaxVolunteers,
 		StaffContactId: g.StaffContactID,
+	}
+}
+
+// Feedback
+
+func toModelFeedbackFilterInput(g *generated.FeedbackFilterInput) *models.FeedbackFilterInput {
+	if g == nil {
+		return nil
+	}
+
+	var fs models.FeedbackStatus
+	if g.Status != nil {
+		fs = models.FeedbackStatus(*g.Status)
+	}
+	var ft models.FeedbackType
+	if g.Type != nil {
+		ft = models.FeedbackType(*g.Type)
+	}
+
+	return &models.FeedbackFilterInput{
+		Status: &fs,
+		Type:   &ft,
 	}
 }
 
@@ -791,17 +682,88 @@ func toModelResolveFeedbackInput(g generated.ResolveFeedbackInput) models.Resolv
 	}
 }
 
-func toModelNewFundingEntityInput(g generated.NewFundingEntityInput) models.NewFundingEntityInput {
-	return models.NewFundingEntityInput{
-		Name:        g.Name,
-		Description: g.Description,
+// Staff
+
+func toModelNewStaffInput(g generated.NewStaffInput) models.NewStaffInput {
+	return models.NewStaffInput{
+		FirstName: g.FirstName,
+		LastName:  g.LastName,
+		Email:     g.Email,
+		Phone:     g.Phone,
+		Position:  g.Position,
 	}
 }
 
-func toModelUpdateFundingEntityInput(g generated.UpdateFundingEntityInput) models.UpdateFundingEntityInput {
-	return models.UpdateFundingEntityInput{
-		ID:          g.ID,
-		Name:        g.Name,
-		Description: g.Description,
+func toModelUpdateStaffInput(g generated.UpdateStaffInput) models.UpdateStaffInput {
+	return models.UpdateStaffInput{
+		ID:        g.ID,
+		FirstName: g.FirstName,
+		LastName:  g.LastName,
+		Email:     g.Email,
+		Phone:     g.Phone,
+		Position:  g.Position,
+	}
+}
+
+// Venues
+
+func toModelNewVenueInput(g generated.NewVenueInput) models.NewVenueInput {
+
+	return models.NewVenueInput{
+		Name:    g.Name,
+		Address: g.Address,
+		City:    g.City,
+		State:   g.State,
+		ZipCode: g.ZipCode,
+	}
+}
+
+func toModelUpdateVenue(g generated.UpdateVenueInput) models.UpdateVenueInput {
+	return models.UpdateVenueInput{
+		ID:      g.ID,
+		Name:    g.Name,
+		Address: g.Address,
+		City:    g.City,
+		State:   g.State,
+		ZipCode: g.ZipCode,
+	}
+}
+
+// Volunteers
+
+func toModelVolunteeFilterInput(g *generated.VolunteerFilterInput) *models.VolunteerFilterInput {
+	if g == nil {
+		return nil
+	}
+	return &models.VolunteerFilterInput{
+		FirstName: g.FirstName,
+		LastName:  g.LastName,
+		Email:     g.Email,
+	}
+}
+
+func toModelNewVolunteerInput(g generated.NewVolunteerInput) models.NewVolunteerInput {
+
+	return models.NewVolunteerInput{
+		FirstName: g.FirstName,
+		LastName:  g.LastName,
+		Email:     g.Email,
+		Phone:     g.Phone,
+		ZipCode:   g.ZipCode,
+		Distance:  g.Distance,
+		Role:      models.Role(g.Role),
+	}
+}
+
+func toModelUpdateVolunteerInput(g generated.UpdateVolunteerInput) models.UpdateVolunteerInput {
+	return models.UpdateVolunteerInput{
+		ID:        g.ID,
+		FirstName: g.FirstName,
+		LastName:  g.LastName,
+		Email:     g.Email,
+		Phone:     g.Phone,
+		ZipCode:   g.ZipCode,
+		Distance:  g.Distance,
+		Role:      models.Role(g.Role),
 	}
 }

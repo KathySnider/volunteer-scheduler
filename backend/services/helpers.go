@@ -17,12 +17,9 @@ func ptrString(s string) *string {
 // ============================================================================
 // Fetching things from the DB
 // ============================================================================
+// These allow us to get things that shouldn't necessarily be
+// exposed through services, as well as to reduce duplicate code.
 
-// This allows us to get things that shouldn't necessarily be
-// exposed through services, as well as reduce duplicate code.
-
-// This allows us to get things that shouldn't necessarily be
-// exposed through services, as well as reduce duplicate code.
 func fetchEmailByVolId(ctx context.Context, DB *sql.DB, volId int) (string, error) {
 	var email string
 	err := DB.QueryRowContext(ctx,
@@ -33,57 +30,7 @@ func fetchEmailByVolId(ctx context.Context, DB *sql.DB, volId int) (string, erro
 	return email, nil
 }
 
-func fetchProfile(ctx context.Context, DB *sql.DB, volId int) (*models.VolunteerProfile, error) {
-	query := `
-		SELECT 
-			first_name, 
-			last_name, 
-			email, 
-			phone, 
-			zip_code,
-			default_distance_miles,
-			role
-		FROM volunteers 
-		WHERE volunteer_id = $1
-	`
-	var profile models.VolunteerProfile
-	var phone, zip sql.NullString
-	var ddm sql.NullInt32
-
-	err := DB.QueryRowContext(ctx, query, volId).Scan(
-		&profile.FirstName,
-		&profile.LastName,
-		&profile.Email,
-		&phone,
-		&zip,
-		&ddm,
-		&profile.Role)
-
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("volunteer not found")
-	}
-	if err != nil {
-		return nil, fmt.Errorf("error querying volunteer: %w", err)
-	}
-
-	if phone.Valid {
-		profile.Phone = &phone.String
-	} else {
-		profile.Phone = nil
-	}
-	if zip.Valid {
-		profile.ZipCode = &zip.String
-	} else {
-		profile.ZipCode = nil
-	}
-	if ddm.Valid {
-		dist := int(ddm.Int32)
-		profile.Distance = &dist
-	}
-
-	return &profile, nil
-}
-
+/* I don't think this is used anywhere. Nuke it if we compile without it.
 func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter models.ShiftsTimeFilter) ([]*models.VolunteerShift, error) {
 
 	query := `
@@ -222,6 +169,7 @@ func fetchVolunteerShifts(ctx context.Context, DB *sql.DB, volId int, filter mod
 
 	return shifts, nil
 }
+*/
 
 func FetchEventServiceTypes(ctx context.Context, DB *sql.DB, eventId int) ([]*string, error) {
 	query := `
@@ -250,6 +198,41 @@ func FetchEventServiceTypes(ctx context.Context, DB *sql.DB, eventId int) ([]*st
 	}
 
 	return serviceTypes, nil
+}
+
+func fetchEventDateViews(ctx context.Context, DB *sql.DB, eventId int) ([]*models.EventDateView, error) {
+	query := `
+        SELECT 
+            start_date_time,
+            end_date_time
+        FROM event_dates
+    	WHERE event_id = $1
+    `
+
+	rows, err := DB.QueryContext(ctx, query, eventId)
+	if err != nil {
+		return nil, fmt.Errorf("error querying dates %w", err)
+	}
+
+	dates := make([]*models.EventDateView, 0)
+
+	for rows.Next() {
+		var date models.EventDateView
+
+		err = rows.Scan(
+			&date.StartDateTime,
+			&date.EndDateTime,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning dates: %w", err)
+		}
+
+		dates = append(dates, &date)
+	}
+
+	// Got 'em
+	return dates, nil
+
 }
 
 func FetchEventDates(ctx context.Context, DB *sql.DB, eventId int) ([]*models.EventDate, error) {

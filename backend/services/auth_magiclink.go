@@ -11,6 +11,8 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 // MagicLinkService handles magic-link token lifecycle
@@ -219,13 +221,14 @@ type SessionClaims struct {
 	Sub   string `json:"sub"` // subject (email)
 }
 
-// CreateSessionToken creates a session token for the authenticated user,
-// storing both volunteer ID and role for fast context population on each request.
+// CreateSessionToken creates a session token for the authenticated user.
+// Roles are no longer cached in the sessions row; they are looked up at
+// validation time via the volunteer_roles junction table.
 // Returns the token and the exact expiry time so the caller can set a matching cookie.
 func (s *MagicLinkService) CreateSessionToken(ctx context.Context, email string) (string, time.Time, error) {
 
-	// Look up volunteer ID and role — never exposed to caller.
-	volunteerId, role, err := fetchVolunteerIdAndRoleByEmail(ctx, s.DB, email)
+	// Look up volunteer ID — only to confirm the account exists.
+	volunteerId, err := fetchVolunteerIdByEmail(ctx, s.DB, email)
 	if err != nil {
 		return "", time.Time{}, err
 	}
@@ -251,16 +254,15 @@ func (s *MagicLinkService) CreateSessionToken(ctx context.Context, email string)
 	expiresAt := time.Now().UTC().Add(time.Duration(sessionMaxAge) * time.Second)
 
 	insertQuery := `
-        INSERT INTO sessions (email, token, created_at, expires_at, volunteer_id, role)
-        VALUES ($1, $2, NOW(), $3, $4, $5)
+        INSERT INTO sessions (email, token, created_at, expires_at, volunteer_id)
+        VALUES ($1, $2, NOW(), $3, $4)
         ON CONFLICT (email) DO UPDATE SET
-            token = EXCLUDED.token,
-            created_at = NOW(),
-            expires_at = EXCLUDED.expires_at,
-            volunteer_id = EXCLUDED.volunteer_id,
-            role = EXCLUDED.role
+            token        = EXCLUDED.token,
+            created_at   = NOW(),
+            expires_at   = EXCLUDED.expires_at,
+            volunteer_id = EXCLUDED.volunteer_id
     `
-	if _, err := s.DB.ExecContext(ctx, insertQuery, email, hexHashToken, expiresAt, volunteerId, role); err != nil {
+	if _, err := s.DB.ExecContext(ctx, insertQuery, email, hexHashToken, expiresAt, volunteerId); err != nil {
 		return "", time.Time{}, fmt.Errorf("failed to store session: %w", err)
 	}
 
@@ -268,45 +270,49 @@ func (s *MagicLinkService) CreateSessionToken(ctx context.Context, email string)
 }
 
 // ValidateSessionToken validates the session token and returns the volunteer ID
-// and role stored at login time, avoiding a DB lookup on every request.
-func (s *MagicLinkService) ValidateSessionToken(ctx context.Context, token string) (int, string, error) {
+// and roles for the session owner, joining volunteer_roles at validation time.
+func (s *MagicLinkService) ValidateSessionToken(ctx context.Context, token string) (int, []string, error) {
 
 	hashToken := sha256.Sum256([]byte(token))
 	hexHashToken := hex.EncodeToString(hashToken[:])
 
 	query := `
-        SELECT volunteer_id, role FROM sessions
-        WHERE token = $1 AND expires_at > NOW()
-        LIMIT 1
+        SELECT s.volunteer_id,
+               COALESCE(array_agg(r.role_name ORDER BY r.role_name) FILTER (WHERE r.role_name IS NOT NULL), '{}') AS roles
+        FROM   sessions s
+        LEFT   JOIN volunteer_roles vr ON vr.volunteer_id = s.volunteer_id
+        LEFT   JOIN roles r            ON r.role_id = vr.role_id
+        WHERE  s.token = $1 AND s.expires_at > NOW()
+        GROUP  BY s.volunteer_id
+        LIMIT  1
     `
 	var volunteerId int
-	var role string
-	if err := s.DB.QueryRowContext(ctx, query, hexHashToken).Scan(&volunteerId, &role); err != nil {
+	var roles pq.StringArray
+	if err := s.DB.QueryRowContext(ctx, query, hexHashToken).Scan(&volunteerId, &roles); err != nil {
 		if err == sql.ErrNoRows {
-			return 0, "", fmt.Errorf("invalid or expired session token")
+			return 0, nil, fmt.Errorf("invalid or expired session token")
 		}
-		return 0, "", fmt.Errorf("error validating session: %w", err)
+		return 0, nil, fmt.Errorf("error validating session: %w", err)
 	}
 
 	// Update last activity.
 	s.DB.ExecContext(ctx, "UPDATE sessions SET last_activity_at = NOW() WHERE token = $1", hexHashToken)
 
-	return volunteerId, role, nil
+	return volunteerId, []string(roles), nil
 }
 
-// fetchVolunteerIdAndRoleByEmail looks up both the volunteer ID and role in one query.
-func fetchVolunteerIdAndRoleByEmail(ctx context.Context, DB *sql.DB, email string) (int, string, error) {
+// fetchVolunteerIdByEmail looks up the volunteer ID for an email address.
+func fetchVolunteerIdByEmail(ctx context.Context, DB *sql.DB, email string) (int, error) {
 	var volunteerId int
-	var role string
 	err := DB.QueryRowContext(ctx,
-		"SELECT volunteer_id, role FROM volunteers WHERE email = $1", email).Scan(&volunteerId, &role)
+		"SELECT volunteer_id FROM volunteers WHERE email = $1", email).Scan(&volunteerId)
 	if err == sql.ErrNoRows {
-		return 0, "", fmt.Errorf("no volunteer account found for this email")
+		return 0, fmt.Errorf("no volunteer account found for this email")
 	}
 	if err != nil {
-		return 0, "", fmt.Errorf("error looking up volunteer: %w", err)
+		return 0, fmt.Errorf("error looking up volunteer: %w", err)
 	}
-	return volunteerId, role, nil
+	return volunteerId, nil
 }
 
 // RequestAccount sends an account request email to all admins.
@@ -317,8 +323,13 @@ func fetchVolunteerIdAndRoleByEmail(ctx context.Context, DB *sql.DB, email strin
 func (s *MagicLinkService) RequestAccount(ctx context.Context, email, firstName, lastName string) error {
 
 	// Fetch all admin email addresses.
-	rows, err := s.DB.QueryContext(ctx,
-		"SELECT email FROM volunteers WHERE role = 'ADMINISTRATOR' AND is_active = true")
+	rows, err := s.DB.QueryContext(ctx, `
+		SELECT v.email
+		FROM   volunteers v
+		JOIN   volunteer_roles vr ON vr.volunteer_id = v.volunteer_id
+		JOIN   roles r            ON r.role_id = vr.role_id
+		WHERE  r.role_name = 'ADMINISTRATOR' AND v.is_active = true
+	`)
 	if err != nil {
 		return fmt.Errorf("error fetching admin emails: %w", err)
 	}

@@ -23,7 +23,7 @@ const (
 	}`
 
 	qryShiftsForEvent = `query ShiftsForEvent($eventId: ID!) {
-		shiftsForEvent(eventId: $eventId) {
+		eventShiftViews(eventId: $eventId) {
 			id jobName startDateTime endDateTime isVirtual maxVolunteers assignedVolunteers
 		}
 	}`
@@ -223,10 +223,10 @@ func TestShiftsForEvent(t *testing.T) {
 	}
 
 	var shifts []shiftViewResult
-	unmarshalField(t, resp, "shiftsForEvent", &shifts)
+	unmarshalField(t, resp, "eventShiftViews", &shifts)
 
 	if len(shifts) == 0 {
-		t.Fatal("expected at least one shift in shiftsForEvent, got none")
+		t.Fatal("expected at least one shift in eventShiftViews, got none")
 	}
 
 	expectedID := fmt.Sprintf("%d", shiftID)
@@ -241,6 +241,6 @@ func TestShiftsForEvent(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Errorf("seeded shiftId %q not found in shiftsForEvent results", expectedID)
+		t.Errorf("seeded shiftId %q not found in eventShiftViews results", expectedID)
 	}
 }

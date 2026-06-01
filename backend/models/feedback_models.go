@@ -2,6 +2,7 @@ package models
 
 // Output types.
 
+// Show volunteers' own feedback w/o ids.
 // Show admins all of the notes complete with who
 // wrote each and when.
 
@@ -13,12 +14,19 @@ type FeedbackNote struct {
 	Note      string
 }
 
-type FeedbackAttachment struct {
+type FeedbackMetaAttachment struct {
 	ID        string
 	Filename  string
 	MimeType  string
 	FileSize  int
 	CreatedAt string
+}
+
+type FeedbackAttachment struct {
+	ID       string
+	Filename string
+	MimeType string
+	Data     string
 }
 
 type Feedback struct {
@@ -34,17 +42,23 @@ type Feedback struct {
 	CreatedAt      string
 	LastUpdatedAt  *string
 	ResolvedAt     *string
-	Attachments    []*FeedbackAttachment
+	Attachments    []*FeedbackMetaAttachment
 }
 
-type VolunteerFeedbackNote struct {
+type FeedbackNoteView struct {
 	ID        string
 	CreatedAt string
 	NoteType  FeedbackNoteType
 	Note      string
 }
 
-type VolunteerFeedback struct {
+type FeedbackAttachmentView struct {
+	Filename string
+	MimeType string
+	Data     string
+}
+
+type FeedbackView struct {
 	ID             string
 	Type           FeedbackType
 	Status         FeedbackStatus
@@ -53,18 +67,16 @@ type VolunteerFeedback struct {
 	Text           string
 	GithubIssueURL *string
 	CreatedAt      string
-	Notes          []*VolunteerFeedbackNote
-	Attachments    []*FeedbackAttachment
+	Notes          []*FeedbackNoteView
+	Attachments    []*FeedbackMetaAttachment
 }
 
-// Input types for queries (e.g., filters)
+// Input types
 
 type FeedbackFilterInput struct {
 	Status *FeedbackStatus
 	Type   *FeedbackType
 }
-
-// Input types for new elements.
 
 type NewFeedbackInput struct {
 	Type        FeedbackType
@@ -92,14 +104,6 @@ type ResolveFeedbackInput struct {
 	Status         FeedbackStatus
 	Note           string
 	GithubIssueURL *string
-}
-
-// Result types.
-
-type AttachmentDownload struct {
-	Filename string
-	MimeType string
-	Data     string // Base64-encoded file content
 }
 
 // Enums

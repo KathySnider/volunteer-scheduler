@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
   isAuthenticated,
-  getAuthRole,
+  hasAuthRole,
+  Roles,
   getAuthName,
   signOut,
   volunteerGql,
@@ -325,10 +326,9 @@ export default function EventDetailPage() {
   /* Auth check + initial data load */
   useEffect(() => {
     if (!isAuthenticated()) { router.replace("/login"); return; }
-    const role = getAuthRole();
     setVolGql(() => volunteerGql);
     setUserName(getAuthName() ?? "");
-    setIsAdmin(role === "ADMINISTRATOR");
+    setIsAdmin(hasAuthRole(Roles.ADMINISTRATOR));
 
     Promise.all([
       volunteerGql(EVENT_DETAIL, { eventId }),

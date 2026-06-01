@@ -5,13 +5,6 @@ import (
 	"volunteer-scheduler/models"
 )
 
-// These functions are duplicated in graph/admin/converters.go
-// Keep both files in sync when making changes.
-
-// START OF DUPLICATE CODE
-// Convert models to generated types, e.g., results
-// coming back from services to the API.
-
 func toGenMutationResult(m *models.MutationResult) *generated.MutationResult {
 	if m == nil {
 		return nil
@@ -24,41 +17,32 @@ func toGenMutationResult(m *models.MutationResult) *generated.MutationResult {
 	}
 }
 
-func toGenAttachmentDownload(m *models.AttachmentDownload) *generated.AttachmentDownload {
+func toGenFeedbackMetaAttachments(ms []*models.FeedbackMetaAttachment) []*generated.FeedbackMetaAttachment {
+	result := make([]*generated.FeedbackMetaAttachment, len(ms))
+	for i, m := range ms {
+		result[i] = toGenFeedbackMetaAttachment(m)
+	}
+
+	return result
+}
+func toGenFeedbackMetaAttachment(m *models.FeedbackMetaAttachment) *generated.FeedbackMetaAttachment {
 	if m == nil {
 		return nil
 	}
-	return &generated.AttachmentDownload{
-		Filename: m.Filename,
-		MimeType: m.MimeType,
-		Data:     m.Data,
+	return &generated.FeedbackMetaAttachment{
+		ID:        m.ID,
+		Filename:  m.Filename,
+		MimeType:  m.MimeType,
+		FileSize:  m.FileSize,
+		CreatedAt: m.CreatedAt,
 	}
 }
 
 func toGenLookupValues(m models.LookupValues) generated.LookupValues {
 	return generated.LookupValues{
-		FundingEntities: toGenFundingEntities(m.FundingEntities),
-		ServiceTypes:    toGenServiceTypes(m.ServiceTypes),
-		JobTypes:        toGenJobTypes(m.JobTypes),
-		Cities:          m.Cities,
-	}
-}
-
-func toGenFundingEntities(ms []*models.FundingEntity) []*generated.FundingEntity {
-	result := make([]*generated.FundingEntity, len(ms))
-	for i, m := range ms {
-		result[i] = toGenFundingEntity(m)
-	}
-	return result
-}
-
-func toGenFundingEntity(m *models.FundingEntity) *generated.FundingEntity {
-	if m == nil {
-		return nil
-	}
-	return &generated.FundingEntity{
-		ID:   m.ID,
-		Name: m.Name,
+		ServiceTypes: toGenServiceTypes(m.ServiceTypes),
+		JobTypes:     toGenJobTypes(m.JobTypes),
+		Cities:       m.Cities,
 	}
 }
 
@@ -102,12 +86,11 @@ func toGenJobType(m *models.JobType) *generated.JobType {
 	}
 }
 
-func toGenVenue(m *models.Venue) *generated.Venue {
+func toGenVenueView(m *models.VenueView) *generated.VenueView {
 	if m == nil {
 		return nil
 	}
-	return &generated.Venue{
-		ID:      m.ID,
+	return &generated.VenueView{
 		Name:    m.Name,
 		Address: m.Address,
 		City:    m.City,
@@ -116,71 +99,50 @@ func toGenVenue(m *models.Venue) *generated.Venue {
 	}
 }
 
-func toGenVolunteerProfile(m *models.VolunteerProfile) *generated.VolunteerProfile {
+func toGenVolunteerView(m *models.VolunteerView) *generated.VolunteerView {
 	if m == nil {
 		return nil
 	}
 
-	return &generated.VolunteerProfile{
+	return &generated.VolunteerView{
 		FirstName: m.FirstName,
 		LastName:  m.LastName,
 		Email:     m.Email,
 		Phone:     m.Phone,
 		ZipCode:   m.ZipCode,
 		Distance:  m.Distance,
-		Role:      generated.Role(m.Role),
+		Roles:     toGenRoles(m.Roles),
 	}
 }
 
-func toGenVolunteerShifts(ms []*models.VolunteerShift) []*generated.VolunteerShift {
-	result := make([]*generated.VolunteerShift, len(ms))
-	for i, m := range ms {
-		result[i] = toGenVolunteerShift(m)
+func toGenRoles(ms []models.Role) []generated.Role {
+	result := make([]generated.Role, len(ms))
+	for i, r := range ms {
+		result[i] = generated.Role(r)
 	}
 	return result
 }
 
-func toGenVolunteerShift(m *models.VolunteerShift) *generated.VolunteerShift {
-	if m == nil {
-		return nil
-	}
-	return &generated.VolunteerShift{
-		ShiftID:              m.ShiftId,
-		AssignedAt:           m.AssignedAt,
-		CancelledAt:          m.CancelledAt,
-		StartDateTime:        m.StartDateTime,
-		EndDateTime:          m.EndDateTime,
-		MaxVolunteers:        m.MaxVolunteers,
-		JobName:              m.JobName,
-		IsVirtual:            m.IsVirtual,
-		PreEventInstructions: m.PreEventInstructions,
-		EventID:              m.EventId,
-		EventName:            m.EventName,
-		EventDescription:     m.EventDescription,
-		Venue:                toGenVenue(m.Venue),
-	}
-}
-
-func toGenEvents(ms []*models.Event) []*generated.Event {
-	result := make([]*generated.Event, len(ms))
+func toGenEventViews(ms []*models.EventView) []*generated.EventView {
+	result := make([]*generated.EventView, len(ms))
 	for i, m := range ms {
-		result[i] = toGenEvent(m)
+		result[i] = toGenEventView(m)
 	}
 	return result
 }
 
-func toGenEvent(m *models.Event) *generated.Event {
+func toGenEventView(m *models.EventView) *generated.EventView {
 	if m == nil {
 		return nil
 	}
 
-	return &generated.Event{
+	return &generated.EventView{
 		ID:             m.ID,
 		Name:           m.Name,
 		Description:    m.Description,
 		EventType:      generated.EventType(m.EventType),
-		Venue:          toGenVenue(m.Venue),
-		EventDates:     toGenEventDates(m.EventDates),
+		Venue:          toGenVenueView(m.Venue),
+		EventDates:     toGenEventDateViews(m.EventDates),
 		ServiceTypes:   m.ServiceTypes,
 		ShiftSummaries: toGenEventShiftSummaries(m.ShiftSummaries),
 	}
@@ -205,18 +167,17 @@ func toGenEventShiftSummary(m *models.EventShiftSummary) *generated.EventShiftSu
 	}
 }
 
-func toGenEventDates(ms []*models.EventDate) []*generated.EventDate {
-	result := make([]*generated.EventDate, len(ms))
+func toGenEventDateViews(ms []*models.EventDateView) []*generated.EventDateView {
+	result := make([]*generated.EventDateView, len(ms))
 	for i, m := range ms {
-		result[i] = toGenEventDate(m)
+		result[i] = toGenEventDateView(m)
 	}
 	return result
 }
 
-func toGenEventDate(m *models.EventDate) *generated.EventDate {
+func toGenEventDateView(m *models.EventDateView) *generated.EventDateView {
 
-	return &generated.EventDate{
-		ID:            m.ID,
+	return &generated.EventDateView{
 		StartDateTime: m.StartDateTime,
 		EndDateTime:   m.EndDateTime,
 	}
@@ -228,7 +189,7 @@ func toModelShiftTimeFilter(g generated.ShiftTimeFilter) models.ShiftsTimeFilter
 	return models.ShiftsTimeFilter(g)
 }
 
-func toModelEventFilterInput(g *generated.EventFilterInput) *models.EventFilterInput {
+func toModelVolunteerEventFilterInput(g *generated.VolunteerEventFilterInput) *models.VolunteerEventFilterInput {
 	if g == nil {
 		return nil
 	}
@@ -243,7 +204,7 @@ func toModelEventFilterInput(g *generated.EventFilterInput) *models.EventFilterI
 		tf := models.ShiftsTimeFilter(*g.TimeFrame)
 		timeframe = &tf
 	}
-	return &models.EventFilterInput{
+	return &models.VolunteerEventFilterInput{
 		Cities:    g.Cities,
 		Distance:  g.Distance,
 		EventType: eventType,
@@ -261,42 +222,40 @@ func toModelNewFeedbackInput(g generated.NewFeedbackInput) models.NewFeedbackInp
 	}
 }
 
-func toGenFeedbackAttachments(ms []*models.FeedbackAttachment) []*generated.FeedbackAttachment {
-	attachments := make([]*generated.FeedbackAttachment, len(ms))
+func toGenFeedbackAttachmentViews(ms []*models.FeedbackAttachmentView) []*generated.FeedbackAttachmentView {
+	attachments := make([]*generated.FeedbackAttachmentView, len(ms))
 	for i, m := range ms {
-		attachments[i] = toGenFeedbackAttachment(m)
+		attachments[i] = toGenFeedbackAttachmentView(m)
 	}
 	return attachments
 }
 
-func toGenFeedbackAttachment(m *models.FeedbackAttachment) *generated.FeedbackAttachment {
+func toGenFeedbackAttachmentView(m *models.FeedbackAttachmentView) *generated.FeedbackAttachmentView {
 	if m == nil {
 		return nil
 	}
-	return &generated.FeedbackAttachment{
-		ID:        m.ID,
-		Filename:  m.Filename,
-		MimeType:  m.MimeType,
-		FileSize:  m.FileSize,
-		CreatedAt: m.CreatedAt,
+	return &generated.FeedbackAttachmentView{
+		Filename: m.Filename,
+		MimeType: m.MimeType,
+		Data:     m.Data,
 	}
 }
 
 // END OF DUPLICATE CODE
 
-func toGenShiftViews(ms []*models.ShiftView) []*generated.ShiftView {
-	result := make([]*generated.ShiftView, len(ms))
+func toGenEventShiftViews(ms []*models.EventShiftView) []*generated.EventShiftView {
+	result := make([]*generated.EventShiftView, len(ms))
 	for i, m := range ms {
-		result[i] = toGenShiftView(m)
+		result[i] = toGenEventShiftView(m)
 	}
 	return result
 }
 
-func toGenShiftView(m *models.ShiftView) *generated.ShiftView {
+func toGenEventShiftView(m *models.EventShiftView) *generated.EventShiftView {
 	if m == nil {
 		return nil
 	}
-	return &generated.ShiftView{
+	return &generated.EventShiftView{
 		ID:                 m.ID,
 		JobName:            m.JobName,
 		StartDateTime:      m.StartDateTime,
@@ -307,19 +266,19 @@ func toGenShiftView(m *models.ShiftView) *generated.ShiftView {
 	}
 }
 
-func toGenVolunteerFeedbackNotes(ms []*models.VolunteerFeedbackNote) []*generated.VolunteerFeedbackNote {
-	notes := make([]*generated.VolunteerFeedbackNote, len(ms))
+func toGenFeedbackNoteViews(ms []*models.FeedbackNoteView) []*generated.FeedbackNoteView {
+	notes := make([]*generated.FeedbackNoteView, len(ms))
 	for i, m := range ms {
-		notes[i] = toGenVolunteerFeedbackNote(m)
+		notes[i] = toGenFeedbackNoteView(m)
 	}
 	return notes
 }
 
-func toGenVolunteerFeedbackNote(m *models.VolunteerFeedbackNote) *generated.VolunteerFeedbackNote {
+func toGenFeedbackNoteView(m *models.FeedbackNoteView) *generated.FeedbackNoteView {
 	if m == nil {
 		return nil
 	}
-	return &generated.VolunteerFeedbackNote{
+	return &generated.FeedbackNoteView{
 		ID:        m.ID,
 		Note:      m.Note,
 		NoteType:  generated.FeedbackNoteType(m.NoteType),
@@ -327,28 +286,56 @@ func toGenVolunteerFeedbackNote(m *models.VolunteerFeedbackNote) *generated.Volu
 	}
 }
 
-func toGenVolunteerFeedbacks(ms []*models.VolunteerFeedback) []*generated.VolunteerFeedback {
-	result := make([]*generated.VolunteerFeedback, len(ms))
+func toGenFeedbackViews(ms []*models.FeedbackView) []*generated.FeedbackView {
+	result := make([]*generated.FeedbackView, len(ms))
 	for i, m := range ms {
-		result[i] = toGenVolunteerFeedback(m)
+		result[i] = toGenFeedbackView(m)
 	}
 	return result
 }
 
-func toGenVolunteerFeedback(m *models.VolunteerFeedback) *generated.VolunteerFeedback {
+func toGenFeedbackView(m *models.FeedbackView) *generated.FeedbackView {
 	if m == nil {
 		return nil
 	}
-	return &generated.VolunteerFeedback{
+	return &generated.FeedbackView{
 		ID:             m.ID,
 		Type:           generated.FeedbackType(m.Type),
 		Status:         generated.FeedbackStatus(m.Status),
 		Subject:        m.Subject,
 		AppPageName:    m.AppPageName,
 		Text:           m.Text,
-		Notes:          toGenVolunteerFeedbackNotes(m.Notes),
+		Notes:          toGenFeedbackNoteViews(m.Notes),
 		GithubIssueURL: m.GithubIssueURL,
-		Attachments:    toGenFeedbackAttachments(m.Attachments),
+		Attachments:    toGenFeedbackMetaAttachments(m.Attachments),
+	}
+}
+func toGenVolunteerShiftViews(ms []*models.VolunteerShiftView) []*generated.VolunteerShiftView {
+	result := make([]*generated.VolunteerShiftView, len(ms))
+	for i, m := range ms {
+		result[i] = toGenVolunteerShiftView(m)
+	}
+	return result
+}
+
+func toGenVolunteerShiftView(m *models.VolunteerShiftView) *generated.VolunteerShiftView {
+	if m == nil {
+		return nil
+	}
+	return &generated.VolunteerShiftView{
+		ShiftID:              m.ShiftId,
+		AssignedAt:           m.AssignedAt,
+		CancelledAt:          m.CancelledAt,
+		StartDateTime:        m.StartDateTime,
+		EndDateTime:          m.EndDateTime,
+		MaxVolunteers:        m.MaxVolunteers,
+		JobName:              m.JobName,
+		IsVirtual:            m.IsVirtual,
+		PreEventInstructions: m.PreEventInstructions,
+		EventID:              m.EventId,
+		EventName:            m.EventName,
+		EventDescription:     m.EventDescription,
+		Venue:                toGenVenueView(m.Venue),
 	}
 }
 

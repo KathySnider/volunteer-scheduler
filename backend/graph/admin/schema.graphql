@@ -1,74 +1,84 @@
 ## These definitions apply to those users with admin status
-## only. The definitions in the volunteer schema are also
-## available to admins. So the admin privilege allows the
-## definitions in the union of the 2 schema files.
+## only. 
 
-type Query {
-  # Shared queries:
-  lookupValues: LookupValues!
-  volunteerProfile: VolunteerProfile!
-  filteredEventsWithShifts(filter: EventFilterInput): [Event!]!
+extend type Query {
 
-  # Admin-only queries:
-  venues: [Venue!]!
-  staff: [Staff!]!
-  allVolunteers(filter: VolunteerFilterInput): [Volunteer!]!
-  volunteerShifts(volunteerId: ID!, filter: ShiftTimeFilter!): [VolunteerShift!]!
-  filteredEvents(filter: EventFilterInput): [ManagedEvent!]!
-  managedEventById(eventId: ID!): ManagedEvent!
+  # Events
+  events(filter: EventFilterInput): [Event!]!
+  event(eventId: ID!): Event!
+  fundingEntities: [FundingEntity!]!
   opportunitiesForEvent(eventId: ID!): [Opportunity!]!
+
+  # Feedback
   feedback(filter: FeedbackFilterInput): [Feedback!]!
   feedbackById(feedbackId: ID!): Feedback
-  attachment(attachmentId: Int!): AttachmentDownload!
+  feedbackAttachment(attachmentId: Int!): FeedbackAttachment!
 
-  # Currently unused; remove (along with service)?
-  volunteerById(volunteerId: ID!): VolunteerProfile  
+  # Staff
+  staff: [Staff!]!
+
+  # Venues
+  venues: [Venue!]!
+
+  # Volunteers
+  volunteers(filter: VolunteerFilterInput): [Volunteer!]!
+  volunteer(volId: Int!): Volunteer!
+  volunteerShifts(volunteerId: ID!, filter: ShiftTimeFilter!): [VolunteerShift!]!
 }
 
 type Mutation {
-  # Shared mutations:
-  giveFeedback (feedback: NewFeedbackInput!): MutationResult!
-  attachFileToFeedback(feedbackId: ID!, file: Upload!): MutationResult!
 
-  # Admin-only mutations:
-  createVolunteer(newVol: NewVolunteerInput!): MutationResult!
-  createVenue(newVenue: NewVenueInput!): MutationResult!
-  createEvent(newEvent: NewEventInput!): MutationResult!
+  # Generic - used for lookups and within other types.
+
+  createFundingEntity(input: NewFundingEntityInput!): MutationResult!
   createJobType(newJob: NewJobTypeInput!): MutationResult!
+
+  deleteFundingEntity(id: Int!): MutationResult!
+  deleteJobType(JobId: Int!): MutationResult!
+
+  updateFundingEntity(input: UpdateFundingEntityInput!): MutationResult!
+  updateJobType(job: UpdateJobTypeInput!): MutationResult!
+
+  # Events/Opportunities/Shifts
+  createEvent(newEvent: NewEventInput!): MutationResult!
+  createEventDate(newDate: AddEventDateInput!): MutationResult!
   createOpportunity(newOpp: NewOpportunityInput!): MutationResult!
   createShift(newShift: AddShiftInput!): MutationResult!
-  createEventDate(newDate: AddEventDateInput!): MutationResult!
-  createStaff(newStaff: NewStaffInput!): MutationResult!
-  createFundingEntity(input: NewFundingEntityInput!): MutationResult!
 
-  assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): MutationResult!
-  cancelShift(shiftId: ID!, volunteerId: ID!): MutationResult!
-
-  updateVenue(venue: UpdateVenueInput!): MutationResult!
-  updateVolunteer(profile: UpdateVolunteerInput!): MutationResult!
-  updateEvent(event: UpdateEventInput!): MutationResult!
-  updateJobType(job: UpdateJobTypeInput!): MutationResult!
-  updateOpportunity(opp: UpdateOpportunityInput!): MutationResult!
-  updateShift(shift: UpdateShiftInput!): MutationResult!
-  updateEventDate(date: UpdateEventDateInput!): MutationResult!
-  updateStaff(staff: UpdateStaffInput!): MutationResult!
-  updateFundingEntity(input: UpdateFundingEntityInput!): MutationResult!
-
-  questionFeedback(question: QuestionFeedbackInput!): MutationResult!
-  updateFeedback(feedback: UpdateFeedbackInput!): MutationResult!
-
-  deleteVolunteer(volunteerId: ID!): MutationResult!
-  deleteVenue(venueId: ID!): MutationResult!
   deleteEvent(eventId: ID!, scope: RecurrenceUpdateScope): MutationResult!
-  deleteJobType(JobId: Int!): MutationResult!
+  deleteEventDate(eventDateId: ID!): MutationResult!
   deleteOpportunity(oppId: ID!): MutationResult!
   deleteShift(shiftId: ID!): MutationResult!
-  deleteEventDate(eventDateId: ID!): MutationResult!
-  deleteStaff(staffId: ID!): MutationResult!
-  deleteFundingEntity(id: Int!): MutationResult!
 
+  updateEvent(event: UpdateEventInput!): MutationResult!
+  updateEventDate(date: UpdateEventDateInput!): MutationResult!
+  updateOpportunity(opp: UpdateOpportunityInput!): MutationResult!
+  updateShift(shift: UpdateShiftInput!): MutationResult!
+
+  # Feedback
+  questionFeedback(question: QuestionFeedbackInput!): MutationResult!
+  updateFeedback(feedback: UpdateFeedbackInput!): MutationResult!
   resolveFeedback(resolution: ResolveFeedbackInput!): MutationResult!
   deleteFeedback(feedbackId: ID!): MutationResult!
+
+  # Staff
+  createStaff(newStaff: NewStaffInput!): MutationResult!
+  deleteStaff(staffId: ID!): MutationResult!
+  updateStaff(staff: UpdateStaffInput!): MutationResult!
+
+  # Venues
+  createVenue(newVenue: NewVenueInput!): MutationResult!
+  deleteVenue(venueId: ID!): MutationResult!
+  updateVenue(venue: UpdateVenueInput!): MutationResult!
+
+  # Volunteers
+  createVolunteer(newVol: NewVolunteerInput!): MutationResult!
+  deleteVolunteer(volunteerId: ID!): MutationResult!
+  updateVolunteer(profile: UpdateVolunteerInput!): MutationResult!
+
+  # Volunteer Shifts
+  assignVolunteerToShift(shiftId: ID!, volunteerId: ID!): MutationResult!
+  cancelShift(shiftId: ID!, volunteerId: ID!): MutationResult!
 }
 
 
@@ -82,6 +92,12 @@ enum RecurrencePattern {
   YEARLY
 }
 
+#- Weekday Ordinal is used for monthy recurrence pattern.
+#- Weekday is derived from the start date, but the "nth"
+#- can only be derived up to a point. If the start date
+#- is the 4th Wed, and the starting month does not have
+#- 5 Wednesdays, does the user want the 4th? Or the last
+#- Wednesday of every month?
 
 enum WeekdayOrdinal {
   FIRST
@@ -96,9 +112,23 @@ enum RecurrenceUpdateScope {
   THIS_AND_FUTURE
 }
 
-#-- Outputs (for queries) --
+#-- Output --
 
-type ManagedEvent {
+# Events/Opportunites/Shifts
+
+type FundingEntity {
+  id: Int!
+  name: String!
+  description: String
+}
+
+type EventDate {
+  id: ID!
+  startDateTime: String!
+  endDateTime: String!
+}
+
+type Event {
   id: ID!
   name: String!
   description: String
@@ -109,31 +139,15 @@ type ManagedEvent {
   serviceTypes: [String!]
   eventDates: [EventDate!]!
   shiftSummaries: [EventShiftSummary!]!
-  recurrenceId: String
+  recurrenceGroup: RecurrenceGroup
   recurrenceOrder: Int
-  recurrencePattern: String
-  recurrenceMaxOccurrences: Int
-  recurrenceOrdinal: String
 }
 
-type Staff {
-  id: ID!
-  firstName: String!
-  lastName: String!
-  email: String!
-  phone: String
-  position: String
-}
-
-type Volunteer {
-  id: ID!
-  firstName: String!
-  lastName: String!
-  email: String!
-  phone: String
-  zipCode: String
-  distance: Int
-  role: Role!
+type RecurrenceGroup {
+  groupId:          String!
+  pattern:          RecurrencePattern!
+  maxOccurrences:   Int            # backend defaults to 1 year's worth unless yearly; then required.
+  weekdayOrdinal:   String         # for monthly only
 }
 
 type Opportunity {
@@ -150,6 +164,14 @@ type Shift {
   endDateTime: String!
   maxVolunteers: Int
   staffContactId: ID
+}
+
+# Feedback
+
+type FeedbackAttachment {
+  filename: String!
+  mimeType: String!
+  data: String!
 }
 
 type FeedbackNote {
@@ -173,71 +195,96 @@ type Feedback {
   createdAt: String!
   lastUpdatedAt: String
   resolvedAt: String  
-  attachments: [FeedbackAttachment!]!   
+  attachments: [FeedbackMetaAttachment!]!   
 }
+
+# Staff
+
+type Staff {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  position: String
+}
+
+# Venues
+
+type Venue {
+  id: ID!
+  name: String
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String
+}
+
+# Volunteers
+
+type Volunteer {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  zipCode: String
+  distance: Int
+  roles: [Role!]!
+}
+
+type VolunteerShift {
+  shiftId: ID!
+  assignedAt: String!
+  cancelledAt: String
+  startDateTime: String!
+  endDateTime: String!
+  maxVolunteers: Int
+  jobName: String!
+  isVirtual: Boolean!
+  preEventInstructions: String
+  eventId: ID!
+  eventName: String!
+  eventDescription: String
+  venue: Venue
+}
+
 
 #-- Inputs --
 
-input NewStaffInput {
-  firstName: String!
-  lastName: String!
-  email: String!
-  phone: String
-  position: String
+# Generic
+
+input NewFundingEntityInput {
+  name: String!
+  description: String
 }
 
-input UpdateStaffInput {
-  id: ID!
-  firstName: String!
-  lastName: String!
-  email: String!
-  phone: String
-  position: String
-}
-
-input NewVolunteerInput {
-  firstName: String!
-  lastName: String!
-  email: String!
-  phone: String
-  zipCode: String
-  distance: Int
-  role: Role!
-}
-
-input UpdateVolunteerInput {
-  id: ID!
-  firstName: String!
-  lastName: String!
-  email: String!
-  phone: String
-  zipCode: String
-  distance: Int
-  role: Role!
-}
-
-input NewVenueInput {
+input UpdateFundingEntityInput {
+  id: Int!
   name: String
-  address: String!
-  city: String!
-  state: String!
-  zipCode: String
+  description: String
 }
 
-input UpdateVenueInput {
-  id: ID!
-  name: String
-  address: String!
-  city: String!
-  state: String!
-  zipCode: String
+input NewJobTypeInput {
+  code: String!
+  name: String!
+  sortOrder: Int!
 }
 
+input UpdateJobTypeInput {
+  id: Int!
+  code: String!
+  name: String!
+  sortOrder: Int!
+}
 
-input RecurrenceInput {
-  pattern:          RecurrencePattern!
-  maxOccurrences:   Int            # backend defaults to 1 year's worth unless yearly; then required.
-  weekdayOrdinal:   WeekdayOrdinal # for monthly only
+# Events/Opportunites/Shifts
+
+input EventFilterInput {
+  cities: [String!]
+  eventType: EventType
+  jobs: [Int!]
+  timeFrame: ShiftTimeFilter
 }
 
 input NewEventInput {
@@ -281,17 +328,10 @@ input UpdateEventDateInput {
   endDateTime: String!
 }
 
-input NewJobTypeInput {
-  code: String!
-  name: String!
-  sortOrder: Int!
-}
-
-input UpdateJobTypeInput {
-  id: Int!
-  code: String!
-  name: String!
-  sortOrder: Int!
+input RecurrenceInput {
+  pattern:          RecurrencePattern!
+  maxOccurrences:   Int            # backend defaults to 1 year's worth unless yearly; then required.
+  weekdayOrdinal:   WeekdayOrdinal # for monthly only
 }
 
 input NewOpportunityInput {
@@ -332,11 +372,7 @@ input UpdateShiftInput {
   staffContactId: ID
 }
 
-input VolunteerFilterInput {
-  firstName: String
-  lastName: String
-  email: String
-}
+# Feedback
 
 input FeedbackFilterInput {
   status: FeedbackStatus
@@ -363,13 +399,76 @@ input ResolveFeedbackInput {
   githubIssueURL: String
 }
 
-input NewFundingEntityInput {
-  name: String!
-  description: String
+# Staff
+
+input NewStaffInput {
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  position: String
 }
 
-input UpdateFundingEntityInput {
-  id: Int!
-  name: String
-  description: String
+input UpdateStaffInput {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  position: String
 }
+
+# Venues
+
+input NewVenueInput {
+  name: String
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String
+}
+
+input UpdateVenueInput {
+  id: ID!
+  name: String
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String
+}
+
+# Volunteers
+
+input VolunteerFilterInput {
+  firstName: String
+  lastName: String
+  email: String
+}
+
+input NewVolunteerInput {
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  zipCode: String
+  distance: Int
+  role: Role!
+}
+
+input UpdateVolunteerInput {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  zipCode: String
+  distance: Int
+  role: Role!
+}
+
+
+###########################3
+
+
+
+

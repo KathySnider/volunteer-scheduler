@@ -27,7 +27,7 @@ import (
 
 const queryAdminFilteredEvents = `
 	query FilteredEvents($filter: EventFilterInput) {
-		filteredEvents(filter: $filter) {
+		events(filter: $filter) {
 			id
 			name
 			eventType
@@ -38,14 +38,14 @@ const queryAdminFilteredEvents = `
 // Helpers
 // ============================================================================
 
-// adminEventNamesFromResponse unmarshals the admin filteredEvents field and
+// adminEventNamesFromResponse unmarshals the admin events field and
 // returns a map of event name → true for quick membership checks.
 func adminEventNamesFromResponse(t *testing.T, resp gqlResponse) map[string]bool {
 	t.Helper()
 	var events []struct {
 		Name string `json:"name"`
 	}
-	unmarshalField(t, resp, "filteredEvents", &events)
+	unmarshalField(t, resp, "events", &events)
 	m := make(map[string]bool, len(events))
 	for _, e := range events {
 		m[e.Name] = true

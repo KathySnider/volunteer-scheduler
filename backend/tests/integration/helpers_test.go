@@ -233,17 +233,20 @@ func unmarshalField(t *testing.T, r gqlResponse, field string, dest any) {
 // ============================================================================
 
 // seedVolunteer inserts an active volunteer directly into the DB and returns the ID.
+// The role argument ("VOLUNTEER" or "ADMINISTRATOR") is inserted into volunteer_roles.
+// ADMINISTRATOR automatically also gets the VOLUNTEER role (business rule).
 func seedVolunteer(t *testing.T, email, firstName, lastName, role string) int {
 	t.Helper()
 	var id int
 	err := testDB.QueryRow(`
-		INSERT INTO volunteers (email, first_name, last_name, role, is_active)
-		VALUES ($1, $2, $3, $4, TRUE)
+		INSERT INTO volunteers (email, first_name, last_name, is_active)
+		VALUES ($1, $2, $3, TRUE)
 		RETURNING volunteer_id
-	`, email, firstName, lastName, role).Scan(&id)
+	`, email, firstName, lastName).Scan(&id)
 	if err != nil {
 		t.Fatalf("seedVolunteer: %v", err)
 	}
+	seedVolunteerRoles(t, id, role)
 	t.Cleanup(func() {
 		testDB.Exec("DELETE FROM volunteers WHERE volunteer_id = $1", id)
 	})
@@ -256,17 +259,38 @@ func seedInactiveVolunteer(t *testing.T, email, firstName, lastName, role string
 	t.Helper()
 	var id int
 	err := testDB.QueryRow(`
-		INSERT INTO volunteers (email, first_name, last_name, role, is_active)
-		VALUES ($1, $2, $3, $4, FALSE)
+		INSERT INTO volunteers (email, first_name, last_name, is_active)
+		VALUES ($1, $2, $3, FALSE)
 		RETURNING volunteer_id
-	`, email, firstName, lastName, role).Scan(&id)
+	`, email, firstName, lastName).Scan(&id)
 	if err != nil {
 		t.Fatalf("seedInactiveVolunteer: %v", err)
 	}
+	seedVolunteerRoles(t, id, role)
 	t.Cleanup(func() {
 		testDB.Exec("DELETE FROM volunteers WHERE volunteer_id = $1", id)
 	})
 	return id
+}
+
+// seedVolunteerRoles inserts the given role (and VOLUNTEER if role is ADMINISTRATOR)
+// into the volunteer_roles junction table for the given volunteer ID.
+func seedVolunteerRoles(t *testing.T, volunteerID int, role string) {
+	t.Helper()
+	rolesToInsert := []string{"VOLUNTEER"}
+	if role == "ADMINISTRATOR" {
+		rolesToInsert = append(rolesToInsert, "ADMINISTRATOR")
+	}
+	for _, r := range rolesToInsert {
+		_, err := testDB.Exec(`
+			INSERT INTO volunteer_roles (volunteer_id, role_id)
+			SELECT $1, role_id FROM roles WHERE role_name = $2
+			ON CONFLICT DO NOTHING
+		`, volunteerID, r)
+		if err != nil {
+			t.Fatalf("seedVolunteerRoles: %v", err)
+		}
+	}
 }
 
 // seedMagicLink inserts a magic link token directly into the DB.
@@ -293,13 +317,15 @@ func seedMagicLink(t *testing.T, email, token string, expiresAt time.Time) {
 // a cookie / Bearer value.
 // email must match the volunteer's email — the sessions table has a NOT NULL
 // unique constraint on email.
+// The role parameter is accepted for backwards-compatibility but is no longer
+// stored in the sessions table; roles live in volunteer_roles instead.
 func seedSession(t *testing.T, email string, volunteerID int, role, token string) string {
 	t.Helper()
 	hashed := hashSessionToken(token)
 	_, err := testDB.Exec(`
-		INSERT INTO sessions (email, volunteer_id, role, token, created_at, expires_at)
-		VALUES ($1, $2, $3, $4, NOW(), NOW() + INTERVAL '1 day')
-	`, email, volunteerID, role, hashed)
+		INSERT INTO sessions (email, volunteer_id, token, created_at, expires_at)
+		VALUES ($1, $2, $3, NOW(), NOW() + INTERVAL '1 day')
+	`, email, volunteerID, hashed)
 	if err != nil {
 		t.Fatalf("seedSession: %v", err)
 	}
@@ -312,13 +338,15 @@ func seedSession(t *testing.T, email string, volunteerID int, role, token string
 // seedExpiredSession inserts an already-expired session token into the DB.
 // The DB stores the SHA-256 hash; the plaintext token is returned for use
 // as a cookie / Bearer value in tests.
+// The role parameter is accepted for backwards-compatibility but is no longer
+// stored in the sessions table.
 func seedExpiredSession(t *testing.T, email string, volunteerID int, role, token string) string {
 	t.Helper()
 	hashed := hashSessionToken(token)
 	_, err := testDB.Exec(`
-		INSERT INTO sessions (email, volunteer_id, role, token, created_at, expires_at)
-		VALUES ($1, $2, $3, $4, NOW() - INTERVAL '2 days', NOW() - INTERVAL '1 day')
-	`, email, volunteerID, role, hashed)
+		INSERT INTO sessions (email, volunteer_id, token, created_at, expires_at)
+		VALUES ($1, $2, $3, NOW() - INTERVAL '2 days', NOW() - INTERVAL '1 day')
+	`, email, volunteerID, hashed)
 	if err != nil {
 		t.Fatalf("seedExpiredSession: %v", err)
 	}

@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 	"strings"
+	"volunteer-scheduler/models"
 	"volunteer-scheduler/services"
 )
 
@@ -35,17 +36,17 @@ func RequireAuth(magicLinkService *services.MagicLinkService, next http.Handler)
 			return
 		}
 
-		// Validate the session token — returns volunteer ID and role.
-		volId, role, err := magicLinkService.ValidateSessionToken(r.Context(), token)
+		// Validate the session token — returns volunteer ID and roles.
+		volId, roles, err := magicLinkService.ValidateSessionToken(r.Context(), token)
 		if err != nil {
 			http.Error(w, `{"errors":[{"message":"invalid or expired session"}]}`, http.StatusUnauthorized)
 			return
 		}
 
-		// Store volunteer ID, role, ResponseWriter, and Request in the context
+		// Store volunteer ID, roles, ResponseWriter, and Request in the context
 		// so resolvers can read the session cookie and set/clear it on login/logout.
 		ctx := ContextWithVolunteerId(r.Context(), volId)
-		ctx = ContextWithVolunteerRole(ctx, role)
+		ctx = ContextWithVolunteerRoles(ctx, roles)
 		ctx = ContextWithResponseWriter(ctx, w)
 		ctx = ContextWithRequest(ctx, r)
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -56,11 +57,21 @@ func RequireAuth(magicLinkService *services.MagicLinkService, next http.Handler)
 // has the ADMINISTRATOR role. Returns 403 Forbidden if they do not.
 func RequireAdmin(magicLinkService *services.MagicLinkService, next http.Handler) http.Handler {
 	return RequireAuth(magicLinkService, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		role, ok := VolunteerRoleFromContext(r.Context())
-		if !ok || role != "ADMINISTRATOR" {
+		roles, ok := VolunteerRolesFromContext(r.Context())
+		if !ok || !hasRole(roles, string(models.RoleAdministrator)) {
 			http.Error(w, `{"errors":[{"message":"forbidden"}]}`, http.StatusForbidden)
 			return
 		}
 		next.ServeHTTP(w, r)
 	}))
+}
+
+// hasRole returns true when role is present in the roles slice.
+func hasRole(roles []string, role string) bool {
+	for _, r := range roles {
+		if r == role {
+			return true
+		}
+	}
+	return false
 }

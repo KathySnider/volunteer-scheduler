@@ -108,10 +108,10 @@ func (s *FeedbackService) AttachFileToFeedback(ctx context.Context, feedbackID i
 	}, nil
 }
 
-// fetchAttachmentsForFeedback returns metadata (no binary data) for all
-// attachments belonging to the given feedback item, ordered oldest-first.
-// Used to populate the attachments field on a Feedback GraphQL object.
-func (s *FeedbackService) fetchAttachmentsForFeedback(ctx context.Context, feedbackID int) ([]*models.FeedbackAttachment, error) {
+// fetchMetaAttachments returns metadata (no binary data) for all attachments
+// belonging to the given feedback item, ordered oldest-first. Use to populate
+// the attachments field on a Feedback GraphQL object.
+func (s *FeedbackService) fetchMetaAttachments(ctx context.Context, feedbackID int) ([]*models.FeedbackMetaAttachment, error) {
 
 	query := `
 		SELECT attachment_id, 
@@ -125,22 +125,22 @@ func (s *FeedbackService) fetchAttachmentsForFeedback(ctx context.Context, feedb
 	`
 	rows, err := s.DB.QueryContext(ctx, query, feedbackID)
 	if err != nil {
-		return nil, fmt.Errorf("FetchAttachmentsForFeedback: %w", err)
+		return nil, fmt.Errorf("fetchMetaAttachments: %w", err)
 	}
 	defer rows.Close()
 
-	var attachments []*models.FeedbackAttachment
+	var attachments []*models.FeedbackMetaAttachment
 	for rows.Next() {
-		var a models.FeedbackAttachment
+		var a models.FeedbackMetaAttachment
 		var id int
 		if err := rows.Scan(&id, &a.Filename, &a.MimeType, &a.FileSize, &a.CreatedAt); err != nil {
-			return nil, fmt.Errorf("FetchAttachmentsForFeedback scan: %w", err)
+			return nil, fmt.Errorf("fetchMetaAttachments scan: %w", err)
 		}
 		a.ID = strconv.Itoa(id)
 		attachments = append(attachments, &a)
 	}
 	if attachments == nil {
-		attachments = []*models.FeedbackAttachment{} // never return nil for a GQL list
+		attachments = []*models.FeedbackMetaAttachment{} // never return nil for a GQL list
 	}
 	return attachments, nil
 }
@@ -148,7 +148,7 @@ func (s *FeedbackService) fetchAttachmentsForFeedback(ctx context.Context, feedb
 // FetchAttachment and FetchOwnAttachment each fetch a single attachment including its binary content,
 // returned as a Base64-encoded string so the client can reconstruct the file
 // (e.g. display a screenshot inline). Difference is volunteer v admin.
-func (s *FeedbackService) FetchAttachment(ctx context.Context, attachmentID int) (*models.AttachmentDownload, error) {
+func (s *FeedbackService) FetchAttachment(ctx context.Context, attachmentID int) (*models.FeedbackAttachment, error) {
 
 	query := `
 		SELECT 
@@ -169,14 +169,14 @@ func (s *FeedbackService) FetchAttachment(ctx context.Context, attachmentID int)
 		return nil, fmt.Errorf("GetAttachmentData: %w", err)
 	}
 
-	return &models.AttachmentDownload{
+	return &models.FeedbackAttachment{
 		Filename: filename,
 		MimeType: mimeType,
 		Data:     base64.StdEncoding.EncodeToString(raw),
 	}, nil
 }
 
-func (s *FeedbackService) FetchOwnAttachment(ctx context.Context, attachmentID int, volId int) (*models.AttachmentDownload, error) {
+func (s *FeedbackService) FetchOwnAttachment(ctx context.Context, attachmentID int, volId int) (*models.FeedbackAttachmentView, error) {
 
 	query := `
 		SELECT 
@@ -204,7 +204,7 @@ func (s *FeedbackService) FetchOwnAttachment(ctx context.Context, attachmentID i
 		return nil, fmt.Errorf("unauthorized")
 	}
 
-	return &models.AttachmentDownload{
+	return &models.FeedbackAttachmentView{
 		Filename: filename,
 		MimeType: mimeType,
 		Data:     base64.StdEncoding.EncodeToString(raw),

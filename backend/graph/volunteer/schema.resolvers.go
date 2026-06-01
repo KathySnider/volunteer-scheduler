@@ -16,6 +16,41 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 )
 
+// AttachFileToFeedback is the resolver for the attachFileToFeedback field.
+func (r *mutationResolver) AttachFileToFeedback(ctx context.Context, feedbackID string, file graphql.Upload) (*generated.MutationResult, error) {
+	fbInt, err := strconv.Atoi(feedbackID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid feedback id %s: %w", feedbackID, err)
+	}
+	data, err := io.ReadAll(file.File)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read upload: %w", err)
+	}
+
+	result, err := r.FeedbackService.AttachFileToFeedback(
+		ctx, fbInt, file.Filename, file.ContentType, data,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// GiveFeedback is the resolver for the giveFeedback field.
+func (r *mutationResolver) GiveFeedback(ctx context.Context, feedback generated.NewFeedbackInput) (*generated.MutationResult, error) {
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	result, err := r.FeedbackService.CreateNewFeedback(ctx, volId, toModelNewFeedbackInput(feedback))
+	if err != nil {
+		return nil, err
+	}
+
+	return toGenMutationResult(result), nil
+}
+
 // UpdateOwnProfile is the resolver for the updateOwnProfile field.
 func (r *mutationResolver) UpdateOwnProfile(ctx context.Context, profile generated.UpdateOwnProfileInput) (*generated.VolunteerMutationResult, error) {
 	volId, ok := middleware.VolunteerIdFromContext(ctx)
@@ -62,114 +97,52 @@ func (r *mutationResolver) CancelOwnShift(ctx context.Context, shiftID string) (
 	return toGenMutationResult(result), nil
 }
 
-// GiveFeedback is the resolver for the giveFeedback field.
-func (r *mutationResolver) GiveFeedback(ctx context.Context, feedback generated.NewFeedbackInput) (*generated.MutationResult, error) {
+// EventShiftViews is the resolver for the eventShiftViews field.
+func (r *queryResolver) EventShiftViews(ctx context.Context, eventID string) ([]*generated.EventShiftView, error) {
+	sv, err := r.ShiftService.FetchEventShiftViews(ctx, eventID)
+	if err != nil {
+		return nil, err
+	}
+	return toGenEventShiftViews(sv), nil
+}
+
+// EventViews is the resolver for the eventViews field.
+func (r *queryResolver) EventViews(ctx context.Context, filter *generated.VolunteerEventFilterInput) ([]*generated.EventView, error) {
 	volId, ok := middleware.VolunteerIdFromContext(ctx)
 	if !ok {
 		return nil, fmt.Errorf("unauthorized")
 	}
-
-	result, err := r.FeedbackService.CreateNewFeedback(ctx, volId, toModelNewFeedbackInput(feedback))
+	ev, err := r.EventService.FetchEventViews(ctx, toModelVolunteerEventFilterInput(filter), &volId)
 	if err != nil {
 		return nil, err
 	}
-
-	return toGenMutationResult(result), nil
+	return toGenEventViews(ev), nil
 }
 
-// AttachFileToFeedback is the resolver for the attachFileToFeedback field.
-func (r *mutationResolver) AttachFileToFeedback(ctx context.Context, feedbackID string, file graphql.Upload) (*generated.MutationResult, error) {
-	fbInt, err := strconv.Atoi(feedbackID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid feedback id %s: %w", feedbackID, err)
-	}
-	data, err := io.ReadAll(file.File)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read upload: %w", err)
-	}
-
-	result, err := r.FeedbackService.AttachFileToFeedback(
-		ctx, fbInt, file.Filename, file.ContentType, data,
-	)
+// EventView is the resolver for the eventView field.
+func (r *queryResolver) EventView(ctx context.Context, eventID string) (*generated.EventView, error) {
+	e, err := r.EventService.FetchEventView(ctx, eventID)
 	if err != nil {
 		return nil, err
 	}
-	return toGenMutationResult(result), nil
+	return toGenEventView(e), nil
 }
 
-// LookupValues is the resolver for the lookupValues field.
-func (r *queryResolver) LookupValues(ctx context.Context) (*generated.LookupValues, error) {
-	lookup, err := r.EventService.FetchLookups(ctx)
-	if err != nil {
-		return nil, err
-	}
-	genLookup := toGenLookupValues(*lookup)
-	return &genLookup, nil
-}
-
-// VolunteerProfile is the resolver for the volunteerProfile field.
-func (r *queryResolver) VolunteerProfile(ctx context.Context) (*generated.VolunteerProfile, error) {
+// OwnAttachment is the resolver for the ownAttachment field.
+func (r *queryResolver) OwnAttachment(ctx context.Context, attachmentID int) (*generated.FeedbackAttachmentView, error) {
 	volId, ok := middleware.VolunteerIdFromContext(ctx)
 	if !ok {
 		return nil, fmt.Errorf("unauthorized")
 	}
-
-	profile, err := r.VolunteerService.FetchOwnProfile(ctx, volId)
+	att, err := r.FeedbackService.FetchOwnAttachment(ctx, attachmentID, volId)
 	if err != nil {
 		return nil, err
 	}
-	return toGenVolunteerProfile(profile), nil
-}
-
-// FilteredEventsWithShifts is the resolver for the filteredEventsWithShifts field.
-func (r *queryResolver) FilteredEventsWithShifts(ctx context.Context, filter *generated.EventFilterInput) ([]*generated.Event, error) {
-	volId, ok := middleware.VolunteerIdFromContext(ctx)
-	if !ok {
-		return nil, fmt.Errorf("unauthorized")
-	}
-
-	events, err := r.EventService.FetchFilteredEventsWithShifts(ctx, toModelEventFilterInput(filter), &volId)
-	if err != nil {
-		return nil, fmt.Errorf("error calling FetchFilteredEvents: %w", err)
-	}
-	return toGenEvents(events), nil
-}
-
-// EventByID is the resolver for the eventById field.
-func (r *queryResolver) EventByID(ctx context.Context, eventID string) (*generated.Event, error) {
-	event, err := r.EventService.FetchEventById(ctx, eventID)
-	if err != nil {
-		return nil, fmt.Errorf("error calling FetchEventById: %w", err)
-	}
-	return toGenEvent(event), nil
-}
-
-// ShiftsForEvent is the resolver for the shiftsForEvent field.
-func (r *queryResolver) ShiftsForEvent(ctx context.Context, eventID string) ([]*generated.ShiftView, error) {
-	shiftviews, err := r.ShiftService.FetchShiftViewsForEvent(ctx, eventID)
-	if err != nil {
-		return nil, err
-	}
-	return toGenShiftViews(shiftviews), nil
-}
-
-// OwnShifts is the resolver for the ownShifts field.
-func (r *queryResolver) OwnShifts(ctx context.Context, filter generated.ShiftTimeFilter) ([]*generated.VolunteerShift, error) {
-	volId, ok := middleware.VolunteerIdFromContext(ctx)
-	if !ok {
-		return nil, fmt.Errorf("unauthorized")
-	}
-
-	shifts, err := r.ShiftService.FetchOwnShifts(ctx, volId, toModelShiftTimeFilter(filter))
-	if err != nil {
-		return nil, err
-	}
-
-	return toGenVolunteerShifts(shifts), nil
+	return toGenFeedbackAttachmentView(att), nil
 }
 
 // OwnFeedback is the resolver for the ownFeedback field.
-func (r *queryResolver) OwnFeedback(ctx context.Context) ([]*generated.VolunteerFeedback, error) {
+func (r *queryResolver) OwnFeedback(ctx context.Context) ([]*generated.FeedbackView, error) {
 	volId, ok := middleware.VolunteerIdFromContext(ctx)
 	if !ok {
 		return nil, fmt.Errorf("unauthorized")
@@ -179,27 +152,38 @@ func (r *queryResolver) OwnFeedback(ctx context.Context) ([]*generated.Volunteer
 	if err != nil {
 		return nil, err
 	}
-	return toGenVolunteerFeedbacks(fb), nil
+	return toGenFeedbackViews(fb), nil
 }
 
-// OwnAttachment is the resolver for the ownAttachment field.
-func (r *queryResolver) OwnAttachment(ctx context.Context, attachmentID int) (*generated.AttachmentDownload, error) {
+// OwnProfile is the resolver for the ownProfile field.
+func (r *queryResolver) OwnProfile(ctx context.Context) (*generated.VolunteerView, error) {
 	volId, ok := middleware.VolunteerIdFromContext(ctx)
 	if !ok {
 		return nil, fmt.Errorf("unauthorized")
 	}
-	att, err := r.FeedbackService.FetchOwnAttachment(ctx, attachmentID, volId)
+	v, err := r.VolunteerService.FetchOwnProfile(ctx, volId)
 	if err != nil {
 		return nil, err
 	}
-	return toGenAttachmentDownload(att), nil
+	return toGenVolunteerView(v), nil
+}
+
+// OwnShifts is the resolver for the ownShifts field.
+func (r *queryResolver) OwnShifts(ctx context.Context, filter generated.ShiftTimeFilter) ([]*generated.VolunteerShiftView, error) {
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	shifts, err := r.VolunteerService.FetchOwnShifts(ctx, volId, toModelShiftTimeFilter(filter))
+	if err != nil {
+		return nil, err
+	}
+
+	return toGenVolunteerShiftViews(shifts), nil
 }
 
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
-// Query returns generated.QueryResolver implementation.
-func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
-
 type mutationResolver struct{ *Resolver }
-type queryResolver struct{ *Resolver }

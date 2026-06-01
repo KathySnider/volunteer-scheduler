@@ -11,6 +11,18 @@
  * from JavaScript.
  */
 
+/**
+ * Role enum — single source of truth for role name strings.
+ * Use Roles.ADMINISTRATOR / Roles.VOLUNTEER everywhere instead of raw strings.
+ * Object.freeze means the values can't be mutated at runtime, and a typo on
+ * the property name (e.g. Roles.ADMINSTRATOR) returns undefined rather than
+ * silently passing a wrong string.
+ */
+export const Roles = Object.freeze({
+  VOLUNTEER:     "VOLUNTEER",
+  ADMINISTRATOR: "ADMINISTRATOR",
+});
+
 // All GraphQL endpoints are proxied through the Next.js server via rewrites
 // in next.config.mjs (/graphql/* → backend).  Relative paths are used so the
 // browser always calls the same origin, keeping session cookies on one domain.
@@ -135,13 +147,14 @@ export async function downloadAttachment(attachmentId, useAdminEndpoint = false)
 }
 
 /**
- * Persist the non-sensitive display values (email, role, name) to localStorage
+ * Persist the non-sensitive display values (email, roles, name) to localStorage
  * and set the sessionActive flag. The real session lives in the HttpOnly cookie.
+ * roles should be an array of strings (e.g. ["VOLUNTEER", "ADMINISTRATOR"]).
  */
-export function setAuthInfo(email, role, name) {
+export function setAuthInfo(email, roles, name) {
   localStorage.setItem("sessionActive", "1");
   if (email) localStorage.setItem("authEmail", email);
-  if (role)  localStorage.setItem("authRole", role);
+  if (roles) localStorage.setItem("authRoles", JSON.stringify(roles));
   if (name)  localStorage.setItem("authName", name);
 }
 
@@ -155,10 +168,34 @@ export function isAuthenticated() {
   return localStorage.getItem("sessionActive") === "1";
 }
 
-/** Read the volunteer's role from localStorage (client-side only). */
-export function getAuthRole() {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("authRole");
+/**
+ * Returns true when the authenticated user has the given role.
+ * Reads the roles array from localStorage.
+ */
+export function hasAuthRole(role) {
+  if (typeof window === "undefined") return false;
+  try {
+    const stored = localStorage.getItem("authRoles");
+    const roles = stored ? JSON.parse(stored) : [];
+    return Array.isArray(roles) && roles.includes(role);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Read the volunteer's roles array from localStorage (client-side only).
+ * Returns an empty array when not set.
+ */
+export function getAuthRoles() {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = localStorage.getItem("authRoles");
+    const roles = stored ? JSON.parse(stored) : [];
+    return Array.isArray(roles) ? roles : [];
+  } catch {
+    return [];
+  }
 }
 
 /** Read the volunteer's display name from localStorage (client-side only). */
@@ -171,7 +208,7 @@ export function getAuthName() {
 export function clearAuthToken() {
   localStorage.removeItem("sessionActive");
   localStorage.removeItem("authEmail");
-  localStorage.removeItem("authRole");
+  localStorage.removeItem("authRoles");
   localStorage.removeItem("authName");
 }
 

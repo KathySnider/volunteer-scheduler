@@ -122,9 +122,9 @@ const (
 		ownAttachment(attachmentId: $id) { filename mimeType data }
 	}`
 
-	// attachment is the admin-only query — no ownership check.
+	// feedbackAttachment is the admin-only query — no ownership check.
 	qryAdminAttachment = `query AdminAttachment($id: Int!) {
-		attachment(attachmentId: $id) { filename mimeType data }
+		feedbackAttachment(attachmentId: $id) { filename mimeType data }
 	}`
 )
 
@@ -347,7 +347,7 @@ func TestAdminAttachment_AnyFeedback(t *testing.T) {
 	}
 
 	var dl attachmentDownloadResult
-	unmarshalField(t, resp, "attachment", &dl)
+	unmarshalField(t, resp, "feedbackAttachment", &dl)
 
 	if dl.Filename != "report.txt" {
 		t.Errorf("expected filename=%q, got %q", "report.txt", dl.Filename)

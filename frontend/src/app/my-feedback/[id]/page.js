@@ -5,7 +5,8 @@ import { useRouter, useParams } from "next/navigation";
 import {
   isAuthenticated,
   getAuthName,
-  getAuthRole,
+  hasAuthRole,
+  Roles,
   signOut,
   volunteerGql,
   downloadAttachment,
@@ -178,7 +179,7 @@ export default function FeedbackDetailPage() {
     const bound = volunteerGql;
     setGql(() => bound);
     setUserName(getAuthName() ?? "");
-    setIsAdmin(getAuthRole() === "ADMINISTRATOR");
+    setIsAdmin(hasAuthRole(Roles.ADMINISTRATOR));
     loadData(bound);
   }, [router, loadData]);
 

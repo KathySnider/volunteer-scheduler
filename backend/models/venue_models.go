@@ -11,6 +11,14 @@ type Venue struct {
 	ZipCode *string
 }
 
+type VenueView struct {
+	Name    *string
+	Address string
+	City    string
+	State   string
+	ZipCode *string
+}
+
 // Input for new elements.
 
 type NewVenueInput struct {
