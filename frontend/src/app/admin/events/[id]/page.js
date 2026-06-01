@@ -20,17 +20,14 @@ import styles from "./admin-event-detail.module.css";
 
 const ADMIN_EVENT_DETAIL = `
   query AdminEventDetail($eventId: ID!) {
-    managedEventById(eventId: $eventId) {
+    event(eventId: $eventId) {
       id name description eventType timezone
       venue { id name city state }
       fundingEntity { id name }
       eventDates { id startDateTime endDateTime }
       serviceTypes
-      recurrenceId
       recurrenceOrder
-      recurrencePattern
-      recurrenceMaxOccurrences
-      recurrenceOrdinal
+      recurrenceGroup { groupId pattern maxOccurrences weekdayOrdinal }
     }
     opportunitiesForEvent(eventId: $eventId) {
       id jobId isVirtual preEventInstructions
@@ -39,7 +36,6 @@ const ADMIN_EVENT_DETAIL = `
     lookupValues {
       serviceTypes { id name }
       jobTypes { id name }
-      fundingEntities { id name }
     }
     staff { id firstName lastName position }
   }
@@ -47,7 +43,7 @@ const ADMIN_EVENT_DETAIL = `
 
 const ALL_VOLUNTEERS_FOR_ROSTER = `
   query {
-    allVolunteers {
+    volunteers {
       id firstName lastName
     }
   }
@@ -87,6 +83,12 @@ const UPDATE_SHIFT      = `mutation UpdateShift($shift: UpdateShiftInput!) { upd
 const DELETE_SHIFT      = `mutation DeleteShift($shiftId: ID!) { deleteShift(shiftId: $shiftId) { success message } }`;
 const ASSIGN_VOLUNTEER  = `mutation AssignVol($shiftId: ID!, $volunteerId: ID!) { assignVolunteerToShift(shiftId: $shiftId, volunteerId: $volunteerId) { success message } }`;
 const CANCEL_SHIFT_VOL  = `mutation CancelShift($shiftId: ID!, $volunteerId: ID!) { cancelShift(shiftId: $shiftId, volunteerId: $volunteerId) { success message } }`;
+
+const FUNDING_ENTITIES_QUERY = `
+  query {
+    fundingEntities { id name }
+  }
+`;
 
 /* =========================================================
    Helpers
@@ -540,7 +542,7 @@ export default function AdminEventDetailPage() {
     setRosterMap(null);
     bound(ALL_VOLUNTEERS_FOR_ROSTER, null)
       .then(async (res) => {
-        const vols = res.data?.allVolunteers ?? [];
+        const vols = res.data?.volunteers ?? [];
         setAllVolunteers(vols);
         // Fetch shifts for every volunteer in parallel, then build shiftId → vol[] map.
         const entries = await Promise.all(
@@ -601,17 +603,18 @@ export default function AdminEventDetailPage() {
     if (!silent) setLoading(true);
     Promise.all([
       bound(ADMIN_EVENT_DETAIL, { eventId: eid }),
+      bound(FUNDING_ENTITIES_QUERY, null),
       getVenues().catch(() => []),
     ])
-      .then(([res, venueList]) => {
+      .then(([res, feRes, venueList]) => {
         if (res.errors) { setPageError(res.errors[0]?.message ?? "Error loading data."); return; }
         const loadedOpps = res.data?.opportunitiesForEvent ?? [];
-        const loadedEvent = res.data?.managedEventById ?? null;
+        const loadedEvent = res.data?.event ?? null;
         setEvent(loadedEvent);
         setOpps(loadedOpps);
         setJobTypes(res.data?.lookupValues?.jobTypes ?? []);
         setSvcTypes(res.data?.lookupValues?.serviceTypes ?? []);
-        setFundingEntities(res.data?.lookupValues?.fundingEntities ?? []);
+        setFundingEntities(feRes.data?.fundingEntities ?? []);
         setFundingEntityId(String(loadedEvent?.fundingEntity?.id ?? ""));
         setVenues(venueList);
         setStaff(res.data?.staff ?? []);
@@ -723,7 +726,7 @@ export default function AdminEventDetailPage() {
         timezone: tz,
         fundingEntityId: parseInt(fundingEntityId, 10),
         serviceTypes: evForm.serviceTypes.map(Number),
-        ...(event.recurrenceId ? { recurrenceScope } : {}),
+        ...(event.recurrenceGroup?.groupId ? { recurrenceScope } : {}),
       }},
       "Event updated.",
       () => setEditingEvent(false),
@@ -731,7 +734,7 @@ export default function AdminEventDetailPage() {
   };
 
   const handleDeleteEvent = () => {
-    if (event.recurrenceId) {
+    if (event.recurrenceGroup?.groupId) {
       // Recurring — show inline scope picker instead of a basic confirm
       setRecurrenceScope("THIS_ONLY");
       setDeletingEvent(true);
@@ -1115,13 +1118,13 @@ export default function AdminEventDetailPage() {
                 </>
               )}
 
-              {event.recurrenceId && (
+              {event.recurrenceGroup?.groupId && (
                 <>
                   <span className={styles.metaLabel}>Recurrence</span>
                   <span className={styles.metaValue}>
-                    {PATTERN_LABELS[event.recurrencePattern] ?? event.recurrencePattern}
-                    {event.recurrenceMaxOccurrences != null && ` · occurrence ${event.recurrenceOrder ?? "?"} of ${event.recurrenceMaxOccurrences}`}
-                    {event.recurrenceOrdinal && ` · ${ORDINAL_LABELS[event.recurrenceOrdinal] ?? event.recurrenceOrdinal} of month`}
+                    {PATTERN_LABELS[event.recurrenceGroup?.pattern] ?? event.recurrenceGroup?.pattern}
+                    {event.recurrenceGroup?.maxOccurrences != null && ` · occurrence ${event.recurrenceOrder ?? "?"} of ${event.recurrenceGroup?.maxOccurrences}`}
+                    {event.recurrenceGroup?.weekdayOrdinal && ` · ${ORDINAL_LABELS[event.recurrenceGroup?.weekdayOrdinal] ?? event.recurrenceGroup?.weekdayOrdinal} of month`}
                     <br />
                     <span className={styles.metaNote}>
                       To change the schedule, delete this and future occurrences and create a new series.
@@ -1141,7 +1144,7 @@ export default function AdminEventDetailPage() {
                       <div className={styles.shiftSub}>to {formatDisplay(date.endDateTime, tz)}</div>
                     </div>
                     {/* Date edit/delete is locked for recurring events — dates define the series. */}
-                    {!event.recurrenceId && (
+                    {!event.recurrenceGroup?.groupId && (
                       <div className={styles.oppActions}>
                         <button
                           className={`${styles.iconBtn} ${styles.iconBtnEdit}`}
@@ -1206,12 +1209,12 @@ export default function AdminEventDetailPage() {
                 )}
 
                 {/* Add date — hidden for recurring events */}
-                {!event.recurrenceId && !addingDate && !editingDateId && (
+                {!event.recurrenceGroup?.groupId && !addingDate && !editingDateId && (
                   <button className={styles.btnOutline} style={{ marginTop: "0.5rem" }} onClick={() => setAddingDate(true)}>
                     + Add Date
                   </button>
                 )}
-                {event.recurrenceId && (
+                {event.recurrenceGroup?.groupId && (
                   <p className={styles.metaNote} style={{ marginTop: "0.4rem" }}>
                     Dates are managed by the recurrence schedule. To change a date, delete this occurrence and create a new event.
                   </p>
@@ -1334,7 +1337,7 @@ export default function AdminEventDetailPage() {
                   ))}
                 </select>
               </div>
-              {event.recurrenceId && (
+              {event.recurrenceGroup?.groupId && (
                 <div className={styles.field}>
                   <label className={styles.label}>Apply changes to</label>
                   <div className={styles.radioGroup}>
@@ -1402,10 +1405,10 @@ export default function AdminEventDetailPage() {
           </div>
 
           {/* Recurring-series propagation notice */}
-          {event?.recurrenceId && (
+          {event?.recurrenceGroup?.groupId && (
             <div className={styles.propagateNote}>
               ℹ Occurrence {event.recurrenceOrder ?? "?"} of a{" "}
-              {(PATTERN_LABELS[event.recurrencePattern] ?? "recurring").toLowerCase()} series —
+              {(PATTERN_LABELS[event.recurrenceGroup?.pattern] ?? "recurring").toLowerCase()} series —
               adding, editing, or removing opportunities and shifts applies to this and all future occurrences.
             </div>
           )}

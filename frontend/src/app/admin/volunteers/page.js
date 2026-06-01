@@ -19,7 +19,7 @@ import styles from "./admin-volunteers.module.css";
 
 const ALL_VOLUNTEERS = `
   query {
-    allVolunteers {
+    volunteers {
       id firstName lastName email phone zipCode distance role
     }
   }
@@ -213,7 +213,7 @@ export default function AdminVolunteersPage() {
     setLoading(true);
     bound(ALL_VOLUNTEERS, null)
       .then((res) => {
-        setVolunteers(res.data?.allVolunteers ?? []);
+        setVolunteers(res.data?.volunteers ?? []);
         if (res.errors) setActionMsg({ type: "error", text: res.errors[0]?.message ?? "Error loading data." });
       })
       .catch(() => setActionMsg({ type: "error", text: "Unable to reach the server." }))

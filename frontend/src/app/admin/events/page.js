@@ -26,11 +26,11 @@ const LOOKUP_VALUES = `
 
 const FILTERED_EVENTS = `
   query FilteredEvents($filter: EventFilterInput) {
-    filteredEvents(filter: $filter) {
+    events(filter: $filter) {
       id
       name
       eventType
-      recurrenceId
+      recurrenceGroup { groupId }
       venue { city state }
       fundingEntity { name }
       eventDates { startDateTime }
@@ -234,7 +234,7 @@ export default function AdminEventsPage() {
           setPageError(res.errors[0]?.message ?? "Error loading events.");
           setEvents([]);
         } else {
-          setEvents(res.data?.filteredEvents ?? []);
+          setEvents(res.data?.events ?? []);
         }
       })
       .catch(() => {
@@ -276,7 +276,7 @@ export default function AdminEventsPage() {
   /* ----- Delete ----- */
   const handleDelete = (event) => {
     setActionMsg(null);
-    if (event.recurrenceId) {
+    if (event.recurrenceGroup?.groupId) {
       // Recurring — show scope picker modal instead of a bare confirm
       setDeleteScope("THIS_ONLY");
       setPendingDelete(event);

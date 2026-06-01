@@ -20,7 +20,7 @@ import styles from "./profile.module.css";
 
 const GET_PROFILE = `
   query {
-    volunteerProfile {
+    ownProfile {
       firstName
       lastName
       email
@@ -72,7 +72,7 @@ export default function ProfilePage() {
 
     bound(GET_PROFILE, null)
       .then((res) => {
-        const p = res.data?.volunteerProfile;
+        const p = res.data?.ownProfile;
         if (p) {
           setForm({
             firstName:            p.firstName ?? "",

@@ -41,7 +41,7 @@ export async function middleware(request: NextRequest) {
         "Content-Type": "application/json",
         Cookie: `session=${sessionCookie.value}`,
       },
-      body: JSON.stringify({ query: "{ volunteerProfile { role } }" }),
+      body: JSON.stringify({ query: "{ ownProfile { role } }" }),
     });
 
     if (!res.ok) {
@@ -49,9 +49,9 @@ export async function middleware(request: NextRequest) {
     }
 
     const json = (await res.json()) as {
-      data?: { volunteerProfile?: { role?: string } };
+      data?: { ownProfile?: { role?: string } | null };
     };
-    const role = json?.data?.volunteerProfile?.role;
+    const role = json?.data?.ownProfile?.role;
 
     if (role !== "ADMINISTRATOR") {
       return NextResponse.redirect(new URL("/events", request.url));

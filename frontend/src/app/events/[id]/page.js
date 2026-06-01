@@ -8,7 +8,6 @@ import {
   getAuthName,
   signOut,
   volunteerGql,
-  adminGql,
   getOwnShifts,
   setOwnShiftsCache,
 } from "../../lib/api";
@@ -20,7 +19,7 @@ import styles from "./event-detail.module.css";
 
 const EVENT_DETAIL = `
   query EventDetail($eventId: ID!) {
-    eventById(eventId: $eventId) {
+    eventView(eventId: $eventId) {
       id
       name
       description
@@ -42,7 +41,7 @@ const EVENT_DETAIL = `
 
 const SHIFTS_FOR_EVENT = `
   query ShiftsForEvent($eventId: ID!) {
-    shiftsForEvent(eventId: $eventId) {
+    eventShiftViews(eventId: $eventId) {
       id
       jobName
       startDateTime
@@ -308,7 +307,6 @@ export default function EventDetailPage() {
   const router  = useRouter();
   const params  = useParams();
   const eventId = params?.id;
-  const [gql,       setGql]       = useState(null);
   const [volGql,    setVolGql]    = useState(null);
   const [userName,  setUserName]  = useState("");
   const [isAdmin,      setIsAdmin]      = useState(false);
@@ -328,18 +326,13 @@ export default function EventDetailPage() {
   useEffect(() => {
     if (!isAuthenticated()) { router.replace("/login"); return; }
     const role = getAuthRole();
-    const boundGql    = role === "ADMINISTRATOR"
-      ? adminGql
-      : volunteerGql;
-    const boundVolGql = volunteerGql;
-    setGql(() => boundGql);
-    setVolGql(() => boundVolGql);
+    setVolGql(() => volunteerGql);
     setUserName(getAuthName() ?? "");
     setIsAdmin(role === "ADMINISTRATOR");
 
     Promise.all([
       volunteerGql(EVENT_DETAIL, { eventId }),
-      boundVolGql(SHIFTS_FOR_EVENT, { eventId }),
+      volunteerGql(SHIFTS_FOR_EVENT, { eventId }),
       getOwnShifts().catch(() => []),
     ])
       .then(([evRes, shiftRes, cached]) => {
@@ -347,10 +340,10 @@ export default function EventDetailPage() {
           setPageError(evRes.errors[0]?.message ?? "Error loading event.");
           return;
         }
-        setEvent(evRes.data?.eventById ?? null);
+        setEvent(evRes.data?.eventView ?? null);
 
         // Sort shifts by start time
-        const sorted = [...(shiftRes.data?.shiftsForEvent ?? [])];
+        const sorted = [...(shiftRes.data?.eventShiftViews ?? [])];
         sorted.sort((a, b) => (a.startDateTime < b.startDateTime ? -1 : 1));
         setShifts(sorted);
 
@@ -373,8 +366,8 @@ export default function EventDetailPage() {
       volGql(SHIFTS_FOR_EVENT, { eventId }),
       volunteerGql(OWN_SHIFTS_FRESH).catch(() => null),
     ]);
-    if (shiftRes?.data?.shiftsForEvent) {
-      const sorted = [...shiftRes.data.shiftsForEvent];
+    if (shiftRes?.data?.eventShiftViews) {
+      const sorted = [...shiftRes.data.eventShiftViews];
       sorted.sort((a, b) => (a.startDateTime < b.startDateTime ? -1 : 1));
       setShifts(sorted);
     }

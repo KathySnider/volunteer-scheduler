@@ -41,9 +41,14 @@ function timezoneOptions(browserZone) {
 const LOOKUPS_QUERY = `
   query {
     lookupValues {
-      fundingEntities { id name }
       serviceTypes { id name }
     }
+  }
+`;
+
+const FUNDING_ENTITIES_QUERY = `
+  query {
+    fundingEntities { id name }
   }
 `;
 
@@ -71,9 +76,9 @@ const CREATE_EVENT = `
 // first occurrence's numeric event ID, so the "Add Opportunities" link works.
 const FIRST_IN_GROUP = `
   query {
-    filteredEvents {
+    events {
       id
-      recurrenceId
+      recurrenceGroup { groupId }
       recurrenceOrder
     }
   }
@@ -511,19 +516,21 @@ export default function AddEventPage() {
 
     Promise.all([
       boundGql(LOOKUPS_QUERY, null),
+      boundGql(FUNDING_ENTITIES_QUERY, null),
       getVenues().catch(() => []),
     ])
-      .then(([res, venueList]) => {
+      .then(([res, feRes, venueList]) => {
         // Venues come from the module-level cache (shared across admin pages).
         setVenues(venueList);
-        // Use whatever lookup data came back even if one field errored.
-        if (res.data?.lookupValues?.fundingEntities) {
-          setFundingEntities(res.data.lookupValues.fundingEntities);
-          if (res.data.lookupValues.fundingEntities.length > 0 && !fundingEntityId) {
-            setFundingEntityId(String(res.data.lookupValues.fundingEntities[0].id));
+        // Shared lookups
+        if (res.data?.lookupValues?.serviceTypes) setServiceTypes(res.data.lookupValues.serviceTypes);
+        // Admin-only: funding entities
+        if (feRes.data?.fundingEntities) {
+          setFundingEntities(feRes.data.fundingEntities);
+          if (feRes.data.fundingEntities.length > 0 && !fundingEntityId) {
+            setFundingEntityId(String(feRes.data.fundingEntities[0].id));
           }
         }
-        if (res.data?.lookupValues?.serviceTypes) setServiceTypes(res.data.lookupValues.serviceTypes);
         if (res.errors) setLoadError(res.errors[0]?.message ?? "Error loading some data.");
       })
       .catch(() => setLoadError("Unable to reach the server."));
@@ -657,9 +664,9 @@ export default function AddEventPage() {
       if (isUUID(result.id)) {
         try {
           const listRes = await gql(FIRST_IN_GROUP, null);
-          const events = listRes.data?.filteredEvents ?? [];
+          const events = listRes.data?.events ?? [];
           const first = events
-            .filter((e) => e.recurrenceId === result.id)
+            .filter((e) => e.recurrenceGroup?.groupId === result.id)
             .sort((a, b) => (a.recurrenceOrder ?? 0) - (b.recurrenceOrder ?? 0))[0];
           if (first?.id) targetId = first.id;
         } catch {

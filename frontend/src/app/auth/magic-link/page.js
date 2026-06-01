@@ -20,7 +20,7 @@ const CONSUME_MAGIC_LINK = `
 
 const VOLUNTEER_PROFILE = `
   query {
-    volunteerProfile {
+    ownProfile {
       firstName
       lastName
       role
@@ -65,7 +65,7 @@ function MagicLinkContent() {
       let name = null;
       try {
         const profileResult = await volunteerGql(VOLUNTEER_PROFILE);
-        const profile = profileResult.data?.volunteerProfile;
+        const profile = profileResult.data?.ownProfile;
         role = profile?.role ?? null;
         if (profile?.firstName || profile?.lastName) {
           name = `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim();

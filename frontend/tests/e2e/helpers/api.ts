@@ -110,7 +110,7 @@ export async function consumeMagicLink(token: string): Promise<string> {
 
 /**
  * Create a volunteer directly via the admin API.
- * Returns the volunteer's ID (from allVolunteers query after creation).
+ * Returns the volunteer's ID (from volunteers query after creation).
  */
 export async function createVolunteer(
   adminToken: string,
@@ -183,18 +183,18 @@ export async function createJobType(
   return parseInt(result.id, 10);
 }
 
-/** Find an event ID by exact name via filteredEvents query. Returns null if not found. */
+/** Find an event ID by exact name via events query. Returns null if not found. */
 export async function findEventIdByName(
   adminToken: string,
   name: string
 ): Promise<string | null> {
   const data = await gql(
     ADMIN_URL,
-    `query { filteredEvents { id name } }`,
+    `query { events { id name } }`,
     undefined,
     adminToken
   );
-  const events = data.filteredEvents as Array<{ id: string; name: string }>;
+  const events = data.events as Array<{ id: string; name: string }>;
   return events.find((e) => e.name === name)?.id ?? null;
 }
 
@@ -209,11 +209,11 @@ export async function findAllEventsByName(
 ): Promise<Array<{ id: string; recurrenceOrder: number }>> {
   const data = await gql(
     ADMIN_URL,
-    `query { filteredEvents { id name recurrenceOrder } }`,
+    `query { events { id name recurrenceOrder } }`,
     undefined,
     adminToken
   );
-  const events = data.filteredEvents as Array<{
+  const events = data.events as Array<{
     id: string;
     name: string;
     recurrenceOrder?: number | null;
@@ -241,11 +241,11 @@ export async function deleteEvent(adminToken: string, eventId: string): Promise<
 export async function deleteEventsByName(adminToken: string, name: string): Promise<void> {
   const data = await gql(
     ADMIN_URL,
-    `query { filteredEvents { id name } }`,
+    `query { events { id name } }`,
     undefined,
     adminToken
   );
-  const events = data.filteredEvents as Array<{ id: string; name: string }>;
+  const events = data.events as Array<{ id: string; name: string }>;
   for (const ev of events.filter((e) => e.name === name)) {
     try { await deleteEvent(adminToken, ev.id); } catch { /* ignore — may already be gone */ }
   }
@@ -343,11 +343,11 @@ export async function findVolunteerIdByEmail(
 ): Promise<string | null> {
   const data = await gql(
     ADMIN_URL,
-    `query FindVol($f: VolunteerFilterInput) { allVolunteers(filter: $f) { id email } }`,
+    `query FindVol($f: VolunteerFilterInput) { volunteers(filter: $f) { id email } }`,
     { f: { email } },
     adminToken
   );
-  const vols = data.allVolunteers as Array<{ id: string; email: string }>;
+  const vols = data.volunteers as Array<{ id: string; email: string }>;
   return vols.find((v) => v.email === email)?.id ?? null;
 }
 
@@ -450,11 +450,11 @@ export async function createEventWithShift(
   // Fetch the event to get its ID
   const eventsData = await gql(
     ADMIN_URL,
-    `query { filteredEvents { id name } }`,
+    `query { events { id name } }`,
     undefined,
     adminToken
   );
-  const events = eventsData.filteredEvents as Array<{ id: string; name: string }>;
+  const events = eventsData.events as Array<{ id: string; name: string }>;
   const event = events.find((e) => e.name === opts.eventName);
   if (!event) throw new Error(`Created event ${opts.eventName} not found`);
 

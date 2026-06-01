@@ -8,7 +8,6 @@ import {
   getAuthName,
   signOut,
   volunteerGql,
-  adminGql,
 } from "../lib/api";
 import AdminTopBar from "../components/AdminTopBar";
 import FeedbackButton from "../components/FeedbackButton";
@@ -36,7 +35,7 @@ const LOOKUP_VALUES = `
 
 const GET_VOLUNTEER_PROFILE = `
   query {
-    volunteerProfile {
+    ownProfile {
       zipCode
       distance
     }
@@ -44,8 +43,8 @@ const GET_VOLUNTEER_PROFILE = `
 `;
 
 const FILTERED_EVENTS = `
-  query FilteredEvents($filter: EventFilterInput) {
-    filteredEventsWithShifts(filter: $filter) {
+  query FilteredEvents($filter: VolunteerEventFilterInput) {
+    eventViews(filter: $filter) {
       id
       name
       description
@@ -314,13 +313,9 @@ export default function EventsPage() {
       return;
     }
     const role = getAuthRole();
-    const boundGql =
-      role === "ADMINISTRATOR"
-        ? adminGql
-        : volunteerGql;
 
     setReady(true);
-    setGql(() => boundGql);
+    setGql(() => volunteerGql);
     setUserName(getAuthName() ?? "");
     setIsAdmin(role === "ADMINISTRATOR");
   }, [router]);
@@ -365,7 +360,7 @@ export default function EventsPage() {
     if (!gql) return;
     volunteerGql(GET_VOLUNTEER_PROFILE, null)
       .then((res) => {
-        const p = res.data?.volunteerProfile;
+        const p = res.data?.ownProfile;
         if (p?.zipCode) {
           setHasZip(true);
           // Restore from sessionStorage first; fall back to profile default.
@@ -436,7 +431,7 @@ export default function EventsPage() {
           setSearchError(res.errors[0]?.message ?? "Error loading events.");
           setEvents([]);
         } else {
-          setEvents(res.data?.filteredEventsWithShifts ?? []);
+          setEvents(res.data?.eventViews ?? []);
         }
       })
       .catch(() => {
