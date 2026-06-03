@@ -352,6 +352,97 @@
   cursor: not-allowed;
 }
 
+/* ----- Add a note section ----- */
+
+.addNoteSection {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.addNoteTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 1rem;
+}
+
+.noteTextarea {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1.5px solid var(--color-border-input);
+  border-radius: var(--radius-sm);
+  font-size: 0.9375rem;
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-surface);
+  resize: vertical;
+  line-height: 1.55;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.noteTextarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.noteTextarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+.noteActions {
+  margin-top: 0.875rem;
+}
+
+.noteSubmitBtn {
+  padding: 0.55rem 1.25rem;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.noteSubmitBtn:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.noteSubmitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.noteErrorBox {
+  background-color: var(--color-danger-light);
+  border: 1px solid #fca5a5;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.875rem;
+  color: var(--color-danger);
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+}
+
+/* ----- Success banner ----- */
+
+.successBox {
+  background-color: var(--color-success-light);
+  border: 1px solid #86efac;
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  color: var(--color-success);
+  font-size: 0.9375rem;
+  margin-bottom: 1.5rem;
+}
+
 /* ----- Loading / error states ----- */
 
 .stateBox {

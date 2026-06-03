@@ -19,32 +19,32 @@ import styles from "./admin-feedback-detail.module.css";
    GraphQL
    ========================================================= */
 
-const FEEDBACK_BY_ID = `
-  query FeedbackById($id: ID!) {
-    feedbackById(feedbackId: $id) {
+const FEEDBACK_DETAIL = `
+  query FeedbackDetail($id: ID!) {
+    feedbackDetail(feedbackId: $id) {
       id volunteerName type status subject appPageName text
-      githubIssueURL createdAt lastUpdatedAt resolvedAt
+      createdAt lastUpdatedAt resolvedAt
       notes { id creator noteType note createdAt }
       attachments { id filename mimeType fileSize createdAt }
     }
   }
 `;
 
-const QUESTION_FEEDBACK = `
-  mutation QuestionFeedback($input: QuestionFeedbackInput!) {
-    questionFeedback(question: $input) { success message }
+const UPDATE_FEEDBACK_STATUS = `
+  mutation UpdateFeedbackStatus($input: FeedbackStatusUpdateInput!) {
+    updateFeedbackStatus(su: $input) { success message }
   }
 `;
 
-const UPDATE_FEEDBACK = `
-  mutation UpdateFeedback($input: UpdateFeedbackInput!) {
-    updateFeedback(feedback: $input) { success message }
+const ADD_FEEDBACK_NOTE = `
+  mutation AddFeedbackNote($input: FeedbackNoteInput!) {
+    addFeedbackNote(note: $input) { success message }
   }
 `;
 
-const RESOLVE_FEEDBACK = `
-  mutation ResolveFeedback($input: ResolveFeedbackInput!) {
-    resolveFeedback(resolution: $input) { success message }
+const EMAIL_FEEDBACK_SUBMITTER = `
+  mutation EmailFeedbackSubmitter($input: FeedbackEmailInput!) {
+    emailFeedbackSubmitter(input: $input) { success message }
   }
 `;
 
@@ -68,10 +68,10 @@ function formatDateShort(iso) {
 }
 
 const STATUS_LABEL = {
-  OPEN:               "Open",
-  QUESTION_SENT:      "Question Sent",
-  RESOLVED_GITHUB:    "Resolved (GitHub)",
-  RESOLVED_REJECTED:  "Rejected",
+  OPEN:                 "Open",
+  QUESTION_SENT:        "Question Sent",
+  RESOLVED_IMPLEMENTED: "Resolved",
+  RESOLVED_REJECTED:    "Rejected",
 };
 
 const TYPE_LABEL = {
@@ -83,12 +83,19 @@ const TYPE_LABEL = {
 const NOTE_TYPE_LABEL = {
   ADMIN_NOTE:          "Admin note (internal):",
   QUESTION:            "Question sent to volunteer:",
-  VOLUNTEER_REPLY:     "Volunteer replied:",
+  VOLUNTEER_NOTE:      "Volunteer note:",
   EMAIL_TO_VOLUNTEER:  "Email to volunteer:",
 };
 
+// QUESTION_SENT is set automatically by emailFeedbackSubmitter — not selectable here.
+const UPDATABLE_STATUSES = [
+  { value: "OPEN",                  label: "Open" },
+  { value: "RESOLVED_IMPLEMENTED",  label: "Resolved" },
+  { value: "RESOLVED_REJECTED",     label: "Rejected" },
+];
+
 /* =========================================================
-   Sub-components (module level)
+   Sub-components
    ========================================================= */
 
 function TypeBadge({ type }) {
@@ -102,10 +109,10 @@ function TypeBadge({ type }) {
 
 function StatusBadge({ status }) {
   const cls = {
-    OPEN:              styles.statusOpen,
-    QUESTION_SENT:     styles.statusQuestion,
-    RESOLVED_GITHUB:   styles.statusResolved,
-    RESOLVED_REJECTED: styles.statusRejected,
+    OPEN:                 styles.statusOpen,
+    QUESTION_SENT:        styles.statusQuestion,
+    RESOLVED_IMPLEMENTED: styles.statusResolved,
+    RESOLVED_REJECTED:    styles.statusRejected,
   }[status] ?? styles.statusOpen;
   return <span className={`${styles.badge} ${cls}`}>{STATUS_LABEL[status] ?? status}</span>;
 }
@@ -114,7 +121,7 @@ function NoteItem({ note }) {
   const cls = {
     ADMIN_NOTE:         styles.noteAdmin,
     QUESTION:           styles.noteQuestion,
-    VOLUNTEER_REPLY:    styles.noteVolunteer,
+    VOLUNTEER_NOTE:     styles.noteVolunteer,
     EMAIL_TO_VOLUNTEER: styles.noteEmail,
   }[note.noteType] ?? styles.noteAdmin;
 
@@ -151,24 +158,6 @@ function TextField({ label, value, onChange, required, placeholder, rows = 4 }) 
   );
 }
 
-function InputField({ label, value, onChange, required, placeholder, type = "text" }) {
-  return (
-    <div className={styles.field}>
-      <label className={styles.label}>
-        {label}
-        {required && <span className={styles.required}> *</span>}
-      </label>
-      <input
-        className={styles.input}
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-      />
-    </div>
-  );
-}
-
 /* =========================================================
    Accordion wrapper
    ========================================================= */
@@ -194,95 +183,26 @@ function AccordionPanel({ title, isOpen, onToggle, children }) {
 }
 
 /* =========================================================
-   Ask a Question Panel
+   Add Internal Note Panel
    ========================================================= */
 
-function AskQuestionPanel({ feedbackId, gql, onSuccess, onError }) {
-  const [emailText, setEmailText] = useState("");
-  const [note, setNote]           = useState("");
-  const [busy, setBusy]           = useState(false);
+function AddNotePanel({ feedbackId, gql, onSuccess, onError }) {
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const handleSubmit = async () => {
-    if (!emailText.trim()) { onError("Email text is required."); return; }
-    if (!note.trim())      { onError("Internal note is required."); return; }
+    if (!note.trim()) { onError("Note text is required."); return; }
     setBusy(true);
     try {
-      const res = await gql(QUESTION_FEEDBACK, {
-        input: { id: feedbackId, emailText: emailText.trim(), note: note.trim() },
+      const res = await gql(ADD_FEEDBACK_NOTE, {
+        input: { feedbackId: parseInt(feedbackId, 10), note: note.trim() },
       });
-      const result = res.data?.questionFeedback;
+      const result = res.data?.addFeedbackNote;
       if (res.errors || !result?.success) {
-        onError(result?.message ?? res.errors?.[0]?.message ?? "Failed to send question.");
+        onError(result?.message ?? res.errors?.[0]?.message ?? "Failed to add note.");
       } else {
-        onSuccess("Question sent to volunteer.");
-      }
-    } catch {
-      onError("Unable to reach the server.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <>
-      <TextField
-        label="Email text to volunteer"
-        value={emailText}
-        onChange={setEmailText}
-        required
-        placeholder="What would you like to ask the volunteer?"
-      />
-      <TextField
-        label="Internal note"
-        value={note}
-        onChange={setNote}
-        required
-        placeholder="Internal note (not visible to volunteer)"
-        rows={3}
-      />
-      <div className={styles.panelActions}>
-        <button className={styles.btnPrimary} onClick={handleSubmit} disabled={busy}>
-          {busy ? "Sending…" : "Send Question"}
-        </button>
-      </div>
-    </>
-  );
-}
-
-/* =========================================================
-   Update / Add to GitHub Panel
-   ========================================================= */
-
-const UPDATABLE_STATUSES = [
-  { value: "OPEN",              label: "Open" },
-  { value: "QUESTION_SENT",     label: "Question Sent" },
-  { value: "RESOLVED_GITHUB",   label: "Resolved (GitHub)" },
-  { value: "RESOLVED_REJECTED", label: "Rejected" },
-];
-
-function UpdatePanel({ feedbackId, currentStatus, currentGithubURL, gql, onSuccess, onError }) {
-  const [note, setNote]             = useState("");
-  const [status, setStatus]         = useState(currentStatus);
-  const [githubURL, setGithubURL]   = useState(currentGithubURL ?? "");
-  const [busy, setBusy]             = useState(false);
-
-  const handleSubmit = async () => {
-    if (!note.trim()) { onError("Note is required."); return; }
-    setBusy(true);
-    try {
-      const input = {
-        id: feedbackId,
-        status,
-        note: note.trim(),
-      };
-      if (githubURL.trim()) input.githubIssueURL = githubURL.trim();
-
-      const res = await gql(UPDATE_FEEDBACK, { input });
-      const result = res.data?.updateFeedback;
-      if (res.errors || !result?.success) {
-        onError(result?.message ?? res.errors?.[0]?.message ?? "Failed to update feedback.");
-      } else {
-        onSuccess("Feedback updated.");
+        setNote("");
+        onSuccess("Internal note added.");
       }
     } catch {
       onError("Unable to reach the server.");
@@ -298,11 +218,58 @@ function UpdatePanel({ feedbackId, currentStatus, currentGithubURL, gql, onSucce
         value={note}
         onChange={setNote}
         required
-        placeholder="Add a note about this update"
+        placeholder="Private note — not visible to the volunteer"
         rows={3}
       />
+      <div className={styles.panelActions}>
+        <button className={styles.btnPrimary} onClick={handleSubmit} disabled={busy}>
+          {busy ? "Saving…" : "Add Note"}
+        </button>
+      </div>
+    </>
+  );
+}
+
+/* =========================================================
+   Change Status Panel
+   ========================================================= */
+
+function ChangeStatusPanel({ feedbackId, currentStatus, gql, onSuccess, onError }) {
+  const [status, setStatus] = useState(
+    UPDATABLE_STATUSES.some((s) => s.value === currentStatus) ? currentStatus : "OPEN"
+  );
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!note.trim()) { onError("A note is required when changing status."); return; }
+    setBusy(true);
+    try {
+      const res = await gql(UPDATE_FEEDBACK_STATUS, {
+        input: {
+          feedbackId: parseInt(feedbackId, 10),
+          status,
+          note: note.trim(),
+        },
+      });
+      const result = res.data?.updateFeedbackStatus;
+      if (res.errors || !result?.success) {
+        onError(result?.message ?? res.errors?.[0]?.message ?? "Failed to update status.");
+      } else {
+        setNote("");
+        onSuccess("Status updated.");
+      }
+    } catch {
+      onError("Unable to reach the server.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
       <div className={styles.field}>
-        <label className={styles.label}>Status</label>
+        <label className={styles.label}>New Status</label>
         <select
           className={styles.select}
           value={status}
@@ -313,18 +280,17 @@ function UpdatePanel({ feedbackId, currentStatus, currentGithubURL, gql, onSucce
           ))}
         </select>
       </div>
-      {status === "RESOLVED_GITHUB" && (
-        <InputField
-          label="GitHub Issue URL"
-          value={githubURL}
-          onChange={setGithubURL}
-          placeholder="https://github.com/org/repo/issues/123"
-          type="url"
-        />
-      )}
+      <TextField
+        label="Note (required)"
+        value={note}
+        onChange={setNote}
+        required
+        placeholder="Explain the status change"
+        rows={3}
+      />
       <div className={styles.panelActions}>
         <button className={styles.btnPrimary} onClick={handleSubmit} disabled={busy}>
-          {busy ? "Saving…" : "Update"}
+          {busy ? "Saving…" : "Update Status"}
         </button>
       </div>
     </>
@@ -332,36 +298,32 @@ function UpdatePanel({ feedbackId, currentStatus, currentGithubURL, gql, onSucce
 }
 
 /* =========================================================
-   Resolve Panel
+   Email Volunteer Panel
    ========================================================= */
 
-function ResolvePanel({ feedbackId, currentGithubURL, gql, onSuccess, onError }) {
-  const [note, setNote]           = useState("");
-  const [resolution, setResolution] = useState("RESOLVED_REJECTED");
-  const [githubURL, setGithubURL] = useState(currentGithubURL ?? "");
-  const [busy, setBusy]           = useState(false);
+function EmailPanel({ feedbackId, gql, onSuccess, onError }) {
+  const [emailText, setEmailText]     = useState("");
+  const [requireReply, setRequireReply] = useState(false);
+  const [busy, setBusy]               = useState(false);
 
   const handleSubmit = async () => {
-    if (!note.trim()) { onError("Note is required."); return; }
-    if (resolution === "RESOLVED_GITHUB" && !githubURL.trim()) {
-      onError("GitHub URL is required when resolving via GitHub.");
-      return;
-    }
+    if (!emailText.trim()) { onError("Email text is required."); return; }
     setBusy(true);
     try {
-      const input = {
-        id: feedbackId,
-        status: resolution,
-        note: note.trim(),
-      };
-      if (githubURL.trim()) input.githubIssueURL = githubURL.trim();
-
-      const res = await gql(RESOLVE_FEEDBACK, { input });
-      const result = res.data?.resolveFeedback;
+      const res = await gql(EMAIL_FEEDBACK_SUBMITTER, {
+        input: {
+          feedbackId: parseInt(feedbackId, 10),
+          emailText: emailText.trim(),
+          requireReply,
+        },
+      });
+      const result = res.data?.emailFeedbackSubmitter;
       if (res.errors || !result?.success) {
-        onError(result?.message ?? res.errors?.[0]?.message ?? "Failed to resolve feedback.");
+        onError(result?.message ?? res.errors?.[0]?.message ?? "Failed to send email.");
       } else {
-        onSuccess("Feedback resolved.");
+        setEmailText("");
+        setRequireReply(false);
+        onSuccess(requireReply ? "Question sent to volunteer." : "Email sent to volunteer.");
       }
     } catch {
       onError("Unable to reach the server.");
@@ -373,50 +335,30 @@ function ResolvePanel({ feedbackId, currentGithubURL, gql, onSuccess, onError })
   return (
     <>
       <TextField
-        label="Resolution note (will be emailed to volunteer)"
-        value={note}
-        onChange={setNote}
+        label="Email text"
+        value={emailText}
+        onChange={setEmailText}
         required
-        placeholder="Explain how this feedback was resolved or why it was rejected"
+        placeholder="What would you like to say to the volunteer?"
       />
       <div className={styles.field}>
-        <label className={styles.label}>Resolution</label>
-        <div className={styles.radioGroup}>
-          <label className={styles.radioLabel}>
-            <input
-              type="radio"
-              name="resolution"
-              value="RESOLVED_REJECTED"
-              checked={resolution === "RESOLVED_REJECTED"}
-              onChange={() => setResolution("RESOLVED_REJECTED")}
-            />
-            Rejected
-          </label>
-          <label className={styles.radioLabel}>
-            <input
-              type="radio"
-              name="resolution"
-              value="RESOLVED_GITHUB"
-              checked={resolution === "RESOLVED_GITHUB"}
-              onChange={() => setResolution("RESOLVED_GITHUB")}
-            />
-            Resolved via GitHub
-          </label>
-        </div>
+        <label className={styles.checkboxLabel}>
+          <input
+            type="checkbox"
+            checked={requireReply}
+            onChange={(e) => setRequireReply(e.target.checked)}
+          />
+          I need a reply before work can continue
+        </label>
+        <p className={styles.checkboxHint}>
+          {requireReply
+            ? "Status will change to “Question Sent” — work is paused until the volunteer responds."
+            : "Leave unchecked to send informational email without pausing work on this feedback."}
+        </p>
       </div>
-      {resolution === "RESOLVED_GITHUB" && (
-        <InputField
-          label="GitHub Issue URL"
-          value={githubURL}
-          onChange={setGithubURL}
-          placeholder="https://github.com/org/repo/issues/123"
-          type="url"
-          required
-        />
-      )}
       <div className={styles.panelActions}>
-        <button className={`${styles.btnPrimary} ${styles.btnDanger}`} onClick={handleSubmit} disabled={busy}>
-          {busy ? "Resolving…" : "Resolve Feedback"}
+        <button className={styles.btnPrimary} onClick={handleSubmit} disabled={busy}>
+          {busy ? "Sending…" : "Send Email"}
         </button>
       </div>
     </>
@@ -459,11 +401,11 @@ export default function AdminFeedbackDetailPage() {
   const loadData = useCallback((bound, feedbackId) => {
     setLoading(true);
     setPageError("");
-    bound(FEEDBACK_BY_ID, { id: feedbackId })
+    bound(FEEDBACK_DETAIL, { id: feedbackId })
       .then((res) => {
-        setFeedback(res.data?.feedbackById ?? null);
+        setFeedback(res.data?.feedbackDetail ?? null);
         if (res.errors) setPageError(res.errors[0]?.message ?? "Error loading feedback.");
-        if (!res.data?.feedbackById && !res.errors) setPageError("Feedback not found.");
+        if (!res.data?.feedbackDetail && !res.errors) setPageError("Feedback not found.");
       })
       .catch(() => setPageError("Unable to reach the server."))
       .finally(() => setLoading(false));
@@ -494,12 +436,11 @@ export default function AdminFeedbackDetailPage() {
   if (!gql) return null;
 
   const isResolved = feedback
-    ? ["RESOLVED_GITHUB", "RESOLVED_REJECTED"].includes(feedback.status)
+    ? ["RESOLVED_IMPLEMENTED", "RESOLVED_REJECTED"].includes(feedback.status)
     : false;
 
   return (
     <div className={styles.page}>
-      {/* Top bar */}
       <AdminTopBar userName={userName} isAdmin={true} onSignOut={handleSignOut} onFeedbackOpen={() => setFeedbackOpen(true)} />
 
       <div className={styles.content}>
@@ -543,19 +484,6 @@ export default function AdminFeedbackDetailPage() {
                   <span><strong>Page:</strong> {feedback.appPageName}</span>
                 )}
               </div>
-              {feedback.githubIssueURL && (
-                <div className={styles.githubLink}>
-                  <strong>GitHub Issue:</strong>{" "}
-                  <a
-                    href={feedback.githubIssueURL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.externalLink}
-                  >
-                    {feedback.githubIssueURL}
-                  </a>
-                </div>
-              )}
             </div>
 
             {/* Original feedback text */}
@@ -564,10 +492,10 @@ export default function AdminFeedbackDetailPage() {
               <p className={styles.feedbackText}>{feedback.text}</p>
             </div>
 
-            {/* Notes thread */}
+            {/* Activity thread */}
             {feedback.notes && feedback.notes.length > 0 && (
               <div className={styles.card}>
-                <h2 className={styles.cardTitle}>Notes &amp; Thread</h2>
+                <h2 className={styles.cardTitle}>Activity Thread</h2>
                 <div className={styles.notesList}>
                   {[...feedback.notes]
                     .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
@@ -605,48 +533,49 @@ export default function AdminFeedbackDetailPage() {
             )}
 
             {/* Action panels */}
-            {isResolved ? (
+            {isResolved && (
               <div className={styles.resolvedNote}>
                 This feedback has been resolved.
               </div>
-            ) : (
+            )}
+
+            {/* Add internal note is always available */}
+            <AccordionPanel
+              title="Add Internal Note"
+              isOpen={openPanel === "note"}
+              onToggle={() => togglePanel("note")}
+            >
+              <AddNotePanel
+                feedbackId={feedback.id}
+                gql={gql}
+                onSuccess={handleSuccess}
+                onError={handleError}
+              />
+            </AccordionPanel>
+
+            {/* Status and email actions only for open feedback */}
+            {!isResolved && (
               <>
-                {feedback.status === "OPEN" && (
-                  <AccordionPanel
-                    title="Ask a Question"
-                    isOpen={openPanel === "question"}
-                    onToggle={() => togglePanel("question")}
-                  >
-                    <AskQuestionPanel
-                      feedbackId={feedback.id}
-                      gql={gql}
-                      onSuccess={handleSuccess}
-                      onError={handleError}
-                    />
-                  </AccordionPanel>
-                )}
                 <AccordionPanel
-                  title="Update / Add to GitHub"
-                  isOpen={openPanel === "update"}
-                  onToggle={() => togglePanel("update")}
+                  title="Change Status"
+                  isOpen={openPanel === "status"}
+                  onToggle={() => togglePanel("status")}
                 >
-                  <UpdatePanel
+                  <ChangeStatusPanel
                     feedbackId={feedback.id}
                     currentStatus={feedback.status}
-                    currentGithubURL={feedback.githubIssueURL}
                     gql={gql}
                     onSuccess={handleSuccess}
                     onError={handleError}
                   />
                 </AccordionPanel>
                 <AccordionPanel
-                  title="Resolve Feedback"
-                  isOpen={openPanel === "resolve"}
-                  onToggle={() => togglePanel("resolve")}
+                  title="Email Volunteer"
+                  isOpen={openPanel === "email"}
+                  onToggle={() => togglePanel("email")}
                 >
-                  <ResolvePanel
+                  <EmailPanel
                     feedbackId={feedback.id}
-                    currentGithubURL={feedback.githubIssueURL}
                     gql={gql}
                     onSuccess={handleSuccess}
                     onError={handleError}

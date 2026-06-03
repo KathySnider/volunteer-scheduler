@@ -26,11 +26,16 @@ const OWN_FEEDBACK = `
       subject
       appPageName
       text
-      githubIssueURL
       createdAt
       notes { id noteType note createdAt }
       attachments { id filename mimeType fileSize createdAt }
     }
+  }
+`;
+
+const ADD_VOLUNTEER_NOTE = `
+  mutation AddVolunteerFeedbackNote($input: VolunteerFeedbackNoteInput!) {
+    addVolunteerFeedbackNote(note: $input) { success message }
   }
 `;
 
@@ -59,23 +64,23 @@ function formatDateTime(isoString) {
 /* ----- Badges ----- */
 
 const TYPE_LABELS = {
-  BUG: "Bug Report",
+  BUG:         "Bug Report",
   ENHANCEMENT: "Enhancement",
-  GENERAL: "General",
+  GENERAL:     "General",
 };
 
 const STATUS_LABELS = {
-  OPEN: "Open",
-  QUESTION_SENT: "Question Sent",
-  RESOLVED_GITHUB: "Resolved",
-  RESOLVED_REJECTED: "Closed",
+  OPEN:                 "Open",
+  QUESTION_SENT:        "Question Sent",
+  RESOLVED_IMPLEMENTED: "Resolved",
+  RESOLVED_REJECTED:    "Closed",
 };
 
 function TypeBadge({ type }) {
   const cls = {
-    BUG: styles.typeBug,
+    BUG:         styles.typeBug,
     ENHANCEMENT: styles.typeEnhancement,
-    GENERAL: styles.typeGeneral,
+    GENERAL:     styles.typeGeneral,
   }[type] ?? "";
   return (
     <span className={`${styles.badge} ${cls}`}>
@@ -86,10 +91,10 @@ function TypeBadge({ type }) {
 
 function StatusBadge({ status }) {
   const cls = {
-    OPEN: styles.statusOpen,
-    QUESTION_SENT: styles.statusQuestion,
-    RESOLVED_GITHUB: styles.statusResolved,
-    RESOLVED_REJECTED: styles.statusRejected,
+    OPEN:                 styles.statusOpen,
+    QUESTION_SENT:        styles.statusQuestion,
+    RESOLVED_IMPLEMENTED: styles.statusResolved,
+    RESOLVED_REJECTED:    styles.statusRejected,
   }[status] ?? "";
   return (
     <span className={`${styles.badge} ${cls}`}>
@@ -103,15 +108,15 @@ function StatusBadge({ status }) {
 const NOTE_CONFIG = {
   QUESTION: {
     label: "Admin asked:",
-    cls: "noteQuestion",
+    cls:   "noteQuestion",
   },
-  VOLUNTEER_REPLY: {
-    label: "Your reply:",
-    cls: "noteReply",
+  VOLUNTEER_NOTE: {
+    label: "Your note:",
+    cls:   "noteReply",
   },
   EMAIL_TO_VOLUNTEER: {
     label: "Message from admin:",
-    cls: "noteEmail",
+    cls:   "noteEmail",
   },
 };
 
@@ -131,21 +136,27 @@ function NoteItem({ note }) {
 export default function FeedbackDetailPage() {
   const router = useRouter();
   const { id } = useParams();
-  const [gql, setGql] = useState(null);
-  const [userName,     setUserName]     = useState("");
-  const [isAdmin,      setIsAdmin]      = useState(false);
+  const [gql, setGql]           = useState(null);
+  const [userName, setUserName] = useState("");
+  const [isAdmin, setIsAdmin]   = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const [item, setItem] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+
+  const [item, setItem]         = useState(null);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
   const [downloadingId, setDownloadingId] = useState(null);
+
+  const [noteText, setNoteText]   = useState("");
+  const [noteBusy, setNoteBusy]   = useState(false);
+  const [noteError, setNoteError] = useState("");
 
   const handleDownload = useCallback(async (attachmentId) => {
     setDownloadingId(attachmentId);
     try {
       await downloadAttachment(attachmentId, false);
     } catch {
-      // non-fatal — browser will show nothing; could add a toast here
+      // non-fatal
     } finally {
       setDownloadingId(null);
     }
@@ -185,13 +196,42 @@ export default function FeedbackDetailPage() {
 
   const handleSignOut = async () => { await signOut(); router.replace("/login"); };
 
+  const handleAddNote = async () => {
+    if (!noteText.trim()) { setNoteError("Note text is required."); return; }
+    setNoteBusy(true);
+    setNoteError("");
+    setSuccessMsg("");
+    try {
+      const res = await gql(ADD_VOLUNTEER_NOTE, {
+        input: { feedbackId: parseInt(id, 10), note: noteText.trim() },
+      });
+      const result = res.data?.addVolunteerFeedbackNote;
+      if (res.errors || !result?.success) {
+        setNoteError(result?.message ?? res.errors?.[0]?.message ?? "Failed to add note.");
+      } else {
+        setNoteText("");
+        setSuccessMsg("Your note was added.");
+        loadData(gql);
+      }
+    } catch {
+      setNoteError("Unable to reach the server.");
+    } finally {
+      setNoteBusy(false);
+    }
+  };
+
   if (!gql) return null;
+
+  const isResolved = item
+    ? ["RESOLVED_IMPLEMENTED", "RESOLVED_REJECTED"].includes(item.status)
+    : false;
 
   return (
     <div className={styles.page}>
       <AdminTopBar userName={userName} isAdmin={isAdmin} onSignOut={handleSignOut} onFeedbackOpen={() => setFeedbackOpen(true)} />
 
       <main className={styles.main}>
+        {successMsg && <div className={styles.successBox}>{successMsg}</div>}
         {error && <div className={styles.errorBox}>{error}</div>}
 
         {loading && (
@@ -220,27 +260,7 @@ export default function FeedbackDetailPage() {
               </div>
 
               <div className={styles.cardText}>{item.text}</div>
-
-              {item.githubIssueURL && (
-                <div className={styles.githubLink}>
-                  <a
-                    href={item.githubIssueURL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.githubAnchor}
-                  >
-                    &#128279; View GitHub Issue
-                  </a>
-                </div>
-              )}
             </div>
-
-            {/* Question-sent notice */}
-            {item.status === "QUESTION_SENT" && (
-              <div className={styles.questionNotice}>
-                The admin has a question &mdash; a reply feature is coming soon.
-              </div>
-            )}
 
             {/* Notes thread */}
             {item.notes && item.notes.length > 0 && (
@@ -250,6 +270,38 @@ export default function FeedbackDetailPage() {
                   {item.notes.map((note) => (
                     <NoteItem key={note.id} note={note} />
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add a note — not shown when resolved */}
+            {!isResolved && (
+              <div className={styles.addNoteSection}>
+                <h2 className={styles.addNoteTitle}>
+                  {item.status === "QUESTION_SENT"
+                    ? "Reply to admin's question"
+                    : "Add a note"}
+                </h2>
+                {noteError && <div className={styles.noteErrorBox}>{noteError}</div>}
+                <textarea
+                  className={styles.noteTextarea}
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
+                  placeholder="Add context, a reply, or any additional information…"
+                  rows={4}
+                />
+                <div className={styles.noteActions}>
+                  <button
+                    className={styles.noteSubmitBtn}
+                    onClick={handleAddNote}
+                    disabled={noteBusy}
+                  >
+                    {noteBusy
+                      ? "Submitting…"
+                      : item.status === "QUESTION_SENT"
+                        ? "Submit Reply"
+                        : "Add Note"}
+                  </button>
                 </div>
               </div>
             )}

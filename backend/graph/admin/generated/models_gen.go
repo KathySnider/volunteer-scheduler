@@ -58,25 +58,30 @@ type EventShiftSummary struct {
 }
 
 type Feedback struct {
-	ID             string                    `json:"id"`
-	VolunteerName  string                    `json:"volunteerName"`
-	Type           FeedbackType              `json:"type"`
-	Status         FeedbackStatus            `json:"status"`
-	Subject        string                    `json:"subject"`
-	AppPageName    string                    `json:"appPageName"`
-	Text           string                    `json:"text"`
-	Notes          []*FeedbackNote           `json:"notes"`
-	GithubIssueURL *string                   `json:"githubIssueURL,omitempty"`
-	CreatedAt      string                    `json:"createdAt"`
-	LastUpdatedAt  *string                   `json:"lastUpdatedAt,omitempty"`
-	ResolvedAt     *string                   `json:"resolvedAt,omitempty"`
-	Attachments    []*FeedbackMetaAttachment `json:"attachments"`
+	ID            string                    `json:"id"`
+	VolunteerName string                    `json:"volunteerName"`
+	Type          FeedbackType              `json:"type"`
+	Status        FeedbackStatus            `json:"status"`
+	Subject       string                    `json:"subject"`
+	AppPageName   string                    `json:"appPageName"`
+	Text          string                    `json:"text"`
+	Notes         []*FeedbackNote           `json:"notes"`
+	CreatedAt     string                    `json:"createdAt"`
+	LastUpdatedAt *string                   `json:"lastUpdatedAt,omitempty"`
+	ResolvedAt    *string                   `json:"resolvedAt,omitempty"`
+	Attachments   []*FeedbackMetaAttachment `json:"attachments"`
 }
 
 type FeedbackAttachment struct {
 	Filename string `json:"filename"`
 	MimeType string `json:"mimeType"`
 	Data     string `json:"data"`
+}
+
+type FeedbackEmailInput struct {
+	FeedbackID   int    `json:"feedbackId"`
+	EmailText    string `json:"emailText"`
+	RequireReply bool   `json:"requireReply"`
 }
 
 type FeedbackFilterInput struct {
@@ -98,6 +103,17 @@ type FeedbackNote struct {
 	CreatedAt string           `json:"createdAt"`
 	NoteType  FeedbackNoteType `json:"noteType"`
 	Note      string           `json:"note"`
+}
+
+type FeedbackNoteInput struct {
+	FeedbackID int    `json:"feedbackId"`
+	Note       string `json:"note"`
+}
+
+type FeedbackStatusUpdateInput struct {
+	FeedbackID int            `json:"feedbackId"`
+	Status     FeedbackStatus `json:"status"`
+	Note       string         `json:"note"`
 }
 
 type FundingEntity struct {
@@ -144,6 +160,13 @@ type NewEventInput struct {
 	FundingEntityID int                  `json:"fundingEntityId"`
 	ServiceTypes    []int                `json:"serviceTypes"`
 	Recurrence      *RecurrenceInput     `json:"recurrence,omitempty"`
+}
+
+type NewFeedbackInput struct {
+	Type        FeedbackType `json:"type"`
+	Subject     string       `json:"subject"`
+	AppPageName string       `json:"app_page_name"`
+	Text        string       `json:"text"`
 }
 
 type NewFundingEntityInput struct {
@@ -209,12 +232,6 @@ type Opportunity struct {
 type Query struct {
 }
 
-type QuestionFeedbackInput struct {
-	ID        string `json:"id"`
-	EmailText string `json:"emailText"`
-	Note      string `json:"note"`
-}
-
 type RecurrenceGroup struct {
 	GroupID        string            `json:"groupId"`
 	Pattern        RecurrencePattern `json:"pattern"`
@@ -226,13 +243,6 @@ type RecurrenceInput struct {
 	Pattern        RecurrencePattern `json:"pattern"`
 	MaxOccurrences *int              `json:"maxOccurrences,omitempty"`
 	WeekdayOrdinal *WeekdayOrdinal   `json:"weekdayOrdinal,omitempty"`
-}
-
-type ResolveFeedbackInput struct {
-	ID             string         `json:"id"`
-	Status         FeedbackStatus `json:"status"`
-	Note           string         `json:"note"`
-	GithubIssueURL *string        `json:"githubIssueURL,omitempty"`
 }
 
 type ServiceType struct {
@@ -274,13 +284,6 @@ type UpdateEventInput struct {
 	FundingEntityID int                    `json:"fundingEntityId"`
 	ServiceTypes    []int                  `json:"serviceTypes"`
 	RecurrenceScope *RecurrenceUpdateScope `json:"recurrenceScope,omitempty"`
-}
-
-type UpdateFeedbackInput struct {
-	ID             string         `json:"id"`
-	Status         FeedbackStatus `json:"status"`
-	Note           string         `json:"note"`
-	GithubIssueURL *string        `json:"githubIssueURL,omitempty"`
 }
 
 type UpdateFundingEntityInput struct {
@@ -444,20 +447,20 @@ type FeedbackNoteType string
 const (
 	FeedbackNoteTypeAdminNote        FeedbackNoteType = "ADMIN_NOTE"
 	FeedbackNoteTypeQuestion         FeedbackNoteType = "QUESTION"
-	FeedbackNoteTypeVolunteerReply   FeedbackNoteType = "VOLUNTEER_REPLY"
+	FeedbackNoteTypeVolunteerNote    FeedbackNoteType = "VOLUNTEER_NOTE"
 	FeedbackNoteTypeEmailToVolunteer FeedbackNoteType = "EMAIL_TO_VOLUNTEER"
 )
 
 var AllFeedbackNoteType = []FeedbackNoteType{
 	FeedbackNoteTypeAdminNote,
 	FeedbackNoteTypeQuestion,
-	FeedbackNoteTypeVolunteerReply,
+	FeedbackNoteTypeVolunteerNote,
 	FeedbackNoteTypeEmailToVolunteer,
 }
 
 func (e FeedbackNoteType) IsValid() bool {
 	switch e {
-	case FeedbackNoteTypeAdminNote, FeedbackNoteTypeQuestion, FeedbackNoteTypeVolunteerReply, FeedbackNoteTypeEmailToVolunteer:
+	case FeedbackNoteTypeAdminNote, FeedbackNoteTypeQuestion, FeedbackNoteTypeVolunteerNote, FeedbackNoteTypeEmailToVolunteer:
 		return true
 	}
 	return false
@@ -501,22 +504,22 @@ func (e FeedbackNoteType) MarshalJSON() ([]byte, error) {
 type FeedbackStatus string
 
 const (
-	FeedbackStatusOpen             FeedbackStatus = "OPEN"
-	FeedbackStatusQuestionSent     FeedbackStatus = "QUESTION_SENT"
-	FeedbackStatusResolvedGithub   FeedbackStatus = "RESOLVED_GITHUB"
-	FeedbackStatusResolvedRejected FeedbackStatus = "RESOLVED_REJECTED"
+	FeedbackStatusOpen                FeedbackStatus = "OPEN"
+	FeedbackStatusQuestionSent        FeedbackStatus = "QUESTION_SENT"
+	FeedbackStatusResolvedImplemented FeedbackStatus = "RESOLVED_IMPLEMENTED"
+	FeedbackStatusResolvedRejected    FeedbackStatus = "RESOLVED_REJECTED"
 )
 
 var AllFeedbackStatus = []FeedbackStatus{
 	FeedbackStatusOpen,
 	FeedbackStatusQuestionSent,
-	FeedbackStatusResolvedGithub,
+	FeedbackStatusResolvedImplemented,
 	FeedbackStatusResolvedRejected,
 }
 
 func (e FeedbackStatus) IsValid() bool {
 	switch e {
-	case FeedbackStatusOpen, FeedbackStatusQuestionSent, FeedbackStatusResolvedGithub, FeedbackStatusResolvedRejected:
+	case FeedbackStatusOpen, FeedbackStatusQuestionSent, FeedbackStatusResolvedImplemented, FeedbackStatusResolvedRejected:
 		return true
 	}
 	return false

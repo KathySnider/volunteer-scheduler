@@ -11,7 +11,7 @@ extend type Query {
 
   # Feedback
   feedback(filter: FeedbackFilterInput): [Feedback!]!
-  feedbackById(feedbackId: ID!): Feedback
+  feedbackDetail(feedbackId: ID!): Feedback
   feedbackAttachment(attachmentId: Int!): FeedbackAttachment!
 
   # Staff
@@ -26,7 +26,7 @@ extend type Query {
   volunteerShifts(volunteerId: ID!, filter: ShiftTimeFilter!): [VolunteerShift!]!
 }
 
-type Mutation {
+extend type Mutation {
 
   # Generic - used for lookups and within other types.
 
@@ -56,10 +56,9 @@ type Mutation {
   updateShift(shift: UpdateShiftInput!): MutationResult!
 
   # Feedback
-  questionFeedback(question: QuestionFeedbackInput!): MutationResult!
-  updateFeedback(feedback: UpdateFeedbackInput!): MutationResult!
-  resolveFeedback(resolution: ResolveFeedbackInput!): MutationResult!
-  deleteFeedback(feedbackId: ID!): MutationResult!
+  updateFeedbackStatus(su: FeedbackStatusUpdateInput!): MutationResult!
+  addFeedbackNote(note: FeedbackNoteInput!): MutationResult!
+  emailFeedbackSubmitter(input: FeedbackEmailInput!): MutationResult!
 
   # Staff
   createStaff(newStaff: NewStaffInput!): MutationResult!
@@ -191,7 +190,6 @@ type Feedback {
   appPageName: String!
   text: String!
   notes: [FeedbackNote!]!
-  githubIssueURL: String
   createdAt: String!
   lastUpdatedAt: String
   resolvedAt: String  
@@ -379,25 +377,23 @@ input FeedbackFilterInput {
   type: FeedbackType
 }
 
-input QuestionFeedbackInput {
-  id: ID!
+input FeedbackStatusUpdateInput {
+  feedbackId: Int!
+  status: FeedbackStatus!
+  note: String!
+}
+
+input FeedbackNoteInput {
+  feedbackId: Int!
+  note: String!
+}
+
+input FeedbackEmailInput {
+  feedbackId: Int!
   emailText: String!
-  note: String!
+  requireReply: Boolean!
 }
 
-input UpdateFeedbackInput {
-  id: ID!
-  status: FeedbackStatus!
-  note: String!
-  githubIssueURL: String
-}
-
-input ResolveFeedbackInput {
-  id: ID!
-  status: FeedbackStatus!
-  note: String!
-  githubIssueURL: String
-}
 
 # Staff
 
@@ -444,6 +440,11 @@ input VolunteerFilterInput {
   lastName: String
   email: String
 }
+
+# Role is intentionally a single value (VOLUNTEER or ADMINISTRATOR).
+# The backend enforces that ADMINISTRATOR always implies VOLUNTEER —
+# both roles are inserted automatically when ADMINISTRATOR is given.
+# Do not change this to a slice; the derivation happens in the service.
 
 input NewVolunteerInput {
   firstName: String!

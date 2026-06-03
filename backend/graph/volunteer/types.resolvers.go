@@ -7,8 +7,49 @@ package volunteer
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"strconv"
 	"volunteer-scheduler/graph/volunteer/generated"
+	"volunteer-scheduler/middleware"
+
+	"github.com/99designs/gqlgen/graphql"
 )
+
+// AttachFileToFeedback is the resolver for the attachFileToFeedback field.
+func (r *mutationResolver) AttachFileToFeedback(ctx context.Context, feedbackID string, file graphql.Upload) (*generated.MutationResult, error) {
+	fbInt, err := strconv.Atoi(feedbackID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid feedback id %s: %w", feedbackID, err)
+	}
+	data, err := io.ReadAll(file.File)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read upload: %w", err)
+	}
+
+	result, err := r.FeedbackService.AttachFileToFeedback(
+		ctx, fbInt, file.Filename, file.ContentType, data,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return toGenMutationResult(result), nil
+}
+
+// GiveFeedback is the resolver for the giveFeedback field.
+func (r *mutationResolver) GiveFeedback(ctx context.Context, feedback generated.NewFeedbackInput) (*generated.MutationResult, error) {
+	volId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	result, err := r.FeedbackService.CreateNewFeedback(ctx, volId, toModelNewFeedbackInput(feedback))
+	if err != nil {
+		return nil, err
+	}
+
+	return toGenMutationResult(result), nil
+}
 
 // LookupValues is the resolver for the lookupValues field.
 func (r *queryResolver) LookupValues(ctx context.Context) (*generated.LookupValues, error) {
@@ -20,7 +61,11 @@ func (r *queryResolver) LookupValues(ctx context.Context) (*generated.LookupValu
 	return &genLookup, nil
 }
 
+// Mutation returns generated.MutationResolver implementation.
+func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

@@ -140,6 +140,11 @@ type VolunteerEventFilterInput struct {
 	TimeFrame *ShiftTimeFilter `json:"timeFrame,omitempty"`
 }
 
+type VolunteerFeedbackNoteInput struct {
+	FeedbackID int    `json:"feedbackId"`
+	Note       string `json:"note"`
+}
+
 type VolunteerMutationResult struct {
 	Success bool    `json:"success"`
 	Message *string `json:"message,omitempty"`
@@ -233,20 +238,20 @@ type FeedbackNoteType string
 const (
 	FeedbackNoteTypeAdminNote        FeedbackNoteType = "ADMIN_NOTE"
 	FeedbackNoteTypeQuestion         FeedbackNoteType = "QUESTION"
-	FeedbackNoteTypeVolunteerReply   FeedbackNoteType = "VOLUNTEER_REPLY"
+	FeedbackNoteTypeVolunteerNote    FeedbackNoteType = "VOLUNTEER_NOTE"
 	FeedbackNoteTypeEmailToVolunteer FeedbackNoteType = "EMAIL_TO_VOLUNTEER"
 )
 
 var AllFeedbackNoteType = []FeedbackNoteType{
 	FeedbackNoteTypeAdminNote,
 	FeedbackNoteTypeQuestion,
-	FeedbackNoteTypeVolunteerReply,
+	FeedbackNoteTypeVolunteerNote,
 	FeedbackNoteTypeEmailToVolunteer,
 }
 
 func (e FeedbackNoteType) IsValid() bool {
 	switch e {
-	case FeedbackNoteTypeAdminNote, FeedbackNoteTypeQuestion, FeedbackNoteTypeVolunteerReply, FeedbackNoteTypeEmailToVolunteer:
+	case FeedbackNoteTypeAdminNote, FeedbackNoteTypeQuestion, FeedbackNoteTypeVolunteerNote, FeedbackNoteTypeEmailToVolunteer:
 		return true
 	}
 	return false
@@ -290,22 +295,22 @@ func (e FeedbackNoteType) MarshalJSON() ([]byte, error) {
 type FeedbackStatus string
 
 const (
-	FeedbackStatusOpen             FeedbackStatus = "OPEN"
-	FeedbackStatusQuestionSent     FeedbackStatus = "QUESTION_SENT"
-	FeedbackStatusResolvedGithub   FeedbackStatus = "RESOLVED_GITHUB"
-	FeedbackStatusResolvedRejected FeedbackStatus = "RESOLVED_REJECTED"
+	FeedbackStatusOpen                FeedbackStatus = "OPEN"
+	FeedbackStatusQuestionSent        FeedbackStatus = "QUESTION_SENT"
+	FeedbackStatusResolvedImplemented FeedbackStatus = "RESOLVED_IMPLEMENTED"
+	FeedbackStatusResolvedRejected    FeedbackStatus = "RESOLVED_REJECTED"
 )
 
 var AllFeedbackStatus = []FeedbackStatus{
 	FeedbackStatusOpen,
 	FeedbackStatusQuestionSent,
-	FeedbackStatusResolvedGithub,
+	FeedbackStatusResolvedImplemented,
 	FeedbackStatusResolvedRejected,
 }
 
 func (e FeedbackStatus) IsValid() bool {
 	switch e {
-	case FeedbackStatusOpen, FeedbackStatusQuestionSent, FeedbackStatusResolvedGithub, FeedbackStatusResolvedRejected:
+	case FeedbackStatusOpen, FeedbackStatusQuestionSent, FeedbackStatusResolvedImplemented, FeedbackStatusResolvedRejected:
 		return true
 	}
 	return false

@@ -242,8 +242,13 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-text-muted);
+  color: var(--color-text-muted); /* overridden per note type below */
 }
+
+.noteQuestion .noteTypeLabel  { color: #b45309; }
+.noteVolunteer .noteTypeLabel { color: #15803d; }
+.noteEmail .noteTypeLabel     { color: #1d4ed8; }
+.noteAdmin .noteTypeLabel     { color: #475569; }
 
 .noteMeta {
   font-size: 0.75rem;
@@ -467,6 +472,31 @@
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* ----- Checkbox ----- */
+
+.checkboxLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.checkboxLabel input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: var(--color-primary);
+  width: 1rem;
+  height: 1rem;
+}
+
+.checkboxHint {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-style: italic;
 }
 
 /* ----- Radio group ----- */

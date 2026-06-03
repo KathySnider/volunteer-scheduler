@@ -148,27 +148,28 @@ test.describe("Feedback — admin workflow", () => {
     adminToken,
   }) => {
     const result = await adminGql(
-      `mutation Q($q: QuestionFeedbackInput!) { questionFeedback(question: $q) { success message } }`,
+      `mutation Q($input: FeedbackEmailInput!) { emailFeedbackSubmitter(input: $input) { success message } }`,
       {
-        q: {
-          id: feedbackId,
+        input: {
+          feedbackId: parseInt(feedbackId, 10),
           emailText: "Can you provide more details?",
-          note: "Asked for clarification",
+          requireReply: true,
         },
       },
       adminToken
-    ) as { questionFeedback?: { success: boolean; message?: string } };
+    ) as { emailFeedbackSubmitter?: { success: boolean; message?: string } };
 
-    if (!result.questionFeedback?.success) {
+    if (!result.emailFeedbackSubmitter?.success) {
       throw new Error(
-        `questionFeedback mutation failed: ${result.questionFeedback?.message ?? "unknown error"}`
+        `emailFeedbackSubmitter mutation failed: ${result.emailFeedbackSubmitter?.message ?? "unknown error"}`
       );
     }
 
     await adminPage.goto(`/admin/feedback/${feedbackId}`);
-    // Scope to <span> so we match the status badge, not the hidden <option> in the dropdown
+    // Use exact match — the note type label also contains "question sent" (lowercase)
+    // so a partial/case-insensitive match would resolve to two elements.
     await expect(
-      adminPage.locator("span").filter({ hasText: "Question Sent" })
+      adminPage.getByText("Question Sent", { exact: true })
     ).toBeVisible({ timeout: 5_000 });
   });
 
@@ -178,11 +179,10 @@ test.describe("Feedback — admin workflow", () => {
   }) => {
     // First add an admin-only note to ensure it is hidden from volunteer
     await adminGql(
-      `mutation U($f: UpdateFeedbackInput!) { updateFeedback(feedback: $f) { success message } }`,
+      `mutation AddNote($input: FeedbackNoteInput!) { addFeedbackNote(note: $input) { success message } }`,
       {
-        f: {
-          id: feedbackId,
-          status: "QUESTION_SENT",
+        input: {
+          feedbackId: parseInt(feedbackId, 10),
           note: "INTERNAL: this is an admin-only note",
         },
       },
@@ -227,10 +227,10 @@ test.describe("Feedback — admin workflow", () => {
     adminToken,
   }) => {
     await adminGql(
-      `mutation R($r: ResolveFeedbackInput!) { resolveFeedback(resolution: $r) { success message } }`,
+      `mutation R($input: FeedbackStatusUpdateInput!) { updateFeedbackStatus(su: $input) { success message } }`,
       {
-        r: {
-          id: feedbackId,
+        input: {
+          feedbackId: parseInt(feedbackId, 10),
           status: "RESOLVED_REJECTED",
           note: "Not reproducible, closing.",
         },

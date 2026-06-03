@@ -178,56 +178,47 @@ func (r *mutationResolver) UpdateShift(ctx context.Context, shift generated.Upda
 	return toGenMutationResult(result), nil
 }
 
-// QuestionFeedback is the resolver for the questionFeedback field.
-func (r *mutationResolver) QuestionFeedback(ctx context.Context, question generated.QuestionFeedbackInput) (*generated.MutationResult, error) {
+// UpdateFeedbackStatus is the resolver for the updateFeedbackStatus field.
+func (r *mutationResolver) UpdateFeedbackStatus(ctx context.Context, su generated.FeedbackStatusUpdateInput) (*generated.MutationResult, error) {
 	volId, ok := middleware.VolunteerIdFromContext(ctx)
 	if !ok {
 		return nil, fmt.Errorf("unauthorized")
 	}
 
-	result, err := r.FeedbackService.QuestionFeedback(ctx, volId, toModelQuestionFeedbackInput(question))
+	result, err := r.FeedbackService.UpdateFeedbackStatus(ctx, volId, toModelFeedbackStatusUpdateInput(su))
+	if err != nil {
+		return nil, err
+	}
+
+	return toGenMutationResult(result), nil
+}
+
+// AddFeedbackNote is the resolver for the addFeedbackNote field.
+func (r *mutationResolver) AddFeedbackNote(ctx context.Context, note generated.FeedbackNoteInput) (*generated.MutationResult, error) {
+	adminId, ok := middleware.VolunteerIdFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	result, err := r.FeedbackService.AddFeedbackNote(ctx, adminId, toModelFeedbackNoteInput(note))
 	if err != nil {
 		return nil, err
 	}
 	return toGenMutationResult(result), nil
 }
 
-// UpdateFeedback is the resolver for the updateFeedback field.
-func (r *mutationResolver) UpdateFeedback(ctx context.Context, feedback generated.UpdateFeedbackInput) (*generated.MutationResult, error) {
+// EmailFeedbackSubmitter is the resolver for the emailFeedbackSubmitter field.
+func (r *mutationResolver) EmailFeedbackSubmitter(ctx context.Context, input generated.FeedbackEmailInput) (*generated.MutationResult, error) {
 	volId, ok := middleware.VolunteerIdFromContext(ctx)
 	if !ok {
 		return nil, fmt.Errorf("unauthorized")
 	}
-	result, err := r.FeedbackService.UpdateFeedback(ctx, volId, toModelUpdateFeedbackInput(feedback))
-	if err != nil {
-		return nil, err
-	}
-	return toGenMutationResult(result), nil
-}
 
-// ResolveFeedback is the resolver for the resolveFeedback field.
-func (r *mutationResolver) ResolveFeedback(ctx context.Context, resolution generated.ResolveFeedbackInput) (*generated.MutationResult, error) {
-	volId, ok := middleware.VolunteerIdFromContext(ctx)
-	if !ok {
-		return nil, fmt.Errorf("unauthorized")
-	}
-	result, err := r.FeedbackService.ResolveFeedback(ctx, volId, toModelResolveFeedbackInput(resolution))
+	result, err := r.FeedbackService.EmailFeedbackSubmitter(ctx, volId, toModelFeedbackEmailInput(input))
 	if err != nil {
 		return nil, err
 	}
-	return toGenMutationResult(result), nil
-}
 
-// DeleteFeedback is the resolver for the deleteFeedback field.
-func (r *mutationResolver) DeleteFeedback(ctx context.Context, feedbackID string) (*generated.MutationResult, error) {
-	_, ok := middleware.VolunteerIdFromContext(ctx)
-	if !ok {
-		return nil, fmt.Errorf("unauthorized")
-	}
-	result, err := r.FeedbackService.DeleteFeedback(ctx, feedbackID)
-	if err != nil {
-		return nil, err
-	}
 	return toGenMutationResult(result), nil
 }
 
@@ -380,9 +371,9 @@ func (r *queryResolver) Feedback(ctx context.Context, filter *generated.Feedback
 	return toGenFeedbacks(fbs), nil
 }
 
-// FeedbackByID is the resolver for the feedbackById field.
-func (r *queryResolver) FeedbackByID(ctx context.Context, feedbackID string) (*generated.Feedback, error) {
-	fb, err := r.FeedbackService.FetchFeedbackById(ctx, feedbackID)
+// FeedbackDetail is the resolver for the feedbackDetail field.
+func (r *queryResolver) FeedbackDetail(ctx context.Context, feedbackID string) (*generated.Feedback, error) {
+	fb, err := r.FeedbackService.FetchFeedbackDetail(ctx, feedbackID)
 	if err != nil {
 		return nil, err
 	}
@@ -442,8 +433,3 @@ func (r *queryResolver) VolunteerShifts(ctx context.Context, volunteerID string,
 	}
 	return toGenVolunteerShifts(shifts), nil
 }
-
-// Mutation returns generated.MutationResolver implementation.
-func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
-
-type mutationResolver struct{ *Resolver }

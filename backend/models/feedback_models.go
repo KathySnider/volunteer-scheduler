@@ -30,19 +30,18 @@ type FeedbackAttachment struct {
 }
 
 type Feedback struct {
-	ID             string
-	VolunteerName  string
-	Type           FeedbackType
-	Status         FeedbackStatus
-	Subject        string
-	AppPageName    string
-	Text           string
-	Notes          []*FeedbackNote
-	GithubIssueURL *string
-	CreatedAt      string
-	LastUpdatedAt  *string
-	ResolvedAt     *string
-	Attachments    []*FeedbackMetaAttachment
+	ID            string
+	VolunteerName string
+	Type          FeedbackType
+	Status        FeedbackStatus
+	Subject       string
+	AppPageName   string
+	Text          string
+	Notes         []*FeedbackNote
+	CreatedAt     string
+	LastUpdatedAt *string
+	ResolvedAt    *string
+	Attachments   []*FeedbackMetaAttachment
 }
 
 type FeedbackNoteView struct {
@@ -59,16 +58,15 @@ type FeedbackAttachmentView struct {
 }
 
 type FeedbackView struct {
-	ID             string
-	Type           FeedbackType
-	Status         FeedbackStatus
-	Subject        string
-	AppPageName    string
-	Text           string
-	GithubIssueURL *string
-	CreatedAt      string
-	Notes          []*FeedbackNoteView
-	Attachments    []*FeedbackMetaAttachment
+	ID          string
+	Type        FeedbackType
+	Status      FeedbackStatus
+	Subject     string
+	AppPageName string
+	Text        string
+	CreatedAt   string
+	Notes       []*FeedbackNoteView
+	Attachments []*FeedbackMetaAttachment
 }
 
 // Input types
@@ -86,24 +84,27 @@ type NewFeedbackInput struct {
 }
 
 // Input types for updates.
-type QuestionFeedbackInput struct {
-	ID        string
-	EmailText string
-	Note      string
+
+type FeedbackStatusUpdateInput struct {
+	FeedbackID int
+	Status     FeedbackStatus
+	Note       string
 }
 
-type UpdateFeedbackInput struct {
-	ID             string
-	Status         FeedbackStatus
-	Note           string
-	GithubIssueURL *string
+type FeedbackNoteInput struct {
+	FeedbackID int
+	Note       string
 }
 
-type ResolveFeedbackInput struct {
-	ID             string
-	Status         FeedbackStatus
-	Note           string
-	GithubIssueURL *string
+type FeedbackEmailInput struct {
+	FeedbackID   int
+	EmailText    string
+	RequireReply bool
+}
+
+type VolunteerFeedbackNoteInput struct {
+	FeedbackId int
+	Note       string
 }
 
 // Enums
@@ -119,10 +120,10 @@ const (
 type FeedbackStatus string
 
 const (
-	FeedbackStatusOpen     FeedbackStatus = "OPEN"
-	FeedbackStatusQuestion FeedbackStatus = "QUESTION_SENT"
-	FeedbackStatusGithub   FeedbackStatus = "RESOLVED_GITHUB"
-	FeedbackStatusRejected FeedbackStatus = "RESOLVED_REJECTED"
+	FeedbackStatusOpen        FeedbackStatus = "OPEN"
+	FeedbackStatusQuestion    FeedbackStatus = "QUESTION_SENT"
+	FeedbackStatusImplemented FeedbackStatus = "RESOLVED_IMPLEMENTED"
+	FeedbackStatusRejected    FeedbackStatus = "RESOLVED_REJECTED"
 )
 
 type FeedbackNoteType string
@@ -130,6 +131,6 @@ type FeedbackNoteType string
 const (
 	FeedbackNoteTypeAdminNote       FeedbackNoteType = "ADMIN_NOTE"
 	FeedbackNoteTypeQuestion        FeedbackNoteType = "QUESTION"
-	FeedbackNoteTypeVolunteerReply  FeedbackNoteType = "VOLUNTEER_REPLY"
+	FeedbackNoteTypeVolunteerNote   FeedbackNoteType = "VOLUNTEER_NOTE"
 	FeedbackNoteTypeEmailToVoluneer FeedbackNoteType = "EMAIL_TO_VOLUNTEER"
 )

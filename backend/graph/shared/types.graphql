@@ -4,6 +4,13 @@ type Query {
   lookupValues: LookupValues!
 }
 
+type Mutation {
+  # Feedback
+  attachFileToFeedback(feedbackId: ID!, file: Upload!): MutationResult!
+  giveFeedback (feedback: NewFeedbackInput!): MutationResult!
+}
+
+
 #-- Scalers --
 
 scalar Upload
@@ -30,14 +37,14 @@ enum FeedbackType {
 enum FeedbackStatus {
   OPEN
   QUESTION_SENT
-  RESOLVED_GITHUB
+  RESOLVED_IMPLEMENTED
   RESOLVED_REJECTED
 }
 
 enum FeedbackNoteType {
   ADMIN_NOTE
   QUESTION
-  VOLUNTEER_REPLY
+  VOLUNTEER_NOTE
   EMAIL_TO_VOLUNTEER
 }
 
@@ -48,6 +55,8 @@ enum ShiftTimeFilter {
 }
 
 #-- Output --
+
+# Lookup values 
 
 type ServiceType{
   id: Int!
@@ -69,6 +78,9 @@ type LookupValues{
   cities: [String!]!
 }
 
+
+# Events 
+
 # Per-opportunity volunteer counts for the event listing cards.
 # Used on volunteer pages, and on manage events pages.
 
@@ -78,8 +90,10 @@ type EventShiftSummary {
   maxVolunteers: Int!
 }
 
-# Both Feedback and FeedbackView (volunteers) use
-# the same metadata. When an attachment is viewed,
+# Feedback 
+
+# Both Feedback and FeedbackView (volunteers) use the same 
+# metadata. When the content of an attachment is viewed,
 # there is a different type.
 
 type FeedbackMetaAttachment {
@@ -91,8 +105,22 @@ type FeedbackMetaAttachment {
 }
 
 #-- Results --
+
 type MutationResult {
   success: Boolean!
   message: String
   id: ID
 }
+
+#-- Input --
+
+# Feedback
+
+input NewFeedbackInput {
+  type: FeedbackType!
+  subject: String!
+  app_page_name: String!
+  text: String!
+}
+
+

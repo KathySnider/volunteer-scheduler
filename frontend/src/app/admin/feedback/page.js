@@ -22,7 +22,7 @@ const FEEDBACK_QUERY = `
   query Feedback($filter: FeedbackFilterInput) {
     feedback(filter: $filter) {
       id volunteerName type status subject appPageName text
-      githubIssueURL createdAt lastUpdatedAt resolvedAt
+      createdAt lastUpdatedAt resolvedAt
       notes { id creator noteType note createdAt }
       attachments { id filename mimeType fileSize createdAt }
     }
@@ -41,10 +41,10 @@ function formatDate(iso) {
 }
 
 const STATUS_LABEL = {
-  OPEN:               "Open",
-  QUESTION_SENT:      "Question Sent",
-  RESOLVED_GITHUB:    "Resolved (GitHub)",
-  RESOLVED_REJECTED:  "Rejected",
+  OPEN:                 "Open",
+  QUESTION_SENT:        "Question Sent",
+  RESOLVED_IMPLEMENTED: "Resolved",
+  RESOLVED_REJECTED:    "Rejected",
 };
 
 const TYPE_LABEL = {
@@ -68,10 +68,10 @@ function TypeBadge({ type }) {
 
 function StatusBadge({ status }) {
   const cls = {
-    OPEN:              styles.statusOpen,
-    QUESTION_SENT:     styles.statusQuestion,
-    RESOLVED_GITHUB:   styles.statusResolved,
-    RESOLVED_REJECTED: styles.statusRejected,
+    OPEN:                 styles.statusOpen,
+    QUESTION_SENT:        styles.statusQuestion,
+    RESOLVED_IMPLEMENTED: styles.statusResolved,
+    RESOLVED_REJECTED:    styles.statusRejected,
   }[status] ?? styles.statusOpen;
   return <span className={`${styles.badge} ${cls}`}>{STATUS_LABEL[status] ?? status}</span>;
 }
@@ -142,7 +142,7 @@ function AdminFeedbackPage() {
   /* ----- Client-side filtering ----- */
   const filtered = allFeedback.filter((fb) => {
     const openStatuses     = ["OPEN", "QUESTION_SENT"];
-    const resolvedStatuses = ["RESOLVED_GITHUB", "RESOLVED_REJECTED"];
+    const resolvedStatuses = ["RESOLVED_IMPLEMENTED", "RESOLVED_REJECTED"];
 
     if (statusFilter === "OPEN"     && !openStatuses.includes(fb.status))     return false;
     if (statusFilter === "RESOLVED" && !resolvedStatuses.includes(fb.status)) return false;

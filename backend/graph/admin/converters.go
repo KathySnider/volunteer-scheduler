@@ -5,6 +5,142 @@ import (
 	"volunteer-scheduler/models"
 )
 
+// DUPLICATE CODE:
+// This stuff is in both admin and volunteers, because it has to used the
+// correct generated code. Just try to keep it the same.
+// Generic - lookups
+
+func toGenLookupValues(m models.LookupValues) generated.LookupValues {
+	return generated.LookupValues{
+		ServiceTypes: toGenServiceTypes(m.ServiceTypes),
+		JobTypes:     toGenJobTypes(m.JobTypes),
+		Cities:       m.Cities,
+	}
+}
+
+func toGenServiceTypes(ms []*models.ServiceType) []*generated.ServiceType {
+	result := make([]*generated.ServiceType, len(ms))
+	for i, m := range ms {
+		result[i] = toGenServiceType(m)
+	}
+	return result
+}
+
+func toGenJobTypes(ms []*models.JobType) []*generated.JobType {
+	result := make([]*generated.JobType, len(ms))
+	for i, m := range ms {
+		result[i] = toGenJobType(m)
+	}
+	return result
+}
+
+func toGenServiceType(m *models.ServiceType) *generated.ServiceType {
+	if m == nil {
+		return nil
+	}
+	return &generated.ServiceType{
+		ID:   m.ID,
+		Code: m.Code,
+		Name: m.Name,
+	}
+}
+
+func toGenJobType(m *models.JobType) *generated.JobType {
+	if m == nil {
+		return nil
+	}
+
+	return &generated.JobType{
+		ID:       m.ID,
+		Code:     m.Code,
+		Name:     m.Name,
+		IsActive: m.IsActive,
+	}
+}
+
+// Events
+
+func toModelShiftTimeFilter(g generated.ShiftTimeFilter) models.ShiftsTimeFilter {
+	return models.ShiftsTimeFilter(g)
+}
+
+func toGenEventShiftSummaries(ms []*models.EventShiftSummary) []*generated.EventShiftSummary {
+	result := make([]*generated.EventShiftSummary, len(ms))
+	for i, m := range ms {
+		result[i] = toGenEventShiftSummary(m)
+	}
+	return result
+}
+
+func toGenEventShiftSummary(m *models.EventShiftSummary) *generated.EventShiftSummary {
+	if m == nil {
+		return nil
+	}
+	return &generated.EventShiftSummary{
+		JobName:            m.JobName,
+		AssignedVolunteers: m.AssignedVolunteers,
+		MaxVolunteers:      m.MaxVolunteers,
+	}
+}
+
+// Feedback
+
+func toGenFeedbackMetaAttachments(ms []*models.FeedbackMetaAttachment) []*generated.FeedbackMetaAttachment {
+	result := make([]*generated.FeedbackMetaAttachment, len(ms))
+	for i, m := range ms {
+		result[i] = toGenFeedbackMetaAttachment(m)
+	}
+
+	return result
+}
+func toGenFeedbackMetaAttachment(m *models.FeedbackMetaAttachment) *generated.FeedbackMetaAttachment {
+	if m == nil {
+		return nil
+	}
+	return &generated.FeedbackMetaAttachment{
+		ID:        m.ID,
+		Filename:  m.Filename,
+		MimeType:  m.MimeType,
+		FileSize:  m.FileSize,
+		CreatedAt: m.CreatedAt,
+	}
+}
+
+func toModelNewFeedbackInput(g generated.NewFeedbackInput) models.NewFeedbackInput {
+	return models.NewFeedbackInput{
+		Type:        models.FeedbackType(g.Type),
+		Subject:     g.Subject,
+		AppPageName: g.AppPageName,
+		Text:        g.Text,
+	}
+}
+
+// Results
+
+func toGenMutationResult(m *models.MutationResult) *generated.MutationResult {
+	if m == nil {
+		return nil
+	}
+
+	return &generated.MutationResult{
+		Success: m.Success,
+		Message: m.Message,
+		ID:      m.ID,
+	}
+}
+
+// Roles
+
+func toGenRoles(ms []models.Role) []generated.Role {
+	result := make([]generated.Role, len(ms))
+	for i, r := range ms {
+		result[i] = generated.Role(r)
+	}
+	return result
+}
+
+// END OF DUPLICATE CODE.
+
 // Convert models to generated (graphql) types. (Output from services to the API.)
 
 // Generic - lookup types.
@@ -25,73 +161,6 @@ func toGenFundingEntity(m *models.FundingEntity) *generated.FundingEntity {
 		ID:          m.ID,
 		Name:        m.Name,
 		Description: m.Description,
-	}
-}
-
-func toGenLookupValues(m models.LookupValues) generated.LookupValues {
-	return generated.LookupValues{
-		Cities:       m.Cities,
-		JobTypes:     toGenJobTypes(m.JobTypes),
-		ServiceTypes: toGenServiceTypes(m.ServiceTypes),
-	}
-}
-
-func toGenJobTypes(ms []*models.JobType) []*generated.JobType {
-	result := make([]*generated.JobType, len(ms))
-	for i, m := range ms {
-		result[i] = toGenJobType(m)
-	}
-	return result
-}
-
-func toGenJobType(m *models.JobType) *generated.JobType {
-	if m == nil {
-		return nil
-	}
-
-	return &generated.JobType{
-		ID:       m.ID,
-		Code:     m.Code,
-		Name:     m.Name,
-		IsActive: m.IsActive,
-	}
-}
-
-func toGenServiceTypes(ms []*models.ServiceType) []*generated.ServiceType {
-	result := make([]*generated.ServiceType, len(ms))
-	for i, m := range ms {
-		result[i] = toGenServiceType(m)
-	}
-	return result
-}
-
-func toGenServiceType(m *models.ServiceType) *generated.ServiceType {
-	if m == nil {
-		return nil
-	}
-	return &generated.ServiceType{
-		ID:   m.ID,
-		Code: m.Code,
-		Name: m.Name,
-	}
-}
-
-func toGenEventShiftSummaries(ms []*models.EventShiftSummary) []*generated.EventShiftSummary {
-	result := make([]*generated.EventShiftSummary, len(ms))
-	for i, m := range ms {
-		result[i] = toGenEventShiftSummary(m)
-	}
-	return result
-}
-
-func toGenEventShiftSummary(m *models.EventShiftSummary) *generated.EventShiftSummary {
-	if m == nil {
-		return nil
-	}
-	return &generated.EventShiftSummary{
-		JobName:            m.JobName,
-		AssignedVolunteers: m.AssignedVolunteers,
-		MaxVolunteers:      m.MaxVolunteers,
 	}
 }
 
@@ -213,27 +282,6 @@ func toGenFeedbackAttachment(m *models.FeedbackAttachment) *generated.FeedbackAt
 	}
 }
 
-func toGenFeedbackMetaAttachments(ms []*models.FeedbackMetaAttachment) []*generated.FeedbackMetaAttachment {
-	attachments := make([]*generated.FeedbackMetaAttachment, len(ms))
-	for i, m := range ms {
-		attachments[i] = toGenFeedbackMetaAttachment(m)
-	}
-	return attachments
-}
-
-func toGenFeedbackMetaAttachment(m *models.FeedbackMetaAttachment) *generated.FeedbackMetaAttachment {
-	if m == nil {
-		return nil
-	}
-	return &generated.FeedbackMetaAttachment{
-		ID:        m.ID,
-		Filename:  m.Filename,
-		MimeType:  m.MimeType,
-		FileSize:  m.FileSize,
-		CreatedAt: m.CreatedAt,
-	}
-}
-
 func toGenFeedbackNotes(ms []*models.FeedbackNote) []*generated.FeedbackNote {
 	notes := make([]*generated.FeedbackNote, len(ms))
 	for i, m := range ms {
@@ -269,19 +317,18 @@ func toGenFeedback(m *models.Feedback) *generated.Feedback {
 	}
 
 	return &generated.Feedback{
-		ID:             m.ID,
-		VolunteerName:  m.VolunteerName,
-		Type:           generated.FeedbackType(m.Type),
-		Status:         generated.FeedbackStatus(m.Status),
-		Subject:        m.Subject,
-		AppPageName:    m.AppPageName,
-		Text:           m.Text,
-		Notes:          toGenFeedbackNotes(m.Notes),
-		GithubIssueURL: m.GithubIssueURL,
-		CreatedAt:      m.CreatedAt,
-		LastUpdatedAt:  m.LastUpdatedAt,
-		ResolvedAt:     m.ResolvedAt,
-		Attachments:    toGenFeedbackMetaAttachments(m.Attachments),
+		ID:            m.ID,
+		VolunteerName: m.VolunteerName,
+		Type:          generated.FeedbackType(m.Type),
+		Status:        generated.FeedbackStatus(m.Status),
+		Subject:       m.Subject,
+		AppPageName:   m.AppPageName,
+		Text:          m.Text,
+		Notes:         toGenFeedbackNotes(m.Notes),
+		CreatedAt:     m.CreatedAt,
+		LastUpdatedAt: m.LastUpdatedAt,
+		ResolvedAt:    m.ResolvedAt,
+		Attachments:   toGenFeedbackMetaAttachments(m.Attachments),
 	}
 }
 
@@ -358,14 +405,6 @@ func toGenVolunteer(m *models.Volunteer) *generated.Volunteer {
 	}
 }
 
-func toGenRoles(ms []models.Role) []generated.Role {
-	result := make([]generated.Role, len(ms))
-	for i, r := range ms {
-		result[i] = generated.Role(r)
-	}
-	return result
-}
-
 func toGenVolunteerShifts(ms []*models.VolunteerShift) []*generated.VolunteerShift {
 	result := make([]*generated.VolunteerShift, len(ms))
 	for i, m := range ms {
@@ -392,20 +431,6 @@ func toGenVolunteerShift(m *models.VolunteerShift) *generated.VolunteerShift {
 		EventName:            m.EventName,
 		EventDescription:     m.EventDescription,
 		Venue:                toGenVenue(m.Venue),
-	}
-}
-
-// Results
-
-func toGenMutationResult(m *models.MutationResult) *generated.MutationResult {
-	if m == nil {
-		return nil
-	}
-
-	return &generated.MutationResult{
-		Success: m.Success,
-		Message: m.Message,
-		ID:      m.ID,
 	}
 }
 
@@ -445,10 +470,6 @@ func toModelUpdateFundingEntityInput(g generated.UpdateFundingEntityInput) model
 }
 
 // Events
-
-func toModelShiftTimeFilter(g generated.ShiftTimeFilter) models.ShiftsTimeFilter {
-	return models.ShiftsTimeFilter(g)
-}
 
 func toModelEventFilterInput(g *generated.EventFilterInput) *models.EventFilterInput {
 	if g == nil {
@@ -583,7 +604,6 @@ func toModelAddShiftInput(g generated.AddShiftInput) models.AddShiftInput {
 }
 
 // Scope is for updating/deleting recurring events.
-
 func toModelScope(s *generated.RecurrenceUpdateScope) *models.RecurrenceUpdateScope {
 	if s == nil {
 		return nil
@@ -656,29 +676,26 @@ func toModelFeedbackFilterInput(g *generated.FeedbackFilterInput) *models.Feedba
 	}
 }
 
-func toModelQuestionFeedbackInput(g generated.QuestionFeedbackInput) models.QuestionFeedbackInput {
-	return models.QuestionFeedbackInput{
-		ID:        g.ID,
-		EmailText: g.EmailText,
-		Note:      g.Note,
+func toModelFeedbackStatusUpdateInput(g generated.FeedbackStatusUpdateInput) models.FeedbackStatusUpdateInput {
+	return models.FeedbackStatusUpdateInput{
+		FeedbackID: g.FeedbackID,
+		Status:     models.FeedbackStatus(g.Status),
+		Note:       g.Note,
 	}
 }
 
-func toModelUpdateFeedbackInput(g generated.UpdateFeedbackInput) models.UpdateFeedbackInput {
-	return models.UpdateFeedbackInput{
-		ID:             g.ID,
-		Status:         models.FeedbackStatus(g.Status),
-		Note:           g.Note,
-		GithubIssueURL: g.GithubIssueURL,
+func toModelFeedbackNoteInput(g generated.FeedbackNoteInput) models.FeedbackNoteInput {
+	return models.FeedbackNoteInput{
+		FeedbackID: g.FeedbackID,
+		Note:       g.Note,
 	}
 }
 
-func toModelResolveFeedbackInput(g generated.ResolveFeedbackInput) models.ResolveFeedbackInput {
-	return models.ResolveFeedbackInput{
-		ID:             g.ID,
-		Status:         models.FeedbackStatus(g.Status),
-		Note:           g.Note,
-		GithubIssueURL: g.GithubIssueURL,
+func toModelFeedbackEmailInput(g generated.FeedbackEmailInput) models.FeedbackEmailInput {
+	return models.FeedbackEmailInput{
+		FeedbackID:   g.FeedbackID,
+		EmailText:    g.EmailText,
+		RequireReply: g.RequireReply,
 	}
 }
 

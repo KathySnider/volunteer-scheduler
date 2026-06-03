@@ -351,12 +351,23 @@ export async function findVolunteerIdByEmail(
   return vols.find((v) => v.email === email)?.id ?? null;
 }
 
-/** Delete a feedback item by ID (removes attachments and notes too). */
+/**
+ * Close a feedback item by resolving it as RESOLVED_REJECTED.
+ * Used in afterAll cleanup — the item stays in the DB but is removed from
+ * the default "Open" view. (deleteFeedback was removed from the admin API;
+ * URLs in notes are the preferred way to track external references.)
+ */
 export async function deleteFeedback(adminToken: string, feedbackId: string): Promise<void> {
   await gql(
     ADMIN_URL,
-    `mutation DeleteFeedback($id: ID!) { deleteFeedback(feedbackId: $id) { success message } }`,
-    { id: feedbackId },
+    `mutation CloseFeedback($input: FeedbackStatusUpdateInput!) { updateFeedbackStatus(su: $input) { success message } }`,
+    {
+      input: {
+        feedbackId: parseInt(feedbackId, 10),
+        status: "RESOLVED_REJECTED",
+        note: "test cleanup",
+      },
+    },
     adminToken
   );
 }

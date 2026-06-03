@@ -73,19 +73,18 @@ type ComplexityRoot struct {
 	}
 
 	Feedback struct {
-		AppPageName    func(childComplexity int) int
-		Attachments    func(childComplexity int) int
-		CreatedAt      func(childComplexity int) int
-		GithubIssueURL func(childComplexity int) int
-		ID             func(childComplexity int) int
-		LastUpdatedAt  func(childComplexity int) int
-		Notes          func(childComplexity int) int
-		ResolvedAt     func(childComplexity int) int
-		Status         func(childComplexity int) int
-		Subject        func(childComplexity int) int
-		Text           func(childComplexity int) int
-		Type           func(childComplexity int) int
-		VolunteerName  func(childComplexity int) int
+		AppPageName   func(childComplexity int) int
+		Attachments   func(childComplexity int) int
+		CreatedAt     func(childComplexity int) int
+		ID            func(childComplexity int) int
+		LastUpdatedAt func(childComplexity int) int
+		Notes         func(childComplexity int) int
+		ResolvedAt    func(childComplexity int) int
+		Status        func(childComplexity int) int
+		Subject       func(childComplexity int) int
+		Text          func(childComplexity int) int
+		Type          func(childComplexity int) int
+		VolunteerName func(childComplexity int) int
 	}
 
 	FeedbackAttachment struct {
@@ -131,7 +130,9 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
+		AddFeedbackNote        func(childComplexity int, note FeedbackNoteInput) int
 		AssignVolunteerToShift func(childComplexity int, shiftID string, volunteerID string) int
+		AttachFileToFeedback   func(childComplexity int, feedbackID string, file graphql.Upload) int
 		CancelShift            func(childComplexity int, shiftID string, volunteerID string) int
 		CreateEvent            func(childComplexity int, newEvent NewEventInput) int
 		CreateEventDate        func(childComplexity int, newDate AddEventDateInput) int
@@ -144,7 +145,6 @@ type ComplexityRoot struct {
 		CreateVolunteer        func(childComplexity int, newVol NewVolunteerInput) int
 		DeleteEvent            func(childComplexity int, eventID string, scope *RecurrenceUpdateScope) int
 		DeleteEventDate        func(childComplexity int, eventDateID string) int
-		DeleteFeedback         func(childComplexity int, feedbackID string) int
 		DeleteFundingEntity    func(childComplexity int, id int) int
 		DeleteJobType          func(childComplexity int, jobID int) int
 		DeleteOpportunity      func(childComplexity int, oppID string) int
@@ -152,11 +152,11 @@ type ComplexityRoot struct {
 		DeleteStaff            func(childComplexity int, staffID string) int
 		DeleteVenue            func(childComplexity int, venueID string) int
 		DeleteVolunteer        func(childComplexity int, volunteerID string) int
-		QuestionFeedback       func(childComplexity int, question QuestionFeedbackInput) int
-		ResolveFeedback        func(childComplexity int, resolution ResolveFeedbackInput) int
+		EmailFeedbackSubmitter func(childComplexity int, input FeedbackEmailInput) int
+		GiveFeedback           func(childComplexity int, feedback NewFeedbackInput) int
 		UpdateEvent            func(childComplexity int, event UpdateEventInput) int
 		UpdateEventDate        func(childComplexity int, date UpdateEventDateInput) int
-		UpdateFeedback         func(childComplexity int, feedback UpdateFeedbackInput) int
+		UpdateFeedbackStatus   func(childComplexity int, su FeedbackStatusUpdateInput) int
 		UpdateFundingEntity    func(childComplexity int, input UpdateFundingEntityInput) int
 		UpdateJobType          func(childComplexity int, job UpdateJobTypeInput) int
 		UpdateOpportunity      func(childComplexity int, opp UpdateOpportunityInput) int
@@ -185,7 +185,7 @@ type ComplexityRoot struct {
 		Events                func(childComplexity int, filter *EventFilterInput) int
 		Feedback              func(childComplexity int, filter *FeedbackFilterInput) int
 		FeedbackAttachment    func(childComplexity int, attachmentID int) int
-		FeedbackByID          func(childComplexity int, feedbackID string) int
+		FeedbackDetail        func(childComplexity int, feedbackID string) int
 		FundingEntities       func(childComplexity int) int
 		LookupValues          func(childComplexity int) int
 		OpportunitiesForEvent func(childComplexity int, eventID string) int
@@ -264,6 +264,8 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
+	AttachFileToFeedback(ctx context.Context, feedbackID string, file graphql.Upload) (*MutationResult, error)
+	GiveFeedback(ctx context.Context, feedback NewFeedbackInput) (*MutationResult, error)
 	CreateFundingEntity(ctx context.Context, input NewFundingEntityInput) (*MutationResult, error)
 	CreateJobType(ctx context.Context, newJob NewJobTypeInput) (*MutationResult, error)
 	DeleteFundingEntity(ctx context.Context, id int) (*MutationResult, error)
@@ -282,10 +284,9 @@ type MutationResolver interface {
 	UpdateEventDate(ctx context.Context, date UpdateEventDateInput) (*MutationResult, error)
 	UpdateOpportunity(ctx context.Context, opp UpdateOpportunityInput) (*MutationResult, error)
 	UpdateShift(ctx context.Context, shift UpdateShiftInput) (*MutationResult, error)
-	QuestionFeedback(ctx context.Context, question QuestionFeedbackInput) (*MutationResult, error)
-	UpdateFeedback(ctx context.Context, feedback UpdateFeedbackInput) (*MutationResult, error)
-	ResolveFeedback(ctx context.Context, resolution ResolveFeedbackInput) (*MutationResult, error)
-	DeleteFeedback(ctx context.Context, feedbackID string) (*MutationResult, error)
+	UpdateFeedbackStatus(ctx context.Context, su FeedbackStatusUpdateInput) (*MutationResult, error)
+	AddFeedbackNote(ctx context.Context, note FeedbackNoteInput) (*MutationResult, error)
+	EmailFeedbackSubmitter(ctx context.Context, input FeedbackEmailInput) (*MutationResult, error)
 	CreateStaff(ctx context.Context, newStaff NewStaffInput) (*MutationResult, error)
 	DeleteStaff(ctx context.Context, staffID string) (*MutationResult, error)
 	UpdateStaff(ctx context.Context, staff UpdateStaffInput) (*MutationResult, error)
@@ -305,7 +306,7 @@ type QueryResolver interface {
 	FundingEntities(ctx context.Context) ([]*FundingEntity, error)
 	OpportunitiesForEvent(ctx context.Context, eventID string) ([]*Opportunity, error)
 	Feedback(ctx context.Context, filter *FeedbackFilterInput) ([]*Feedback, error)
-	FeedbackByID(ctx context.Context, feedbackID string) (*Feedback, error)
+	FeedbackDetail(ctx context.Context, feedbackID string) (*Feedback, error)
 	FeedbackAttachment(ctx context.Context, attachmentID int) (*FeedbackAttachment, error)
 	Staff(ctx context.Context) ([]*Staff, error)
 	Venues(ctx context.Context) ([]*Venue, error)
@@ -462,12 +463,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Feedback.CreatedAt(childComplexity), true
-	case "Feedback.githubIssueURL":
-		if e.complexity.Feedback.GithubIssueURL == nil {
-			break
-		}
-
-		return e.complexity.Feedback.GithubIssueURL(childComplexity), true
 	case "Feedback.id":
 		if e.complexity.Feedback.ID == nil {
 			break
@@ -673,6 +668,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.LookupValues.ServiceTypes(childComplexity), true
 
+	case "Mutation.addFeedbackNote":
+		if e.complexity.Mutation.AddFeedbackNote == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addFeedbackNote_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddFeedbackNote(childComplexity, args["note"].(FeedbackNoteInput)), true
 	case "Mutation.assignVolunteerToShift":
 		if e.complexity.Mutation.AssignVolunteerToShift == nil {
 			break
@@ -684,6 +690,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.AssignVolunteerToShift(childComplexity, args["shiftId"].(string), args["volunteerId"].(string)), true
+	case "Mutation.attachFileToFeedback":
+		if e.complexity.Mutation.AttachFileToFeedback == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_attachFileToFeedback_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AttachFileToFeedback(childComplexity, args["feedbackId"].(string), args["file"].(graphql.Upload)), true
 	case "Mutation.cancelShift":
 		if e.complexity.Mutation.CancelShift == nil {
 			break
@@ -816,17 +833,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteEventDate(childComplexity, args["eventDateId"].(string)), true
-	case "Mutation.deleteFeedback":
-		if e.complexity.Mutation.DeleteFeedback == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_deleteFeedback_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.DeleteFeedback(childComplexity, args["feedbackId"].(string)), true
 	case "Mutation.deleteFundingEntity":
 		if e.complexity.Mutation.DeleteFundingEntity == nil {
 			break
@@ -904,28 +910,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteVolunteer(childComplexity, args["volunteerId"].(string)), true
-	case "Mutation.questionFeedback":
-		if e.complexity.Mutation.QuestionFeedback == nil {
+	case "Mutation.emailFeedbackSubmitter":
+		if e.complexity.Mutation.EmailFeedbackSubmitter == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_questionFeedback_args(ctx, rawArgs)
+		args, err := ec.field_Mutation_emailFeedbackSubmitter_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.QuestionFeedback(childComplexity, args["question"].(QuestionFeedbackInput)), true
-	case "Mutation.resolveFeedback":
-		if e.complexity.Mutation.ResolveFeedback == nil {
+		return e.complexity.Mutation.EmailFeedbackSubmitter(childComplexity, args["input"].(FeedbackEmailInput)), true
+	case "Mutation.giveFeedback":
+		if e.complexity.Mutation.GiveFeedback == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_resolveFeedback_args(ctx, rawArgs)
+		args, err := ec.field_Mutation_giveFeedback_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.ResolveFeedback(childComplexity, args["resolution"].(ResolveFeedbackInput)), true
+		return e.complexity.Mutation.GiveFeedback(childComplexity, args["feedback"].(NewFeedbackInput)), true
 	case "Mutation.updateEvent":
 		if e.complexity.Mutation.UpdateEvent == nil {
 			break
@@ -948,17 +954,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateEventDate(childComplexity, args["date"].(UpdateEventDateInput)), true
-	case "Mutation.updateFeedback":
-		if e.complexity.Mutation.UpdateFeedback == nil {
+	case "Mutation.updateFeedbackStatus":
+		if e.complexity.Mutation.UpdateFeedbackStatus == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_updateFeedback_args(ctx, rawArgs)
+		args, err := ec.field_Mutation_updateFeedbackStatus_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateFeedback(childComplexity, args["feedback"].(UpdateFeedbackInput)), true
+		return e.complexity.Mutation.UpdateFeedbackStatus(childComplexity, args["su"].(FeedbackStatusUpdateInput)), true
 	case "Mutation.updateFundingEntity":
 		if e.complexity.Mutation.UpdateFundingEntity == nil {
 			break
@@ -1131,17 +1137,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.FeedbackAttachment(childComplexity, args["attachmentId"].(int)), true
-	case "Query.feedbackById":
-		if e.complexity.Query.FeedbackByID == nil {
+	case "Query.feedbackDetail":
+		if e.complexity.Query.FeedbackDetail == nil {
 			break
 		}
 
-		args, err := ec.field_Query_feedbackById_args(ctx, rawArgs)
+		args, err := ec.field_Query_feedbackDetail_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.FeedbackByID(childComplexity, args["feedbackId"].(string)), true
+		return e.complexity.Query.FeedbackDetail(childComplexity, args["feedbackId"].(string)), true
 	case "Query.fundingEntities":
 		if e.complexity.Query.FundingEntities == nil {
 			break
@@ -1499,9 +1505,13 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputAddEventDateInput,
 		ec.unmarshalInputAddShiftInput,
 		ec.unmarshalInputEventFilterInput,
+		ec.unmarshalInputFeedbackEmailInput,
 		ec.unmarshalInputFeedbackFilterInput,
+		ec.unmarshalInputFeedbackNoteInput,
+		ec.unmarshalInputFeedbackStatusUpdateInput,
 		ec.unmarshalInputNewEventDateInput,
 		ec.unmarshalInputNewEventInput,
+		ec.unmarshalInputNewFeedbackInput,
 		ec.unmarshalInputNewFundingEntityInput,
 		ec.unmarshalInputNewJobTypeInput,
 		ec.unmarshalInputNewOpportunityInput,
@@ -1509,12 +1519,9 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputNewStaffInput,
 		ec.unmarshalInputNewVenueInput,
 		ec.unmarshalInputNewVolunteerInput,
-		ec.unmarshalInputQuestionFeedbackInput,
 		ec.unmarshalInputRecurrenceInput,
-		ec.unmarshalInputResolveFeedbackInput,
 		ec.unmarshalInputUpdateEventDateInput,
 		ec.unmarshalInputUpdateEventInput,
-		ec.unmarshalInputUpdateFeedbackInput,
 		ec.unmarshalInputUpdateFundingEntityInput,
 		ec.unmarshalInputUpdateJobTypeInput,
 		ec.unmarshalInputUpdateOpportunityInput,
@@ -1626,6 +1633,13 @@ type Query {
   lookupValues: LookupValues!
 }
 
+type Mutation {
+  # Feedback
+  attachFileToFeedback(feedbackId: ID!, file: Upload!): MutationResult!
+  giveFeedback (feedback: NewFeedbackInput!): MutationResult!
+}
+
+
 #-- Scalers --
 
 scalar Upload
@@ -1652,14 +1666,14 @@ enum FeedbackType {
 enum FeedbackStatus {
   OPEN
   QUESTION_SENT
-  RESOLVED_GITHUB
+  RESOLVED_IMPLEMENTED
   RESOLVED_REJECTED
 }
 
 enum FeedbackNoteType {
   ADMIN_NOTE
   QUESTION
-  VOLUNTEER_REPLY
+  VOLUNTEER_NOTE
   EMAIL_TO_VOLUNTEER
 }
 
@@ -1670,6 +1684,8 @@ enum ShiftTimeFilter {
 }
 
 #-- Output --
+
+# Lookup values 
 
 type ServiceType{
   id: Int!
@@ -1691,6 +1707,9 @@ type LookupValues{
   cities: [String!]!
 }
 
+
+# Events 
+
 # Per-opportunity volunteer counts for the event listing cards.
 # Used on volunteer pages, and on manage events pages.
 
@@ -1700,8 +1719,10 @@ type EventShiftSummary {
   maxVolunteers: Int!
 }
 
-# Both Feedback and FeedbackView (volunteers) use
-# the same metadata. When an attachment is viewed,
+# Feedback 
+
+# Both Feedback and FeedbackView (volunteers) use the same 
+# metadata. When the content of an attachment is viewed,
 # there is a different type.
 
 type FeedbackMetaAttachment {
@@ -1713,11 +1734,25 @@ type FeedbackMetaAttachment {
 }
 
 #-- Results --
+
 type MutationResult {
   success: Boolean!
   message: String
   id: ID
 }
+
+#-- Input --
+
+# Feedback
+
+input NewFeedbackInput {
+  type: FeedbackType!
+  subject: String!
+  app_page_name: String!
+  text: String!
+}
+
+
 `, BuiltIn: false},
 	{Name: "../schema.graphql", Input: `## These definitions apply to those users with admin status
 ## only. 
@@ -1732,7 +1767,7 @@ extend type Query {
 
   # Feedback
   feedback(filter: FeedbackFilterInput): [Feedback!]!
-  feedbackById(feedbackId: ID!): Feedback
+  feedbackDetail(feedbackId: ID!): Feedback
   feedbackAttachment(attachmentId: Int!): FeedbackAttachment!
 
   # Staff
@@ -1747,7 +1782,7 @@ extend type Query {
   volunteerShifts(volunteerId: ID!, filter: ShiftTimeFilter!): [VolunteerShift!]!
 }
 
-type Mutation {
+extend type Mutation {
 
   # Generic - used for lookups and within other types.
 
@@ -1777,10 +1812,9 @@ type Mutation {
   updateShift(shift: UpdateShiftInput!): MutationResult!
 
   # Feedback
-  questionFeedback(question: QuestionFeedbackInput!): MutationResult!
-  updateFeedback(feedback: UpdateFeedbackInput!): MutationResult!
-  resolveFeedback(resolution: ResolveFeedbackInput!): MutationResult!
-  deleteFeedback(feedbackId: ID!): MutationResult!
+  updateFeedbackStatus(su: FeedbackStatusUpdateInput!): MutationResult!
+  addFeedbackNote(note: FeedbackNoteInput!): MutationResult!
+  emailFeedbackSubmitter(input: FeedbackEmailInput!): MutationResult!
 
   # Staff
   createStaff(newStaff: NewStaffInput!): MutationResult!
@@ -1912,7 +1946,6 @@ type Feedback {
   appPageName: String!
   text: String!
   notes: [FeedbackNote!]!
-  githubIssueURL: String
   createdAt: String!
   lastUpdatedAt: String
   resolvedAt: String  
@@ -2100,25 +2133,23 @@ input FeedbackFilterInput {
   type: FeedbackType
 }
 
-input QuestionFeedbackInput {
-  id: ID!
+input FeedbackStatusUpdateInput {
+  feedbackId: Int!
+  status: FeedbackStatus!
+  note: String!
+}
+
+input FeedbackNoteInput {
+  feedbackId: Int!
+  note: String!
+}
+
+input FeedbackEmailInput {
+  feedbackId: Int!
   emailText: String!
-  note: String!
+  requireReply: Boolean!
 }
 
-input UpdateFeedbackInput {
-  id: ID!
-  status: FeedbackStatus!
-  note: String!
-  githubIssueURL: String
-}
-
-input ResolveFeedbackInput {
-  id: ID!
-  status: FeedbackStatus!
-  note: String!
-  githubIssueURL: String
-}
 
 # Staff
 
@@ -2166,6 +2197,11 @@ input VolunteerFilterInput {
   email: String
 }
 
+# Role is intentionally a single value (VOLUNTEER or ADMINISTRATOR).
+# The backend enforces that ADMINISTRATOR always implies VOLUNTEER —
+# both roles are inserted automatically when ADMINISTRATOR is given.
+# Do not change this to a slice; the derivation happens in the service.
+
 input NewVolunteerInput {
   firstName: String!
   lastName: String!
@@ -2201,6 +2237,17 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
+func (ec *executionContext) field_Mutation_addFeedbackNote_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "note", ec.unmarshalNFeedbackNoteInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackNoteInput)
+	if err != nil {
+		return nil, err
+	}
+	args["note"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_assignVolunteerToShift_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2214,6 +2261,22 @@ func (ec *executionContext) field_Mutation_assignVolunteerToShift_args(ctx conte
 		return nil, err
 	}
 	args["volunteerId"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_attachFileToFeedback_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "feedbackId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["feedbackId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "file", ec.unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload)
+	if err != nil {
+		return nil, err
+	}
+	args["file"] = arg1
 	return args, nil
 }
 
@@ -2359,17 +2422,6 @@ func (ec *executionContext) field_Mutation_deleteEvent_args(ctx context.Context,
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_deleteFeedback_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "feedbackId", ec.unmarshalNID2string)
-	if err != nil {
-		return nil, err
-	}
-	args["feedbackId"] = arg0
-	return args, nil
-}
-
 func (ec *executionContext) field_Mutation_deleteFundingEntity_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2447,25 +2499,25 @@ func (ec *executionContext) field_Mutation_deleteVolunteer_args(ctx context.Cont
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_questionFeedback_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+func (ec *executionContext) field_Mutation_emailFeedbackSubmitter_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "question", ec.unmarshalNQuestionFeedbackInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐQuestionFeedbackInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNFeedbackEmailInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackEmailInput)
 	if err != nil {
 		return nil, err
 	}
-	args["question"] = arg0
+	args["input"] = arg0
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_resolveFeedback_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+func (ec *executionContext) field_Mutation_giveFeedback_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "resolution", ec.unmarshalNResolveFeedbackInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐResolveFeedbackInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "feedback", ec.unmarshalNNewFeedbackInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewFeedbackInput)
 	if err != nil {
 		return nil, err
 	}
-	args["resolution"] = arg0
+	args["feedback"] = arg0
 	return args, nil
 }
 
@@ -2491,14 +2543,14 @@ func (ec *executionContext) field_Mutation_updateEvent_args(ctx context.Context,
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_updateFeedback_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+func (ec *executionContext) field_Mutation_updateFeedbackStatus_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "feedback", ec.unmarshalNUpdateFeedbackInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateFeedbackInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "su", ec.unmarshalNFeedbackStatusUpdateInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackStatusUpdateInput)
 	if err != nil {
 		return nil, err
 	}
-	args["feedback"] = arg0
+	args["su"] = arg0
 	return args, nil
 }
 
@@ -2623,7 +2675,7 @@ func (ec *executionContext) field_Query_feedbackAttachment_args(ctx context.Cont
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_feedbackById_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+func (ec *executionContext) field_Query_feedbackDetail_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "feedbackId", ec.unmarshalNID2string)
@@ -3560,35 +3612,6 @@ func (ec *executionContext) fieldContext_Feedback_notes(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Feedback_githubIssueURL(ctx context.Context, field graphql.CollectedField, obj *Feedback) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Feedback_githubIssueURL,
-		func(ctx context.Context) (any, error) {
-			return obj.GithubIssueURL, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_Feedback_githubIssueURL(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Feedback",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Feedback_createdAt(ctx context.Context, field graphql.CollectedField, obj *Feedback) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -4429,6 +4452,104 @@ func (ec *executionContext) fieldContext_LookupValues_cities(_ context.Context, 
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_attachFileToFeedback(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_attachFileToFeedback,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().AttachFileToFeedback(ctx, fc.Args["feedbackId"].(string), fc.Args["file"].(graphql.Upload))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_attachFileToFeedback(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_attachFileToFeedback_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_giveFeedback(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_giveFeedback,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().GiveFeedback(ctx, fc.Args["feedback"].(NewFeedbackInput))
+		},
+		nil,
+		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_giveFeedback(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_MutationResult_success(ctx, field)
+			case "message":
+				return ec.fieldContext_MutationResult_message(ctx, field)
+			case "id":
+				return ec.fieldContext_MutationResult_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_giveFeedback_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -5315,15 +5436,15 @@ func (ec *executionContext) fieldContext_Mutation_updateShift(ctx context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_questionFeedback(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_updateFeedbackStatus(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Mutation_questionFeedback,
+		ec.fieldContext_Mutation_updateFeedbackStatus,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().QuestionFeedback(ctx, fc.Args["question"].(QuestionFeedbackInput))
+			return ec.resolvers.Mutation().UpdateFeedbackStatus(ctx, fc.Args["su"].(FeedbackStatusUpdateInput))
 		},
 		nil,
 		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
@@ -5332,7 +5453,7 @@ func (ec *executionContext) _Mutation_questionFeedback(ctx context.Context, fiel
 	)
 }
 
-func (ec *executionContext) fieldContext_Mutation_questionFeedback(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_updateFeedbackStatus(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -5357,22 +5478,22 @@ func (ec *executionContext) fieldContext_Mutation_questionFeedback(ctx context.C
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_questionFeedback_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_updateFeedbackStatus_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_updateFeedback(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_addFeedbackNote(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Mutation_updateFeedback,
+		ec.fieldContext_Mutation_addFeedbackNote,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateFeedback(ctx, fc.Args["feedback"].(UpdateFeedbackInput))
+			return ec.resolvers.Mutation().AddFeedbackNote(ctx, fc.Args["note"].(FeedbackNoteInput))
 		},
 		nil,
 		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
@@ -5381,7 +5502,7 @@ func (ec *executionContext) _Mutation_updateFeedback(ctx context.Context, field 
 	)
 }
 
-func (ec *executionContext) fieldContext_Mutation_updateFeedback(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_addFeedbackNote(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -5406,22 +5527,22 @@ func (ec *executionContext) fieldContext_Mutation_updateFeedback(ctx context.Con
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_updateFeedback_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_addFeedbackNote_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_resolveFeedback(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_emailFeedbackSubmitter(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Mutation_resolveFeedback,
+		ec.fieldContext_Mutation_emailFeedbackSubmitter,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().ResolveFeedback(ctx, fc.Args["resolution"].(ResolveFeedbackInput))
+			return ec.resolvers.Mutation().EmailFeedbackSubmitter(ctx, fc.Args["input"].(FeedbackEmailInput))
 		},
 		nil,
 		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
@@ -5430,7 +5551,7 @@ func (ec *executionContext) _Mutation_resolveFeedback(ctx context.Context, field
 	)
 }
 
-func (ec *executionContext) fieldContext_Mutation_resolveFeedback(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_emailFeedbackSubmitter(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -5455,56 +5576,7 @@ func (ec *executionContext) fieldContext_Mutation_resolveFeedback(ctx context.Co
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_resolveFeedback_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_deleteFeedback(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_deleteFeedback,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().DeleteFeedback(ctx, fc.Args["feedbackId"].(string))
-		},
-		nil,
-		ec.marshalNMutationResult2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐMutationResult,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_deleteFeedback(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_MutationResult_success(ctx, field)
-			case "message":
-				return ec.fieldContext_MutationResult_message(ctx, field)
-			case "id":
-				return ec.fieldContext_MutationResult_id(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MutationResult", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_deleteFeedback_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_emailFeedbackSubmitter_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -6596,8 +6668,6 @@ func (ec *executionContext) fieldContext_Query_feedback(ctx context.Context, fie
 				return ec.fieldContext_Feedback_text(ctx, field)
 			case "notes":
 				return ec.fieldContext_Feedback_notes(ctx, field)
-			case "githubIssueURL":
-				return ec.fieldContext_Feedback_githubIssueURL(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Feedback_createdAt(ctx, field)
 			case "lastUpdatedAt":
@@ -6624,15 +6694,15 @@ func (ec *executionContext) fieldContext_Query_feedback(ctx context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_feedbackById(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_feedbackDetail(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_feedbackById,
+		ec.fieldContext_Query_feedbackDetail,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().FeedbackByID(ctx, fc.Args["feedbackId"].(string))
+			return ec.resolvers.Query().FeedbackDetail(ctx, fc.Args["feedbackId"].(string))
 		},
 		nil,
 		ec.marshalOFeedback2ᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedback,
@@ -6641,7 +6711,7 @@ func (ec *executionContext) _Query_feedbackById(ctx context.Context, field graph
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_feedbackById(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_feedbackDetail(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -6665,8 +6735,6 @@ func (ec *executionContext) fieldContext_Query_feedbackById(ctx context.Context,
 				return ec.fieldContext_Feedback_text(ctx, field)
 			case "notes":
 				return ec.fieldContext_Feedback_notes(ctx, field)
-			case "githubIssueURL":
-				return ec.fieldContext_Feedback_githubIssueURL(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Feedback_createdAt(ctx, field)
 			case "lastUpdatedAt":
@@ -6686,7 +6754,7 @@ func (ec *executionContext) fieldContext_Query_feedbackById(ctx context.Context,
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_feedbackById_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_feedbackDetail_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -10032,6 +10100,47 @@ func (ec *executionContext) unmarshalInputEventFilterInput(ctx context.Context, 
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputFeedbackEmailInput(ctx context.Context, obj any) (FeedbackEmailInput, error) {
+	var it FeedbackEmailInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"feedbackId", "emailText", "requireReply"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "feedbackId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("feedbackId"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.FeedbackID = data
+		case "emailText":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("emailText"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EmailText = data
+		case "requireReply":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("requireReply"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RequireReply = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputFeedbackFilterInput(ctx context.Context, obj any) (FeedbackFilterInput, error) {
 	var it FeedbackFilterInput
 	asMap := map[string]any{}
@@ -10060,6 +10169,81 @@ func (ec *executionContext) unmarshalInputFeedbackFilterInput(ctx context.Contex
 				return it, err
 			}
 			it.Type = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFeedbackNoteInput(ctx context.Context, obj any) (FeedbackNoteInput, error) {
+	var it FeedbackNoteInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"feedbackId", "note"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "feedbackId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("feedbackId"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.FeedbackID = data
+		case "note":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("note"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Note = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFeedbackStatusUpdateInput(ctx context.Context, obj any) (FeedbackStatusUpdateInput, error) {
+	var it FeedbackStatusUpdateInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"feedbackId", "status", "note"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "feedbackId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("feedbackId"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.FeedbackID = data
+		case "status":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("status"))
+			data, err := ec.unmarshalNFeedbackStatus2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackStatus(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Status = data
+		case "note":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("note"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Note = data
 		}
 	}
 
@@ -10177,6 +10361,54 @@ func (ec *executionContext) unmarshalInputNewEventInput(ctx context.Context, obj
 				return it, err
 			}
 			it.Recurrence = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputNewFeedbackInput(ctx context.Context, obj any) (NewFeedbackInput, error) {
+	var it NewFeedbackInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"type", "subject", "app_page_name", "text"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "type":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
+			data, err := ec.unmarshalNFeedbackType2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Type = data
+		case "subject":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subject"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Subject = data
+		case "app_page_name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("app_page_name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AppPageName = data
+		case "text":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("text"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Text = data
 		}
 	}
 
@@ -10540,47 +10772,6 @@ func (ec *executionContext) unmarshalInputNewVolunteerInput(ctx context.Context,
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputQuestionFeedbackInput(ctx context.Context, obj any) (QuestionFeedbackInput, error) {
-	var it QuestionFeedbackInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"id", "emailText", "note"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "id":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-			data, err := ec.unmarshalNID2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ID = data
-		case "emailText":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("emailText"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.EmailText = data
-		case "note":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("note"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Note = data
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputRecurrenceInput(ctx context.Context, obj any) (RecurrenceInput, error) {
 	var it RecurrenceInput
 	asMap := map[string]any{}
@@ -10616,54 +10807,6 @@ func (ec *executionContext) unmarshalInputRecurrenceInput(ctx context.Context, o
 				return it, err
 			}
 			it.WeekdayOrdinal = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputResolveFeedbackInput(ctx context.Context, obj any) (ResolveFeedbackInput, error) {
-	var it ResolveFeedbackInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"id", "status", "note", "githubIssueURL"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "id":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-			data, err := ec.unmarshalNID2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ID = data
-		case "status":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("status"))
-			data, err := ec.unmarshalNFeedbackStatus2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackStatus(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Status = data
-		case "note":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("note"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Note = data
-		case "githubIssueURL":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("githubIssueURL"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.GithubIssueURL = data
 		}
 	}
 
@@ -10788,54 +10931,6 @@ func (ec *executionContext) unmarshalInputUpdateEventInput(ctx context.Context, 
 				return it, err
 			}
 			it.RecurrenceScope = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputUpdateFeedbackInput(ctx context.Context, obj any) (UpdateFeedbackInput, error) {
-	var it UpdateFeedbackInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"id", "status", "note", "githubIssueURL"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "id":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-			data, err := ec.unmarshalNID2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ID = data
-		case "status":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("status"))
-			data, err := ec.unmarshalNFeedbackStatus2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackStatus(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Status = data
-		case "note":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("note"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Note = data
-		case "githubIssueURL":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("githubIssueURL"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.GithubIssueURL = data
 		}
 	}
 
@@ -11511,8 +11606,6 @@ func (ec *executionContext) _Feedback(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "githubIssueURL":
-			out.Values[i] = ec._Feedback_githubIssueURL(ctx, field, obj)
 		case "createdAt":
 			out.Values[i] = ec._Feedback_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -11890,6 +11983,20 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
+		case "attachFileToFeedback":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_attachFileToFeedback(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "giveFeedback":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_giveFeedback(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "createFundingEntity":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createFundingEntity(ctx, field)
@@ -12016,30 +12123,23 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "questionFeedback":
+		case "updateFeedbackStatus":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_questionFeedback(ctx, field)
+				return ec._Mutation_updateFeedbackStatus(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "updateFeedback":
+		case "addFeedbackNote":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_updateFeedback(ctx, field)
+				return ec._Mutation_addFeedbackNote(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "resolveFeedback":
+		case "emailFeedbackSubmitter":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_resolveFeedback(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "deleteFeedback":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_deleteFeedback(ctx, field)
+				return ec._Mutation_emailFeedbackSubmitter(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -12394,7 +12494,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "feedbackById":
+		case "feedbackDetail":
 			field := field
 
 			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
@@ -12403,7 +12503,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_feedbackById(ctx, field)
+				res = ec._Query_feedbackDetail(ctx, field)
 				return res
 			}
 
@@ -13596,6 +13696,11 @@ func (ec *executionContext) marshalNFeedbackAttachment2ᚖvolunteerᚑscheduler�
 	return ec._FeedbackAttachment(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNFeedbackEmailInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackEmailInput(ctx context.Context, v any) (FeedbackEmailInput, error) {
+	res, err := ec.unmarshalInputFeedbackEmailInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNFeedbackMetaAttachment2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackMetaAttachmentᚄ(ctx context.Context, sel ast.SelectionSet, v []*FeedbackMetaAttachment) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -13704,6 +13809,11 @@ func (ec *executionContext) marshalNFeedbackNote2ᚖvolunteerᚑschedulerᚋgrap
 	return ec._FeedbackNote(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNFeedbackNoteInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackNoteInput(ctx context.Context, v any) (FeedbackNoteInput, error) {
+	res, err := ec.unmarshalInputFeedbackNoteInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNFeedbackNoteType2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackNoteType(ctx context.Context, v any) (FeedbackNoteType, error) {
 	var res FeedbackNoteType
 	err := res.UnmarshalGQL(v)
@@ -13722,6 +13832,11 @@ func (ec *executionContext) unmarshalNFeedbackStatus2volunteerᚑschedulerᚋgra
 
 func (ec *executionContext) marshalNFeedbackStatus2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackStatus(ctx context.Context, sel ast.SelectionSet, v FeedbackStatus) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) unmarshalNFeedbackStatusUpdateInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackStatusUpdateInput(ctx context.Context, v any) (FeedbackStatusUpdateInput, error) {
+	res, err := ec.unmarshalInputFeedbackStatusUpdateInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNFeedbackType2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐFeedbackType(ctx context.Context, v any) (FeedbackType, error) {
@@ -13957,6 +14072,11 @@ func (ec *executionContext) unmarshalNNewEventInput2volunteerᚑschedulerᚋgrap
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNNewFeedbackInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewFeedbackInput(ctx context.Context, v any) (NewFeedbackInput, error) {
+	res, err := ec.unmarshalInputNewFeedbackInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNNewFundingEntityInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐNewFundingEntityInput(ctx context.Context, v any) (NewFundingEntityInput, error) {
 	res, err := ec.unmarshalInputNewFundingEntityInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -14061,11 +14181,6 @@ func (ec *executionContext) marshalNOpportunity2ᚖvolunteerᚑschedulerᚋgraph
 	return ec._Opportunity(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNQuestionFeedbackInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐQuestionFeedbackInput(ctx context.Context, v any) (QuestionFeedbackInput, error) {
-	res, err := ec.unmarshalInputQuestionFeedbackInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) unmarshalNRecurrencePattern2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRecurrencePattern(ctx context.Context, v any) (RecurrencePattern, error) {
 	var res RecurrencePattern
 	err := res.UnmarshalGQL(v)
@@ -14074,11 +14189,6 @@ func (ec *executionContext) unmarshalNRecurrencePattern2volunteerᚑschedulerᚋ
 
 func (ec *executionContext) marshalNRecurrencePattern2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRecurrencePattern(ctx context.Context, sel ast.SelectionSet, v RecurrencePattern) graphql.Marshaler {
 	return v
-}
-
-func (ec *executionContext) unmarshalNResolveFeedbackInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐResolveFeedbackInput(ctx context.Context, v any) (ResolveFeedbackInput, error) {
-	res, err := ec.unmarshalInputResolveFeedbackInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNRole2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐRole(ctx context.Context, v any) (Role, error) {
@@ -14378,11 +14488,6 @@ func (ec *executionContext) unmarshalNUpdateEventInput2volunteerᚑschedulerᚋg
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNUpdateFeedbackInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateFeedbackInput(ctx context.Context, v any) (UpdateFeedbackInput, error) {
-	res, err := ec.unmarshalInputUpdateFeedbackInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) unmarshalNUpdateFundingEntityInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateFundingEntityInput(ctx context.Context, v any) (UpdateFundingEntityInput, error) {
 	res, err := ec.unmarshalInputUpdateFundingEntityInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -14416,6 +14521,22 @@ func (ec *executionContext) unmarshalNUpdateVenueInput2volunteerᚑschedulerᚋg
 func (ec *executionContext) unmarshalNUpdateVolunteerInput2volunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐUpdateVolunteerInput(ctx context.Context, v any) (UpdateVolunteerInput, error) {
 	res, err := ec.unmarshalInputUpdateVolunteerInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, v any) (graphql.Upload, error) {
+	res, err := graphql.UnmarshalUpload(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, sel ast.SelectionSet, v graphql.Upload) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalUpload(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
 }
 
 func (ec *executionContext) marshalNVenue2ᚕᚖvolunteerᚑschedulerᚋgraphᚋadminᚋgeneratedᚐVenueᚄ(ctx context.Context, sel ast.SelectionSet, v []*Venue) graphql.Marshaler {

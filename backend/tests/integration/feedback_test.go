@@ -24,12 +24,8 @@ func seedFeedbackNote(t *testing.T, feedbackID, volID int, noteType, text string
 	return id
 }
 
-// All feedback service functions are correct. Tests below cover the full
-// surface area except feedbackById, which can be added once the resolvers
-// and schema wiring are in place.
-
 // ============================================================================
-// Mutation strings
+// Mutation / query strings
 // ============================================================================
 
 const (
@@ -40,22 +36,33 @@ const (
 		}
 	}`
 
+	qryFeedbackDetail = `query FeedbackDetail($id: ID!) {
+		feedbackDetail(feedbackId: $id) {
+			id subject status type text
+			notes { id creator noteType note createdAt }
+		}
+	}`
+
 	mutGiveFeedback = `mutation GiveFeedback($input: NewFeedbackInput!) {
 		giveFeedback(feedback: $input) { success message id }
 	}`
 
-	mutUpdateFeedback = `mutation UpdateFeedback($input: UpdateFeedbackInput!) {
-		updateFeedback(feedback: $input) { success message id }
+	mutUpdateFeedbackStatus = `mutation UpdateFeedbackStatus($input: FeedbackStatusUpdateInput!) {
+		updateFeedbackStatus(su: $input) { success message id }
 	}`
 
-	mutResolveFeedback = `mutation ResolveFeedback($input: ResolveFeedbackInput!) {
-		resolveFeedback(resolution: $input) { success message id }
+	mutAddFeedbackNote = `mutation AddFeedbackNote($input: FeedbackNoteInput!) {
+		addFeedbackNote(note: $input) { success message id }
 	}`
 
-	// questionFeedback sends an email to the volunteer who submitted the
-	// feedback. See TestQuestionFeedback for notes on the mailer dependency.
-	mutQuestionFeedback = `mutation QuestionFeedback($input: QuestionFeedbackInput!) {
-		questionFeedback(question: $input) { success message id }
+	// emailFeedbackSubmitter sends an email to the volunteer who submitted the
+	// feedback. See TestEmailFeedbackSubmitter_* for notes on the mailer dependency.
+	mutEmailFeedbackSubmitter = `mutation EmailFeedbackSubmitter($input: FeedbackEmailInput!) {
+		emailFeedbackSubmitter(input: $input) { success message id }
+	}`
+
+	mutAddVolunteerFeedbackNote = `mutation AddVolunteerFeedbackNote($input: VolunteerFeedbackNoteInput!) {
+		addVolunteerFeedbackNote(note: $input) { success message id }
 	}`
 )
 
@@ -99,35 +106,116 @@ func TestGiveFeedback(t *testing.T) {
 		t.Errorf("expected feedback row in DB with feedback_id=%d", feedbackID)
 	}
 
-	// Cleanup: remove the feedback row after the test (before the volunteer
-	// row is removed, in case feedback.volunteer_id has a FK constraint).
 	t.Cleanup(func() {
 		testDB.Exec("DELETE FROM feedback WHERE feedback_id = $1", feedbackID)
 	})
+}
+
+// TestAddVolunteerFeedbackNote verifies that a volunteer can add a note to
+// their own feedback and that it is stored with note_type VOLUNTEER_NOTE.
+//
+// Note: the service does not currently verify that the volunteer owns the
+// feedback — any authenticated volunteer can add a note to any feedback_id.
+// A future ownership check should be added to the service.
+func TestAddVolunteerFeedbackNote(t *testing.T) {
+	token, volID := makeVolunteer(t)
+	feedbackID := seedFeedback(t, volID)
+
+	t.Cleanup(func() {
+		testDB.Exec("DELETE FROM feedback_notes WHERE feedback_id = $1", feedbackID)
+	})
+
+	resp := gqlPost(t, "/graphql/volunteer", token, mutAddVolunteerFeedbackNote, map[string]any{
+		"input": map[string]any{
+			"feedbackId": feedbackID,
+			"note":       "Just wanted to add some more context.",
+		},
+	})
+
+	if hasGQLErrors(resp) {
+		t.Fatalf("unexpected GQL errors: %v", resp.Errors)
+	}
+
+	var result mutationResult
+	unmarshalField(t, resp, "addVolunteerFeedbackNote", &result)
+
+	if !result.Success {
+		t.Errorf("expected success=true, got false (message: %v)", result.Message)
+	}
+	if !rowExists(t, "SELECT COUNT(*) FROM feedback_notes WHERE feedback_id = $1 AND note_type = 'VOLUNTEER_NOTE'", feedbackID) {
+		t.Error("expected a VOLUNTEER_NOTE in feedback_notes after addVolunteerFeedbackNote")
+	}
+}
+
+// TestAddVolunteerFeedbackNote_ResetsQuestionStatus verifies that when a
+// volunteer adds a note to feedback that is in QUESTION_SENT status, the
+// status is automatically reset to OPEN (the question has been answered).
+func TestAddVolunteerFeedbackNote_ResetsQuestionStatus(t *testing.T) {
+	token, volID := makeVolunteer(t)
+	feedbackID := seedFeedback(t, volID)
+
+	// Put the feedback into QUESTION_SENT state, as if an admin had asked something.
+	if _, err := testDB.Exec("UPDATE feedback SET status = 'QUESTION_SENT' WHERE feedback_id = $1", feedbackID); err != nil {
+		t.Fatalf("failed to seed QUESTION_SENT status: %v", err)
+	}
+
+	t.Cleanup(func() {
+		testDB.Exec("DELETE FROM feedback_notes WHERE feedback_id = $1", feedbackID)
+	})
+
+	resp := gqlPost(t, "/graphql/volunteer", token, mutAddVolunteerFeedbackNote, map[string]any{
+		"input": map[string]any{
+			"feedbackId": feedbackID,
+			"note":       "Here is the additional detail you asked for.",
+		},
+	})
+
+	if hasGQLErrors(resp) {
+		t.Fatalf("unexpected GQL errors: %v", resp.Errors)
+	}
+
+	var result mutationResult
+	unmarshalField(t, resp, "addVolunteerFeedbackNote", &result)
+
+	if !result.Success {
+		t.Errorf("expected success=true, got false (message: %v)", result.Message)
+	}
+	if !rowExists(t, "SELECT COUNT(*) FROM feedback WHERE feedback_id = $1 AND status = 'OPEN'", feedbackID) {
+		t.Error("expected status to reset to 'OPEN' after volunteer adds a note to QUESTION_SENT feedback")
+	}
+	if !rowExists(t, "SELECT COUNT(*) FROM feedback_notes WHERE feedback_id = $1 AND note_type = 'VOLUNTEER_NOTE'", feedbackID) {
+		t.Error("expected a VOLUNTEER_NOTE in feedback_notes")
+	}
 }
 
 // ============================================================================
 // Tests — admin endpoint
 // ============================================================================
 
-// TestUpdateFeedback verifies that an admin can update the status of a
-// feedback item and that a note is recorded in feedback_notes.
-func TestUpdateFeedback(t *testing.T) {
+// TestUpdateFeedbackStatus verifies that an admin can update the status of a
+// feedback item and that an ADMIN_NOTE is recorded.
+// Note: QUESTION_SENT is intentionally NOT tested here — that status is set
+// exclusively by emailFeedbackSubmitter with requireReply=true. This test
+// covers a manual status change (e.g. reopening feedback after an answer).
+func TestUpdateFeedbackStatus(t *testing.T) {
 	adminToken := makeAdminToken(t)
 	_, volID := makeVolunteer(t)
 	feedbackID := seedFeedback(t, volID)
 
-	// Notes are created by UpdateFeedback; clean them up before the feedback
-	// row is deleted (LIFO: this cleanup runs before seedFeedback's cleanup).
+	// Seed the feedback as QUESTION_SENT so we have something to reopen.
+	if _, err := testDB.Exec("UPDATE feedback SET status = 'QUESTION_SENT' WHERE feedback_id = $1", feedbackID); err != nil {
+		t.Fatalf("failed to seed QUESTION_SENT status: %v", err)
+	}
+
 	t.Cleanup(func() {
 		testDB.Exec("DELETE FROM feedback_notes WHERE feedback_id = $1", feedbackID)
 	})
 
-	resp := gqlPost(t, "/graphql/admin", adminToken, mutUpdateFeedback, map[string]any{
+	resp := gqlPost(t, "/graphql/admin", adminToken, mutUpdateFeedbackStatus, map[string]any{
 		"input": map[string]any{
-			"id":     strconv.Itoa(feedbackID),
-			"status": "QUESTION_SENT",
-			"note":   "Updating status via integration test.",
+			"feedbackId": feedbackID,
+			"status":     "OPEN",
+			"note":       "Volunteer provided clarification; reopening for investigation.",
 		},
 	})
 
@@ -136,22 +224,22 @@ func TestUpdateFeedback(t *testing.T) {
 	}
 
 	var result mutationResult
-	unmarshalField(t, resp, "updateFeedback", &result)
+	unmarshalField(t, resp, "updateFeedbackStatus", &result)
 
 	if !result.Success {
 		t.Errorf("expected success=true, got false (message: %v)", result.Message)
 	}
-	if !rowExists(t, "SELECT COUNT(*) FROM feedback WHERE feedback_id = $1 AND status = 'QUESTION_SENT'", feedbackID) {
-		t.Error("expected status='QUESTION_SENT' in feedback table after updateFeedback")
+	if !rowExists(t, "SELECT COUNT(*) FROM feedback WHERE feedback_id = $1 AND status = 'OPEN'", feedbackID) {
+		t.Error("expected status='OPEN' in feedback table after updateFeedbackStatus")
 	}
-	if !rowExists(t, "SELECT COUNT(*) FROM feedback_notes WHERE feedback_id = $1", feedbackID) {
-		t.Error("expected a note in feedback_notes after updateFeedback")
+	if !rowExists(t, "SELECT COUNT(*) FROM feedback_notes WHERE feedback_id = $1 AND note_type = 'ADMIN_NOTE'", feedbackID) {
+		t.Error("expected an ADMIN_NOTE in feedback_notes after updateFeedbackStatus")
 	}
 }
 
-// TestUpdateFeedback_WithGithubURL exercises the else-branch of UpdateFeedback
-// where a GitHub issue URL is also stored alongside the status change.
-func TestUpdateFeedback_WithGithubURL(t *testing.T) {
+// TestUpdateFeedbackStatus_Resolves verifies that updating status to a resolved
+// value also sets resolved_at.
+func TestUpdateFeedbackStatus_Resolves(t *testing.T) {
 	adminToken := makeAdminToken(t)
 	_, volID := makeVolunteer(t)
 	feedbackID := seedFeedback(t, volID)
@@ -160,14 +248,11 @@ func TestUpdateFeedback_WithGithubURL(t *testing.T) {
 		testDB.Exec("DELETE FROM feedback_notes WHERE feedback_id = $1", feedbackID)
 	})
 
-	const ghURL = "https://github.com/example/repo/issues/42"
-
-	resp := gqlPost(t, "/graphql/admin", adminToken, mutUpdateFeedback, map[string]any{
+	resp := gqlPost(t, "/graphql/admin", adminToken, mutUpdateFeedbackStatus, map[string]any{
 		"input": map[string]any{
-			"id":             strconv.Itoa(feedbackID),
-			"status":         "QUESTION_SENT",
-			"note":           "Linked GitHub issue.",
-			"githubIssueURL": ghURL,
+			"feedbackId": feedbackID,
+			"status":     "RESOLVED_REJECTED",
+			"note":       "Closing as not reproducible.",
 		},
 	})
 
@@ -176,65 +261,22 @@ func TestUpdateFeedback_WithGithubURL(t *testing.T) {
 	}
 
 	var result mutationResult
-	unmarshalField(t, resp, "updateFeedback", &result)
+	unmarshalField(t, resp, "updateFeedbackStatus", &result)
 
 	if !result.Success {
 		t.Errorf("expected success=true, got false (message: %v)", result.Message)
-	}
-	if !rowExists(t, "SELECT COUNT(*) FROM feedback WHERE feedback_id = $1 AND github_issue_url = $2", feedbackID, ghURL) {
-		t.Errorf("expected github_issue_url=%q in feedback table", ghURL)
-	}
-}
-
-// TestResolveFeedback verifies that an admin can resolve a feedback item,
-// which sets resolved_at and records a note.
-func TestResolveFeedback(t *testing.T) {
-	adminToken := makeAdminToken(t)
-	_, volID := makeVolunteer(t)
-	feedbackID := seedFeedback(t, volID)
-
-	t.Cleanup(func() {
-		testDB.Exec("DELETE FROM feedback_notes WHERE feedback_id = $1", feedbackID)
-	})
-
-	resp := gqlPost(t, "/graphql/admin", adminToken, mutResolveFeedback, map[string]any{
-		"input": map[string]any{
-			"id":     strconv.Itoa(feedbackID),
-			"status": "RESOLVED_REJECTED",
-			"note":   "Closing as not reproducible.",
-		},
-	})
-
-	if hasGQLErrors(resp) {
-		t.Fatalf("unexpected GQL errors: %v", resp.Errors)
-	}
-
-	var result mutationResult
-	unmarshalField(t, resp, "resolveFeedback", &result)
-
-	if !result.Success {
-		t.Errorf("expected success=true, got false (message: %v)", result.Message)
-	}
-	if !rowExists(t, "SELECT COUNT(*) FROM feedback WHERE feedback_id = $1 AND resolved_at IS NOT NULL", feedbackID) {
-		t.Error("expected resolved_at to be set after resolveFeedback")
 	}
 	if !rowExists(t, "SELECT COUNT(*) FROM feedback WHERE feedback_id = $1 AND status = 'RESOLVED_REJECTED'", feedbackID) {
-		t.Error("expected status='RESOLVED_REJECTED' after resolveFeedback")
+		t.Error("expected status='RESOLVED_REJECTED' after updateFeedbackStatus")
 	}
-	if !rowExists(t, "SELECT COUNT(*) FROM feedback_notes WHERE feedback_id = $1", feedbackID) {
-		t.Error("expected a note in feedback_notes after resolveFeedback")
+	if !rowExists(t, "SELECT COUNT(*) FROM feedback WHERE feedback_id = $1 AND resolved_at IS NOT NULL", feedbackID) {
+		t.Error("expected resolved_at to be set when resolving feedback")
 	}
 }
 
-// TestQuestionFeedback verifies that an admin can send a question to a
-// volunteer about their feedback.
-//
-// Note: questionFeedback sends an email before adding the note. If the test
-// server's mailer cannot deliver email, the service returns early (with
-// success=true but a non-nil error) and the note is never written. In that
-// case the resolver surfaces a GQL error. The DB note assertion is therefore
-// only checked when there are no GQL errors.
-func TestQuestionFeedback(t *testing.T) {
+// TestAddFeedbackNote verifies that an admin can add a standalone internal note
+// without changing the status.
+func TestAddFeedbackNote(t *testing.T) {
 	adminToken := makeAdminToken(t)
 	_, volID := makeVolunteer(t)
 	feedbackID := seedFeedback(t, volID)
@@ -243,24 +285,145 @@ func TestQuestionFeedback(t *testing.T) {
 		testDB.Exec("DELETE FROM feedback_notes WHERE feedback_id = $1", feedbackID)
 	})
 
-	resp := gqlPost(t, "/graphql/admin", adminToken, mutQuestionFeedback, map[string]any{
+	resp := gqlPost(t, "/graphql/admin", adminToken, mutAddFeedbackNote, map[string]any{
 		"input": map[string]any{
-			"id":        strconv.Itoa(feedbackID),
-			"emailText": "Could you provide more detail about how to reproduce this?",
-			"note":      "Sent question to volunteer.",
+			"feedbackId": feedbackID,
+			"note":       "Internal note added by admin.",
 		},
 	})
 
-	// If no GQL errors, both the email and the note write succeeded.
+	if hasGQLErrors(resp) {
+		t.Fatalf("unexpected GQL errors: %v", resp.Errors)
+	}
+
+	var result mutationResult
+	unmarshalField(t, resp, "addFeedbackNote", &result)
+
+	if !result.Success {
+		t.Errorf("expected success=true, got false (message: %v)", result.Message)
+	}
+	if !rowExists(t, "SELECT COUNT(*) FROM feedback_notes WHERE feedback_id = $1 AND note_type = 'ADMIN_NOTE'", feedbackID) {
+		t.Error("expected an ADMIN_NOTE in feedback_notes after addFeedbackNote")
+	}
+	// Status must not have changed.
+	if !rowExists(t, "SELECT COUNT(*) FROM feedback WHERE feedback_id = $1 AND status = 'OPEN'", feedbackID) {
+		t.Error("expected status to remain 'OPEN' after addFeedbackNote")
+	}
+}
+
+// TestEmailFeedbackSubmitter_WithReply verifies that when requireReply=true,
+// the status is set to QUESTION_SENT and a QUESTION note is recorded.
+//
+// Note: emailFeedbackSubmitter sends an email before adding the note. If the
+// test mailer cannot deliver, the service returns early and the note is never
+// written. The DB assertion is only checked when there are no GQL errors.
+func TestEmailFeedbackSubmitter_WithReply(t *testing.T) {
+	adminToken := makeAdminToken(t)
+	_, volID := makeVolunteer(t)
+	feedbackID := seedFeedback(t, volID)
+
+	t.Cleanup(func() {
+		testDB.Exec("DELETE FROM feedback_notes WHERE feedback_id = $1", feedbackID)
+	})
+
+	resp := gqlPost(t, "/graphql/admin", adminToken, mutEmailFeedbackSubmitter, map[string]any{
+		"input": map[string]any{
+			"feedbackId":   feedbackID,
+			"emailText":    "Could you provide more detail about how to reproduce this?",
+			"requireReply": true,
+		},
+	})
+
 	if !hasGQLErrors(resp) {
 		var result mutationResult
-		unmarshalField(t, resp, "questionFeedback", &result)
+		unmarshalField(t, resp, "emailFeedbackSubmitter", &result)
 		if !result.Success {
 			t.Errorf("expected success=true when no GQL errors, got false (message: %v)", result.Message)
 		}
-		if !rowExists(t, "SELECT COUNT(*) FROM feedback_notes WHERE feedback_id = $1", feedbackID) {
-			t.Error("expected a note in feedback_notes after questionFeedback")
+		if !rowExists(t, "SELECT COUNT(*) FROM feedback_notes WHERE feedback_id = $1 AND note_type = 'QUESTION'", feedbackID) {
+			t.Error("expected a QUESTION note in feedback_notes after emailFeedbackSubmitter with requireReply=true")
 		}
+		if !rowExists(t, "SELECT COUNT(*) FROM feedback WHERE feedback_id = $1 AND status = 'QUESTION_SENT'", feedbackID) {
+			t.Error("expected status='QUESTION_SENT' after emailFeedbackSubmitter with requireReply=true")
+		}
+	}
+}
+
+// TestEmailFeedbackSubmitter_NoReply verifies that when requireReply=false,
+// the status is unchanged and an EMAIL_TO_VOLUNTEER note is recorded.
+func TestEmailFeedbackSubmitter_NoReply(t *testing.T) {
+	adminToken := makeAdminToken(t)
+	_, volID := makeVolunteer(t)
+	feedbackID := seedFeedback(t, volID)
+
+	t.Cleanup(func() {
+		testDB.Exec("DELETE FROM feedback_notes WHERE feedback_id = $1", feedbackID)
+	})
+
+	resp := gqlPost(t, "/graphql/admin", adminToken, mutEmailFeedbackSubmitter, map[string]any{
+		"input": map[string]any{
+			"feedbackId":   feedbackID,
+			"emailText":    "Just letting you know we are looking into this.",
+			"requireReply": false,
+		},
+	})
+
+	if !hasGQLErrors(resp) {
+		var result mutationResult
+		unmarshalField(t, resp, "emailFeedbackSubmitter", &result)
+		if !result.Success {
+			t.Errorf("expected success=true when no GQL errors, got false (message: %v)", result.Message)
+		}
+		if !rowExists(t, "SELECT COUNT(*) FROM feedback_notes WHERE feedback_id = $1 AND note_type = 'EMAIL_TO_VOLUNTEER'", feedbackID) {
+			t.Error("expected an EMAIL_TO_VOLUNTEER note after emailFeedbackSubmitter with requireReply=false")
+		}
+		// Status must remain OPEN.
+		if !rowExists(t, "SELECT COUNT(*) FROM feedback WHERE feedback_id = $1 AND status = 'OPEN'", feedbackID) {
+			t.Error("expected status to remain 'OPEN' after emailFeedbackSubmitter with requireReply=false")
+		}
+	}
+}
+
+// TestFeedbackDetail verifies that the feedbackDetail query returns the correct
+// feedback item including its notes.
+func TestFeedbackDetail(t *testing.T) {
+	adminToken := makeAdminToken(t)
+	_, volID := makeVolunteer(t)
+	_, adminID := makeAdmin(t)
+	feedbackID := seedFeedback(t, volID)
+	seedFeedbackNote(t, feedbackID, adminID, "ADMIN_NOTE", "Investigating.")
+
+	resp := gqlPost(t, "/graphql/admin", adminToken, qryFeedbackDetail, map[string]any{
+		"id": strconv.Itoa(feedbackID),
+	})
+
+	if hasGQLErrors(resp) {
+		t.Fatalf("unexpected GQL errors: %v", resp.Errors)
+	}
+
+	type feedbackNote struct {
+		ID       string `json:"id"`
+		NoteType string `json:"noteType"`
+		Note     string `json:"note"`
+	}
+	type feedbackDetail struct {
+		ID      string         `json:"id"`
+		Subject string         `json:"subject"`
+		Status  string         `json:"status"`
+		Notes   []feedbackNote `json:"notes"`
+	}
+
+	var detail feedbackDetail
+	unmarshalField(t, resp, "feedbackDetail", &detail)
+
+	if detail.ID != strconv.Itoa(feedbackID) {
+		t.Errorf("expected feedback id %d, got %s", feedbackID, detail.ID)
+	}
+	if len(detail.Notes) != 1 {
+		t.Fatalf("expected 1 note, got %d", len(detail.Notes))
+	}
+	if detail.Notes[0].NoteType != "ADMIN_NOTE" {
+		t.Errorf("expected ADMIN_NOTE, got %s", detail.Notes[0].NoteType)
 	}
 }
 
@@ -330,7 +493,7 @@ func TestOwnFeedback_NoNotes(t *testing.T) {
 	}
 }
 
-// TestOwnFeedback_VisibleNoteTypes verifies that QUESTION, VOLUNTEER_REPLY,
+// TestOwnFeedback_VisibleNoteTypes verifies that QUESTION, VOLUNTEER_NOTE,
 // and EMAIL_TO_VOLUNTEER notes are all returned to the volunteer.
 func TestOwnFeedback_VisibleNoteTypes(t *testing.T) {
 	token, volID := makeVolunteer(t)
@@ -338,7 +501,7 @@ func TestOwnFeedback_VisibleNoteTypes(t *testing.T) {
 	feedbackID := seedFeedback(t, volID)
 
 	seedFeedbackNote(t, feedbackID, adminID, "QUESTION", "Can you reproduce this?")
-	seedFeedbackNote(t, feedbackID, volID, "VOLUNTEER_REPLY", "Yes, every time.")
+	seedFeedbackNote(t, feedbackID, volID, "VOLUNTEER_NOTE", "Yes, every time.")
 	seedFeedbackNote(t, feedbackID, adminID, "EMAIL_TO_VOLUNTEER", "Thanks, closing as resolved.")
 
 	resp := gqlPost(t, "/graphql/volunteer", token, qryOwnFeedback, nil)
@@ -353,7 +516,7 @@ func TestOwnFeedback_VisibleNoteTypes(t *testing.T) {
 		t.Fatalf("expected 1 feedback item, got %d", len(items))
 	}
 	if len(items[0].Notes) != 3 {
-		t.Errorf("expected 3 visible notes (QUESTION + VOLUNTEER_REPLY + EMAIL_TO_VOLUNTEER), got %d", len(items[0].Notes))
+		t.Errorf("expected 3 visible notes (QUESTION + VOLUNTEER_NOTE + EMAIL_TO_VOLUNTEER), got %d", len(items[0].Notes))
 	}
 }
 
@@ -400,9 +563,9 @@ func TestOwnFeedback_MultipleNotesAccumulate(t *testing.T) {
 	feedbackID := seedFeedback(t, volID)
 
 	seedFeedbackNote(t, feedbackID, adminID, "QUESTION", "Question 1")
-	seedFeedbackNote(t, feedbackID, volID, "VOLUNTEER_REPLY", "Reply 1")
+	seedFeedbackNote(t, feedbackID, volID, "VOLUNTEER_NOTE", "Reply 1")
 	seedFeedbackNote(t, feedbackID, adminID, "QUESTION", "Question 2")
-	seedFeedbackNote(t, feedbackID, volID, "VOLUNTEER_REPLY", "Reply 2")
+	seedFeedbackNote(t, feedbackID, volID, "VOLUNTEER_NOTE", "Reply 2")
 
 	resp := gqlPost(t, "/graphql/volunteer", token, qryOwnFeedback, nil)
 	if hasGQLErrors(resp) {

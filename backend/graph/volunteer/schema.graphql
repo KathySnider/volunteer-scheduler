@@ -17,10 +17,10 @@ extend type Query {
   ownShifts(filter: ShiftTimeFilter!): [VolunteerShiftView!]! 
 }
 
-type Mutation {
+extend type Mutation {
+
   # Feedback
-  attachFileToFeedback(feedbackId: ID!, file: Upload!): MutationResult!
-  giveFeedback (feedback: NewFeedbackInput!): MutationResult!
+  addVolunteerFeedbackNote(note: VolunteerFeedbackNoteInput!): MutationResult!
 
   # Volunteer Profile
   updateOwnProfile(profile: UpdateOwnProfileInput!): VolunteerMutationResult!    
@@ -153,11 +153,9 @@ input VolunteerEventFilterInput {
 
 # Feedback
 
-input NewFeedbackInput {
-  type: FeedbackType!
-  subject: String!
-  app_page_name: String!
-  text: String!
+input VolunteerFeedbackNoteInput {
+  feedbackId: Int!
+  note: String!
 }
 
 # Volunteers

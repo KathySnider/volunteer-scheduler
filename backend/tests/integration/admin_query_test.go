@@ -63,8 +63,8 @@ const (
 		}
 	}`
 
-	qryFeedbackById = `query FeedbackById($feedbackId: ID!) {
-		feedbackById(feedbackId: $feedbackId) {
+	qryFeedbackById = `query FeedbackDetail($feedbackId: ID!) {
+		feedbackDetail(feedbackId: $feedbackId) {
 			id subject status type volunteerName
 			notes { note creator createdAt }
 		}
@@ -514,7 +514,7 @@ func TestFeedbackById(t *testing.T) {
 	}
 
 	var fb feedbackDetailResult
-	unmarshalField(t, resp, "feedbackById", &fb)
+	unmarshalField(t, resp, "feedbackDetail", &fb)
 
 	if fb.ID != strconv.Itoa(feedbackID) {
 		t.Errorf("expected id=%q, got %q", strconv.Itoa(feedbackID), fb.ID)
