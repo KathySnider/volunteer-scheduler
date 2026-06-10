@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import dynamic from "next/dynamic";
+
+// Leaflet requires a browser environment — load it only on the client.
+const EventMap = dynamic(() => import("./EventMap"), {
+  ssr: false,
+  loading: () => <div style={{ height: 500, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-muted)" }}>Loading map…</div>,
+});
 import { useRouter } from "next/navigation";
 import {
   isAuthenticated,
@@ -53,6 +60,8 @@ const FILTERED_EVENTS = `
       venue {
         city
         state
+        latitude
+        longitude
       }
       eventDates {
         startDateTime
@@ -299,6 +308,7 @@ export default function EventsPage() {
 
   // Distance mode — active when the volunteer has a zip code on their profile.
   const [hasZip, setHasZip] = useState(false);
+  const [profileZip, setProfileZip] = useState("");
   const [selectedDistance, setSelectedDistance] = useState("");
 
   // Results
@@ -306,6 +316,7 @@ export default function EventsPage() {
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [viewMode, setViewMode] = useState("list"); // "list" | "map"
 
   /* ----- Auth check ----- */
   useEffect(() => {
@@ -362,6 +373,7 @@ export default function EventsPage() {
         const p = res.data?.ownProfile;
         if (p?.zipCode) {
           setHasZip(true);
+          setProfileZip(p.zipCode);
           // Restore from sessionStorage first; fall back to profile default.
           try {
             const saved = sessionStorage.getItem(DISTANCE_STORAGE_KEY);
@@ -527,6 +539,7 @@ export default function EventsPage() {
           {hasZip ? (
             <div className={styles.filterGroup}>
               <label className={styles.filterLabel} htmlFor="distanceFilter">Within</label>
+              <span className={styles.filterHint}>miles from zip {profileZip}</span>
               <select
                 id="distanceFilter"
                 className={styles.filterSelect}
@@ -613,9 +626,27 @@ export default function EventsPage() {
         </div>
       </div>
 
+      {/* ---- List / Map toggle ---- */}
+      {!loading && events.length > 0 && (
+        <div className={styles.viewToggle}>
+          <button
+            className={`${styles.viewToggleBtn} ${viewMode === "list" ? styles.viewToggleBtnActive : ""}`}
+            onClick={() => setViewMode("list")}
+          >
+            ☰ List
+          </button>
+          <button
+            className={`${styles.viewToggleBtn} ${viewMode === "map" ? styles.viewToggleBtnActive : ""}`}
+            onClick={() => setViewMode("map")}
+          >
+            🗺 Map
+          </button>
+        </div>
+      )}
+
       {/* ---- Main content ---- */}
       <main className={styles.main}>
-        {searchError &&<div className={styles.errorBox}>{searchError}</div>}
+        {searchError && <div className={styles.errorBox}>{searchError}</div>}
 
         {loading && (
           <div className={styles.stateBox}>
@@ -631,12 +662,16 @@ export default function EventsPage() {
           </div>
         )}
 
-        {!loading && events.length > 0 && (
+        {!loading && events.length > 0 && viewMode === "list" && (
           <div className={styles.cardList}>
             {events.map((event) => (
               <EventCard key={event.id} event={event} onView={handleView} />
             ))}
           </div>
+        )}
+
+        {!loading && events.length > 0 && viewMode === "map" && (
+          <EventMap events={events} onEventClick={handleView} />
         )}
       </main>
 

@@ -471,6 +471,12 @@ func fetchFilteredPassOne(ctx context.Context, filter *models.VolunteerEventFilt
 				} else {
 					venue.ZipCode = nil
 				}
+				if vLat.Valid {
+					venue.Latitude = &vLat.Float64
+				}
+				if vLng.Valid {
+					venue.Longitude = &vLng.Float64
+				}
 				e.Venue = &venue
 			} else {
 				e.Venue = nil

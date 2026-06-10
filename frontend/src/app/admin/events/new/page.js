@@ -138,7 +138,7 @@ function eventEndDT(oldStart, oldEnd, newStart) {
   if (isNaN(oldMs) || isNaN(endMs) || isNaN(newMs)) return oldEnd;
   const gap = endMs - oldMs;
   if (gap < 0) return oldEnd;
-  const r   = new Date(newMs + gap);
+  const r   = new Date(newMs + (gap === 0 ? 3_600_000 : gap)); // default to 1 hr if no gap set yet
   const pad = (n) => String(n).padStart(2, "0");
   return `${r.getFullYear()}-${pad(r.getMonth() + 1)}-${pad(r.getDate())}T${pad(r.getHours())}:${pad(r.getMinutes())}`;
 }
@@ -705,6 +705,29 @@ export default function AddEventPage() {
 
   const tzOptions = timezoneOptions(browserZone.current);
 
+  /** Projected last-occurrence date shown in the Recurrence section. */
+  const recurEndDate = useMemo(() => {
+    if (!recurring || !recurrenceMax || !eventDates[0]?.startDate) return null;
+    const n = parseInt(recurrenceMax, 10);
+    if (isNaN(n) || n < 2) return null; // 1 occurrence = only the first date, nothing to project
+
+    // Use noon local time to avoid DST boundary issues
+    const start = new Date(`${eventDates[0].startDate}T12:00:00`);
+    if (isNaN(start.getTime())) return null;
+
+    const end = new Date(start);
+    switch (recurrencePattern) {
+      case "DAILY":    end.setDate(end.getDate() + (n - 1));           break;
+      case "WEEKLY":   end.setDate(end.getDate() + (n - 1) * 7);       break;
+      case "BIWEEKLY": end.setDate(end.getDate() + (n - 1) * 14);      break;
+      case "MONTHLY":  end.setMonth(end.getMonth() + (n - 1));         break;
+      case "YEARLY":   end.setFullYear(end.getFullYear() + (n - 1));   break;
+      default:         return null;
+    }
+
+    return end.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+  }, [recurring, recurrenceMax, recurrencePattern, eventDates]);
+
   if (!gql) return null;
 
   return (
@@ -922,6 +945,12 @@ export default function AddEventPage() {
                     )}
                   </div>
                 </div>
+
+                {recurEndDate && (
+                  <p className={styles.recurNote}>
+                    Last occurrence: <strong>{recurEndDate}</strong>
+                  </p>
+                )}
 
                 {recurrencePattern === "MONTHLY" && (
                   <div className={styles.field}>

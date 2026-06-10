@@ -125,11 +125,13 @@ type UpdateOwnProfileInput struct {
 }
 
 type VenueView struct {
-	Name    *string `json:"name,omitempty"`
-	Address string  `json:"address"`
-	City    string  `json:"city"`
-	State   string  `json:"state"`
-	ZipCode *string `json:"zipCode,omitempty"`
+	Name      *string  `json:"name,omitempty"`
+	Address   string   `json:"address"`
+	City      string   `json:"city"`
+	State     string   `json:"state"`
+	ZipCode   *string  `json:"zipCode,omitempty"`
+	Latitude  *float64 `json:"latitude,omitempty"`
+	Longitude *float64 `json:"longitude,omitempty"`
 }
 
 type VolunteerEventFilterInput struct {

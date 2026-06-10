@@ -20,14 +20,22 @@
 .appTitle {
   font-size: 1rem;
   font-weight: 700;
-  color: var(--color-text);
+  color: var(--color-primary);
   white-space: nowrap;
   text-decoration: none;
 }
 
 .appTitle:hover {
-  color: var(--color-primary);
-  text-decoration: none;
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
+/* Active link — current page: looks like plain text, not a clickable link */
+.active {
+  color: var(--color-text-muted, #6b7280) !important;
+  cursor: default !important;
+  pointer-events: none;
+  text-decoration: none !important;
 }
 
 .topBarNav {

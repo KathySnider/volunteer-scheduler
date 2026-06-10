@@ -159,11 +159,13 @@ type ComplexityRoot struct {
 	}
 
 	VenueView struct {
-		Address func(childComplexity int) int
-		City    func(childComplexity int) int
-		Name    func(childComplexity int) int
-		State   func(childComplexity int) int
-		ZipCode func(childComplexity int) int
+		Address   func(childComplexity int) int
+		City      func(childComplexity int) int
+		Latitude  func(childComplexity int) int
+		Longitude func(childComplexity int) int
+		Name      func(childComplexity int) int
+		State     func(childComplexity int) int
+		ZipCode   func(childComplexity int) int
 	}
 
 	VolunteerMutationResult struct {
@@ -743,6 +745,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.VenueView.City(childComplexity), true
+	case "VenueView.latitude":
+		if e.complexity.VenueView.Latitude == nil {
+			break
+		}
+
+		return e.complexity.VenueView.Latitude(childComplexity), true
+	case "VenueView.longitude":
+		if e.complexity.VenueView.Longitude == nil {
+			break
+		}
+
+		return e.complexity.VenueView.Longitude(childComplexity), true
 	case "VenueView.name":
 		if e.complexity.VenueView.Name == nil {
 			break
@@ -1203,6 +1217,8 @@ type VenueView {
   city: String!
   state: String!
   zipCode: String
+  latitude: Float
+  longitude: Float
 }
 
 # Feedback
@@ -2008,6 +2024,10 @@ func (ec *executionContext) fieldContext_EventView_venue(_ context.Context, fiel
 				return ec.fieldContext_VenueView_state(ctx, field)
 			case "zipCode":
 				return ec.fieldContext_VenueView_zipCode(ctx, field)
+			case "latitude":
+				return ec.fieldContext_VenueView_latitude(ctx, field)
+			case "longitude":
+				return ec.fieldContext_VenueView_longitude(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type VenueView", field.Name)
 		},
@@ -4206,6 +4226,64 @@ func (ec *executionContext) fieldContext_VenueView_zipCode(_ context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _VenueView_latitude(ctx context.Context, field graphql.CollectedField, obj *VenueView) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VenueView_latitude,
+		func(ctx context.Context) (any, error) {
+			return obj.Latitude, nil
+		},
+		nil,
+		ec.marshalOFloat2ᚖfloat64,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_VenueView_latitude(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VenueView",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VenueView_longitude(ctx context.Context, field graphql.CollectedField, obj *VenueView) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VenueView_longitude,
+		func(ctx context.Context) (any, error) {
+			return obj.Longitude, nil
+		},
+		nil,
+		ec.marshalOFloat2ᚖfloat64,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_VenueView_longitude(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VenueView",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _VolunteerMutationResult_success(ctx context.Context, field graphql.CollectedField, obj *VolunteerMutationResult) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -4646,6 +4724,10 @@ func (ec *executionContext) fieldContext_VolunteerShiftView_venue(_ context.Cont
 				return ec.fieldContext_VenueView_state(ctx, field)
 			case "zipCode":
 				return ec.fieldContext_VenueView_zipCode(ctx, field)
+			case "latitude":
+				return ec.fieldContext_VenueView_latitude(ctx, field)
+			case "longitude":
+				return ec.fieldContext_VenueView_longitude(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type VenueView", field.Name)
 		},
@@ -7521,6 +7603,10 @@ func (ec *executionContext) _VenueView(ctx context.Context, sel ast.SelectionSet
 			}
 		case "zipCode":
 			out.Values[i] = ec._VenueView_zipCode(ctx, field, obj)
+		case "latitude":
+			out.Values[i] = ec._VenueView_latitude(ctx, field, obj)
+		case "longitude":
+			out.Values[i] = ec._VenueView_longitude(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -9219,6 +9305,23 @@ func (ec *executionContext) marshalOEventType2ᚖvolunteerᚑschedulerᚋgraph�
 		return graphql.Null
 	}
 	return v
+}
+
+func (ec *executionContext) unmarshalOFloat2ᚖfloat64(ctx context.Context, v any) (*float64, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalFloatContext(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOFloat2ᚖfloat64(ctx context.Context, sel ast.SelectionSet, v *float64) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	res := graphql.MarshalFloatContext(*v)
+	return graphql.WrapContextMarshaler(ctx, res)
 }
 
 func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v any) (*string, error) {

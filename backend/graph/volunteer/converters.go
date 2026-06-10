@@ -279,11 +279,13 @@ func toGenVenueView(m *models.VenueView) *generated.VenueView {
 		return nil
 	}
 	return &generated.VenueView{
-		Name:    m.Name,
-		Address: m.Address,
-		City:    m.City,
-		State:   m.State,
-		ZipCode: m.ZipCode,
+		Name:      m.Name,
+		Address:   m.Address,
+		City:      m.City,
+		State:     m.State,
+		ZipCode:   m.ZipCode,
+		Latitude:  m.Latitude,
+		Longitude: m.Longitude,
 	}
 }
 

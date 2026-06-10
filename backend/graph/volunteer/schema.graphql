@@ -68,6 +68,8 @@ type VenueView {
   city: String!
   state: String!
   zipCode: String
+  latitude: Float
+  longitude: Float
 }
 
 # Feedback
