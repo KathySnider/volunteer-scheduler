@@ -25,12 +25,11 @@ import { isAuthenticated, getVenues, getOwnShifts } from "../lib/api";
 export default function AdminTopBar({ userName, onSignOut, onFeedbackOpen, isAdmin = false }) {
   const pathname = usePathname();
 
-  // Returns the CSS class(es) for a nav link — adds .active when the link
-  // matches the current page so it renders as plain text, not a clickable link.
+  // Returns the CSS class(es) for a nav link — adds .active only on an exact
+  // match so that detail pages (e.g. /admin/feedback/42) keep the nav link
+  // clickable as a "back to list" affordance.
   const linkClass = (base, href) =>
-    pathname === href || (href !== "/events" && pathname.startsWith(href))
-      ? `${styles[base]} ${styles.active}`
-      : styles[base];
+    pathname === href ? `${styles[base]} ${styles.active}` : styles[base];
 
   // Warm caches in the background on every page so subsequent navigations
   // don't need to wait for separate fetches.
