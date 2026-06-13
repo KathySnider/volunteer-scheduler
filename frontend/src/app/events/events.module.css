@@ -520,6 +520,138 @@
   margin-bottom: 1.5rem;
 }
 
+/* ----- Calendar ----- */
+
+.calendarWrapper {
+  padding-bottom: 2rem;
+}
+
+.calHeader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.calMonthLabel {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+  min-width: 12rem;
+  text-align: center;
+}
+
+.calNavBtn {
+  background: none;
+  border: 1.5px solid var(--color-border-input);
+  border-radius: var(--radius-md);
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.calNavBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.calGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-top: 1px solid var(--color-border);
+  border-left: 1px solid var(--color-border);
+}
+
+.calDayName {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted, #6b7280);
+  text-align: center;
+  padding: 0.5rem 0;
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.calCell {
+  min-height: 7rem;
+  padding: 0.375rem 0.5rem 0.5rem;
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+  background: var(--color-bg);
+}
+
+.calCellToday {
+  background: color-mix(in srgb, var(--color-primary) 4%, var(--color-bg));
+}
+
+.calDayNum {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-muted, #6b7280);
+  margin-bottom: 0.25rem;
+  line-height: 1.5rem;
+}
+
+.calDayNumToday {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 700;
+}
+
+.calEvent {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  padding: 0.25rem 0.375rem;
+  margin-bottom: 0.25rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.calEvent:hover {
+  background: color-mix(in srgb, var(--color-primary) 20%, var(--color-surface));
+}
+
+.calEventName {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary-dark, #1d4ed8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calEventMeta {
+  display: block;
+  font-size: 0.6875rem;
+  color: var(--color-text-muted, #6b7280);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 0.0625rem;
+}
+
 /* ----- List / Map toggle ----- */
 
 .viewToggle {

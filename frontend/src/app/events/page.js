@@ -8,6 +8,11 @@ const EventMap = dynamic(() => import("./EventMap"), {
   ssr: false,
   loading: () => <div style={{ height: 500, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-muted)" }}>Loading map…</div>,
 });
+
+const EventCalendar = dynamic(() => import("./EventCalendar"), {
+  ssr: false,
+  loading: () => <div style={{ padding: "2rem", color: "var(--color-text-muted)" }}>Loading calendar…</div>,
+});
 import { useRouter } from "next/navigation";
 import {
   isAuthenticated,
@@ -58,6 +63,7 @@ const FILTERED_EVENTS = `
       description
       eventType
       venue {
+        name
         city
         state
         latitude
@@ -316,7 +322,9 @@ export default function EventsPage() {
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const [viewMode, setViewMode] = useState("list"); // "list" | "map"
+  const [viewMode, setViewMode] = useState(() => {
+    try { return sessionStorage.getItem("evtViewMode") || "list"; } catch { return "list"; }
+  });
 
   /* ----- Auth check ----- */
   useEffect(() => {
@@ -416,6 +424,11 @@ export default function EventsPage() {
       // ignore
     }
   }, [selectedDistance, hasZip]);
+
+  /* ----- Persist view mode to sessionStorage ----- */
+  useEffect(() => {
+    try { sessionStorage.setItem("evtViewMode", viewMode); } catch { /* ignore */ }
+  }, [viewMode]);
 
   /* ----- Auto-search whenever filter state or readiness changes ----- */
   useEffect(() => {
@@ -626,7 +639,7 @@ export default function EventsPage() {
         </div>
       </div>
 
-      {/* ---- List / Map toggle ---- */}
+      {/* ---- List / Map / Calendar toggle ---- */}
       {!loading && events.length > 0 && (
         <div className={styles.viewToggle}>
           <button
@@ -640,6 +653,12 @@ export default function EventsPage() {
             onClick={() => setViewMode("map")}
           >
             🗺 Map
+          </button>
+          <button
+            className={`${styles.viewToggleBtn} ${viewMode === "calendar" ? styles.viewToggleBtnActive : ""}`}
+            onClick={() => setViewMode("calendar")}
+          >
+            📅 Calendar
           </button>
         </div>
       )}
@@ -672,6 +691,10 @@ export default function EventsPage() {
 
         {!loading && events.length > 0 && viewMode === "map" && (
           <EventMap events={events} onEventClick={handleView} />
+        )}
+
+        {!loading && events.length > 0 && viewMode === "calendar" && (
+          <EventCalendar events={events} onEventClick={handleView} />
         )}
       </main>
 
