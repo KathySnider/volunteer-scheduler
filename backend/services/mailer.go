@@ -592,13 +592,13 @@ func NewMailer(apiKey string) (*Mailer, error) {
 	var err error
 
 	if useResend() {
-		transport, err = NewResendTransport(apiKey)
+		transport, err = NewResendTransport(apiKey, fromEmail, fromName)
 		if err != nil {
 			return nil, err
 		}
 		log.Println("Email transport: Resend API")
 	} else {
-		transport, err = NewMailhogTransport()
+		transport, err = NewMailhogTransport(fromEmail, fromName)
 		if err != nil {
 			return nil, err
 		}
@@ -633,15 +633,17 @@ func (m *Mailer) SendEmail(ctx context.Context, to, subject, htmlBody, textBody 
 // ============================================================================
 
 type ResendTransport struct {
-	apiKey string
+	apiKey    string
+	fromEmail string
+	fromName  string
 }
 
 // NewResendTransport creates a new Resend transport
-func NewResendTransport(apiKey string) (*ResendTransport, error) {
+func NewResendTransport(apiKey, fromEmail, fromName string) (*ResendTransport, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("RESEND_API_KEY is required for Resend transport")
 	}
-	return &ResendTransport{apiKey: apiKey}, nil
+	return &ResendTransport{apiKey: apiKey, fromEmail: fromEmail, fromName: fromName}, nil
 }
 
 // ResendRequest represents a request to the Resend API
@@ -664,20 +666,15 @@ type ResendResponse struct {
 
 // SendEmail sends an email via the Resend API
 func (r *ResendTransport) SendEmail(ctx context.Context, to, subject, htmlBody, textBody string) error {
-	fromEmail := os.Getenv("MAIL_FROM")
-	if fromEmail == "" {
-		return fmt.Errorf("EMAIL_FROM not set")
-	}
-
-	// Parse email address to extract name if present
-	if addr, err := mail.ParseAddress(fromEmail); err == nil && addr.Name != "" {
-		fromEmail = addr.Address
+	from := r.fromEmail
+	if r.fromName != "" {
+		from = fmt.Sprintf("%s <%s>", r.fromName, r.fromEmail)
 	}
 
 	replyTo := os.Getenv("MAIL_REPLY_TO")
 
 	request := ResendRequest{
-		From:    fromEmail,
+		From:    from,
 		To:      to,
 		ReplyTo: replyTo,
 		Subject: subject,
@@ -708,7 +705,7 @@ func (r *ResendTransport) SendEmail(ctx context.Context, to, subject, htmlBody, 
 	respBody, _ := io.ReadAll(resp.Body)
 
 	if resp.StatusCode >= 400 {
-		log.Printf("Resend API error (%d) sending to %s from %s — raw body: %s", resp.StatusCode, to, fromEmail, string(respBody))
+		log.Printf("Resend API error (%d) sending to %s from %s — raw body: %s", resp.StatusCode, to, r.fromEmail, string(respBody))
 		var errResp ResendResponse
 		json.Unmarshal(respBody, &errResp)
 		return fmt.Errorf("Resend API error (%d): %s", resp.StatusCode, errResp.Error)
@@ -727,12 +724,14 @@ func (r *ResendTransport) SendEmail(ctx context.Context, to, subject, htmlBody, 
 // ============================================================================
 
 type MailhogTransport struct {
-	host string
-	port string
+	host      string
+	port      string
+	fromEmail string
+	fromName  string
 }
 
 // NewMailhogTransport creates a new Mailhog transport
-func NewMailhogTransport() (*MailhogTransport, error) {
+func NewMailhogTransport(fromEmail, fromName string) (*MailhogTransport, error) {
 	host := os.Getenv("EMAIL_SERVER_HOST")
 	if host == "" {
 		host = "localhost"
@@ -741,20 +740,12 @@ func NewMailhogTransport() (*MailhogTransport, error) {
 	if port == "" {
 		port = "1025"
 	}
-	return &MailhogTransport{host: host, port: port}, nil
+	return &MailhogTransport{host: host, port: port, fromEmail: fromEmail, fromName: fromName}, nil
 }
 
 // SendEmail sends an email via Mailhog SMTP
 func (m *MailhogTransport) SendEmail(ctx context.Context, to, subject, htmlBody, textBody string) error {
-	fromEmail := os.Getenv("MAIL_FROM")
-	if fromEmail == "" {
-		return fmt.Errorf("EMAIL_FROM not set")
-	}
-
-	// Parse email address to extract name if present
-	if addr, err := mail.ParseAddress(fromEmail); err == nil && addr.Name != "" {
-		fromEmail = addr.Address
-	}
+	fromEmail := m.fromEmail
 
 	// Build email message as MIME format
 	var buf bytes.Buffer
