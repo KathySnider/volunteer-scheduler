@@ -60,7 +60,7 @@ ENV ALLOWED_ORIGIN=https://feisty-enchantment-production-878e.up.railway.app
 ENV FRONTEND_BASE_URL=https://feisty-enchantment-production-878e.up.railway.app
 
 # Sender address — must match a Resend-verified domain
-ENV MAIL_FROM="Volunteer Scheduler <noreply@volunteer-scheduler.org>"
+ENV EMAIL_SENDER="Volunteer Scheduler <noreply@volunteer-scheduler.org>"
 
 # Reply-To address — volunteers who reply to emails will reach this inbox
 ENV MAIL_REPLY_TO=adminvolsched@gmail.com

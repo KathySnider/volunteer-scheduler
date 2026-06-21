@@ -571,9 +571,12 @@ type Mailer struct {
 // NewMailer creates a new Mailer instance based on environment configuration
 func NewMailer(apiKey string) (*Mailer, error) {
 
-	fromEmail := os.Getenv("MAIL_FROM")
+	fromEmail := os.Getenv("EMAIL_SENDER")
 	if fromEmail == "" {
-		return nil, fmt.Errorf("MAIL_FROM environment variable is required")
+		fromEmail = os.Getenv("MAIL_FROM") // legacy fallback
+	}
+	if fromEmail == "" {
+		return nil, fmt.Errorf("EMAIL_SENDER environment variable is required")
 	}
 
 	// Parse email to extract name if present
