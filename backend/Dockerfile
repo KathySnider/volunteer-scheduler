@@ -59,7 +59,7 @@ ENV ALLOWED_ORIGIN=https://feisty-enchantment-production-878e.up.railway.app
 # Frontend URL for magic link emails — must match the frontend's public domain
 ENV FRONTEND_BASE_URL=https://feisty-enchantment-production-878e.up.railway.app
 
-# Sender address for magic link emails
+# Sender address — must match a Resend-verified domain
 ENV MAIL_FROM="Volunteer Scheduler <noreply@volunteer-scheduler.org>"
 
 # Reply-To address — volunteers who reply to emails will reach this inbox
