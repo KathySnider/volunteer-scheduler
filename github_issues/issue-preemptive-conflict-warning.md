@@ -10,7 +10,7 @@ This pre-emptive warning occurs **before** the user has interacted with or expre
 Instead of showing warning states pre-emptively on list rows, the system should only warn the user and require confirmation (e.g., "Sign Up Anyway") when they actually attempt to sign up for a conflicting shift.
 
 ## Visual Evidence
-![Overlap Warning Screenshot](conflict-warning-screenshot.png)
+![Overlap Warning Screenshot](https://raw.githubusercontent.com/KathySnider/volunteer-scheduler/bug-reports/github_issues/conflict-warning-screenshot.png)
 
 ## Proposed Resolution
 1. **Remove Pre-emptive Warning Display**: Do not show the conflict banner or transition the button to "Sign Up Anyway" on page/list load.

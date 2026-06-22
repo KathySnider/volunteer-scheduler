@@ -6,7 +6,7 @@ When viewing the main **Volunteer Events** page in Map View, expanding any multi
 This occurs because Leaflet map components generate positioned elements (e.g., `.leaflet-pane`, `.leaflet-marker-pane`, and `.leaflet-control`) with standard library `z-index` values ranging up to `800` or higher. Because the filter bar container (`.filterBar`) is set to `z-index: 20`, its child dropdown elements (`.checkboxPanel`, `z-index: 50`) are restricted to the filter bar's low stacking context and render behind the map elements.
 
 ## Visual Evidence
-![Map View z-index Overlap](map-z-index-screenshot.png)
+![Map View z-index Overlap](https://raw.githubusercontent.com/KathySnider/volunteer-scheduler/bug-reports/github_issues/map-z-index-screenshot.png)
 
 ## Proposed Resolution
 To resolve this issue, the CSS z-index layering must be restructured to ensure filter dropdowns and global site navigation menus always overlay the map content.
