@@ -35,7 +35,7 @@ Admins can:
 #### Events Listing Page
 - Filter events by:
   - City
-  - Distance from the volunteer's zip code
+  - Distance from the volunteer's zip code (haversine distance)
   - Job type
   - Event format (Virtual, In-Person, Hybrid)
   - Date timeframe (defaults to today forward)
