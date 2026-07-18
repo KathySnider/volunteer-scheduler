@@ -53,6 +53,12 @@ const FUNDING_ENTITIES_QUERY = `
   }
 `;
 
+const STAFF_QUERY = `
+  query {
+    staff { id firstName lastName position }
+  }
+`;
+
 const CREATE_VENUE = `
   mutation CreateVenue($newVenue: NewVenueInput!) {
     createVenue(newVenue: $newVenue) {
@@ -469,10 +475,12 @@ export default function AddEventPage() {
   const [venues, setVenues] = useState([]);
   const [fundingEntities, setFundingEntities] = useState([]);
   const [serviceTypes, setServiceTypes] = useState([]);
+  const [staff, setStaff] = useState([]);
   const [loadError, setLoadError] = useState("");
 
-  // Region field
+  // Region + staff contact fields
   const [fundingEntityId, setFundingEntityId] = useState("");
+  const [staffContactId, setStaffContactId] = useState("");
 
   // Form state
   const [name, setName] = useState("");
@@ -517,9 +525,10 @@ export default function AddEventPage() {
     Promise.all([
       boundGql(LOOKUPS_QUERY, null),
       boundGql(FUNDING_ENTITIES_QUERY, null),
+      boundGql(STAFF_QUERY, null),
       getVenues().catch(() => []),
     ])
-      .then(([res, feRes, venueList]) => {
+      .then(([res, feRes, staffRes, venueList]) => {
         // Venues come from the module-level cache (shared across admin pages).
         setVenues(venueList);
         // Shared lookups
@@ -531,6 +540,7 @@ export default function AddEventPage() {
             setFundingEntityId(String(feRes.data.fundingEntities[0].id));
           }
         }
+        if (staffRes.data?.staff) setStaff(staffRes.data.staff);
         if (res.errors) setLoadError(res.errors[0]?.message ?? "Error loading some data.");
       })
       .catch(() => setLoadError("Unable to reach the server."));
@@ -636,6 +646,7 @@ export default function AddEventPage() {
       description:     description.trim() || null,
       eventType,
       venueId:         selectedVenue?.id ?? null,
+      staffContactId:  staffContactId || null,
       fundingEntityId: parseInt(fundingEntityId, 10),
       serviceTypes:    selectedServiceTypes.map(Number),
       timezone:        ianaZone,
@@ -807,6 +818,22 @@ export default function AddEventPage() {
                 {errors.fundingEntityId && (
                   <div className={styles.fieldError}>{errors.fundingEntityId}</div>
                 )}
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.label}>Staff Contact</label>
+                <select
+                  className={styles.select}
+                  value={staffContactId}
+                  onChange={(e) => setStaffContactId(e.target.value)}
+                >
+                  <option value="">— none —</option>
+                  {staff.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.firstName} {s.lastName}{s.position ? ` (${s.position})` : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className={styles.field}>

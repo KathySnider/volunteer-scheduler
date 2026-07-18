@@ -56,6 +56,7 @@ type ComplexityRoot struct {
 		RecurrenceOrder func(childComplexity int) int
 		ServiceTypes    func(childComplexity int) int
 		ShiftSummaries  func(childComplexity int) int
+		StaffContactID  func(childComplexity int) int
 		Timezone        func(childComplexity int) int
 		Venue           func(childComplexity int) int
 	}
@@ -210,11 +211,10 @@ type ComplexityRoot struct {
 	}
 
 	Shift struct {
-		EndDateTime    func(childComplexity int) int
-		ID             func(childComplexity int) int
-		MaxVolunteers  func(childComplexity int) int
-		StaffContactID func(childComplexity int) int
-		StartDateTime  func(childComplexity int) int
+		EndDateTime   func(childComplexity int) int
+		ID            func(childComplexity int) int
+		MaxVolunteers func(childComplexity int) int
+		StartDateTime func(childComplexity int) int
 	}
 
 	Staff struct {
@@ -394,6 +394,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Event.ShiftSummaries(childComplexity), true
+	case "Event.staffContactId":
+		if e.complexity.Event.StaffContactID == nil {
+			break
+		}
+
+		return e.complexity.Event.StaffContactID(childComplexity), true
 	case "Event.timezone":
 		if e.complexity.Event.Timezone == nil {
 			break
@@ -1279,12 +1285,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Shift.MaxVolunteers(childComplexity), true
-	case "Shift.staffContactId":
-		if e.complexity.Shift.StaffContactID == nil {
-			break
-		}
-
-		return e.complexity.Shift.StaffContactID(childComplexity), true
 	case "Shift.startDateTime":
 		if e.complexity.Shift.StartDateTime == nil {
 			break
@@ -1888,6 +1888,7 @@ type Event {
   name: String!
   description: String
   eventType: EventType!
+  staffContactId: ID
   venue: Venue
   timezone: String!
   fundingEntity: FundingEntity!
@@ -1918,7 +1919,6 @@ type Shift {
   startDateTime: String!
   endDateTime: String!
   maxVolunteers: Int
-  staffContactId: ID
 }
 
 # Feedback
@@ -2045,6 +2045,7 @@ input NewEventInput {
   name: String!
   description: String
   eventType: EventType!
+  staffContactId: ID
   venueId: ID
   eventDates: [NewEventDateInput!]! # a new event must have at least one date.
   timezone: String!
@@ -2058,6 +2059,7 @@ input UpdateEventInput {
   name: String!
   description: String
   eventType: EventType!
+  staffContactId: ID
   venueId: ID
   timezone: String!
   fundingEntityId: Int!
@@ -2107,7 +2109,6 @@ input NewShiftInput {
   startDateTime: String!
   endDateTime: String!
   maxVolunteers: Int
-  staffContactId: ID
 }
 
 input AddShiftInput {
@@ -2115,7 +2116,6 @@ input AddShiftInput {
   startDateTime: String!
   endDateTime: String!
   maxVolunteers: Int
-  staffContactId: ID
 }
 
 input UpdateShiftInput {
@@ -2123,7 +2123,6 @@ input UpdateShiftInput {
   startDateTime: String!
   endDateTime: String!
   maxVolunteers: Int
-  staffContactId: ID
 }
 
 # Feedback
@@ -2909,6 +2908,35 @@ func (ec *executionContext) fieldContext_Event_eventType(_ context.Context, fiel
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type EventType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Event_staffContactId(ctx context.Context, field graphql.CollectedField, obj *Event) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Event_staffContactId,
+		func(ctx context.Context) (any, error) {
+			return obj.StaffContactID, nil
+		},
+		nil,
+		ec.marshalOID2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Event_staffContactId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Event",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -6357,8 +6385,6 @@ func (ec *executionContext) fieldContext_Opportunity_shifts(_ context.Context, f
 				return ec.fieldContext_Shift_endDateTime(ctx, field)
 			case "maxVolunteers":
 				return ec.fieldContext_Shift_maxVolunteers(ctx, field)
-			case "staffContactId":
-				return ec.fieldContext_Shift_staffContactId(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Shift", field.Name)
 		},
@@ -6436,6 +6462,8 @@ func (ec *executionContext) fieldContext_Query_events(ctx context.Context, field
 				return ec.fieldContext_Event_description(ctx, field)
 			case "eventType":
 				return ec.fieldContext_Event_eventType(ctx, field)
+			case "staffContactId":
+				return ec.fieldContext_Event_staffContactId(ctx, field)
 			case "venue":
 				return ec.fieldContext_Event_venue(ctx, field)
 			case "timezone":
@@ -6503,6 +6531,8 @@ func (ec *executionContext) fieldContext_Query_event(ctx context.Context, field 
 				return ec.fieldContext_Event_description(ctx, field)
 			case "eventType":
 				return ec.fieldContext_Event_eventType(ctx, field)
+			case "staffContactId":
+				return ec.fieldContext_Event_staffContactId(ctx, field)
 			case "venue":
 				return ec.fieldContext_Event_venue(ctx, field)
 			case "timezone":
@@ -7505,35 +7535,6 @@ func (ec *executionContext) fieldContext_Shift_maxVolunteers(_ context.Context, 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Shift_staffContactId(ctx context.Context, field graphql.CollectedField, obj *Shift) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Shift_staffContactId,
-		func(ctx context.Context) (any, error) {
-			return obj.StaffContactID, nil
-		},
-		nil,
-		ec.marshalOID2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_Shift_staffContactId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Shift",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -10004,7 +10005,7 @@ func (ec *executionContext) unmarshalInputAddShiftInput(ctx context.Context, obj
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"opportunityId", "startDateTime", "endDateTime", "maxVolunteers", "staffContactId"}
+	fieldsInOrder := [...]string{"opportunityId", "startDateTime", "endDateTime", "maxVolunteers"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -10039,13 +10040,6 @@ func (ec *executionContext) unmarshalInputAddShiftInput(ctx context.Context, obj
 				return it, err
 			}
 			it.MaxVolunteers = data
-		case "staffContactId":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("staffContactId"))
-			data, err := ec.unmarshalOID2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.StaffContactID = data
 		}
 	}
 
@@ -10291,7 +10285,7 @@ func (ec *executionContext) unmarshalInputNewEventInput(ctx context.Context, obj
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description", "eventType", "venueId", "eventDates", "timezone", "fundingEntityId", "serviceTypes", "recurrence"}
+	fieldsInOrder := [...]string{"name", "description", "eventType", "staffContactId", "venueId", "eventDates", "timezone", "fundingEntityId", "serviceTypes", "recurrence"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -10319,6 +10313,13 @@ func (ec *executionContext) unmarshalInputNewEventInput(ctx context.Context, obj
 				return it, err
 			}
 			it.EventType = data
+		case "staffContactId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("staffContactId"))
+			data, err := ec.unmarshalOID2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.StaffContactID = data
 		case "venueId":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("venueId"))
 			data, err := ec.unmarshalOID2ᚖstring(ctx, v)
@@ -10552,7 +10553,7 @@ func (ec *executionContext) unmarshalInputNewShiftInput(ctx context.Context, obj
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"startDateTime", "endDateTime", "maxVolunteers", "staffContactId"}
+	fieldsInOrder := [...]string{"startDateTime", "endDateTime", "maxVolunteers"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -10580,13 +10581,6 @@ func (ec *executionContext) unmarshalInputNewShiftInput(ctx context.Context, obj
 				return it, err
 			}
 			it.MaxVolunteers = data
-		case "staffContactId":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("staffContactId"))
-			data, err := ec.unmarshalOID2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.StaffContactID = data
 		}
 	}
 
@@ -10861,7 +10855,7 @@ func (ec *executionContext) unmarshalInputUpdateEventInput(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "name", "description", "eventType", "venueId", "timezone", "fundingEntityId", "serviceTypes", "recurrenceScope"}
+	fieldsInOrder := [...]string{"id", "name", "description", "eventType", "staffContactId", "venueId", "timezone", "fundingEntityId", "serviceTypes", "recurrenceScope"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -10896,6 +10890,13 @@ func (ec *executionContext) unmarshalInputUpdateEventInput(ctx context.Context, 
 				return it, err
 			}
 			it.EventType = data
+		case "staffContactId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("staffContactId"))
+			data, err := ec.unmarshalOID2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.StaffContactID = data
 		case "venueId":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("venueId"))
 			data, err := ec.unmarshalOID2ᚖstring(ctx, v)
@@ -11081,7 +11082,7 @@ func (ec *executionContext) unmarshalInputUpdateShiftInput(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "startDateTime", "endDateTime", "maxVolunteers", "staffContactId"}
+	fieldsInOrder := [...]string{"id", "startDateTime", "endDateTime", "maxVolunteers"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -11116,13 +11117,6 @@ func (ec *executionContext) unmarshalInputUpdateShiftInput(ctx context.Context, 
 				return it, err
 			}
 			it.MaxVolunteers = data
-		case "staffContactId":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("staffContactId"))
-			data, err := ec.unmarshalOID2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.StaffContactID = data
 		}
 	}
 
@@ -11406,6 +11400,8 @@ func (ec *executionContext) _Event(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "staffContactId":
+			out.Values[i] = ec._Event_staffContactId(ctx, field, obj)
 		case "venue":
 			out.Values[i] = ec._Event_venue(ctx, field, obj)
 		case "timezone":
@@ -12801,8 +12797,6 @@ func (ec *executionContext) _Shift(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "maxVolunteers":
 			out.Values[i] = ec._Shift_maxVolunteers(ctx, field, obj)
-		case "staffContactId":
-			out.Values[i] = ec._Shift_staffContactId(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

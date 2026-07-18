@@ -132,6 +132,7 @@ type Event {
   name: String!
   description: String
   eventType: EventType!
+  staffContactId: ID
   venue: Venue
   timezone: String!
   fundingEntity: FundingEntity!
@@ -162,7 +163,6 @@ type Shift {
   startDateTime: String!
   endDateTime: String!
   maxVolunteers: Int
-  staffContactId: ID
 }
 
 # Feedback
@@ -289,6 +289,7 @@ input NewEventInput {
   name: String!
   description: String
   eventType: EventType!
+  staffContactId: ID
   venueId: ID
   eventDates: [NewEventDateInput!]! # a new event must have at least one date.
   timezone: String!
@@ -302,6 +303,7 @@ input UpdateEventInput {
   name: String!
   description: String
   eventType: EventType!
+  staffContactId: ID
   venueId: ID
   timezone: String!
   fundingEntityId: Int!
@@ -351,7 +353,6 @@ input NewShiftInput {
   startDateTime: String!
   endDateTime: String!
   maxVolunteers: Int
-  staffContactId: ID
 }
 
 input AddShiftInput {
@@ -359,7 +360,6 @@ input AddShiftInput {
   startDateTime: String!
   endDateTime: String!
   maxVolunteers: Int
-  staffContactId: ID
 }
 
 input UpdateShiftInput {
@@ -367,7 +367,6 @@ input UpdateShiftInput {
   startDateTime: String!
   endDateTime: String!
   maxVolunteers: Int
-  staffContactId: ID
 }
 
 # Feedback

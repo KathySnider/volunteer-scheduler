@@ -30,6 +30,7 @@ type Event struct {
 	Name            string
 	Description     *string
 	EventType       EventType
+	StaffContactId  *string
 	Venue           *Venue
 	EventDates      []*EventDate
 	Timezone        string
@@ -97,6 +98,7 @@ type NewEventInput struct {
 	Name            string
 	Description     *string
 	EventType       EventType
+	StaffContactId  *string
 	VenueId         *string
 	Timezone        string
 	FundingEntityID int
@@ -123,6 +125,7 @@ type UpdateEventInput struct {
 	Name            string
 	Description     *string
 	EventType       EventType
+	StaffContactId  *string
 	VenueId         *string
 	Timezone        string
 	FundingEntityID int

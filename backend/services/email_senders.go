@@ -46,17 +46,22 @@ func sendAssignmentConfirmation(ctx context.Context, DB *sql.DB, mailer *Mailer,
 			v.city,
 			v.state,
 			v.zip_code,
-			e.timezone
+			e.timezone,
+			sc.first_name,
+			sc.last_name,
+			sc.position
 		FROM shifts s
 		LEFT JOIN opportunities opp ON opp.opportunity_id = s.opportunity_id
 		LEFT JOIN events e ON e.event_id = opp.event_id
 		LEFT JOIN venues v ON v.venue_id = e.venue_id
 		LEFT JOIN volunteers vol ON vol.volunteer_id = $2
+		LEFT JOIN staff sc ON sc.staff_id = e.staff_contact_id
 		WHERE s.shift_id = $1
 	`
 
 	var firstName, eventName, timezone, shiftStart, shiftEnd string
 	var venueName, address, city, state, zip, instruct sql.NullString
+	var scFirst, scLast, scPosition sql.NullString
 	var isVirtual bool
 
 	err = DB.QueryRowContext(ctx, query, shiftId, volId).Scan(
@@ -72,6 +77,9 @@ func sendAssignmentConfirmation(ctx context.Context, DB *sql.DB, mailer *Mailer,
 		&state,
 		&zip,
 		&timezone,
+		&scFirst,
+		&scLast,
+		&scPosition,
 	)
 	if err != nil {
 		return fmt.Errorf("error scanning shift information: %w", err)
@@ -82,6 +90,14 @@ func sendAssignmentConfirmation(ctx context.Context, DB *sql.DB, mailer *Mailer,
 	}
 
 	fmtStart, fmtEnd := formatStartEnd(shiftStart, shiftEnd, timezone)
+
+	staffContact := ""
+	if scFirst.Valid && scLast.Valid {
+		staffContact = scFirst.String + " " + scLast.String
+		if scPosition.Valid && scPosition.String != "" {
+			staffContact += " (" + scPosition.String + ")"
+		}
+	}
 
 	data := signupConfirmedData{
 		FirstName:    firstName,
@@ -95,6 +111,7 @@ func sendAssignmentConfirmation(ctx context.Context, DB *sql.DB, mailer *Mailer,
 		State:        state.String,
 		Zip:          zip.String,
 		Instructions: instruct.String,
+		StaffContact: staffContact,
 	}
 
 	subject := "Signup Confirmed: " + eventName

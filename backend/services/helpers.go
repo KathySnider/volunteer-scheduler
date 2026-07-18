@@ -222,7 +222,7 @@ func addNewOpportunityShifts(ctx context.Context, shifts []*models.NewShiftInput
 func addNewOpportunityShift(ctx context.Context, shift *models.NewShiftInput, oppId int, tx *sql.Tx) error {
 	var shiftId int
 	var startUTC, endUTC *string
-	var staffId, maxVols interface{}
+	var maxVols interface{}
 	var timezone string
 
 	query := `
@@ -246,10 +246,6 @@ func addNewOpportunityShift(ctx context.Context, shift *models.NewShiftInput, op
 		return err
 	}
 
-	// Handle optional values.
-	if shift.StaffContactId != nil {
-		staffId = *shift.StaffContactId
-	}
 	if shift.MaxVolunteers != nil {
 		maxVols = *shift.MaxVolunteers
 	}
@@ -259,12 +255,11 @@ func addNewOpportunityShift(ctx context.Context, shift *models.NewShiftInput, op
 			opportunity_id, 
 			shift_start, 
 			shift_end, 
-			staff_contact_id, 
 			max_volunteers)
-		VALUES ($1, $2, $3, $4, $5)
+		VALUES ($1, $2, $3, $4)
 		RETURNING shift_id
 	`
-	err = tx.QueryRowContext(ctx, insert, oppId, startUTC, endUTC, staffId, maxVols).Scan(&shiftId)
+	err = tx.QueryRowContext(ctx, insert, oppId, startUTC, endUTC, maxVols).Scan(&shiftId)
 	if err != nil {
 		return fmt.Errorf("error adding shift to new opportunity: %w", err)
 
@@ -274,8 +269,8 @@ func addNewOpportunityShift(ctx context.Context, shift *models.NewShiftInput, op
 }
 
 // When sending emails about cancelled shifts, there is a "standard" set
-// of data we need for volunteers or leads (email address, name, shifts)
-// to avoid sending multiple emails to each of them.
+// of data we need for volunteers (email address, name, shifts) to avoid
+// sending multiple emails to each of them.
 type emailInfo struct {
 	email     string
 	firstName string
@@ -367,7 +362,7 @@ func formatShiftTimes(dbShiftsMap map[int]*ShiftSummary, timezone string) map[in
 	return sMap
 }
 
-func sendDeleteEventEmailsForShifts(ctx context.Context, mailer *Mailer, volMap *map[int]*emailInfo, leadMap *map[int]*emailInfo, sMap map[int]*ShiftSummary, evName string) {
+func sendDeleteEventEmailsForShifts(ctx context.Context, mailer *Mailer, volMap *map[int]*emailInfo, sMap map[int]*ShiftSummary, evName, staffEmail, staffFirstName string) {
 	var err error
 	unsent := []string{}
 
@@ -379,22 +374,22 @@ func sendDeleteEventEmailsForShifts(ctx context.Context, mailer *Mailer, volMap 
 		}
 		err = sendEventCancelledToVolunteer(ctx, mailer, emailInfo.firstName, evName, shiftSummaries, emailInfo.email)
 		if err != nil {
-			// Not being able to send an email is not fatal. Just "note"
+			// Not being able to send an email is not fatal. Just log
 			// the email, and try to notify the rest of the list.
 			unsent = append(unsent, emailInfo.email)
 			continue
 		}
 	}
-	for _, emailInfo := range *leadMap {
-		// Get all of the shift start and end times for this email.
-		shiftSummaries := []ShiftSummary{}
-		for _, shiftKey := range emailInfo.shifts {
-			shiftSummaries = append(shiftSummaries, *sMap[shiftKey])
+
+	if staffEmail != "" {
+		// Collect all shift summaries across the event for the staff notification.
+		allShifts := make([]ShiftSummary, 0, len(sMap))
+		for _, summ := range sMap {
+			allShifts = append(allShifts, *summ)
 		}
-		err = sendEventCancelledToStaff(ctx, mailer, emailInfo.firstName, evName, shiftSummaries, emailInfo.email)
+		err = sendEventCancelledToStaff(ctx, mailer, staffFirstName, evName, allShifts, staffEmail)
 		if err != nil {
-			unsent = append(unsent, emailInfo.email)
-			continue
+			unsent = append(unsent, staffEmail)
 		}
 	}
 
@@ -406,7 +401,7 @@ func sendDeleteEventEmailsForShifts(ctx context.Context, mailer *Mailer, volMap 
 	}
 }
 
-func getQueriesForSingleEvent() (string, string) {
+func getQueriesForSingleEvent() string {
 	volQuery := `
 		SELECT
 			v.volunteer_id,
@@ -423,25 +418,10 @@ func getQueriesForSingleEvent() (string, string) {
 		WHERE e.event_id = $1 AND vs.cancelled_at IS NULL
 	`
 
-	leadQuery := `
-		SELECT
-			st.staff_id,
-			s.shift_id,
-			st.email,
-			st.first_name,
-			s.shift_start,
-			s.shift_end
-		FROM events e
-		JOIN opportunities opp ON opp.event_id = e.event_id
-		JOIN shifts s ON s.opportunity_id = opp.opportunity_id
-		JOIN staff st ON st.staff_id = s.staff_contact_id
-		WHERE e.event_id = $1
-	`
-
-	return volQuery, leadQuery
+	return volQuery
 }
 
-func getQueriesForRecurringEvent() (string, string) {
+func getQueriesForRecurringEvent() string {
 	volQuery := `
 		SELECT
 			v.volunteer_id,
@@ -459,19 +439,5 @@ func getQueriesForRecurringEvent() (string, string) {
 		   AND vs.cancelled_at IS NULL
 		ORDER BY v.volunteer_id, s.shift_start
 	`
-	leadQuery := `
-		SELECT
-			st.staff_id,
-			s.shift_id,
-			st.email,
-			st.first_name,
-			s.shift_start,
-			s.shift_end
-		FROM events e
-		JOIN opportunities opp ON opp.event_id = e.event_id
-		JOIN shifts s ON s.opportunity_id = opp.opportunity_id
-		JOIN staff st ON st.staff_id = s.staff_contact_id
-		WHERE e.recurrence_group_id = $1::uuid AND e.recurrence_order >= $2
-	`
-	return volQuery, leadQuery
+	return volQuery
 }

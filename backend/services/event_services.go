@@ -305,6 +305,7 @@ func (s *EventService) FetchEvent(ctx context.Context, eventId string) (*models.
             e.event_name,
             e.description,
             e.event_is_virtual,
+			e.staff_contact_id,
             e.venue_id,
             v.venue_name,
             v.street_address,
@@ -337,6 +338,7 @@ func (s *EventService) FetchEvent(ctx context.Context, eventId string) (*models.
 	var isVirtual bool
 	var venueInt sql.NullInt64
 	var eventDesc sql.NullString
+	var contactId sql.NullInt32
 	var venueName, streetAddress, city, state, zip sql.NullString
 	var feDesc, recurGrpId sql.NullString
 	var recurOrder sql.NullInt32
@@ -347,6 +349,7 @@ func (s *EventService) FetchEvent(ctx context.Context, eventId string) (*models.
 		&e.Name,
 		&eventDesc,
 		&isVirtual,
+		&contactId,
 		&venueInt,
 		&venueName,
 		&streetAddress,
@@ -373,6 +376,10 @@ func (s *EventService) FetchEvent(ctx context.Context, eventId string) (*models.
 		e.Description = nil
 	}
 	e.EventType = GetEventType(isVirtual, venueInt.Valid)
+	if contactId.Valid {
+		id := strconv.Itoa((int)(contactId.Int32))
+		e.StaffContactId = &id
+	}
 
 	if venueInt.Valid {
 		// Since venueInt is valid, most of the strings are valid, because
@@ -448,7 +455,15 @@ func (s *EventService) FetchEvent(ctx context.Context, eventId string) (*models.
 // Creates the DB entry for the events table, and the entries in
 // the associated tables.
 func (s *EventService) CreateEvent(ctx context.Context, newEvent models.NewEventInput) (*models.MutationResult, error) {
-	var venueIdPtr *int
+	var contactIdPtr, venueIdPtr *int
+
+	if newEvent.StaffContactId != nil {
+		contactIdInt, err := strconv.Atoi(*newEvent.StaffContactId)
+		if err != nil {
+			return nil, fmt.Errorf("The value at StaffContactId was not a valid ID: %w", err)
+		}
+		contactIdPtr = &contactIdInt
+	}
 
 	// Determine whether or not the event will be virtual.
 	// Both virtual and hybrid events have a virtual
@@ -496,7 +511,7 @@ func (s *EventService) CreateEvent(ctx context.Context, newEvent models.NewEvent
 	// If single, call createSingleEvent and return the result.
 	if newEvent.Recurrence == nil {
 		// Create a single event.
-		return s.createSingleEvent(ctx, newEvent, virtualEvent, venueIdPtr)
+		return s.createSingleEvent(ctx, newEvent, contactIdPtr, virtualEvent, venueIdPtr)
 	}
 
 	// To create reucurring events, everything starts with the dates.
@@ -552,7 +567,7 @@ func (s *EventService) CreateEvent(ctx context.Context, newEvent models.NewEvent
 	for key, evDates := range *evDatesMap {
 
 		// Create one instance of this group of events.
-		mut, err := s.createEventRecurrence(ctx, tx, newEvent, virtualEvent, venueIdPtr, evDates, groupId, key)
+		mut, err := s.createEventRecurrence(ctx, tx, newEvent, contactIdPtr, virtualEvent, venueIdPtr, evDates, groupId, key)
 		if err != nil {
 			tx.Rollback() // Overkill by an OLD developer - would rollback when I exit this scope.
 			return nil, fmt.Errorf("transaction failed to create instance with order %v: %w", key, err)
@@ -642,6 +657,17 @@ func (s *EventService) UpdateEvent(ctx context.Context, event models.UpdateEvent
 		return nil, fmt.Errorf("failed to update event; invalid event id: %w", err)
 	}
 
+	var contactInt *int
+	if event.StaffContactId == nil {
+		contactInt = nil
+	} else {
+		id, err := strconv.Atoi(*event.StaffContactId)
+		if err != nil {
+			return nil, fmt.Errorf("Value at StaffContactId is not a valid ID: %w", err)
+		}
+		contactInt = &id
+	}
+
 	isVirtual := (event.EventType == models.EventTypeVirtual || event.EventType == models.EventTypeHybrid)
 
 	var venueInt *int
@@ -689,15 +715,16 @@ func (s *EventService) UpdateEvent(ctx context.Context, event models.UpdateEvent
 					event_name        = $1,
 					description       = $2,
 					event_is_virtual  = $3,
-					venue_id          = $4,
-					timezone          = $5,
-					funding_entity_id = $6
-				WHERE recurrence_group_id = $7::uuid
-				  AND recurrence_order    >= $8
+					staff_contact_id  = $4,
+					venue_id          = $5,
+					timezone          = $6,
+					funding_entity_id = $7
+				WHERE recurrence_group_id = $8::uuid
+				  AND recurrence_order    >= $9
 				RETURNING event_id`,
-				event.Name, event.Description, isVirtual, venueInt,
-				event.Timezone, event.FundingEntityID,
-				recurGrpId.String, int(recurOrder.Int32),
+				event.Name, event.Description, isVirtual,
+				contactInt, venueInt, event.Timezone,
+				event.FundingEntityID, recurGrpId.String, int(recurOrder.Int32),
 			)
 			if err != nil {
 				return nil, fmt.Errorf("failed to update recurring events: %w", err)
@@ -728,12 +755,14 @@ func (s *EventService) UpdateEvent(ctx context.Context, event models.UpdateEvent
 				event_name        = $1,
 				description       = $2,
 				event_is_virtual  = $3,
-				venue_id          = $4,
-				timezone          = $5,
-				funding_entity_id = $6
-			WHERE event_id = $7`,
-			event.Name, event.Description, isVirtual, venueInt,
-			event.Timezone, event.FundingEntityID, eventInt,
+				staff_contact_id  = $4,
+				venue_id          = $5,
+				timezone          = $6,
+				funding_entity_id = $7
+			WHERE event_id = $8`,
+			event.Name, event.Description, isVirtual,
+			contactInt, venueInt, event.Timezone,
+			event.FundingEntityID, eventInt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to update event: %w", err)
@@ -845,34 +874,41 @@ func (s *EventService) DeleteEvent(ctx context.Context, eventId string, scope *m
 	// We don't want the emails to be overly complex.
 	evQuery := `
 		SELECT
-			event_name,
-			timezone,
-			recurrence_group_id,
-			recurrence_order
-		FROM events
-		WHERE event_id = $1
+			e.event_name,
+			e.timezone,
+			e.recurrence_group_id,
+			e.recurrence_order,
+			sc.email,
+			sc.first_name
+		FROM events e
+		LEFT JOIN staff sc ON sc.staff_id = e.staff_contact_id
+		WHERE e.event_id = $1
 	`
 	var evName, timezone string
 	var recurGrpId sql.NullString
 	var recurOrder sql.NullInt32
-	err = s.DB.QueryRowContext(ctx, evQuery, eventInt).Scan(&evName, &timezone, &recurGrpId, &recurOrder)
+	var scEmail, scFirstName sql.NullString
+	err = s.DB.QueryRowContext(ctx, evQuery, eventInt).Scan(&evName, &timezone, &recurGrpId, &recurOrder, &scEmail, &scFirstName)
 	if err != nil {
 		// If we didn't even get this far, we won't be able to delete the event(s).
 		log.Printf("DB error: %v", err)
 		return nil, friendlyDBError(err)
 	}
 
+	staffEmail := scEmail.String
+	staffFirstName := scFirstName.String
+
 	// The differences between getting the email info for one event v many is in the queries.
-	var volQuery, leadQuery string
+	var volQuery string
 	args := []any{}
 	if scope == nil || *scope == models.RecurrenceUpdateScopeThisOnly {
 		// Only deleting this event.
-		volQuery, leadQuery = getQueriesForSingleEvent()
+		volQuery = getQueriesForSingleEvent()
 		args = append(args, eventInt)
 	} else {
 		// If we are deleting recurring events, the UUID and order are required.
 		if recurGrpId.Valid && recurOrder.Valid {
-			volQuery, leadQuery = getQueriesForRecurringEvent()
+			volQuery = getQueriesForRecurringEvent()
 			args = append(args, recurGrpId)
 			args = append(args, recurOrder)
 		} else {
@@ -888,20 +924,16 @@ func (s *EventService) DeleteEvent(ctx context.Context, eventId string, scope *m
 	if err != nil {
 		return nil, err
 	}
-	leadMap, dbTimesMap, err := makeEmailMapForShifts(ctx, s.DB, leadQuery, args, dbTimesMap)
-	if err != nil {
-		return nil, err
-	}
 
 	// Use the timezone (acquired above) to format the DB times.
 	// Note - formatShiftTimes doesn't throw any erros. If there is a problem,
 	// we get back the DB times, so we can still send an email.
 	shiftsMap := formatShiftTimes(dbTimesMap, timezone)
 
-	// Our maps now have a single entry for each volunteer and staff
-	// lead contact. We also have the event name, and the formatted
-	// dates/times for each shift. SEND the emails.
-	sendDeleteEventEmailsForShifts(ctx, s.Mailer, volMap, leadMap, shiftsMap, evName)
+	// Our map now has a single entry for each volunteer. We also have the
+	// event name, and the formatted dates/times for each shift.
+	// SEND the emails.
+	sendDeleteEventEmailsForShifts(ctx, s.Mailer, volMap, shiftsMap, evName, staffEmail, staffFirstName)
 
 	// Finally, delete the event(s) (which will cascade to the opportunities, shifts, and volunteer_shifts).
 	if scope == nil || *scope == models.RecurrenceUpdateScopeThisOnly {

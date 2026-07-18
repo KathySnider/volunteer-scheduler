@@ -11,11 +11,10 @@ type JobType struct {
 }
 
 type Shift struct {
-	ID             string
-	StartDateTime  string
-	EndDateTime    string
-	MaxVolunteers  *int
-	StaffContactId *string
+	ID            string
+	StartDateTime string
+	EndDateTime   string
+	MaxVolunteers *int
 }
 
 // Flattened view for volunteers; combines
@@ -49,18 +48,16 @@ type NewJobTypeInput struct {
 }
 
 type NewShiftInput struct {
-	StartDateTime  string
-	EndDateTime    string
-	MaxVolunteers  *int
-	StaffContactId *string
+	StartDateTime string
+	EndDateTime   string
+	MaxVolunteers *int
 }
 
 type AddShiftInput struct {
-	OppId          string
-	StartDateTime  string
-	EndDateTime    string
-	MaxVolunteers  *int
-	StaffContactId *string
+	OppId         string
+	StartDateTime string
+	EndDateTime   string
+	MaxVolunteers *int
 }
 
 type NewOpportunityInput struct {
@@ -81,11 +78,10 @@ type UpdateJobTypeInput struct {
 }
 
 type UpdateShiftInput struct {
-	ID             string
-	StartDateTime  string
-	EndDateTime    string
-	MaxVolunteers  *int
-	StaffContactId *string
+	ID            string
+	StartDateTime string
+	EndDateTime   string
+	MaxVolunteers *int
 }
 
 type UpdateOpportunityInput struct {

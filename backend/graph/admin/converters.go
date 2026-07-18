@@ -185,6 +185,7 @@ func toGenEvent(m *models.Event) *generated.Event {
 		Name:            m.Name,
 		Description:     m.Description,
 		EventType:       generated.EventType(m.EventType),
+		StaffContactID:  m.StaffContactId,
 		Venue:           toGenVenue(m.Venue),
 		EventDates:      toGenEventDates(m.EventDates),
 		Timezone:        m.Timezone,
@@ -261,11 +262,10 @@ func toGenShift(m *models.Shift) *generated.Shift {
 		return nil
 	}
 	return &generated.Shift{
-		ID:             m.ID,
-		StartDateTime:  m.StartDateTime,
-		EndDateTime:    m.EndDateTime,
-		MaxVolunteers:  m.MaxVolunteers,
-		StaffContactID: m.StaffContactId,
+		ID:            m.ID,
+		StartDateTime: m.StartDateTime,
+		EndDateTime:   m.EndDateTime,
+		MaxVolunteers: m.MaxVolunteers,
 	}
 }
 
@@ -502,6 +502,7 @@ func toModelNewEventInput(g generated.NewEventInput) models.NewEventInput {
 		Name:            g.Name,
 		Description:     g.Description,
 		EventType:       eventType,
+		StaffContactId:  g.StaffContactID,
 		VenueId:         g.VenueID,
 		Timezone:        g.Timezone,
 		FundingEntityID: g.FundingEntityID,
@@ -585,21 +586,19 @@ func toModelNewShiftInput(g *generated.NewShiftInput) *models.NewShiftInput {
 		return nil
 	}
 	return &models.NewShiftInput{
-		StartDateTime:  g.StartDateTime,
-		EndDateTime:    g.EndDateTime,
-		MaxVolunteers:  g.MaxVolunteers,
-		StaffContactId: g.StaffContactID,
+		StartDateTime: g.StartDateTime,
+		EndDateTime:   g.EndDateTime,
+		MaxVolunteers: g.MaxVolunteers,
 	}
 }
 
 func toModelAddShiftInput(g generated.AddShiftInput) models.AddShiftInput {
 
 	return models.AddShiftInput{
-		OppId:          g.OpportunityID,
-		StartDateTime:  g.StartDateTime,
-		EndDateTime:    g.EndDateTime,
-		MaxVolunteers:  g.MaxVolunteers,
-		StaffContactId: g.StaffContactID,
+		OppId:         g.OpportunityID,
+		StartDateTime: g.StartDateTime,
+		EndDateTime:   g.EndDateTime,
+		MaxVolunteers: g.MaxVolunteers,
 	}
 }
 
@@ -619,6 +618,7 @@ func toModelUpdateEventInput(g generated.UpdateEventInput) models.UpdateEventInp
 		Name:            g.Name,
 		Description:     g.Description,
 		EventType:       models.EventType(g.EventType),
+		StaffContactId:  g.StaffContactID,
 		VenueId:         g.VenueID,
 		Timezone:        g.Timezone,
 		FundingEntityID: g.FundingEntityID,
@@ -646,11 +646,10 @@ func toModelUpdateOpportunity(g generated.UpdateOpportunityInput) models.UpdateO
 
 func toModelUpdateShift(g generated.UpdateShiftInput) models.UpdateShiftInput {
 	return models.UpdateShiftInput{
-		ID:             g.ID,
-		StartDateTime:  g.StartDateTime,
-		EndDateTime:    g.EndDateTime,
-		MaxVolunteers:  g.MaxVolunteers,
-		StaffContactId: g.StaffContactID,
+		ID:            g.ID,
+		StartDateTime: g.StartDateTime,
+		EndDateTime:   g.EndDateTime,
+		MaxVolunteers: g.MaxVolunteers,
 	}
 }
 

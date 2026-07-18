@@ -136,8 +136,7 @@ func (s *ShiftService) FetchShiftsForOpportunity(ctx context.Context, oppId stri
 		  shift_id,
 		  shift_start,
 		  shift_end,
-		  max_volunteers,
-		  staff_contact_id
+		  max_volunteers
 		FROM shifts
 	WHERE opportunity_id = $1
 	ORDER BY shift_start
@@ -152,26 +151,18 @@ func (s *ShiftService) FetchShiftsForOpportunity(ctx context.Context, oppId stri
 	var shifts []*models.Shift
 	for rows.Next() {
 		var shift models.Shift
-		var maxVols, staffId sql.NullInt64
+		var maxVols sql.NullInt64
 
-		err := rows.Scan(&shift.ID, &shift.StartDateTime, &shift.EndDateTime, &maxVols, &staffId)
+		err := rows.Scan(&shift.ID, &shift.StartDateTime, &shift.EndDateTime, &maxVols)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning shift: %w", err)
 		}
 
-		// Max volunteers and staff Id are nullable.
 		if maxVols.Valid {
 			maxInt := int(maxVols.Int64)
 			shift.MaxVolunteers = &maxInt
 		} else {
 			shift.MaxVolunteers = nil
-		}
-
-		if staffId.Valid {
-			staffStr := strconv.FormatInt(staffId.Int64, 10) // convert to string since StaffContactId is *string
-			shift.StaffContactId = &staffStr
-		} else {
-			shift.StaffContactId = nil
 		}
 
 		shifts = append(shifts, &shift)
@@ -388,8 +379,8 @@ func (s *ShiftService) CreateOpportunity(ctx context.Context, opp models.NewOppo
 
 		// Convert each input shift's local times to UTC time.Time values.
 		type shiftUTC struct {
-			start, end    time.Time
-			staffID, maxV interface{}
+			start, end time.Time
+			maxV       interface{}
 		}
 		var utcShifts []shiftUTC
 		for _, sh := range opp.Shifts {
@@ -403,14 +394,11 @@ func (s *ShiftService) CreateOpportunity(ctx context.Context, opp models.NewOppo
 			}
 			start, _ := time.Parse(time.RFC3339, *startStr)
 			end, _ := time.Parse(time.RFC3339, *endStr)
-			var staffID, maxV interface{}
-			if sh.StaffContactId != nil {
-				staffID = *sh.StaffContactId
-			}
+			var maxV interface{}
 			if sh.MaxVolunteers != nil {
 				maxV = *sh.MaxVolunteers
 			}
-			utcShifts = append(utcShifts, shiftUTC{start, end, staffID, maxV})
+			utcShifts = append(utcShifts, shiftUTC{start, end, maxV})
 		}
 
 		// Get future peer events.
@@ -438,9 +426,9 @@ func (s *ShiftService) CreateOpportunity(ctx context.Context, opp models.NewOppo
 				newStart, newEnd := adjustTimes(sh.start, sh.end, srcFirstDate, peer.FirstDate)
 				if _, err = tx.ExecContext(ctx, `
 					INSERT INTO shifts
-					  (opportunity_id, shift_start, shift_end, staff_contact_id, max_volunteers, recurrence_template_id)
-					VALUES ($1, $2, $3, $4, $5, $6::uuid)`,
-					sibOppID, newStart, newEnd, sh.staffID, sh.maxV, shiftTmplIDs[i],
+					  (opportunity_id, shift_start, shift_end, max_volunteers, recurrence_template_id)
+					VALUES ($1, $2, $3, $4, $5::uuid)`,
+					sibOppID, newStart, newEnd, sh.maxV, shiftTmplIDs[i],
 				); err != nil {
 					return nil, fmt.Errorf("error creating sibling shift for event %d: %w", peer.EventID, err)
 				}
@@ -502,10 +490,7 @@ func (s *ShiftService) CreateShift(ctx context.Context, shift models.AddShiftInp
 		return nil, fmt.Errorf("A shift must end after it starts.")
 	}
 
-	var staffId, maxVols interface{}
-	if shift.StaffContactId != nil {
-		staffId = *shift.StaffContactId
-	}
+	var maxVols interface{}
 	if shift.MaxVolunteers != nil {
 		maxVols = *shift.MaxVolunteers
 	}
@@ -513,10 +498,10 @@ func (s *ShiftService) CreateShift(ctx context.Context, shift models.AddShiftInp
 	// Insert the base shift.
 	var shiftInt int
 	err = tx.QueryRowContext(ctx, `
-		INSERT INTO shifts (opportunity_id, shift_start, shift_end, staff_contact_id, max_volunteers)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers)
+		VALUES ($1, $2, $3, $4)
 		RETURNING shift_id`,
-		oppInt, *startUTC, *endUTC, staffId, maxVols,
+		oppInt, *startUTC, *endUTC, maxVols,
 	).Scan(&shiftInt)
 	if err != nil {
 		return nil, friendlyDBError(err)
@@ -580,9 +565,9 @@ func (s *ShiftService) CreateShift(ctx context.Context, shift models.AddShiftInp
 			newStart, newEnd := adjustTimes(shiftStart, shiftEnd, srcFirstDate, peer.FirstDate)
 			if _, err = tx.ExecContext(ctx, `
 				INSERT INTO shifts
-				  (opportunity_id, shift_start, shift_end, staff_contact_id, max_volunteers, recurrence_template_id)
-				VALUES ($1, $2, $3, $4, $5, $6::uuid)`,
-				sibOppID, newStart, newEnd, staffId, maxVols, shiftTmplID,
+				  (opportunity_id, shift_start, shift_end, max_volunteers, recurrence_template_id)
+				VALUES ($1, $2, $3, $4, $5::uuid)`,
+				sibOppID, newStart, newEnd, maxVols, shiftTmplID,
 			); err != nil {
 				return nil, fmt.Errorf("inserting sibling shift for event %d: %w", peer.EventID, err)
 			}
@@ -701,7 +686,7 @@ func (s *ShiftService) UpdateOpportunity(ctx context.Context, opp models.UpdateO
 	}, nil
 }
 
-// UpdateShift updates a shift's time window, max volunteers, and staff contact.
+// UpdateShift updates a shift's time window and max volunteers.
 // If the shift belongs to a recurrence group its siblings on all future instances
 // are also updated; their times are recalculated to preserve the same offset
 // from each event's first scheduled date.
@@ -751,9 +736,9 @@ func (s *ShiftService) UpdateShift(ctx context.Context, shift models.UpdateShift
 	// Update the base shift.
 	if _, err = tx.ExecContext(ctx, `
 		UPDATE shifts
-		SET shift_start = $1, shift_end = $2, max_volunteers = $3, staff_contact_id = $4
-		WHERE shift_id = $5`,
-		startUTC, endUTC, shift.MaxVolunteers, shift.StaffContactId, shiftInt,
+		SET shift_start = $1, shift_end = $2, max_volunteers = $3
+		WHERE shift_id = $4`,
+		startUTC, endUTC, shift.MaxVolunteers, shiftInt,
 	); err != nil {
 		return nil, friendlyDBError(err)
 	}
@@ -776,13 +761,13 @@ func (s *ShiftService) UpdateShift(ctx context.Context, shift models.UpdateShift
 			newStart, newEnd := adjustTimes(shiftStart, shiftEnd, srcFirstDate, peer.FirstDate)
 			if _, err = tx.ExecContext(ctx, `
 				UPDATE shifts s
-				SET shift_start = $1, shift_end = $2, max_volunteers = $3, staff_contact_id = $4
+				SET shift_start = $1, shift_end = $2, max_volunteers = $3
 				FROM opportunities o, events e
 				WHERE s.opportunity_id = o.opportunity_id
 				  AND o.event_id = e.event_id
-				  AND s.recurrence_template_id = $5::uuid
-				  AND e.event_id = $6`,
-				newStart, newEnd, shift.MaxVolunteers, shift.StaffContactId, shiftTmplID, peer.EventID,
+				  AND s.recurrence_template_id = $4::uuid
+				  AND e.event_id = $5`,
+				newStart, newEnd, shift.MaxVolunteers, shiftTmplID, peer.EventID,
 			); err != nil {
 				return nil, fmt.Errorf("error updating sibling shift for event %d: %w", peer.EventID, err)
 			}

@@ -186,6 +186,9 @@ const signupConfirmedHTMLTmpl = emailHeader + `
                 <strong>Pre-Event Instructions:</strong> {{.Instructions}}
             </div>
             {{end}}
+            {{if .StaffContact}}
+            <p>Questions? Contact your staff lead: <strong>{{.StaffContact}}</strong></p>
+            {{end}}
             <p>To view or manage your shifts, log in to the Volunteer Scheduler.</p>
 ` + emailFooter
 
@@ -203,6 +206,8 @@ Location:{{if .VenueName}}
 {{end}}{{if .Instructions}}
 Pre-Event Instructions:
 {{.Instructions}}
+{{end}}{{if .StaffContact}}
+Questions? Contact your staff lead: {{.StaffContact}}
 {{end}}
 To view or manage your shifts, log in to the Volunteer Scheduler.
 
@@ -221,6 +226,7 @@ type signupConfirmedData struct {
 	State        string
 	Zip          string
 	Instructions string
+	StaffContact string
 }
 
 // ============================================================================
@@ -394,6 +400,9 @@ const shiftReminderHTMLTmpl = emailHeader + `
                 <strong>Pre-Event Instructions:</strong> {{.Instructions}}
             </div>
             {{end}}
+            {{if .StaffContact}}
+            <p>Questions? Contact your staff lead: <strong>{{.StaffContact}}</strong></p>
+            {{end}}
             <p>We look forward to seeing you there! To view your shifts, log in to the Volunteer Scheduler.</p>
 ` + emailFooter
 
@@ -413,6 +422,8 @@ Location:{{if .VenueName}}
 {{end}}{{if .Instructions}}
 Pre-Event Instructions:
 {{.Instructions}}
+{{end}}{{if .StaffContact}}
+Questions? Contact your staff lead: {{.StaffContact}}
 {{end}}
 We look forward to seeing you there! To view your shifts, log in to the Volunteer Scheduler.
 
@@ -431,6 +442,7 @@ type shiftReminderData struct {
 	State        string
 	Zip          string
 	Instructions string
+	StaffContact string
 }
 
 // ============================================================================
@@ -494,8 +506,8 @@ type eventCancelledVolunteerData struct {
 
 const eventCancelledStaffHTMLTmpl = emailHeader + `
             <p>Hello {{.FirstName}},</p>
-            <p>The following event has been cancelled. You were listed as the staff
-            contact for one or more shifts:</p>
+            <p>The following event has been cancelled. You are listed as the staff
+            contact for this event:</p>
             ` + tableOpen + `
                 <tr>
                     <td ` + tdLabel + `>Event</td>
@@ -512,20 +524,20 @@ const eventCancelledStaffHTMLTmpl = emailHeader + `
                 </tr>
                 {{end}}
             ` + tableClose + `
-            <p>Volunteers assigned to your shift(s) have been notified separately.</p>
+            <p>Volunteers assigned to shifts for this event have been notified separately.</p>
 ` + emailFooter
 
 const eventCancelledStaffTextTmpl = `Hello {{.FirstName}},
 
-The following event has been cancelled. You were listed as the staff contact
-for one or more shifts:
+The following event has been cancelled. You are listed as the staff contact
+for this event:
 
 Event: {{.EventName}}
 {{range $i, $s := .Shifts}}
 Shift {{if gt (len $.Shifts) 1}}{{add $i 1}} {{end}}start: {{$s.Start}}
 Shift {{if gt (len $.Shifts) 1}}{{add $i 1}} {{end}}end:   {{$s.End}}
 {{end}}
-Volunteers assigned to your shift(s) have been notified separately.
+Volunteers assigned to shifts for this event have been notified separately.
 
 Thank you,
 Volunteer Scheduler`

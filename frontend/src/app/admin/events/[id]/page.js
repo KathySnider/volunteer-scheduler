@@ -22,7 +22,7 @@ import styles from "./admin-event-detail.module.css";
 const ADMIN_EVENT_DETAIL = `
   query AdminEventDetail($eventId: ID!) {
     event(eventId: $eventId) {
-      id name description eventType timezone
+      id name description eventType staffContactId timezone
       venue { id name city state }
       fundingEntity { id name }
       eventDates { id startDateTime endDateTime }
@@ -32,7 +32,7 @@ const ADMIN_EVENT_DETAIL = `
     }
     opportunitiesForEvent(eventId: $eventId) {
       id jobId isVirtual preEventInstructions
-      shifts { id startDateTime endDateTime maxVolunteers staffContactId }
+      shifts { id startDateTime endDateTime maxVolunteers }
     }
     lookupValues {
       serviceTypes { id name }
@@ -336,7 +336,7 @@ function TimeInput({ value24, period, onCommit, className }) {
 const EMPTY_SHIFT_FORM = {
   startDate: "", startTime: "00:00",
   endDate:   "", endTime:   "00:00",
-  maxVolunteers: "", staffContactId: "",
+  maxVolunteers: "",
 };
 
 /* =========================================================
@@ -440,21 +440,6 @@ function ShiftFormFields({ form, setForm, staff }) {
           onChange={(e) => setForm((p) => ({ ...p, maxVolunteers: e.target.value }))}
         />
       </div>
-      <div className={styles.field}>
-        <label className={styles.label}>Staff Contact</label>
-        <select
-          className={styles.select}
-          value={form.staffContactId}
-          onChange={(e) => setForm((p) => ({ ...p, staffContactId: e.target.value }))}
-        >
-          <option value="">— none —</option>
-          {staff.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.firstName} {s.lastName}{s.position ? ` (${s.position})` : ""}
-            </option>
-          ))}
-        </select>
-      </div>
     </div>
   );
 }
@@ -491,7 +476,7 @@ export default function AdminEventDetailPage() {
   const [deletingEvent, setDeletingEvent] = useState(false);
   const [evForm, setEvForm] = useState({
     name: "", description: "", eventType: "IN_PERSON",
-    venueId: "", serviceTypes: [],
+    venueId: "", serviceTypes: [], staffContactId: "",
   });
 
   /* --- Event dates (within event section) --- */
@@ -504,7 +489,7 @@ export default function AdminEventDetailPage() {
   const [addingOpp, setAddingOpp]     = useState(false);
   const [oppForm, setOppForm] = useState({
     jobId: "", isVirtual: false, preEventInstructions: "",
-    shiftStart: "", shiftEnd: "", shiftMaxVols: "", shiftStaffId: "",
+    shiftStart: "", shiftEnd: "", shiftMaxVols: "",
   });
   const [editingOppId, setEditingOppId]   = useState(null);
   const [editOppForm, setEditOppForm]     = useState({
@@ -705,6 +690,7 @@ export default function AdminEventDetailPage() {
       eventType: event.eventType,
       venueId: event.venue?.id ?? "",
       serviceTypes: svcIds,
+      staffContactId: event.staffContactId ?? "",
     });
     setRecurrenceScope("THIS_ONLY");
     setEditEventError("");
@@ -723,6 +709,7 @@ export default function AdminEventDetailPage() {
         description: evForm.description.trim() || null,
         eventType: evForm.eventType,
         venueId: evForm.venueId || null,
+        staffContactId: evForm.staffContactId || null,
         timezone: tz,
         fundingEntityId: parseInt(fundingEntityId, 10),
         serviceTypes: evForm.serviceTypes.map(Number),
@@ -823,7 +810,7 @@ export default function AdminEventDetailPage() {
       preEventInstructions: "",
       shiftStartDate: dt?.date ?? "", shiftStartTime: dt?.time ?? "00:00",
       shiftEndDate:   dt?.date ?? "", shiftEndTime:   dt ? addOneHour(dt.time) : "00:00",
-      shiftMaxVols: "", shiftStaffId: "",
+      shiftMaxVols: "",
     });
     setAddOppError("");
     setAddingOpp(true);
@@ -856,7 +843,6 @@ export default function AdminEventDetailPage() {
           startDateTime: `${oppForm.shiftStartDate} ${normalizeTime(oppForm.shiftStartTime)}:00`,
           endDateTime:   `${oppForm.shiftEndDate} ${normalizeTime(oppForm.shiftEndTime)}:00`,
           maxVolunteers: oppForm.shiftMaxVols ? parseInt(oppForm.shiftMaxVols, 10) : null,
-          staffContactId: oppForm.shiftStaffId || null,
         }],
       }},
       "Opportunity added.",
@@ -902,7 +888,7 @@ export default function AdminEventDetailPage() {
     setAddShiftForm(dt ? {
       startDate: dt.date, startTime: dt.time,
       endDate:   dt.date, endTime:   addOneHour(dt.time),
-      maxVolunteers: "", staffContactId: "",
+      maxVolunteers: "",
     } : { ...EMPTY_SHIFT_FORM });
     setAddShiftError("");
     setEditingShiftId(null);
@@ -929,7 +915,6 @@ export default function AdminEventDetailPage() {
         startDateTime: `${addShiftForm.startDate} ${normalizeTime(addShiftForm.startTime)}:00`,
         endDateTime:   `${addShiftForm.endDate} ${normalizeTime(addShiftForm.endTime)}:00`,
         maxVolunteers: addShiftForm.maxVolunteers ? parseInt(addShiftForm.maxVolunteers, 10) : null,
-        staffContactId: addShiftForm.staffContactId || null,
       }},
       "Shift added.",
       () => setAddingShiftOppId(null),
@@ -948,7 +933,6 @@ export default function AdminEventDetailPage() {
       endDate:        splitDT(endLocal).d,
       endTime:        splitDT(endLocal).t   || "00:00",
       maxVolunteers:  shift.maxVolunteers != null ? String(shift.maxVolunteers) : "",
-      staffContactId: shift.staffContactId ?? "",
     });
     setAddingShiftOppId(null);
   };
@@ -970,7 +954,6 @@ export default function AdminEventDetailPage() {
         startDateTime: `${editShiftForm.startDate} ${normalizeTime(editShiftForm.startTime)}:00`,
         endDateTime:   `${editShiftForm.endDate} ${normalizeTime(editShiftForm.endTime)}:00`,
         maxVolunteers: editShiftForm.maxVolunteers ? parseInt(editShiftForm.maxVolunteers, 10) : null,
-        staffContactId: editShiftForm.staffContactId || null,
       }},
       "Shift updated.",
       () => setEditingShiftId(null),
@@ -1110,6 +1093,13 @@ export default function AdminEventDetailPage() {
 
               <span className={styles.metaLabel}>Region</span>
               <span className={styles.metaValue}>{event.fundingEntity?.name ?? "—"}</span>
+
+              <span className={styles.metaLabel}>Staff Contact</span>
+              <span className={styles.metaValue}>
+                {event.staffContactId && staffMap[event.staffContactId]
+                  ? staffMap[event.staffContactId]
+                  : "— none —"}
+              </span>
 
               {(event.serviceTypes?.length > 0) && (
                 <>
@@ -1337,6 +1327,21 @@ export default function AdminEventDetailPage() {
                   ))}
                 </select>
               </div>
+              <div className={styles.field}>
+                <label className={styles.label}>Staff Contact</label>
+                <select
+                  className={styles.select}
+                  value={evForm.staffContactId}
+                  onChange={(e) => setEvForm((p) => ({ ...p, staffContactId: e.target.value }))}
+                >
+                  <option value="">— none —</option>
+                  {staff.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.firstName} {s.lastName}{s.position ? ` (${s.position})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
               {event.recurrenceGroup?.groupId && (
                 <div className={styles.field}>
                   <label className={styles.label}>Apply changes to</label>
@@ -1448,20 +1453,20 @@ export default function AdminEventDetailPage() {
                 form={{
                   startDate: oppForm.shiftStartDate, startTime: oppForm.shiftStartTime,
                   endDate:   oppForm.shiftEndDate,   endTime:   oppForm.shiftEndTime,
-                  maxVolunteers: oppForm.shiftMaxVols, staffContactId: oppForm.shiftStaffId,
+                  maxVolunteers: oppForm.shiftMaxVols,
                 }}
                 setForm={(updater) => setOppForm((p) => {
                   const prev = {
                     startDate: p.shiftStartDate, startTime: p.shiftStartTime,
                     endDate:   p.shiftEndDate,   endTime:   p.shiftEndTime,
-                    maxVolunteers: p.shiftMaxVols, staffContactId: p.shiftStaffId,
+                    maxVolunteers: p.shiftMaxVols,
                   };
                   const updated = typeof updater === "function" ? updater(prev) : updater;
                   return {
                     ...p,
                     shiftStartDate: updated.startDate, shiftStartTime: updated.startTime,
                     shiftEndDate:   updated.endDate,   shiftEndTime:   updated.endTime,
-                    shiftMaxVols: updated.maxVolunteers, shiftStaffId: updated.staffContactId,
+                    shiftMaxVols: updated.maxVolunteers,
                   };
                 })}
               />
@@ -1573,7 +1578,6 @@ export default function AdminEventDetailPage() {
                                   ? ` · ${signups.length}/${shift.maxVolunteers} volunteers`
                                   : ` · Max ${shift.maxVolunteers}`
                               )}
-                              {shift.staffContactId && staffMap[shift.staffContactId] && ` · ${staffMap[shift.staffContactId]}`}
                             </div>
                           </div>
                           <div className={styles.oppActions}>

@@ -14,7 +14,7 @@ import (
 // These 2 "create" functions are helpers, but they are the workhorses of CreateEvent.
 
 // Create exactly one instance of an event - no uuid, no order, no extra dates.
-func (s *EventService) createSingleEvent(ctx context.Context, newEvent models.NewEventInput, virtualEvent bool, venueIdPtr *int) (*models.MutationResult, error) {
+func (s *EventService) createSingleEvent(ctx context.Context, newEvent models.NewEventInput, contactIdPtr *int, virtualEvent bool, venueIdPtr *int) (*models.MutationResult, error) {
 	var query string
 	var eventInt int
 
@@ -36,11 +36,11 @@ func (s *EventService) createSingleEvent(ctx context.Context, newEvent models.Ne
 	// good DB practice, DO NOT RETURN while inside of a transaction.
 
 	query = `
-		INSERT INTO events (event_name, description, event_is_virtual, venue_id, timezone, funding_entity_id)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO events (event_name, description, event_is_virtual, staff_contact_id, venue_id, timezone, funding_entity_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING event_id
 	`
-	err = tx.QueryRowContext(ctx, query, newEvent.Name, newEvent.Description, virtualEvent, venueIdPtr, newEvent.Timezone, newEvent.FundingEntityID).Scan(&eventInt)
+	err = tx.QueryRowContext(ctx, query, newEvent.Name, newEvent.Description, virtualEvent, contactIdPtr, venueIdPtr, newEvent.Timezone, newEvent.FundingEntityID).Scan(&eventInt)
 
 	if err == nil {
 		// Event was inserted. Add the dates.
@@ -75,7 +75,7 @@ func (s *EventService) createSingleEvent(ctx context.Context, newEvent models.Ne
 }
 
 // Create an instance of a recurring event.
-func (s *EventService) createEventRecurrence(ctx context.Context, tx *sql.Tx, ev models.NewEventInput, virtualEvent bool, venueIdPtr *int, evDates []*models.NewEventDateInput, groupId uuid.UUID, groupOrder int) (*models.MutationResult, error) {
+func (s *EventService) createEventRecurrence(ctx context.Context, tx *sql.Tx, ev models.NewEventInput, contactIdPtr *int, virtualEvent bool, venueIdPtr *int, evDates []*models.NewEventDateInput, groupId uuid.UUID, groupOrder int) (*models.MutationResult, error) {
 	var query string
 	var eventInt int
 
@@ -85,18 +85,20 @@ func (s *EventService) createEventRecurrence(ctx context.Context, tx *sql.Tx, ev
 			event_name,
 			description, 
 			event_is_virtual, 
+			staff_contact_id,
 			venue_id,
 			timezone, 
 			funding_entity_id,
 			recurrence_group_id,
 			recurrence_order)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING event_id
 	`
 	err := tx.QueryRowContext(ctx, query,
 		ev.Name,
 		ev.Description,
 		virtualEvent,
+		contactIdPtr,
 		venueIdPtr,
 		ev.Timezone,
 		ev.FundingEntityID,

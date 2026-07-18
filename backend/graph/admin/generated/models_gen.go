@@ -16,11 +16,10 @@ type AddEventDateInput struct {
 }
 
 type AddShiftInput struct {
-	OpportunityID  string  `json:"opportunityId"`
-	StartDateTime  string  `json:"startDateTime"`
-	EndDateTime    string  `json:"endDateTime"`
-	MaxVolunteers  *int    `json:"maxVolunteers,omitempty"`
-	StaffContactID *string `json:"staffContactId,omitempty"`
+	OpportunityID string `json:"opportunityId"`
+	StartDateTime string `json:"startDateTime"`
+	EndDateTime   string `json:"endDateTime"`
+	MaxVolunteers *int   `json:"maxVolunteers,omitempty"`
 }
 
 type Event struct {
@@ -28,6 +27,7 @@ type Event struct {
 	Name            string               `json:"name"`
 	Description     *string              `json:"description,omitempty"`
 	EventType       EventType            `json:"eventType"`
+	StaffContactID  *string              `json:"staffContactId,omitempty"`
 	Venue           *Venue               `json:"venue,omitempty"`
 	Timezone        string               `json:"timezone"`
 	FundingEntity   *FundingEntity       `json:"fundingEntity"`
@@ -154,6 +154,7 @@ type NewEventInput struct {
 	Name            string               `json:"name"`
 	Description     *string              `json:"description,omitempty"`
 	EventType       EventType            `json:"eventType"`
+	StaffContactID  *string              `json:"staffContactId,omitempty"`
 	VenueID         *string              `json:"venueId,omitempty"`
 	EventDates      []*NewEventDateInput `json:"eventDates"`
 	Timezone        string               `json:"timezone"`
@@ -189,10 +190,9 @@ type NewOpportunityInput struct {
 }
 
 type NewShiftInput struct {
-	StartDateTime  string  `json:"startDateTime"`
-	EndDateTime    string  `json:"endDateTime"`
-	MaxVolunteers  *int    `json:"maxVolunteers,omitempty"`
-	StaffContactID *string `json:"staffContactId,omitempty"`
+	StartDateTime string `json:"startDateTime"`
+	EndDateTime   string `json:"endDateTime"`
+	MaxVolunteers *int   `json:"maxVolunteers,omitempty"`
 }
 
 type NewStaffInput struct {
@@ -252,11 +252,10 @@ type ServiceType struct {
 }
 
 type Shift struct {
-	ID             string  `json:"id"`
-	StartDateTime  string  `json:"startDateTime"`
-	EndDateTime    string  `json:"endDateTime"`
-	MaxVolunteers  *int    `json:"maxVolunteers,omitempty"`
-	StaffContactID *string `json:"staffContactId,omitempty"`
+	ID            string `json:"id"`
+	StartDateTime string `json:"startDateTime"`
+	EndDateTime   string `json:"endDateTime"`
+	MaxVolunteers *int   `json:"maxVolunteers,omitempty"`
 }
 
 type Staff struct {
@@ -279,6 +278,7 @@ type UpdateEventInput struct {
 	Name            string                 `json:"name"`
 	Description     *string                `json:"description,omitempty"`
 	EventType       EventType              `json:"eventType"`
+	StaffContactID  *string                `json:"staffContactId,omitempty"`
 	VenueID         *string                `json:"venueId,omitempty"`
 	Timezone        string                 `json:"timezone"`
 	FundingEntityID int                    `json:"fundingEntityId"`
@@ -307,11 +307,10 @@ type UpdateOpportunityInput struct {
 }
 
 type UpdateShiftInput struct {
-	ID             string  `json:"id"`
-	StartDateTime  string  `json:"startDateTime"`
-	EndDateTime    string  `json:"endDateTime"`
-	MaxVolunteers  *int    `json:"maxVolunteers,omitempty"`
-	StaffContactID *string `json:"staffContactId,omitempty"`
+	ID            string `json:"id"`
+	StartDateTime string `json:"startDateTime"`
+	EndDateTime   string `json:"endDateTime"`
+	MaxVolunteers *int   `json:"maxVolunteers,omitempty"`
 }
 
 type UpdateStaffInput struct {
