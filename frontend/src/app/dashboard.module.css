@@ -1,0 +1,101 @@
+.page {
+  min-height: 100vh;
+  background: var(--color-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4rem 1.5rem 3rem;
+}
+
+.greeting {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 0.4rem;
+  text-align: center;
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  margin-bottom: 2.5rem;
+  text-align: center;
+}
+
+.divider {
+  width: 100%;
+  max-width: 860px;
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin-bottom: 2.5rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 860px;
+}
+
+
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  padding: 2rem 1.75rem;
+  cursor: pointer;
+  text-decoration: none;
+  display: block;
+  border: 1.5px solid transparent;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  text-align: left;
+  font-family: inherit;
+  width: 100%;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+.cardTitle {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+.cardDesc {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+/* Per-card accent colors */
+.blue   { background: #eff6ff; border-color: #bfdbfe; }
+.blue   .cardTitle { color: #1d4ed8; }
+
+.purple { background: #f5f3ff; border-color: #ddd6fe; }
+.purple .cardTitle { color: #6d28d9; }
+
+.yellow { background: #fffbeb; border-color: #fde68a; }
+.yellow .cardTitle { color: #b45309; }
+
+.teal   { background: #f0fdfa; border-color: #99f6e4; }
+.teal   .cardTitle { color: #0f766e; }
+
+.green  { background: #f0fdf4; border-color: #bbf7d0; }
+.green  .cardTitle { color: #15803d; }
+
+.signOut { background: #fef2f2; border-color: #fca5a5; }
+.signOut .cardTitle { color: var(--color-danger); }
+
+@media (max-width: 560px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .greeting {
+    font-size: 1.6rem;
+  }
+}

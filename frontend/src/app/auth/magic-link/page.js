@@ -77,7 +77,7 @@ function MagicLinkContent() {
       // Save only display values — the session token lives in the HttpOnly cookie.
       setAuthInfo(email, roles, name);
       setStatus("success");
-      setTimeout(() => router.push("/events"), 2000);
+      setTimeout(() => router.push("/"), 2000);
     } catch {
       setStatus("error");
       setErrorMsg("Unable to reach the server. Please try again.");

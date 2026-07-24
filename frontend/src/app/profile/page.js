@@ -149,7 +149,7 @@ export default function ProfilePage() {
       <AdminTopBar userName={userName} isAdmin={isAdmin} onSignOut={handleSignOut} onFeedbackOpen={() => setFeedbackOpen(true)} />
 
       <div className={styles.content}>
-        <h1 className={styles.pageTitle}>My Profile</h1>
+        <h1 className={styles.pageTitle}>My Preferences</h1>
 
         {/* Banners */}
         {actionMsg?.type === "success" && (

@@ -47,7 +47,7 @@ test.describe("Magic-link login — happy path", () => {
     }
   });
 
-  test("requests a magic link, receives email, clicks link, lands on /events", async ({
+  test("requests a magic link, receives email, clicks link, lands on dashboard", async ({
     page,
   }) => {
     await clearMailbox();
@@ -73,10 +73,10 @@ test.describe("Magic-link login — happy path", () => {
     // 5. Navigate to the magic-link URL
     await page.goto(magicUrl);
 
-    // 6. Should show "Signed in!" then redirect to /events
+    // 6. Should show "Signed in!" then redirect to the dashboard
     await expect(page.getByRole("heading", { name: "Signed in!" })).toBeVisible();
-    await page.waitForURL("**/events", { timeout: 8_000 });
-    expect(page.url()).toContain("/events");
+    await page.waitForURL("/", { timeout: 8_000 });
+    expect(page.url()).toMatch(/\/$/);
   });
 
   test("sessionActive flag is set in localStorage; raw token is absent", async ({ page }) => {
@@ -86,7 +86,7 @@ test.describe("Magic-link login — happy path", () => {
     const magicUrl = extractMagicLink(msg);
 
     await page.goto(magicUrl);
-    await page.waitForURL("**/events", { timeout: 8_000 });
+    await page.waitForURL("/", { timeout: 8_000 });
 
     // sessionActive (not authToken) is the login indicator
     const sessionActive = await page.evaluate(() => localStorage.getItem("sessionActive"));

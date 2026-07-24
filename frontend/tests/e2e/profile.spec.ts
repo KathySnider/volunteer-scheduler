@@ -26,23 +26,23 @@ test.describe("Profile page — loading", () => {
     await expect(volunteerPage.getByLabel("Email Address")).toHaveValue(volunteerEmail);
   });
 
-  test("My Profile link is visible in the top bar for volunteers", async ({
+  test("My Preferences link is visible in the top bar for volunteers", async ({
     volunteerPage,
   }) => {
     await volunteerPage.goto("/events");
     // Scope to the <nav> to avoid matching the duplicate link inside UserMenu
     await expect(
-      volunteerPage.getByRole("navigation").getByRole("link", { name: "My Profile" })
+      volunteerPage.getByRole("navigation").getByRole("link", { name: "My Preferences" })
     ).toBeVisible();
   });
 
-  test("My Profile link is visible in the top bar for admins", async ({
+  test("My Preferences link is visible in the top bar for admins", async ({
     adminPage,
   }) => {
     await adminPage.goto("/events");
     // Scope to the <nav> to avoid matching the duplicate link inside UserMenu
     await expect(
-      adminPage.getByRole("navigation").getByRole("link", { name: "My Profile" })
+      adminPage.getByRole("navigation").getByRole("link", { name: "My Preferences" })
     ).toBeVisible();
   });
 });

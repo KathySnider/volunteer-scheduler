@@ -172,7 +172,7 @@ export default function MyShiftsPage() {
 
       <div className={styles.content}>
         <div className={styles.pageHeader}>
-          <h1 className={styles.pageTitle}>My Shifts</h1>
+          <h1 className={styles.pageTitle}>My Signups</h1>
 
           {/* Upcoming / Past / All toggle */}
           <div className={styles.filterToggle}>

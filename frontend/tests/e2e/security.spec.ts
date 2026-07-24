@@ -48,7 +48,7 @@ test.describe("HttpOnly session cookie", () => {
     const magicUrl = extractMagicLink(msg);
 
     await page.goto(magicUrl);
-    await page.waitForURL("**/events", { timeout: 8_000 });
+    await page.waitForURL("/", { timeout: 8_000 });
 
     // JavaScript must not be able to read the session cookie.
     const jsCookies = await page.evaluate(() => document.cookie);
@@ -72,7 +72,7 @@ test.describe("HttpOnly session cookie", () => {
     const magicUrl = extractMagicLink(msg);
 
     await page.goto(magicUrl);
-    await page.waitForURL("**/events", { timeout: 8_000 });
+    await page.waitForURL("/", { timeout: 8_000 });
 
     // The new login indicator.
     const sessionActive = await page.evaluate(() => localStorage.getItem("sessionActive"));
@@ -94,7 +94,7 @@ test.describe("HttpOnly session cookie", () => {
     const magicUrl = extractMagicLink(msg);
 
     await page.goto(magicUrl);
-    await page.waitForURL("**/events", { timeout: 8_000 });
+    await page.waitForURL("/", { timeout: 8_000 });
 
     // Cookie is set after login.
     const before = await page.context().cookies();

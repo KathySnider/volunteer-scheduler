@@ -52,8 +52,9 @@ export default function AdminTopBar({ userName, onSignOut, onFeedbackOpen, isAdm
 
         {/* Volunteer nav — always visible for every role on every page */}
         <nav className={styles.topBarNav}>
-          <a href="/my-shifts"   className={linkClass("topBarLink", "/my-shifts")}>My Shifts</a>
-          <a href="/profile"     className={linkClass("topBarLink", "/profile")}>My Profile</a>
+          <a href="/"            className={linkClass("topBarLink", "/")}>Home</a>
+          <a href="/my-shifts"   className={linkClass("topBarLink", "/my-shifts")}>My Signups</a>
+          <a href="/profile"     className={linkClass("topBarLink", "/profile")}>My Preferences</a>
           <button
             type="button"
             className={styles.topBarLink}
