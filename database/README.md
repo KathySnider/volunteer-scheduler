@@ -11,8 +11,6 @@ Make sure your have a file in volunteer-scheduler called `secret_postgres_pw.txt
 docker-compose up -d
 ```
 
-
-
 ## volunteer-scheduler ERD
 
 ```mermaid
@@ -40,6 +38,10 @@ erDiagram
     int max_occurrences
     text weekday_ordinal
   }
+  roles {
+    serial role_id PK
+    varchar role_name
+  }
   volunteers {
     serial volunteer_id PK
     text first_name
@@ -47,13 +49,16 @@ erDiagram
     text email
     varchar phone
     varchar zip_code
-    volunteer_role role
     boolean is_active
     timestamp created_at
     timestamp last_login_at
     numeric latitude
     numeric longitude
     int default_distance_miles
+  }
+  volunteer_roles {
+    int volunteer_id FK
+    int role_id FK
   }
   staff {
     serial staff_id PK
@@ -78,7 +83,6 @@ erDiagram
     varchar email
     varchar token
     integer volunteer_id FK
-    volunteer_role role
     timestamp created_at
     timestamp expires_at
     timestamp last_activity_at
@@ -93,6 +97,7 @@ erDiagram
     uuid recurrence_group_id FK
     int recurrence_order
     text timezone
+    int staff_contact_id FK
   }
   event_dates {
     serial event_date_id PK
@@ -129,7 +134,6 @@ erDiagram
     int opportunity_id FK
     timestamp shift_start
     timestamp shift_end
-    int staff_contact_id FK
     int max_volunteers
     uuid recurrence_template_id
   }
@@ -148,7 +152,6 @@ erDiagram
     varchar subject
     varchar app_page_name
     text text
-    text github_issue_url
     timestamp created_at
     timestamp last_updated_at
     timestamp resolved_at
@@ -171,14 +174,16 @@ erDiagram
     timestamp created_at
   }
 
+  roles ||--o{ volunteer_roles : "assigned via"
+  volunteers ||--o{ volunteer_roles : "has"
   recurrence_groups ||--o{ events : "groups"
   funding_entities ||--o{ events : "funds"
   venues ||--o{ events : "hosts"
+  staff ||--o{ events : "contacts"
   volunteers ||--o{ sessions : "has"
   volunteers ||--o{ volunteer_shifts : "assigned to"
   volunteers ||--o{ feedback : "submits"
   volunteers ||--o{ feedback_notes : "writes"
-  staff ||--o{ shifts : "contacts"
   events ||--o{ event_dates : "has"
   events ||--o{ event_service_types : "has"
   service_types ||--o{ event_service_types : "used in"
@@ -196,7 +201,7 @@ Sample data is not loaded by default.
 If you suspect you have already loaded the DB with sample data, run the trunc.sql script to
 remove all of the the data:
 ```bash
-psql -U postgres -d volunteer-scheduler -p 5433 -a -f .\trunc.sql
+psql -U postgres -d volunteer-scheduler -p 5433 -W -a -f .\trunc.sql
 ```
 
 You will be prompted for the postgres user's password.
@@ -204,7 +209,7 @@ You will be prompted for the postgres user's password.
 To load the data, run the script:
 
 ```bash
-psql -U postgres -d volunteer-scheduler -p 5433 -a -f .\load-sample-data.sql
+psql -U postgres -d volunteer-scheduler -p 5433 -W -a -f .\load-sample-data.sql
 ```
 
 Again, you will be prompted for the postgres user's password.

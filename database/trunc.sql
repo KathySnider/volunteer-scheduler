@@ -3,8 +3,9 @@
 -- Resets sequences so IDs start from 1 again.
 --
 -- Does NOT truncate lookup tables seeded by the migration:
---   job_types, service_types, funding_entities
+--   roles, job_types, service_types, funding_entities
 -- Those are re-created fresh on every `docker-compose down -v` + rebuild.
+-- Note: volunteer_roles is omitted — it cascades from volunteers.
 -- ============================================================================
 
 TRUNCATE TABLE

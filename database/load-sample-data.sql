@@ -1,16 +1,19 @@
 -- ============================================================================
 -- VOLUNTEER SCHEDULER - SAMPLE DATA
--- Washington State AARP Volunteer System
 --
 -- Run AFTER migrations have been applied (e.g. after docker-compose up --build).
 -- Run trunc.sql first if you want a clean reload.
 --
--- Lookup tables (job_types, service_types, funding_entities) are seeded by
--- the migration and are NOT re-inserted here.
+-- Lookup tables (roles, job_types, service_types, funding_entities) are seeded
+-- by the migration and are NOT re-inserted here.
 -- The upserts below are a safety net in case the migration ran incompletely.
 -- ============================================================================
 
--- Safety-net: re-seed service_types (ON CONFLICT = no-op if already there)
+-- Safety-net: re-seed roles
+INSERT INTO roles (role_name) VALUES ('VOLUNTEER'), ('ADMINISTRATOR')
+ON CONFLICT (role_name) DO NOTHING;
+
+-- Safety-net: re-seed service_types
 INSERT INTO service_types (code, name) VALUES
     ('outreach',        'Outreach'),
     ('advocacy',        'Advocacy'),
@@ -19,11 +22,11 @@ INSERT INTO service_types (code, name) VALUES
     ('other',           'Other')
 ON CONFLICT (code) DO NOTHING;
 
--- Safety-net: re-seed funding_entities (ON CONFLICT = no-op if already there)
+-- Safety-net: re-seed funding_entities
 INSERT INTO funding_entities (name) VALUES
-    ('Seattle Area'),
-    ('Spokane Area'),
-    ('Statewide')
+    ('Eastern Region'),
+    ('Central Region'),
+    ('Western Region')
 ON CONFLICT (name) DO NOTHING;
 
 
@@ -34,34 +37,51 @@ ON CONFLICT (name) DO NOTHING;
 -- ============================================================================
 
 INSERT INTO venues (venue_name, street_address, city, state, zip_code) VALUES
-    ('Seattle Central Library',     '1000 4th Ave',             'Seattle',        'WA', '98104'),
-    ('Spokane Convention Center',   '334 W Spokane Falls Blvd', 'Spokane',        'WA', '99201'),
-    ('Tacoma Convention Center',    '1500 Broadway',            'Tacoma',         'WA', '98402'),
-    ('Vancouver Community Library', '901 C St',                 'Vancouver',      'WA', '98660'),
-    ('Bellevue City Hall',          '450 110th Ave NE',         'Bellevue',       'WA', '98004'),
-    ('Spokane Valley Library',      '12004 E Main Ave',         'Spokane Valley', 'WA', '99206'),
-    ('Olympia Center',              '222 Columbia St NW',       'Olympia',        'WA', '98501');
+    ('Boston Public Library',       '700 Boylston St',              'Boston',    'MA', '02116'),
+    ('Atlanta Central Library',     '1 Margaret Mitchell Square',   'Atlanta',   'GA', '30303'),
+    ('Chicago Cultural Center',     '78 E Washington St',           'Chicago',   'IL', '60602'),
+    ('Houston Public Library',      '500 McKinney St',              'Houston',   'TX', '77002'),
+    ('Denver Public Library',       '10 W 14th Ave Pkwy',           'Denver',    'CO', '80204'),
+    ('Phoenix Convention Center',   '100 N 3rd St',                 'Phoenix',   'AZ', '85004'),
+    ('Portland Community Center',   '1234 SW Morrison St',          'Portland',  'OR', '97205');
 
 
 -- ============================================================================
 -- VOLUNTEERS
 --
+-- The role column no longer exists on volunteers — roles are stored in the
+-- volunteer_roles junction table (see below).
+--
 -- TODO: Replace the email on the last row ("Test Admin") with your own so
 --       you can log in via magic link and test the admin UI.
 -- ============================================================================
 
-INSERT INTO volunteers (first_name, last_name, email, phone, zip_code, role, is_active) VALUES
-    ('Alice',   'Hansen',    'alice.hansen@example.com',   '206-555-0101', '98104', 'ADMINISTRATOR', TRUE),
-    ('Bob',     'Nguyen',    'bob.nguyen@example.com',     '509-555-0102', '99201', 'ADMINISTRATOR', TRUE),
-    ('Carol',   'Martinez',  'carol.martinez@example.com', '206-555-0103', '98402', 'VOLUNTEER',     TRUE),
-    ('David',   'Kim',       'david.kim@example.com',      '509-555-0104', '99201', 'VOLUNTEER',     TRUE),
-    ('Ellen',   'Patel',     'ellen.patel@example.com',    '360-555-0105', '98660', 'VOLUNTEER',     TRUE),
-    ('Frank',   'Olsen',     'frank.olsen@example.com',    '206-555-0106', '98004', 'VOLUNTEER',     TRUE),
-    ('Grace',   'Williams',  'grace.williams@example.com', '509-555-0107', '99206', 'VOLUNTEER',     TRUE),
-    ('Henry',   'Thompson',  'henry.thompson@example.com', '360-555-0108', '98501', 'VOLUNTEER',     TRUE),
-    ('Isabel',  'Chen',      'isabel.chen@example.com',    '206-555-0109', '98104', 'VOLUNTEER',     TRUE),
-    ('James',   'Robinson',  'james.robinson@example.com', '509-555-0110', '99201', 'VOLUNTEER',     TRUE),
-    ('Test',    'Admin',     'kathy.snider@icloud.com',      NULL,           NULL,    'ADMINISTRATOR', TRUE);
+INSERT INTO volunteers (first_name, last_name, email, phone, zip_code, is_active) VALUES
+    ('Alice',   'Hansen',    'alice.hansen@example.com',   '617-555-0101', '02116', TRUE),
+    ('Bob',     'Nguyen',    'bob.nguyen@example.com',     '312-555-0102', '60602', TRUE),
+    ('Carol',   'Martinez',  'carol.martinez@example.com', '617-555-0103', '02116', TRUE),
+    ('David',   'Kim',       'david.kim@example.com',      '713-555-0104', '77002', TRUE),
+    ('Ellen',   'Patel',     'ellen.patel@example.com',    '303-555-0105', '80204', TRUE),
+    ('Frank',   'Olsen',     'frank.olsen@example.com',    '602-555-0106', '85004', TRUE),
+    ('Grace',   'Williams',  'grace.williams@example.com', '503-555-0107', '97205', TRUE),
+    ('Henry',   'Thompson',  'henry.thompson@example.com', '404-555-0108', '30303', TRUE),
+    ('Isabel',  'Chen',      'isabel.chen@example.com',    '617-555-0109', '02116', TRUE),
+    ('James',   'Robinson',  'james.robinson@example.com', '312-555-0110', '60602', TRUE),
+    ('Test',    'Admin',     'admin@example.com',          NULL,           NULL,    TRUE);
+
+-- Assign roles via junction table.
+-- All volunteers get the VOLUNTEER role; admins also get ADMINISTRATOR.
+INSERT INTO volunteer_roles (volunteer_id, role_id)
+SELECT v.volunteer_id, r.role_id
+FROM   volunteers v
+CROSS  JOIN roles r
+WHERE  r.role_name = 'VOLUNTEER';
+
+INSERT INTO volunteer_roles (volunteer_id, role_id)
+SELECT v.volunteer_id, r.role_id
+FROM   volunteers v
+JOIN   roles r ON r.role_name = 'ADMINISTRATOR'
+WHERE  v.first_name IN ('Alice', 'Bob', 'Test');
 
 
 -- ============================================================================
@@ -69,9 +89,9 @@ INSERT INTO volunteers (first_name, last_name, email, phone, zip_code, role, is_
 -- ============================================================================
 
 INSERT INTO staff (first_name, last_name, email, phone, position) VALUES
-    ('Margaret', 'Sullivan', 'margaret.sullivan@aarp.org', '206-555-0201', 'State Coordinator'),
-    ('Richard',  'Tanaka',   'richard.tanaka@aarp.org',    '509-555-0202', 'Regional Manager'),
-    ('Patricia', 'Flores',   'patricia.flores@aarp.org',   '360-555-0203', 'Event Coordinator');
+    ('Margaret', 'Sullivan', 'margaret.sullivan@example.org', '617-555-0201', 'Regional Coordinator'),
+    ('Richard',  'Tanaka',   'richard.tanaka@example.org',    '713-555-0202', 'Regional Manager'),
+    ('Patricia', 'Flores',   'patricia.flores@example.org',   '503-555-0203', 'Event Coordinator');
 
 
 -- ============================================================================
@@ -82,73 +102,82 @@ INSERT INTO staff (first_name, last_name, email, phone, position) VALUES
 --   event_is_virtual=TRUE,  venue_id IS NULL       → VIRTUAL
 --   event_is_virtual=TRUE,  venue_id IS NOT NULL   → HYBRID
 --
--- funding_entity_id maps to the funding_entities table seeded by the migration:
---   1 = Seattle Area  (western WA: Seattle, Bellevue, Tacoma, Vancouver, Olympia)
---   2 = Spokane Area  (eastern WA: Spokane, Spokane Valley)
---   3 = Statewide     (virtual or state-wide events)
+-- staff_contact_id moved here from shifts (migration 000004).
+--
+-- funding_entity_id maps to:
+--   Eastern Region  (e.g. Boston, Atlanta)
+--   Central Region  (e.g. Chicago, Houston)
+--   Western Region  (e.g. Denver, Phoenix, Portland)
 -- ============================================================================
 
--- Seattle Area - IN_PERSON
-INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id) VALUES
+-- Eastern Region - IN_PERSON
+INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id, staff_contact_id) VALUES
     ('Medicare Q&A Workshop',
      'Help seniors navigate Medicare enrollment and plan options. Volunteers assist with one-on-one sessions.',
      FALSE,
-     (SELECT venue_id FROM venues WHERE city = 'Seattle'),
-     (SELECT id FROM funding_entities WHERE name = 'Seattle Area' LIMIT 1));
+     (SELECT venue_id FROM venues WHERE city = 'Boston'),
+     (SELECT id FROM funding_entities WHERE name = 'Eastern Region' LIMIT 1),
+     (SELECT staff_id FROM staff WHERE last_name = 'Sullivan'));
 
-INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id) VALUES
+INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id, staff_contact_id) VALUES
     ('Tax Aide Preparation - Summer Session',
      'Free tax preparation assistance for low-to-moderate income seniors. Training provided.',
      FALSE,
-     (SELECT venue_id FROM venues WHERE city = 'Bellevue'),
-     (SELECT id FROM funding_entities WHERE name = 'Seattle Area' LIMIT 1));
+     (SELECT venue_id FROM venues WHERE city = 'Chicago'),
+     (SELECT id FROM funding_entities WHERE name = 'Central Region' LIMIT 1),
+     (SELECT staff_id FROM staff WHERE last_name = 'Sullivan'));
 
--- Statewide - VIRTUAL
+-- Western Region - VIRTUAL (no staff contact)
 INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id) VALUES
     ('Virtual Fraud Prevention Seminar',
      'Online session covering the latest scams targeting seniors and how to stay safe.',
      TRUE,
      NULL,
-     (SELECT id FROM funding_entities WHERE name = 'Statewide' LIMIT 1));
+     (SELECT id FROM funding_entities WHERE name = 'Western Region' LIMIT 1));
 
--- Seattle Area - HYBRID (in-person venue + also streamed online)
-INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id) VALUES
+-- Western Region - HYBRID (in-person venue + also streamed online)
+INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id, staff_contact_id) VALUES
     ('Hybrid Benefits Counseling Day',
      'One-on-one benefits counseling available both in person and via video call. '
      'Volunteers help with check-in and virtual waiting room management.',
      TRUE,
-     (SELECT venue_id FROM venues WHERE city = 'Tacoma'),
-     (SELECT id FROM funding_entities WHERE name = 'Seattle Area' LIMIT 1));
+     (SELECT venue_id FROM venues WHERE city = 'Denver'),
+     (SELECT id FROM funding_entities WHERE name = 'Western Region' LIMIT 1),
+     (SELECT staff_id FROM staff WHERE last_name = 'Sullivan'));
 
--- Spokane Area - IN_PERSON
-INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id) VALUES
-    ('Spokane Senior Health Fair',
+-- Central Region - IN_PERSON
+INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id, staff_contact_id) VALUES
+    ('Senior Health Fair',
      'Community health fair with blood pressure checks, medication reviews, and wellness resources.',
      FALSE,
-     (SELECT venue_id FROM venues WHERE city = 'Spokane'),
-     (SELECT id FROM funding_entities WHERE name = 'Spokane Area' LIMIT 1));
+     (SELECT venue_id FROM venues WHERE city = 'Houston'),
+     (SELECT id FROM funding_entities WHERE name = 'Central Region' LIMIT 1),
+     (SELECT staff_id FROM staff WHERE last_name = 'Tanaka'));
 
-INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id) VALUES
+INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id, staff_contact_id) VALUES
     ('Driver Safety Course',
-     'AARP Smart Driver course for seniors. Volunteers help with registration and materials.',
+     'Smart driver course for seniors. Volunteers help with registration and materials.',
      FALSE,
-     (SELECT venue_id FROM venues WHERE city = 'Spokane Valley'),
-     (SELECT id FROM funding_entities WHERE name = 'Spokane Area' LIMIT 1));
+     (SELECT venue_id FROM venues WHERE city = 'Phoenix'),
+     (SELECT id FROM funding_entities WHERE name = 'Western Region' LIMIT 1),
+     (SELECT staff_id FROM staff WHERE last_name = 'Tanaka'));
 
--- Seattle Area - IN_PERSON (western WA)
-INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id) VALUES
+-- Eastern Region - IN_PERSON
+INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id, staff_contact_id) VALUES
     ('Social Security Benefits Workshop',
      'Informational session on maximizing Social Security benefits. Volunteers greet and assist attendees.',
      FALSE,
-     (SELECT venue_id FROM venues WHERE city = 'Vancouver'),
-     (SELECT id FROM funding_entities WHERE name = 'Seattle Area' LIMIT 1));
+     (SELECT venue_id FROM venues WHERE city = 'Atlanta'),
+     (SELECT id FROM funding_entities WHERE name = 'Eastern Region' LIMIT 1),
+     (SELECT staff_id FROM staff WHERE last_name = 'Flores'));
 
-INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id) VALUES
+INSERT INTO events (event_name, description, event_is_virtual, venue_id, funding_entity_id, staff_contact_id) VALUES
     ('Caregiver Support Forum',
      'Forum connecting family caregivers with local resources and support networks.',
      FALSE,
-     (SELECT venue_id FROM venues WHERE city = 'Olympia'),
-     (SELECT id FROM funding_entities WHERE name = 'Seattle Area' LIMIT 1));
+     (SELECT venue_id FROM venues WHERE city = 'Portland'),
+     (SELECT id FROM funding_entities WHERE name = 'Western Region' LIMIT 1),
+     (SELECT staff_id FROM staff WHERE last_name = 'Flores'));
 
 
 -- ============================================================================
@@ -182,7 +211,7 @@ WHERE e.event_name = 'Hybrid Benefits Counseling Day'
 INSERT INTO event_service_types (event_id, service_type_id)
 SELECT e.event_id, st.service_type_id
 FROM events e, service_types st
-WHERE e.event_name = 'Spokane Senior Health Fair'
+WHERE e.event_name = 'Senior Health Fair'
   AND st.code = 'outreach';
 
 INSERT INTO event_service_types (event_id, service_type_id)
@@ -227,7 +256,7 @@ FROM events WHERE event_name = 'Hybrid Benefits Counseling Day';
 
 INSERT INTO event_dates (event_id, start_date_time, end_date_time)
 SELECT event_id, '2026-08-02 09:00:00', '2026-08-02 14:00:00'
-FROM events WHERE event_name = 'Spokane Senior Health Fair';
+FROM events WHERE event_name = 'Senior Health Fair';
 
 INSERT INTO event_dates (event_id, start_date_time, end_date_time)
 SELECT event_id, '2026-07-11 08:30:00', '2026-07-11 12:30:00'
@@ -244,29 +273,30 @@ FROM events WHERE event_name = 'Caregiver Support Forum';
 
 -- ============================================================================
 -- OPPORTUNITIES AND SHIFTS
+-- staff_contact_id is now on events, not shifts.
 -- ============================================================================
 
 -- Medicare Q&A Workshop - event_support
 INSERT INTO opportunities (event_id, job_type_id, opportunity_is_virtual, pre_event_instructions)
 SELECT e.event_id, jt.job_type_id, FALSE,
-    'Please arrive 30 minutes early for briefing. Wear your AARP volunteer badge.'
+    'Please arrive 30 minutes early for briefing. Wear your volunteer badge.'
 FROM events e, job_types jt
 WHERE e.event_name = 'Medicare Q&A Workshop'
   AND jt.code = 'event_support';
 
-INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-07-12 08:30:00', '2026-07-12 12:00:00', 4,
-    (SELECT staff_id FROM staff WHERE last_name = 'Sullivan')
+INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers)
+SELECT o.opportunity_id, '2026-07-12 08:30:00', '2026-07-12 12:00:00', 4
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
-WHERE e.event_name = 'Medicare Q&A Workshop';
+WHERE e.event_name = 'Medicare Q&A Workshop'
+  AND o.job_type_id = (SELECT job_type_id FROM job_types WHERE code = 'event_support');
 
-INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-07-12 12:00:00', '2026-07-12 15:30:00', 4,
-    (SELECT staff_id FROM staff WHERE last_name = 'Sullivan')
+INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers)
+SELECT o.opportunity_id, '2026-07-12 12:00:00', '2026-07-12 15:30:00', 4
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
-WHERE e.event_name = 'Medicare Q&A Workshop';
+WHERE e.event_name = 'Medicare Q&A Workshop'
+  AND o.job_type_id = (SELECT job_type_id FROM job_types WHERE code = 'event_support');
 
 -- Medicare Q&A Workshop - advocacy (second opportunity at same event)
 INSERT INTO opportunities (event_id, job_type_id, opportunity_is_virtual, pre_event_instructions)
@@ -276,9 +306,8 @@ FROM events e, job_types jt
 WHERE e.event_name = 'Medicare Q&A Workshop'
   AND jt.code = 'advocacy';
 
-INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-07-12 09:00:00', '2026-07-12 15:00:00', 2,
-    (SELECT staff_id FROM staff WHERE last_name = 'Sullivan')
+INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers)
+SELECT o.opportunity_id, '2026-07-12 09:00:00', '2026-07-12 15:00:00', 2
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
 WHERE e.event_name = 'Medicare Q&A Workshop'
@@ -292,16 +321,14 @@ FROM events e, job_types jt
 WHERE e.event_name = 'Tax Aide Preparation - Summer Session'
   AND jt.code = 'event_support';
 
-INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-07-19 09:30:00', '2026-07-19 13:00:00', 6,
-    (SELECT staff_id FROM staff WHERE last_name = 'Sullivan')
+INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers)
+SELECT o.opportunity_id, '2026-07-19 09:30:00', '2026-07-19 13:00:00', 6
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
 WHERE e.event_name = 'Tax Aide Preparation - Summer Session';
 
-INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-07-19 13:00:00', '2026-07-19 16:30:00', 6,
-    (SELECT staff_id FROM staff WHERE last_name = 'Sullivan')
+INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers)
+SELECT o.opportunity_id, '2026-07-19 13:00:00', '2026-07-19 16:30:00', 6
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
 WHERE e.event_name = 'Tax Aide Preparation - Summer Session';
@@ -309,7 +336,7 @@ WHERE e.event_name = 'Tax Aide Preparation - Summer Session';
 -- Virtual Fraud Prevention - speaker
 INSERT INTO opportunities (event_id, job_type_id, opportunity_is_virtual, pre_event_instructions)
 SELECT e.event_id, jt.job_type_id, TRUE,
-    'Zoom link will be emailed 24 hours before the event. Test your audio/video beforehand.'
+    'Video conference link will be emailed 24 hours before the event. Test your audio/video beforehand.'
 FROM events e, job_types jt
 WHERE e.event_name = 'Virtual Fraud Prevention Seminar'
   AND jt.code = 'speaker';
@@ -328,9 +355,8 @@ FROM events e, job_types jt
 WHERE e.event_name = 'Hybrid Benefits Counseling Day'
   AND jt.code = 'event_support';
 
-INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-07-26 08:30:00', '2026-07-26 16:30:00', 3,
-    (SELECT staff_id FROM staff WHERE last_name = 'Sullivan')
+INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers)
+SELECT o.opportunity_id, '2026-07-26 08:30:00', '2026-07-26 16:30:00', 3
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
 WHERE e.event_name = 'Hybrid Benefits Counseling Day'
@@ -339,40 +365,37 @@ WHERE e.event_name = 'Hybrid Benefits Counseling Day'
 -- Hybrid Benefits Counseling - volunteer_lead (virtual waiting room)
 INSERT INTO opportunities (event_id, job_type_id, opportunity_is_virtual, pre_event_instructions)
 SELECT e.event_id, jt.job_type_id, TRUE,
-    'Monitor the Zoom waiting room and admit participants at their scheduled times.'
+    'Monitor the video waiting room and admit participants at their scheduled times.'
 FROM events e, job_types jt
 WHERE e.event_name = 'Hybrid Benefits Counseling Day'
   AND jt.code = 'volunteer_lead';
 
-INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-07-26 08:45:00', '2026-07-26 16:15:00', 2,
-    (SELECT staff_id FROM staff WHERE last_name = 'Sullivan')
+INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers)
+SELECT o.opportunity_id, '2026-07-26 08:45:00', '2026-07-26 16:15:00', 2
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
 WHERE e.event_name = 'Hybrid Benefits Counseling Day'
   AND o.opportunity_is_virtual = TRUE;
 
--- Spokane Senior Health Fair - event_support
+-- Senior Health Fair - event_support
 INSERT INTO opportunities (event_id, job_type_id, opportunity_is_virtual, pre_event_instructions)
 SELECT e.event_id, jt.job_type_id, FALSE,
     'Wear comfortable shoes. Setup begins at 8:00 AM.'
 FROM events e, job_types jt
-WHERE e.event_name = 'Spokane Senior Health Fair'
+WHERE e.event_name = 'Senior Health Fair'
   AND jt.code = 'event_support';
 
-INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-08-02 08:00:00', '2026-08-02 11:30:00', 5,
-    (SELECT staff_id FROM staff WHERE last_name = 'Tanaka')
+INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers)
+SELECT o.opportunity_id, '2026-08-02 08:00:00', '2026-08-02 11:30:00', 5
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
-WHERE e.event_name = 'Spokane Senior Health Fair';
+WHERE e.event_name = 'Senior Health Fair';
 
-INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-08-02 11:30:00', '2026-08-02 14:30:00', 5,
-    (SELECT staff_id FROM staff WHERE last_name = 'Tanaka')
+INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers)
+SELECT o.opportunity_id, '2026-08-02 11:30:00', '2026-08-02 14:30:00', 5
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
-WHERE e.event_name = 'Spokane Senior Health Fair';
+WHERE e.event_name = 'Senior Health Fair';
 
 -- Driver Safety Course - volunteer_lead
 INSERT INTO opportunities (event_id, job_type_id, opportunity_is_virtual, pre_event_instructions)
@@ -382,9 +405,8 @@ FROM events e, job_types jt
 WHERE e.event_name = 'Driver Safety Course'
   AND jt.code = 'volunteer_lead';
 
-INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-07-11 08:00:00', '2026-07-11 13:00:00', 2,
-    (SELECT staff_id FROM staff WHERE last_name = 'Tanaka')
+INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers)
+SELECT o.opportunity_id, '2026-07-11 08:00:00', '2026-07-11 13:00:00', 2
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
 WHERE e.event_name = 'Driver Safety Course';
@@ -397,9 +419,8 @@ FROM events e, job_types jt
 WHERE e.event_name = 'Social Security Benefits Workshop'
   AND jt.code = 'event_support';
 
-INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-08-09 09:30:00', '2026-08-09 13:30:00', 4,
-    (SELECT staff_id FROM staff WHERE last_name = 'Flores')
+INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers)
+SELECT o.opportunity_id, '2026-08-09 09:30:00', '2026-08-09 13:30:00', 4
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
 WHERE e.event_name = 'Social Security Benefits Workshop';
@@ -412,9 +433,8 @@ FROM events e, job_types jt
 WHERE e.event_name = 'Caregiver Support Forum'
   AND jt.code = 'event_support';
 
-INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers, staff_contact_id)
-SELECT o.opportunity_id, '2026-08-16 12:30:00', '2026-08-16 16:30:00', 3,
-    (SELECT staff_id FROM staff WHERE last_name = 'Flores')
+INSERT INTO shifts (opportunity_id, shift_start, shift_end, max_volunteers)
+SELECT o.opportunity_id, '2026-08-16 12:30:00', '2026-08-16 16:30:00', 3
 FROM opportunities o
 JOIN events e ON o.event_id = e.event_id
 WHERE e.event_name = 'Caregiver Support Forum';
@@ -468,14 +488,14 @@ WHERE v.first_name = 'James'
   AND e.event_name = 'Medicare Q&A Workshop'
   AND jt.code = 'advocacy';
 
--- David and Grace: Spokane Health Fair morning shift
+-- David and Grace: Senior Health Fair morning shift
 INSERT INTO volunteer_shifts (volunteer_id, shift_id, assigned_at)
 SELECT v.volunteer_id, s.shift_id, NOW()
 FROM volunteers v, shifts s
 JOIN opportunities o ON s.opportunity_id = o.opportunity_id
 JOIN events e ON o.event_id = e.event_id
 WHERE v.first_name = 'David'
-  AND e.event_name = 'Spokane Senior Health Fair'
+  AND e.event_name = 'Senior Health Fair'
   AND s.shift_start = '2026-08-02 08:00:00';
 
 INSERT INTO volunteer_shifts (volunteer_id, shift_id, assigned_at)
@@ -484,7 +504,7 @@ FROM volunteers v, shifts s
 JOIN opportunities o ON s.opportunity_id = o.opportunity_id
 JOIN events e ON o.event_id = e.event_id
 WHERE v.first_name = 'Grace'
-  AND e.event_name = 'Spokane Senior Health Fair'
+  AND e.event_name = 'Senior Health Fair'
   AND s.shift_start = '2026-08-02 08:00:00';
 
 -- Ellen: Social Security Workshop (signs up then cancels)
@@ -529,11 +549,11 @@ BEGIN
                       recurrence_group_id, recurrence_order, timezone)
   VALUES (
     'Monthly Volunteer Orientation',
-    'Introduction for new AARP volunteers. Covers mission, policies, and upcoming events.',
+    'Introduction for new volunteers. Covers mission, policies, and upcoming events.',
     FALSE,
-    (SELECT venue_id FROM venues WHERE city = 'Seattle'),
-    (SELECT id FROM funding_entities WHERE name = 'Statewide' LIMIT 1),
-    grp_id, 1, 'America/Los_Angeles'
+    (SELECT venue_id FROM venues WHERE city = 'Chicago'),
+    (SELECT id FROM funding_entities WHERE name = 'Central Region' LIMIT 1),
+    grp_id, 1, 'America/Chicago'
   )
   RETURNING event_id INTO evt1_id;
 
@@ -545,11 +565,11 @@ BEGIN
                       recurrence_group_id, recurrence_order, timezone)
   VALUES (
     'Monthly Volunteer Orientation',
-    'Introduction for new AARP volunteers. Covers mission, policies, and upcoming events.',
+    'Introduction for new volunteers. Covers mission, policies, and upcoming events.',
     FALSE,
-    (SELECT venue_id FROM venues WHERE city = 'Seattle'),
-    (SELECT id FROM funding_entities WHERE name = 'Statewide' LIMIT 1),
-    grp_id, 2, 'America/Los_Angeles'
+    (SELECT venue_id FROM venues WHERE city = 'Chicago'),
+    (SELECT id FROM funding_entities WHERE name = 'Central Region' LIMIT 1),
+    grp_id, 2, 'America/Chicago'
   )
   RETURNING event_id INTO evt2_id;
 
@@ -561,11 +581,11 @@ BEGIN
                       recurrence_group_id, recurrence_order, timezone)
   VALUES (
     'Monthly Volunteer Orientation',
-    'Introduction for new AARP volunteers. Covers mission, policies, and upcoming events.',
+    'Introduction for new volunteers. Covers mission, policies, and upcoming events.',
     FALSE,
-    (SELECT venue_id FROM venues WHERE city = 'Seattle'),
-    (SELECT id FROM funding_entities WHERE name = 'Statewide' LIMIT 1),
-    grp_id, 3, 'America/Los_Angeles'
+    (SELECT venue_id FROM venues WHERE city = 'Chicago'),
+    (SELECT id FROM funding_entities WHERE name = 'Central Region' LIMIT 1),
+    grp_id, 3, 'America/Chicago'
   )
   RETURNING event_id INTO evt3_id;
 

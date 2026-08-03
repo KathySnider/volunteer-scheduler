@@ -141,9 +141,9 @@ CREATE TABLE funding_entities (
 );
 
 INSERT INTO funding_entities (name) VALUES
-    ('Seattle Area'),
-    ('Spokane Area'),
-    ('Statewide');
+    ('Eastern Region'),
+    ('Central Region'),
+    ('Western Region');
 
 
 -- ============================================================================
