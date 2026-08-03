@@ -166,10 +166,31 @@ const FORMAT_BADGE_CLASS = {
 };
 
 /* ----- ShiftRow — one row per shift inside a job group card ----- */
-function ShiftRow({ shift, isSignedUp, busy, onSignUp, onCancel, conflictingShifts }) {
+function ShiftRow({ shift, isSignedUp, busy, onSignUp, onCancel, ownShifts }) {
+  const [awaitingConfirm, setAwaitingConfirm] = useState(false);
+  const [conflictNames,   setConflictNames]   = useState([]);
+
+  // Reset confirmation state whenever the signed-up status changes.
+  useEffect(() => {
+    if (isSignedUp) { setAwaitingConfirm(false); setConflictNames([]); }
+  }, [isSignedUp]);
+
   const open   = spotsOpen(shift);
   const isFull = open !== null && open === 0;
-  const hasConflict = !isSignedUp && conflictingShifts && conflictingShifts.length > 0;
+
+  const handleSignUpClick = () => {
+    if (!awaitingConfirm) {
+      const conflicts = findConflicts(shift, ownShifts);
+      if (conflicts.length > 0) {
+        setAwaitingConfirm(true);
+        setConflictNames(conflicts.map((c) => c.eventName).filter(Boolean));
+        return;
+      }
+    }
+    setAwaitingConfirm(false);
+    setConflictNames([]);
+    onSignUp(shift.id);
+  };
 
   // Spots label — shown as plain text, not on the button
   let spotsLabel = null;
@@ -192,24 +213,23 @@ function ShiftRow({ shift, isSignedUp, busy, onSignUp, onCancel, conflictingShif
   } else if (!isFull) {
     btn = (
       <button
-        className={hasConflict ? styles.btnSignUpAnyway : styles.btnSignUp}
+        className={awaitingConfirm ? styles.btnSignUpAnyway : styles.btnSignUp}
         disabled={busy}
-        onClick={() => onSignUp(shift.id)}
+        onClick={handleSignUpClick}
       >
-        {busy ? "Signing up…" : hasConflict ? "Sign Up Anyway" : "Sign Up"}
+        {busy ? "Signing up…" : awaitingConfirm ? "Sign Up Anyway" : "Sign Up"}
       </button>
     );
   }
 
-  // Conflict warning text — names up to 2 conflicting events
+  // Conflict warning — only shown after the first click reveals a conflict.
   let conflictNote = null;
-  if (hasConflict) {
-    const names = conflictingShifts.map((c) => c.eventName).filter(Boolean);
-    const label = names.length === 1
-      ? names[0]
-      : names.length === 2
-        ? `${names[0]} and ${names[1]}`
-        : `${names[0]} and ${names.length - 1} others`;
+  if (awaitingConfirm && conflictNames.length > 0) {
+    const label = conflictNames.length === 1
+      ? conflictNames[0]
+      : conflictNames.length === 2
+        ? `${conflictNames[0]} and ${conflictNames[1]}`
+        : `${conflictNames[0]} and ${conflictNames.length - 1} others`;
     conflictNote = (
       <div className={styles.conflictWarning}>
         ⚠️ Overlaps with your shift: <strong>{label}</strong>
@@ -265,7 +285,7 @@ function JobGroupCard({ jobName, shifts, serviceTypes, signedUpIds, ownShifts, a
           busy={actionBusy === shift.id}
           onSignUp={onSignUp}
           onCancel={onCancel}
-          conflictingShifts={findConflicts(shift, ownShifts)}
+          ownShifts={ownShifts}
         />
       ))}
     </>
