@@ -2,8 +2,8 @@
  * E2E tests — Authentication flow
  *
  * Covers:
- *  - Happy path: magic-link request → email arrives → click link → land on /events
- *  - Role routing: ADMINISTRATOR lands on /events (same page, admin nav links shown in header)
+ *  - Happy path: magic-link request → email arrives → click link → land on dashboard (/)
+ *  - Role routing: ADMINISTRATOR is redirected from / to /admin/events
  *  - Unknown email: "No account found" message shown, account request form offered
  *  - Invalid/expired token: sign-in error shown
  *  - Logged-out user hitting a protected page: redirected to /login
@@ -102,11 +102,16 @@ test.describe("Magic-link login — happy path", () => {
 });
 
 test.describe("Magic-link login — admin routing", () => {
-  test("administrator sees admin nav links in the header when logged in", async ({ adminPage }) => {
-    await adminPage.goto("/events");
+  test("administrator is redirected from / to /admin/events", async ({ adminPage }) => {
+    await adminPage.goto("/");
+    await adminPage.waitForURL("**/admin/events", { timeout: 8_000 });
+    expect(adminPage.url()).toContain("/admin/events");
+  });
 
-    // Admin section links are always visible in the persistent header — no
-    // gear-icon dropdown needed any more.
+  test("administrator sees admin nav links in the header when logged in", async ({ adminPage }) => {
+    await adminPage.goto("/admin/events");
+
+    // Admin section links are always visible in the persistent header.
     await expect(adminPage.getByRole("link", { name: "Events" }).first()).toBeVisible({ timeout: 8_000 });
     await expect(adminPage.getByRole("link", { name: "Volunteers" })).toBeVisible({ timeout: 8_000 });
   });

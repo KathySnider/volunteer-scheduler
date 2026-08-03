@@ -228,7 +228,7 @@ test.describe("Shift signup — scheduling conflict", () => {
     if (conflictJobTypeId) try { await deleteJobType(adminToken, conflictJobTypeId); } catch { /* ignore */ }
   });
 
-  test("shows conflict warning and Sign Up Anyway button when shifts overlap", async ({
+  test("shows no pre-emptive warning on load; reveals conflict warning on first click", async ({
     volunteerPage,
   }) => {
     // Sign up for Event A (9 AM – 11 AM) via UI.
@@ -240,22 +240,27 @@ test.describe("Shift signup — scheduling conflict", () => {
       volunteerPage.getByRole("button", { name: "Cancel Signup" }).first()
     ).toBeVisible({ timeout: 5_000 });
 
-    // Navigate to Event B (10 AM – 12 PM).  The shift cache now includes Event A,
-    // so overlap detection fires on load.
+    // Navigate to Event B (10 AM – 12 PM, overlaps with A).
     await volunteerPage.goto(`/events/${eventBId}`);
 
-    // Conflict warning and amber "Sign Up Anyway" button should be visible.
+    // On page load: no warning shown, button says "Sign Up" not "Sign Up Anyway".
+    const signUpB = volunteerPage.getByRole("button", { name: "Sign Up", exact: true });
+    await expect(signUpB).toBeVisible({ timeout: 5_000 });
+    await expect(
+      volunteerPage.getByText(/overlaps with your shift/i)
+    ).not.toBeVisible();
+    await expect(
+      volunteerPage.getByRole("button", { name: "Sign Up Anyway" })
+    ).not.toBeVisible();
+
+    // First click reveals the conflict warning and changes the button to "Sign Up Anyway".
+    await signUpB.click();
     await expect(
       volunteerPage.getByText(/overlaps with your shift/i)
     ).toBeVisible({ timeout: 5_000 });
     await expect(
       volunteerPage.getByRole("button", { name: "Sign Up Anyway" })
     ).toBeVisible({ timeout: 5_000 });
-
-    // Normal "Sign Up" button must NOT appear (it's replaced by "Sign Up Anyway").
-    await expect(
-      volunteerPage.getByRole("button", { name: "Sign Up", exact: true })
-    ).not.toBeVisible();
   });
 
   test("Sign Up Anyway succeeds and shows confirmation despite conflict", async ({
@@ -270,8 +275,13 @@ test.describe("Shift signup — scheduling conflict", () => {
       volunteerPage.getByRole("button", { name: "Cancel Signup" }).first()
     ).toBeVisible({ timeout: 5_000 });
 
-    // Navigate to Event B and override the conflict.
+    // Navigate to Event B. First click reveals the conflict warning.
     await volunteerPage.goto(`/events/${eventBId}`);
+    const signUpB = volunteerPage.getByRole("button", { name: "Sign Up", exact: true });
+    await expect(signUpB).toBeVisible({ timeout: 5_000 });
+    await signUpB.click();
+
+    // Second click ("Sign Up Anyway") confirms and proceeds.
     const signUpAnyway = volunteerPage.getByRole("button", { name: "Sign Up Anyway" });
     await expect(signUpAnyway).toBeVisible({ timeout: 5_000 });
     await signUpAnyway.click();
